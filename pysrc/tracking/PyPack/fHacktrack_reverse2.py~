@@ -1,0 +1,196 @@
+def ecrireTraining(ensembleTraj, fileToSave):
+    solutions = {}
+    solutions[0]={}
+    fileS=open(fileToSave, "w")
+    labelsVus = {}
+    appearCandidates = {}
+    disappearCandidates = {}
+    mergedLabels={}
+
+    for trajectoire in ensembleTraj.lstTraj:
+        frameLabels = sorted(trajectoire.lstPoints.iterkeys())
+        lastLabels = []
+        lastFrame = -1
+        lastMoveSplit = [False for x in range(100)]
+
+        for f in frameLabels:
+            frame = int(f[0])
+            nextFrame = frame+1
+
+            if nextFrame==LENGTH:
+                if not nextFrame in labelsVus:
+                    labelsVus[nextFrame]=[]
+                for label in lastLabels: 
+                    labelsVus[nextFrame].append(label)
+                continue
+
+            if lastLabels == []:
+                lastLabels=trajectoire.findFrame(frame)
+
+            if frame == lastFrame:
+                continue
+
+            if frame > lastFrame+1:
+               appearCandidates[lastLabels[0]]=frame
+
+            nextLabels = trajectoire.findFrame(nextFrame)
+
+            if not frame in solutions:
+                solutions[frame]={}
+
+            l = len(lastLabels)
+            nextL = len(nextLabels)
+            #print "FRAME :"+str(frame),l, nextL, lastLabels, nextLabels, trajectoire.numCellule
+
+
+            if int(l)==int(nextL):
+                #print "MOVE"
+                #lastMoveSplit = False
+                if not "move" in solutions[frame]:
+                    solutions[frame]["move"]=[[], []]
+
+                solutions[frame]["move"][0].append(lastLabels)
+                solutions[frame]["move"][1].append(nextLabels)
+                if not nextFrame in labelsVus:
+                    labelsVus[nextFrame]=[]
+                for label in nextLabels: 
+                    labelsVus[nextFrame].append(label)
+
+            elif int(l)==0:
+                if int(nextL)==1:
+                    print "APPEAR, we should not be there"
+                 #   lastMoveSplit = False
+                    if not "appear" in solutions[frame]:
+                        solutions[frame]["appear"]=[[], []]
+
+                    solutions[frame]["appear"][0].append(lastLabels)
+                    solutions[frame]["appear"][1].append(nextLabels)
+                else:
+                    print "more than one cell appearing at the same t "+str(frame)
+                    raise
+
+            elif int(l)==1:
+                if int(nextL)==0:
+                    disappearCandidates[lastLabels[0]]=frame
+
+                elif  int(nextL)>=2:
+                    lastMoveSplit[nextFrame] = True
+                    #print "SPLIT", lastMoveSplit[nextFrame]
+
+                    if not "split" in solutions[frame]:
+                        solutions[frame]["split"]=[[], []]
+
+                    solutions[frame]["split"][0].append(lastLabels)
+                    solutions[frame]["split"][1].append(nextLabels)
+                    if not nextFrame in labelsVus:
+                        labelsVus[nextFrame]=[]
+                    for label in nextLabels: 
+                        labelsVus[nextFrame].append(label)
+
+                else:
+                    print "one cell PBL at t="+str(frame)
+                    raise
+
+            elif int(l)>=2:
+                if int(nextL)==1:
+                    print "FRAME :"+str(frame), lastLabels, nextLabels, trajectoire.numCellule, lastMoveSplit[frame]
+                    if lastMoveSplit[frame]:
+                        xmin = 100
+                        ymin = 100
+                        labelmin = 0
+                        xf = trajectoire.lstPoints[(nextFrame, nextLabels[0])][0]
+                        yf = trajectoire.lstPoints[(nextFrame, nextLabels[0])][1]
+                        for label in lastLabels:
+                            x = abs(int(xf) - int(trajectoire.lstPoints[(frame, label)][0]))
+                            y = abs(int(yf) - int(trajectoire.lstPoints[(frame, label)][1]))
+                            if int(x)<int(xmin) and int(y)<int(ymin):
+                                labelmin = label
+                                xmin = x
+                                ymin = y
+
+                        if labelmin == 0:
+                            print "lastMoveSplit recognition problem at t="+str(frame)
+                            raise
+
+                        print "MOVE"
+                        # lastMoveSplit = False
+                        if not "move" in solutions[frame]:
+                            solutions[frame]["move"]=[[], []]
+
+                        solutions[frame]["move"][0].append(labelmin)
+                        solutions[frame]["move"][1].append(nextLabels)
+                        lastLabels = [labelmin]
+                        if not nextFrame in labelsVus:
+                            labelsVus[nextFrame]=[]
+                        for label in nextLabels: 
+                            labelsVus[nextFrame].append(label)
+
+                    else:
+                        print "MERGE"
+                        
+                        if not "merge" in solutions[frame]:
+                            solutions[frame]["merge"]=[[], []]
+
+                        solutions[frame]["merge"][0].append(lastLabels)
+                        solutions[frame]["merge"][1].append(nextLabels)
+                        if not frame in mergedLabels:
+                            mergedLabels[frame]=[]
+                        if not nextFrame in mergedLabels:
+                            mergedLabels[nextFrame]=[]
+                        for label in nextLabels:
+                            mergedLabels[nextFrame].append(label)
+                        for label in lastLabels:
+                            mergedLabels[frame].append(label)
+                        #lastMoveSplit =False
+                else:
+                    print "two cells PBL at t="+str(frame)
+                    raise
+            lastFrame = frame
+            if not lastMoveSplit[frame]:
+                 lastLabels = nextLabels
+
+#appear candidates 
+    for label in appearCandidates.keys():
+        frame = appearCandidates[label]
+        if frame not in labelsVus.keys() or (frame in labelsVus.keys() and label not in labelsVus[frame]):
+            print "APPEAR "+str(label)+" on frame "+str(frame)
+            if not "appear" in solutions[frame-1]:
+                solutions[frame-1]["appear"]=[[], []]
+
+            solutions[frame-1]["appear"][0].append([])
+            solutions[frame-1]["appear"][1].append(label)
+
+#disappear candidates
+    for label in disappearCandidates.keys():
+        frame = disappearCandidates[label]
+        if frame not in mergedLabels.keys() or (frame in mergedLabels.keys() and label not in mergedLabels[frame]):
+            print "DISAPPEAR "+str(label)+" on frame "+str(frame)
+
+            if not "disappear" in solutions[frame]:
+                solutions[frame]["disappear"]=[[], []]
+
+            solutions[frame]["disappear"][0].append(label)
+            solutions[frame]["disappear"][1].append([])
+
+    for f in solutions:
+        fileS.write("\n --------------------------FRAME "+str(f)+"------------------------------------")
+        for e in solutions[f]:
+            fileS.write("\n EVENT "+str(e)+"*******\n SOURCES :\n")
+            for label in solutions[f][e][0]:
+                fileS.write("\n label"+str(label))
+
+            fileS.write("\n TARGETS :\n")
+            for label in solutions[f][e][1]:
+                fileS.write("\n label"+str(label))
+            if e=="merge":
+                print "MERGE"+str(solutions[f][e][0])+"on frame "+str(f)
+    fileS.close()
+    return
+
+
+def ecrireTraining2(ensembleTraj, fileToSave):
+    solutions = {}
+    solutions[0]={}
+    
+    for trajectoire in ensembleTraj.lstTraj:
+        frameLabels = sorted(trajectoire.lstPoints.iterkeys())

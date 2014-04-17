@@ -1,0 +1,74 @@
+import fHacktrack
+
+def lireDot2(fDot, X, Y):
+    mesLignes=fDot.readlines()
+    del mesLignes[0:3]
+    mesLignes.reverse()
+
+    continuer = True
+    #ensembleTraj = ensTraj()
+
+    matTraj = {}
+#    trajCourante = trajectoire(0,0,0,0,0)
+#    frameSuivante =-1
+#    idSuivante =-1
+
+    while continuer:
+        ligneCourante=mesLignes.pop()
+        if ("#AAAAAA" in ligneCourante):
+            continuer = False
+            continue
+
+        decomp = ligneCourante.split(" ")
+        decomp[0]=decomp[0][1:-1]
+
+        frameCourante = int(decomp[0].split("_")[0])
+        idCourante = int(decomp[0].split("_")[1])
+        decomp[2]=decomp[2][1:-1]
+        frameSuivante = decomp[2].split("_")[0]
+        idSuivante = decomp[2].split("_")[1]
+        resultat = matTraj.get((frameCourante, idCourante), False)
+
+        if resultat == False:
+            matTraj[(frameCourante, idCourante)]= idSuivante
+        elif isinstance(resultat, int) is True:
+            matTraj[(frameCourante, idCourante)]= (resultat, idSuivante)
+        else: raise Exception("Attention la cellule donne naissance à trois cellules")
+
+    return matTraj
+
+def sorties2(nomFichier, matTraj):
+
+    compteurM = 5
+    compteurN = 6
+    listeCellulesVues = []
+    collectionTraj = []
+    imageC = 0
+    idC = 1
+
+    fichierX = open(nomFichier, "w")
+    fichierX.write(initXml())
+
+    for trajectoire in ensembleTraj.lstTraj:
+
+        if trajectoire.mitose == 1 and trajectoire.numCellule not in listeCellulesMitosesVues and compteurM>0:
+            randM = random.randint(1,10)
+            if randM == 1:
+
+                #fichierX.write(ecrireXmlM(trajectoire.numCellule, compteurM, ensembleTraj))
+                fichierX.write(ecrireXml(compteurM,trajectoire))
+
+                listeCellulesMitosesVues.append(trajectoire.numCellule)
+                compteurM -=1
+
+        elif trajectoire.numCellule not in listeCellulesMitosesVues and compteurN>0:
+            randN = random.randint(1,10)
+            if randN == 1:
+                fichierX.write(ecrireXml(compteurN+5,trajectoire))
+
+                compteurN -=1
+
+    fichierX.write(finirXml())
+    fichierX.close()
+   
+
