@@ -60,7 +60,10 @@ class HTMLGenerator():
     def featureComparison(self, table, index):
         primary = table[:,index]; secondary =table[:,self.FEATURE_NUMBER+index]+0.00001
         return np.divide(primary,secondary)
-        
+    
+    def featureHist(self, array, bins, binOfInterest):
+        h1,_ = np.histogram(array, bins = bins)
+        return h1[0]/float(np.sum(h1))
         
     def formatData(self, frameLot, resD, featureL, featureChannels):
         featureL = list(featureL)
@@ -83,19 +86,21 @@ class HTMLGenerator():
                     frame = frameLot.lstFrames[plate][well][frame_nb]
                     result["cell_count"].append(frame.centers.shape[0])
                     result["red_only_dist"].append(self.featureComparison(frame.features, featureL.index("roisize")))
+                    
                     for arg in argL:
                         if arg[0]=='irregularity':
                             result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])]+1)
                             continue
                         result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])])
+                        
                 result["initCellCount"]=result["cell_count"][0]
                 result["endCellCount"]=result["cell_count"][-1]
                 result["proliferation"]=result["cell_count"][-1]/float(result["cell_count"][0])
                 
-                result['initCircularity']= np.histogram(result["circularity_ch2"][0], bins = [1, 1.4, 5])[0]
-                result['endCircularity']=result["circularity_ch2"][-1]
-                pdb.set_trace()
-                result["death"]=result["circularity_ch2"][-1]/float(result["circularity_ch2"][0])
+                result['initCircularity']= self.featureHist(result["circularity_ch2"][0], bins = [1, 1.4, 5], binOfInterest = 0)
+                result['endCircularity'] = self.featureHist(result["circularity_ch2"][-1], bins = [1, 1.4, 5], binOfInterest = 0)
+                
+                result["death"]=result['initCircularity']/float(result['endCircularity'])
                 resD[plate][int(well[:-3])].update(result)
                         
         return 1
@@ -130,6 +135,9 @@ class HTMLGenerator():
             {'min': self.settings.density_plot_settings['min_count'], 'max': self.settings.density_plot_settings['max_count'], 'int_labels': True},
             {'min': self.settings.density_plot_settings['min_count'], 'max': self.settings.density_plot_settings['max_count'], 'int_labels': True},
             {'min': self.settings.density_plot_settings['min_proliferation'], 'max': self.settings.density_plot_settings['max_proliferation'], 'int_labels': False},
+            {'min': self.settings.density_plot_settings['min_circularity'], 'max': self.settings.density_plot_settings['max_circularity'], 'int_labels': False},
+            {'min': self.settings.density_plot_settings['min_circularity'], 'max': self.settings.density_plot_settings['max_circularity'], 'int_labels': False},
+            {'min': self.settings.density_plot_settings['min_death'], 'max': self.settings.density_plot_settings['max_death'], 'int_labels': False}
             ]
         
         plotDir = os.path.join(self.html_dir, 'plots', plate)
@@ -145,7 +153,7 @@ class HTMLGenerator():
         filename = '%s--%s.png' % ('plate', plate)
         self.ap.plotPlate(resCour,self.params, filename, plotDir, title='{} {}'.format(plate, 'plate'))
         
-        for pheno, setting in zip(['initCellCount', 'endCellCount', 'proliferation'], settingL):
+        for pheno, setting in zip(['initCellCount', 'endCellCount', 'proliferation', 'initCircularity', 'endCircularity', 'death'], settingL):
             print "working on ", pheno
             filename = '%s--%s.png' % (pheno, plate)
             
@@ -175,7 +183,7 @@ class HTMLGenerator():
         self.FEATURE_NUMBER = len(featureL)
         if 'roisize' not in featureL:
             featureL.append('roisize')
-
+            self.FEATURE_NUMBER +=1
         #first we get the plate setting, counting empty wells.
         #After that step, resD contains only information regarding well treatments
         print ' *** reading plate settings for %s ***' % plateL
@@ -324,7 +332,7 @@ class ArrayPlotter():
         if plotDir is None:
             plotDir = self.plotDir
         full_filename = os.path.join(plotDir, filename)
-        print title, data
+        print title, np.min(data), np.max(data)
         nrow = self.nb_row
         ncol = self.nb_col
         fig, ax = p.subplots(1)
