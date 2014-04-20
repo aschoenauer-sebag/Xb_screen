@@ -10,10 +10,12 @@ from scipy.stats import linregress
 from scipy.spatial import cKDTree, ConvexHull
 
 from tracking import trackingF
-from tracking.plots import plot, plotComparison, plotBoth, plotFeaturesTraj, makeColorRamp
+from tracking.plots import plot, plotComparison, plotBoth, plotFeaturesTraj
 from tracking.PyPack import fHacktrack2
-from tracking.trajPack import moments, basic_colors, rayon, densities, windows,\
+from tracking.trajPack import moments, rayon, densities, windows,\
     TIMEDEPTH, features1, featuresHisto, featuresSaved
+    
+from util.plots import basic_colors, makeColorRamp
 
 count = 0
 monOutput = ""

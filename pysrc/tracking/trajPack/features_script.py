@@ -6,7 +6,7 @@ import numpy as np
 from collections import Counter, defaultdict
 
 jobSize = 10
-progFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/tracking'
+progFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc'
 scriptFolder = '/cbio/donnees/aschoenauer/data/features_scripts'
 path_command = """setenv PATH /cbio/donnees/nvaroquaux/.local/bin:${PATH}
 setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/cbio/donnees/nvaroquaux/.local/lib
@@ -266,7 +266,7 @@ if __name__ == '__main__':
                       help="Base name for script")
 #    parser.add_option("-t", "--three_d", dest="TroisD",
 #                      help="If you want plots in 3D True, else False")
-    parser.add_option("-d", "--data_folder", dest="dataFolder", type=str, default='/share/data20T/mitocheck/compressed_data',
+    parser.add_option("-d", "--data_folder", dest="dataFolder", type=str, default='/share/data20T/mitocheck/Alice/results',
                       help="Give absolute path to tracking data")
     parser.add_option("--traj", dest="trajToDo", type=str, default= None,
                       help="Give absolute path to the file where you have listed the experiments you're interested in")

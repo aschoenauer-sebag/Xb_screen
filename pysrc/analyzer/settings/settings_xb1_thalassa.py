@@ -16,7 +16,7 @@ featureChannels = [1]
 #result_dir = '/g/mitocheck/Thomas/results_drug_screen'
 local_plot_dir = os.path.join(result_dir, 'plots')
 html_dir = result_dir
-#movie_raw_dir = os.path.join(
+movie_dir = os.path.join(result_dir, "movies")
 
 # full filename of result pickle file
 id_result_filename = os.path.join(result_dir, 'id_results.pickle')
@@ -35,6 +35,9 @@ secondaryChannel =True
 
 ### do you want to count empty wells according to the plate setup ?
 countEmpty = False
+
+### do you want to redo videos that have already been extracted ?
+redoMovies = True
 
 ### not effect
 saveResult = False
@@ -67,9 +70,14 @@ prediction_suffix='_prediction_track.dat'
 density_plot_settings = {
     'min_count': 20,
     'max_count': 600,
+    'min_circularity': 0.1,
+    'max_circularity': 0.7,
     'min_proliferation': 0.1, 
-    'max_proliferation': 5.0
+    'max_proliferation': 2.5,
+    'min_death': 0.1, 
+    'max_death': 3.0
 }
+
 
 TRANSLATION_WHOLENAMED = {
     'max_Interphase': 'Interphase',

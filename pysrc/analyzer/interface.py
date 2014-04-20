@@ -14,6 +14,7 @@ from analyzer import *
 from plateSetting import readPlateSetting
 
 from util.plots import makeColorRamp
+from util.movies import makeMovieMultiChannels
 import brewer2mpl
 import matplotlib.pyplot as p
 
@@ -169,7 +170,25 @@ class HTMLGenerator():
                 legend_plot = True, legend_filename='legend_%s' % filename)
 #TODO investigate this normalization story
         return
-
+    
+    def generateMovies(self, plate, wellL=None):
+        if wellL ==None:
+            wellL = range(1, self.nb_col*self.nb_row+1) if not self.settings.startAtZero else range(self.nb_col*self.nb_row)
+            
+        for well in wellL:
+            imgDir= os.path.join(self.settings.raw_data_dir, plate, 'W{:>05}'.format(well))
+            try:
+                l=os.listdir(imgDir)
+            except OSError:
+                print "No image for well ", well, 'plate ', plate
+                continue
+            else:
+                if l==[]:
+                    print "No image for well ", well, 'plate ', plate
+                    continue
+                else:
+                    makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=plate, well=well, redo=self.settings.redoMovies)
+        return
         
         
     def __call__(self, plateL=None, featureL = None, featureChannels =None):
@@ -206,7 +225,9 @@ class HTMLGenerator():
 #                for control in self.settings.controlD.keys():
 #                    print ' *** generate %s plots for %s' % (control, plate)
 #                    #self.generateControlPlots(plate, control)
-        
+                print ' *** generate movies ***'
+                self.generateMovies(plate)
+                
                 print ' *** generate spot plots ***'
                 #self.generateAllPlots(plate)
                 

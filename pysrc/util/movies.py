@@ -58,7 +58,7 @@ def makeMovie(imgDir, outDir,gene, plate, well, tempDir=None):
 
     return
 
-def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[1,2], tempDir=None):
+def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=None, redo=True):
     '''
     From a list of images containing information for two channels in different images, make 
     a movie. It is assumed that the name of a file is something like
@@ -67,10 +67,17 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[1,2], tempDir=N
     It is not possible I think that there are more than three channels ? However
     it is possible to have 2 or three channels
     '''
-    def normWrite(img, filename):
-        img=(img-2**15)*(2**8-1)/(2**12-1)
-        vi.writeImage(img, filename)
-        return 1
+
+    # movie filename
+    movieName = 'P{}_W{}.avi'.format(plate, well)
+    
+    if not redo:
+        if os.path.isdir(outDir) and movieName in os.listdir(outDir):
+            return
+    
+    # make output directory
+    if not os.path.isdir(outDir):
+        os.makedirs(outDir)
 
     # temp directory
     if tempDir is None:
@@ -78,48 +85,40 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[1,2], tempDir=N
     if not os.path.isdir(tempDir):
         os.makedirs(tempDir)
         
-    lstImage={ch:filter(lambda x: int(x.split('_')[-1][1:6])==ch, os.listdir(imgDir)) for ch in channels}#os.listdir(imgDir)
+    lstImage={ch:filter(lambda x: 'tif' in x and int(x.split('_')[-1][1:6])==ch, os.listdir(imgDir)) for ch in channels}#os.listdir(imgDir)
     
 #first I look at the min pixel values on all channels for subsequent background substraction
-#    min_={ch : 0 for ch in channels}
-#    for imageName in lstImage[channels[0]]:
-#        img = vi.readImage(os.path.join(imgDir, imageName))
-#        
-#        if np.min(img)<min_[channels[0]]:
-#            min_[channels[0]]=np.min(img)
-#        
-#        suffix = imageName.split('_')[-1]
-#        for ch in channels[1:]:
-#            imageName2 = os.path.basename(imageName).replace(suffix, 'c{:>05}.tif'.format(ch))
-#            im = vi.readImage(os.path.join(imgDir, imageName2))
-#            if np.min(img)<min_[channels[0]]:
-#                min_[ch]=np.min(im)
-                
+    min_={ch : 500 for ch in channels}
+    max_ = {ch : 0 for ch in channels}
+    for imageName in lstImage[channels[0]]:
+        img = vi.readImage(os.path.join(imgDir, imageName))
+        min_[channels[0]]=min(np.min(img), min_[channels[0]])
+        max_[channels[0]]=max(np.max(img), max_[channels[0]])
+        
+        suffix = imageName.split('_')[-1]
+        for ch in channels[1:]:
+            imageName2 = os.path.basename(imageName).replace(suffix, 'c{:>05}.tif'.format(ch))
+            im = vi.readImage(os.path.join(imgDir, imageName2))
+            min_[ch]=min(np.min(img), min_[ch])
+            max_[ch]=max(np.max(img), max_[ch])
+
     
     for imageName in lstImage[channels[0]]:        
         img = vi.readImage(os.path.join(imgDir, imageName))
         shape = img.shape
-        
- #this is the image that will be saved : 3 for RGB
-        colorImage = vigra.VigraArray((shape[0],shape[1], 3))#, dtype=np.int8)
-        colorImage[:,:,0] = img[:,:,0]*(2**8-1)/(2**12-1)
+
+        colorImage = vigra.VigraArray((shape[0],shape[1], 3), dtype=np.dtype('uint8'))
+        colorImage[:,:,0] = (img[:,:,0]-min_[channels[0]])*(2**8-1)/(max_[channels[0]]-min_[channels[0]])
         
         suffix = imageName.split('_')[-1]
         for i,ch in enumerate(channels[1:]):
             imageName2 = os.path.basename(imageName).replace(suffix, 'c{:>05}.tif'.format(ch))
             im = vi.readImage(os.path.join(imgDir, imageName2))
-            colorImage[:,:,i+1] = im[:,:,0]*(2**8-1)/(2**12-1)
+            colorImage[:,:,i+1] = (im[:,:,0]-min_[ch])*(2**8-1)/(max_[ch]-min_[ch])
             
         suffix = imageName.split('.')[-1]
-        vi.writeImage(colorImage, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')))#, dtype = 'UINT8')
+        vi.writeImage(colorImage, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')), dtype = np.dtype('uint8'))
 
-    
-    # movie filename
-    movieName = 'P{}_W{}.avi'.format(plate, well)
-    
-    # make output directory
-    if not os.path.isdir(outDir):
-        os.makedirs(outDir)
     
     # encode command
     encode_command = 'mencoder "mf://%s/*.jpg" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'

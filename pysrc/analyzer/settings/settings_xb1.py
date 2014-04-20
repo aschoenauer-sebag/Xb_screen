@@ -22,7 +22,6 @@ movie_dir = os.path.join(result_dir, "movies")
 id_result_filename = os.path.join(result_dir, 'id_results.pickle')
 
 # labtek lists
-labtekBaseL = ['0900']
 plate = '21314'#, '21.2.14']
 ## if Zeiss plate setup did not include some columns, indicate it here
 missing_cols = {'11414':(1,2)}
@@ -36,6 +35,9 @@ secondaryChannel =True
 
 ### do you want to count empty wells according to the plate setup ?
 countEmpty = False
+
+### do you want to redo videos that have already been extracted ?
+redoMovies = True
 
 ### not effect
 saveResult = False
