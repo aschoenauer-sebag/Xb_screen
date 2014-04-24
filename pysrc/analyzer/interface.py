@@ -1,4 +1,4 @@
-import string, getpass
+import string, getpass, datetime
 from warnings import warn
 
 if getpass.getuser()=='aschoenauer':
@@ -24,16 +24,13 @@ class HTMLGenerator():
         self.settings = settings.Settings(settings_file, globals())
         
         self.plate = self.settings.plate
-        self.html_dir = self.settings.html_dir
-        
-#        self.baseDir = os.path.join(self.settings.baseDir, self.settings.plate)
-        
         self.nb_row = nb_row
         self.nb_col = nb_col
-        self.ap = ArrayPlotter(plotDir=os.path.join(self.html_dir, 'plots'), 
-                               legendDir=os.path.join(self.html_dir, 'plots'), 
+        self.ap = ArrayPlotter(plotDir=os.path.join(self.settings.plot_dir, 'plots'), 
+                               legendDir=os.path.join(self.settings.plot_dir, 'plots'), 
                                nb_row=self.nb_row, 
                                nb_col=self.nb_col)
+        self.wp = WellPlotter(plotDir=os.path.join(self.settings.plot_dir, 'plots'))
         
         
     def targetedDataExtraction(self, plateL, featureL):
@@ -79,7 +76,7 @@ class HTMLGenerator():
                     continue
                 
                 #well2=well[:-3]
-                result={'cell_count':[], 'red_only_dist':[]}
+                result={'cell_count':[], 'red_only_dist':[], 'circularity':[]}
                 argL = zip(filter(lambda x: x != 'roisize', featureL), featureChannels)
                 result.update({'{}_ch{}'.format(arg[0], arg[1]+1):[] for arg in argL})
                 
@@ -87,12 +84,16 @@ class HTMLGenerator():
                     frame = frameLot.lstFrames[plate][well][frame_nb]
                     result["cell_count"].append(frame.centers.shape[0])
                     result["red_only_dist"].append(self.featureComparison(frame.features, featureL.index("roisize")))
-                    
+
                     for arg in argL:
                         if arg[0]=='irregularity':
                             result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])]+1)
                             continue
                         result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])])
+                    if "circularity_ch2" in result:
+                    #circularity at well level
+                        result['circularity'].append(self.featureHist(result["circularity_ch2"][-1], bins = [1, 1.4, 5], binOfInterest = 0))
+
                         
                 result["initCellCount"]=result["cell_count"][0]
                 result["endCellCount"]=result["cell_count"][-1]
@@ -141,7 +142,7 @@ class HTMLGenerator():
             {'min': self.settings.density_plot_settings['min_death'], 'max': self.settings.density_plot_settings['max_death'], 'int_labels': False}
             ]
         
-        plotDir = os.path.join(self.html_dir, 'plots', plate)
+        plotDir = os.path.join(self.settings.plot_dir, plate)
         if not os.path.isdir(plotDir):
             os.makedirs(plotDir)
         try:
@@ -169,6 +170,34 @@ class HTMLGenerator():
                 label_colors = False, #labeledPosD=labeledPosD,
                 legend_plot = True, legend_filename='legend_%s' % filename)
 #TODO investigate this normalization story
+        return absent
+    
+    def generateAllPlots(self, plate, resD):
+        try:
+            resCour = resD[plate]
+        except KeyError:
+            print plate, ' not in result dictionary.'
+            return
+
+        plotDir = os.path.join(self.settings.plot_dir, plate)
+        if not os.path.isdir(plotDir):
+            os.makedirs(plotDir)
+
+        for well in resCour:
+            #we want to plot cell count and circularity evolutions
+            
+            print "working on well ", well
+            
+            for pheno in self.settings.well_features:
+                print "working on ", pheno
+                filename = '{}_{}--W{:>05}.png'.format(pheno,plate, well)
+                try:
+                    data = self.wp.prepareData(resCour[well][pheno])
+                except KeyError:
+                    continue
+                else:
+                    self.wp.plotEvolution(well, data, filename, plotDir=plotDir,
+                    title='Plate {}, well {}, evolution of {}'.format(plate, well, pheno))
         return
     
     def generateMovies(self, plate, wellL=None):
@@ -188,28 +217,38 @@ class HTMLGenerator():
                     continue
                 else:
                     makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=plate, well=well, redo=self.settings.redoMovies)
-        return
+        return        
         
         
     def __call__(self, plateL=None, featureL = None, featureChannels =None):
+        
+    #Getting plate list
         if plateL is None:
             plateL = [self.settings.plate] if type(self.settings.plate)!=list else self.settings.plate
-        
+    #Getting features of interest
         if featureL is None:
             featureL = self.settings.featuresOfInterest
             featureChannels = self.settings.featureChannels
         assert(len(featureL)==len(featureChannels)), "Not same number of features of interest and channels to consider them"
         self.FEATURE_NUMBER = len(featureL)
+        
+    #Adding roisize to be able to assess number of cells that only have fluorescent nucleus
         if 'roisize' not in featureL:
             featureL.append('roisize')
             self.FEATURE_NUMBER +=1
         #first we get the plate setting, counting empty wells.
         #After that step, resD contains only information regarding well treatments
-        print ' *** reading plate settings for %s ***' % plateL
-        resD, self.params = readPlateSetting(plateL, self.settings.confDir, self.nb_row, self.nb_col, 
-                                             countEmpty = self.settings.countEmpty,
-                                             startAtZero = self.settings.startAtZero)
+        print ' *** reading plate settings and saving info for plate, well, condition and treatment in db for %s ***' % plateL
         
+        #la liste d'id sert dans le cas ou des puits sont vides pour renumeroter eventuellement les puits
+        resD, self.params, idL = readPlateSetting(plateL, self.settings.confDir, self.nb_row, self.nb_col, 
+                                             countEmpty = self.settings.countEmpty,
+                                             startAtZero = self.settings.startAtZero,
+                                             plateName = self.settings.name,
+                                             dateFormat= self.settings.date_format,
+                                             addPlateWellsToDB=True,
+                                             addCondToDB = True, addTreatmentToDB=True)
+        pdb.set_trace()
         print ' *** get result dictionary ***'
         featureL, frameLot = self.targetedDataExtraction(plateL, featureL)
         self.formatData(frameLot, resD, featureL, featureChannels)
@@ -220,24 +259,21 @@ class HTMLGenerator():
         for plate in plateL:
             if True:
                 print ' *** generate density plots for %s: ***' % plate
-                self.generateDensityPlots(plate, resD)
-        
+                absent = self.generateDensityPlots(plate, resD)
+                
+                print ' *** generate spot plots ***'
+                self.generateAllPlots(plate, resD)
+
 #                for control in self.settings.controlD.keys():
 #                    print ' *** generate %s plots for %s' % (control, plate)
 #                    #self.generateControlPlots(plate, control)
                 print ' *** generate movies ***'
                 self.generateMovies(plate)
-                
-                print ' *** generate spot plots ***'
-                #self.generateAllPlots(plate)
-                
+#TODO : mettre les data directement dans le dossier pour les mettre sur l'interface ?                
                 #self.copyMovies(plate)
-                
-#                print '*** assigning movie names ***'
-#                self.assignMovies(resD)
-                
-                print ' *** generate qc page for %s' % plate
-                #self.generateQCPage(plate, resD)        
+#                
+#                print ' *** adding plate and wells to databases, plate ' % plate
+#                self.addToDB(plate, resD, absent)        
             else: 
                 print ' ERROR while generating page for %s' % plate
                 continue
@@ -436,16 +472,46 @@ class ArrayPlotter():
         ax.set_title("Legend {}".format(title))
         ax.grid(True)
         p.savefig(full_filename)
-            
-#        pdb.set_trace()
-#        ax.pcolormesh(breakL[np.new], cmap=red_purple)
-#        tickBreakL = [float(x) / (nb_breaks - 1) * (max_break - min_break) - min_break for x in range(nb_breaks)]
-#        ax.set_xticks(tickBreakL)
-#        p.show()
-#        if int_labels:
-#            labels =robjects.IntVector( ['%i' % int(x) for x in tickBreakL])
-#        else:
-#            labels = robjects.FloatVector(['%.3f' % x for x in tickBreakL])
-#        
+   
+        return
     
+    
+class WellPlotter():
+    def __init__(self, plotDir):
+        self.plotDir = plotDir
+        if not os.path.isdir(self.plotDir):
+            os.makedirs(self.plotDir)
+        return
+
+
+    def prepareData(self, dataL):
+        if dataL!=[]:
+            return np.array(dataL)
+        else:        
+            return None    
+        
+        
+    def plotEvolution(self, well_num, data, filename, plotDir=None,
+                  title='', ctrl_data=None, show=False):
+        
+        if plotDir is None:
+            plotDir = self.plotDir
+        full_filename = os.path.join(plotDir, filename)
+        print title
+
+        fig, ax = p.subplots(1)
+        if data is not None:
+            ax.scatter(range(data.shape[0]), data, label="Well {}".format(well_num), color = 'blue')
+        if ctrl_data is not None:
+            ax.scatter(range(data.shape[0]), ctrl_data, label="Ctrl", color = 'black')
+        ax.set_title(title)
+        ax.legend()
+        ax.grid(True)
+    #as we need to turn around the data to plot it we should also turn around the info of wells where data is absent
+        
+        if show:
+            p.show()
+        else:
+            p.savefig(full_filename)
+            
         return

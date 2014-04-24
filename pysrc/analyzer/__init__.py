@@ -2,6 +2,8 @@ import os, sys, pdb
 import numpy as np
 import cPickle as pickle
 
+CONTROLS = {'TCDD':'Nonane'}
+
 cecog_features = ['ch_acd',
                  'ch_area_ratio',
                  'ch_cc',
