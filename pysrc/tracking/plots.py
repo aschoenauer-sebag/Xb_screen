@@ -13,9 +13,7 @@ from PyPack import fHacktrack2
 from dataPack.joining import FeatureException
 from trajPack import featuresListArray, featuresHisto
 
-from util.plots import makeColorRamp, basic_colors
-
-markers =('o', 'v','*', '^', '<','8', '>',  's', 'p',  'h', 'H', 'D', 'd', 'o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd')
+from util.plots import makeColorRamp, basic_colors, markers
 
 def plotPermutationResults(res):
     f=p.figure(figsize=(24,13))

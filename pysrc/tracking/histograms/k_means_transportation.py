@@ -918,7 +918,7 @@ class clusteringHistograms():
     
     def __init__(self,folder, datafile, datasize, bins_type, cost_type, bin_size, algo_type, n_clusters, init,
                  div_name, lambda_=10, M=None, dist_weights=None, batch_size=1000, init_size=2000,
-                 n_init=5, verbose=0, ddim = 0, random_state=None,max_no_improvement=None):
+                 n_init=5, verbose=0, ddim = 0, preprocessed=0, random_state=None,max_no_improvement=None):
         
         assert(div_name in DIVERGENCES)
         assert datasize>=init_size, "not enough data for doing mini batch k-means : datasize is smaller than init_size"
@@ -949,33 +949,43 @@ class clusteringHistograms():
         self.random_state=random_state
         
         self.ddimensional = ddim
-        
+        self.preprocessed=preprocessed
+        self.numericFile = 'geigerNumericData.pkl'
+        self.histogramFile = 'geigerHistogram_{}_bs{}_Data.pkl'.format(bins_type, bin_size)
     #plus tard : demander a Nell comment faire ce genre d'initialisation efficacement
         
     def _dataPrep(self):
-        f=open(os.path.join(self.folder, self.datafile))
-        raw_data = pickle.load(f); f.close()
-        
-        if len(raw_data)>6:
-            #then it means the raw data comes from clustering.histConcatenation. Hence the log-trsformation has already been done
-            r, histNC = raw_data[:2]    
-        else:
-            #then it means the raw data comes from trajPack.trajFeatures
-            tabFeatures = raw_data[0]; histNC = raw_data[2]
-            r = histLogTrsforming(tabFeatures)
-            r=r[:,:-1]    
+        if not self.preprocessed:
+            f=open(os.path.join(self.folder, self.datafile))
+            raw_data = pickle.load(f); f.close()
             
-        if self.verbose:     
-            print r.shape, 'not normalized'
+            if len(raw_data)>6:
+                #then it means the raw data comes from clustering.histConcatenation. Hence the log-trsformation has already been done
+                r, histNC = raw_data[:2]    
+            else:
+                #then it means the raw data comes from trajPack.trajFeatures
+                tabFeatures = raw_data[0]; histNC = raw_data[2]
+                r = histLogTrsforming(tabFeatures)
+                r=r[:,:-1]    
+                
+            if self.verbose:     
+                print r.shape, 'not normalized'
+                
+            if self.verbose: print 'computing bins, bin type {}, d-dimensional? {}'.format(self.bins_type, bool(self.ddimensional))
+            if self.ddimensional:
+                histogrammeMatrix, bins = computingddBins(histNC, self.mat_hist_sizes[0], bin_type=self.bins_type)
+            else:
+                histogrammeMatrix, bins = computingBins(histNC, self.mat_hist_sizes[0], bin_type=self.bins_type)
+
+        else:
+            print 'loading processed data'
+            f=open(os.path.join(self.folder, self.numericFile), 'r')
+            r=pickle.load(f); f.close()
+            f=open(os.path.join(self.folder,self.histogramFile), 'r')
+            histogrammeMatrix, bins = pickle.load(f); f.close()
+        
         r=(r-np.mean(r,0))/np.std(r,0)
-        self.nb_feat_num = r.shape[1]
-            
-        if self.verbose: print 'computing bins, bin type {}, d-dimensional? {}'.format(self.bins_type, bool(self.ddimensional))
-        if self.ddimensional:
-            histogrammeMatrix, bins = computingddBins(histNC, self.mat_hist_sizes[0], bin_type=self.bins_type)
-        else:
-            histogrammeMatrix, bins = computingBins(histNC, self.mat_hist_sizes[0], bin_type=self.bins_type)
-        
+        self.nb_feat_num = r.shape[1]  
         r=np.hstack((r, histogrammeMatrix))
         
         return r, bins
@@ -1384,6 +1394,7 @@ if __name__ == '__main__':
     parser.add_option('--only_dataprep', type=int, dest='only_dataprep', default=0)
     
     parser.add_option('--stability', type=int, dest='stability', default=0)
+    parser.add_option('--preprocessed', type=int, dest='preprocessed', default=0)
     parser.add_option('--ddimensional', type=int, dest='ddim', default=0)
     
     parser.add_option('--sim', type=int, dest='simulated', default=0)
@@ -1391,7 +1402,7 @@ if __name__ == '__main__':
     parser.add_option('-a', type=int, dest='algo', default=1)
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
     parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
-    parser.add_option('--bin_size', type=int, dest="bin_size", default=50)
+    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
     parser.add_option('--div_name', type=str, dest='div_name', default='transportation')
     parser.add_option("-k", type=int, dest="n_cluster")
     parser.add_option("-w", type=int, dest="weights", default=0)
@@ -1405,21 +1416,24 @@ if __name__ == '__main__':
     
     #donc les parametres pas initialises pour minibatch k-means : init_size = 5,000
     #pour les deux : max_iter = 300
-    filename='PCA_MAR2' #pour la nouvelle ground metric dans le cas de bin_type =quantile
+    filename='stab1'
+    datafile=None 
     if options.simulated:
         datafile = 'hist_tabFeatures_WO.pkl'
         folder = '../resultData/simulated_traj'
     else:
-        datafile = 'MAR_histdata_PCAtrsf.pkl'
+        if not options.preprocessed:
+            datafile = 'MAR_histdata_PCAtrsf.pkl'
         folder='../resultData/sinkhornKMeans'
-    print 'using datafile ', datafile, 'going for stability testing ', options.stability
+    if not options.preprocessed:
+        print 'using datafile ', datafile, 'going for stability testing ', options.stability
 #    sys.path.append('/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/')
     if options.n_cluster<0:
-        for k in range(2,20):
+        for k in range(4,12):
             print 'k ---------------- = ', k
             model = clusteringHistograms(folder, datafile, options.size, options.bins_type, options.cost_type, options.bin_size, options.algo, k, options.init,
                          div_name=options.div_name, lambda_=options.lambda_, dist_weights=options.weights, batch_size=options.batch_size,
-                         n_init=options.n_init, verbose=options.verbose, ddim =options.ddim)
+                         n_init=options.n_init, verbose=options.verbose, ddim =options.ddim, preprocessed = options.preprocessed)
             
             model(filename, options.iter, options.only_dataprep, options.stability)
             if options.only_dataprep:
@@ -1427,7 +1441,7 @@ if __name__ == '__main__':
     else:
         model = clusteringHistograms(folder, datafile, options.size, options.bins_type,options.cost_type, options.bin_size, options.algo, options.n_cluster, options.init,
                      div_name=options.div_name, lambda_=options.lambda_, dist_weights=options.weights, batch_size=options.batch_size,
-                     n_init=options.n_init, verbose=options.verbose, ddim =options.ddim)
+                     n_init=options.n_init, verbose=options.verbose, ddim =options.ddim,preprocessed = options.preprocessed)
         
         model(filename, options.iter, options.only_dataprep, options.stability)
 #    if options.intrand=='0':

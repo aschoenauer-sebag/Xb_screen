@@ -58,7 +58,7 @@ def makeMovie(imgDir, outDir,gene, plate, well, tempDir=None):
 
     return
 
-def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=None, redo=True):
+def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=None, redo=True, doChannel1Only=True):
     '''
     From a list of images containing information for two channels in different images, make 
     a movie. It is assumed that the name of a file is something like
@@ -69,7 +69,7 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
     '''
 
     # movie filename
-    movieName = 'P{}_W{}.avi'.format(plate, well)
+    movieName = 'P{}_W{}'.format(plate, well)
     
     if not redo:
         if os.path.isdir(outDir) and movieName in os.listdir(outDir):
@@ -99,21 +99,43 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
         for ch in channels[1:]:
             imageName2 = os.path.basename(imageName).replace(suffix, 'c{:>05}.tif'.format(ch))
             im = vi.readImage(os.path.join(imgDir, imageName2))
-            min_[ch]=min(np.min(img), min_[ch])
-            max_[ch]=max(np.max(img), max_[ch])
-
+            min_[ch]=min(np.min(im), min_[ch])
+            max_[ch]=max(np.max(im), max_[ch])
+            
+    if doChannel1Only:
+        #making movie for channel 1 only (nucleus)
+        for imageName in lstImage[channels[0]]:
+            img = vi.readImage(os.path.join(imgDir, imageName))
+            normImage = vigra.VigraArray(img.shape, dtype=np.dtype('uint8'))
+#WARNING if you only do normImage = (img - etc then we have a flickering effect. Apparently vigra decides to do its normalization on every image as it pleases
+            normImage[:,:,0] = (img[:,:,0]-min_[channels[0]])*(2**8-1)/(max_[channels[0]]-min_[channels[0]])
+            suffix = imageName.split('.')[-1]
+            vi.writeImage(normImage, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')), dtype = np.dtype('uint8'))
     
+        # encode command
+        encode_command = 'mencoder "mf://%s/*.jpg" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
+        encode_command %= (tempDir, os.path.join(outDir, '{}_1.avi'.format(movieName)))
+        print encode_command
+        os.system(encode_command)
+        
+        # cleaning up temporary directory
+        shell_command = 'rm %s/*.jpg' % tempDir
+        print shell_command
+        os.system(shell_command)
+        
+    #making movie for both channels    
     for imageName in lstImage[channels[0]]:        
         img = vi.readImage(os.path.join(imgDir, imageName))
         shape = img.shape
-
         colorImage = vigra.VigraArray((shape[0],shape[1], 3), dtype=np.dtype('uint8'))
+
         colorImage[:,:,0] = (img[:,:,0]-min_[channels[0]])*(2**8-1)/(max_[channels[0]]-min_[channels[0]])
         
         suffix = imageName.split('_')[-1]
         for i,ch in enumerate(channels[1:]):
             imageName2 = os.path.basename(imageName).replace(suffix, 'c{:>05}.tif'.format(ch))
             im = vi.readImage(os.path.join(imgDir, imageName2))
+
             colorImage[:,:,i+1] = (im[:,:,0]-min_[ch])*(2**8-1)/(max_[ch]-min_[ch])
             
         suffix = imageName.split('.')[-1]
@@ -122,7 +144,7 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
     
     # encode command
     encode_command = 'mencoder "mf://%s/*.jpg" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
-    encode_command %= (tempDir, os.path.join(outDir, movieName))
+    encode_command %= (tempDir, os.path.join(outDir, '{}_2.avi'.format(movieName)))
     print encode_command
     os.system(encode_command)
     

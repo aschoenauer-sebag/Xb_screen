@@ -23,28 +23,18 @@ from scipy.sparse import csc_matrix
 from scipy.stats import pearsonr
 from sklearn.utils.graph import graph_laplacian
 from PyIBP import PyIBP as IBP
-from kkmeans import KernelKMeans
+from util.kkmeans import KernelKMeans
 
 from tracking.trajPack import featuresHisto, featuresNumeriques
 from tracking.plots import plotClustInd, makeColorRamp, plotMovies, plotKMeansPerFilm, markers
-from util.sandbox import cleaningLength, logTrsforming, subsampling, dist, histLogTrsforming
+from util.sandbox import cleaningLength, logTrsforming, subsampling, dist, histLogTrsforming, homeMadeGraphLaplacian
 from util.listDealing import gettingSiRNA, expSi, siEntrez
-from util.plots import basic_colors
+from util.plots import basic_colors, couleurs
 
 from tracking.histograms import *
 from tracking.trajPack.kkmeans import KernelKMeans
 
 #from joblib import Parallel, delayed, Memory
-
-couleurs=[]
-couleurs.append("A50026")
-couleurs.append("D73027")
-couleurs.append("4575B4")
-couleurs.append("ABDDA4")
-couleurs.append("F46D43")
-couleurs.append("FDAE61")
-couleurs.append("A50026")
-couleurs.append("D73027")
 
 
 def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeatures_{}.pkl'):
@@ -136,9 +126,9 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
        #log trsforming data
         r2 = histLogTrsforming(r)        
 
-        print r2.shape, 'not normalized'
+        print 'WARNING, the data was not normalized. Please check that it will be done before applying any algorithm.'
         
-        return r2[:,:-1], histNtot,  who,ctrlStatus, length, genes, sirna, time_length#histApStot, histAvStot, histAvMtot,
+        return r2[:,:-1], histNtot,  who,ctrlStatus, length, genes, sirna, time_length
 
 def concatenation(folder, exp_list, mitocheck, qc):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; genes=[]; sirna=[]
@@ -225,7 +215,6 @@ def concatenation(folder, exp_list, mitocheck, qc):
 #                arr=np.delete(arr, np.where(np.isnan(arr))[0], 0)
 
 
-#regarder spectral clustering et mixture de gaussiennes
 def silhouette(data, labels, N, metric='euclidean'):
     #N est le nb de fois que l'on veut tirer un echantillon des donnees pour calculer le score silhouette
     #Bien sur si la taille des donnes le permet on calcule le silhouette score sur tout le monde
@@ -264,7 +253,7 @@ def IBP_LinGaussianModel(data, num_samp):
     return Klist, likelist, sigma_xlist, sigma_alist, alphalist
     
 
-def K_Kmeans(data, mini, maxi, N=5, kernel='rbf', gamma=0.1, return_labels = False):
+def K_Kmeans(data, mini, maxi, N=5, kernel='rbf', gamma=0.1,max_iter=1000, return_labels = False):
     #mini and maxi are respectively the min and max numbers of clusters that we want to try
     silhouette_r = []
     cohesion_r=[]
@@ -336,7 +325,7 @@ def Kmeans(data, mini, maxi, N=5, metric='euclidean', return_labels = False):
     else:
         return silhouette_r, cohesion_r     
     
-def CMeans(data, mini, maxi, m=2, eps=0.0001, n_iter=100, n_imax=1000, init='random'):
+def CMeans(data, mini, maxi, m=2, eps=0.0001, n_iter=100, max_iter=1000, init='random'):
     partition_entropy_r = []#partition-entropy coefficient, see Validity_survey p. 31
     FS_r = []#Fukuyama-Sugeno index, see same article p.33    
     XB_r = []
@@ -361,7 +350,7 @@ def CMeans(data, mini, maxi, m=2, eps=0.0001, n_iter=100, n_imax=1000, init='ran
 #            if np.any(np.sum(mu, 1)!=np.ones(shape=(mu.shape[0],))):
 #                raise
             model = FuzzyCMeans(data, mu, m)
-            centers = model(emax=eps, imax=n_imax)
+            centers = model(emax=eps, imax=max_iter)
             tree=KDTree(centers)
             min_center_distance = min([max(tree.query(centers[l], 2)[0]) for l in range(k)])
             prob_labels = model.mu+10**(-15)
@@ -471,28 +460,11 @@ def outputBin(data, ctrlSize,nbPheno, lPheno, binSize, sigma, nbDim=2, nbNeighbo
         if denom>0:result[ifilm, pointX, pointY]/=denom
     plotMovies('/media/lalil0u/New/workspace2/Tracking/images', result, 'pattern_b{}_s{}'.format(binSize, sigma))
     return result
-                  
-def homeMadeGraphLaplacian(W, normed = True):
-    n_nodes = W.shape[0]
-    lap = -np.asarray(W) # minus sign leads to a copy
-
-    # set diagonal to zero WHY ???
-#    lap.flat[::n_nodes + 1] = 0
-    w = -lap.sum(axis=0) #matrice D
-    if normed:#I choose to compute Lrw = inv(D)*(D-W)
-        #w = np.sqrt(w)
-        w_zeros = (w == 0)
-        w[w_zeros] = 1
-        #lap /= w
-        #We multiply by inv(D) on the left
-        lap /= w[:, np.newaxis]
-        lap.flat[::n_nodes + 1] = (1 - w_zeros).astype(lap.dtype)+lap.flat[::n_nodes + 1]
-    else:
-        print "pbl"
-        sys.exit()
-    return lap
 
 def homeMadeSpectralClust(data, cluster_nb_min, cluster_nb_max, neighbours_nb, sig, show=False, affinity =None):
+    '''
+    Affinity if we provide an affinity matrix not using affinity(x,y)=exp(-sigma*||x-y||²)
+    '''
     #here we expect an n_samples x n_features array
 
     eigengap_r = []; sil_r=[]; coh_r=[]; variance_r = []
@@ -506,8 +478,8 @@ def homeMadeSpectralClust(data, cluster_nb_min, cluster_nb_max, neighbours_nb, s
         print 'Computing affinity matrix'
         for n in range(data.shape[0]):
             for k in range(n+1):
-                #now using complete affinity matrix instead of kNN
-                W[n, k]=dist(data[k], data[k], sig)
+                #now using complete affinity matrix instead of kNN fucking bug i notice n months after writing this code. It was affinity between k and k...
+                W[n, k]=dist(data[k], data[n], sig)
                 W[k,n]=W[n,k]
 #            dou, i=tree.query(data[n], k=neighbours_nb)
 #            for couple in filter(lambda x: x[1]<np.inf, zip(i,dou)):

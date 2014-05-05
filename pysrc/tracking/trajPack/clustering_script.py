@@ -16,7 +16,7 @@ pbsArrayEnvVar = 'SGE_TASK_ID'
 
 def generationTrsport(baseName,algo,simulated, debut, fin, only_dataprep,
             div_name, lambda_, datasize, weight, iter_, 
-            batch_size, n_init, init, bins_type, bin_size, cost_type, ddim):
+            batch_size, n_init, init, bins_type, bin_size, cost_type, ddim, preprocessed):
     #options.baseName,options.algo, options.data, int(options.n_debut), int(options.n_fin), 
     #options.div_name, options.lambda_, options.size,options.weights, options.iter,\
     #options.batch_size, options.n_init, options.init, options.bins_type, options.bin_size
@@ -32,12 +32,13 @@ cd %s""" %progFolder
             cmd = ''
             # command to be executed on the cluster
             temp_cmd = """
-python tracking/histograms/k_means_transportation.py --only_dataprep %i --sim %i --ddimensional %i --iter %i -a %i --bins_type %s --cost_type %s --bin_size %i --div_name %s -k %i -w %i --init %s -s %i --batch_size %i
+python tracking/histograms/k_means_transportation.py --only_dataprep %i --sim %i --ddimensional %i --preprocessed %i --iter %i -a %i --bins_type %s --cost_type %s --bin_size %i --div_name %s -k %i -w %i --init %s -s %i --batch_size %i
 """
             temp_cmd %= (
                          only_dataprep,
                          simulated,
                          ddim,
+                         preprocessed,
                          iter_,
                          algo,
                          bins_type,
@@ -105,12 +106,13 @@ cd %s
     
         main_script_file.write(main_content)
         temp_cmd = """
-python tracking/histograms/k_means_transportation.py --only_dataprep %i --sim %i --ddimensional %i --iter %i -a %i --bins_type %s --cost_type %s --bin_size %i --div_name %s -k %i -w %i --init %s -s %i --batch_size %i
+python tracking/histograms/k_means_transportation.py --only_dataprep %i --sim %i --ddimensional %i --preprocessed %i --iter %i -a %i --bins_type %s --cost_type %s --bin_size %i --div_name %s -k %i -w %i --init %s -s %i --batch_size %i
 """
         temp_cmd %= (
                      only_dataprep,
                      simulated,
                      ddim,
+                     preprocessed,
                      iter_,
                      algo,
                      bins_type,
@@ -229,13 +231,14 @@ if __name__ == '__main__':
                       help="To choose a random sample of trajectories from workspace2/Tracking/histogramsNtotfirst.pkl")
     parser.add_option('--div_name', type=str, dest='div_name', default='transportation')
     parser.add_option('--ddimensional', type=int, dest='ddim', default=0)
+    parser.add_option('--preprocessed', type=int, dest='preprocessed', default=0)
     parser.add_option("-s", dest="size", type=int,default=1000)
-    parser.add_option("--batch_size", dest="batch_size", type=int,default=500)
+    parser.add_option("--batch_size", dest="batch_size", type=int,default=1000)
     parser.add_option("--n_init", dest="n_init", type=int,default=5)
     parser.add_option("--init", dest="init", type=str,default='k-means++')
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')
     parser.add_option('--cost_type', type=str, dest="cost_type", default='number')
-    parser.add_option('--bin_size', type=int, dest="bin_size", default=50)
+    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
     #dataFolder = "/cbio/donnees/aschoenauer/data/tracking/migration"
     (options, args) = parser.parse_args()
 ##VERIFIER PUITS PAR PUITS QUI EST LA ET QUI N'EST PAS LA...
@@ -253,7 +256,7 @@ if __name__ == '__main__':
     generationTrsport(options.baseName,options.algo, options.data, int(options.n_debut), int(options.n_fin), options.only_dataprep, 
                       options.div_name, options.lambda_, options.size,options.weights, options.iter,\
                       options.batch_size, options.n_init, options.init, options.bins_type, options.bin_size, options.cost_type,
-                      options.ddim)
+                      options.ddim, options.preprocessed)
     
 #SCRIPT POUR LANCER LA GENERATION DES SCRIPTS DES JOBS 
 #   for bin_type in ['quantile', 'minmax']:

@@ -6,14 +6,14 @@ raw_data_dir = "/media/lalil0u/New/data/Xb_screen/Screen_trials"
 base_result_dir = '/media/lalil0u/New/projects/Xb_screen'
 raw_result_dir = os.path.join(base_result_dir, 'plates')
 result_dir = os.path.join(base_result_dir, 'results')
-plot_dir = os.path.join(result_dir, 'plots')
-movie_dir = os.path.join(result_dir, "movies")
+plot_dir = os.path.join('/media/lalil0u/New/workspace2/interface_screen/plates/static', 'plots')
+movie_dir = os.path.join('/media/lalil0u/New/workspace2/interface_screen/plates/static', "movies")
 
 # Plate setups directory
 confDir = os.path.join(base_result_dir, 'plate_setups')
 
 ###DEFAULT PLATE
-plate = '11414'
+plate = '21314'
 # if Zeiss plate setup did not include some columns, indicate it here
 missing_cols = {'11414':(1,2)}
 
@@ -45,11 +45,16 @@ density_plot_settings = {
     'min_count': 20,
     'max_count': 600,
     'min_circularity': 0.1,
-    'max_circularity': 0.7,
-    'min_proliferation': 0.1, 
-    'max_proliferation': 2.5,
+    'max_circularity': 0.8,
+    'min_proliferation': 0.5, 
+    'max_proliferation': 2.0,
     'min_death': 0.1, 
-    'max_death': 3.0
+    'max_death': 2.5
+}
+
+well_plot_settings={
+                    'cell_count':(0, 600),
+                    'circularity':(0, 0.75)
 }
 
 TRANSLATION_WHOLENAMED = {

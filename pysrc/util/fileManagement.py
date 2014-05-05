@@ -416,6 +416,125 @@ def fromShareToCBIO(expdict,wellFolder=False, dst='/cbio/donnees/aschoenauer/clu
                     shutil.copytree(os.path.join(folderIn, pl, ww[0]), os.path.join(dst, gene, pl, ww[0][:3]))
                 except:
                     pass
+                
+class ArffReader(object):
+    '''
+    modified (from Cecog + me) ARFF reader from Pradeep Kishore Gowda
+    http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/440533
+    '''
+
+    DCT_DATA_TYPES = {'numeric': float,
+                      'string' : str,
+                     }
+
+    def __init__(self, strFilename):
+        self.oFile = file(strFilename, "r")
+        self.strRelationName = ""
+        self.dctClassNames = {}
+        self.dctClassLabels = {}
+        self.lstFeatureNames = []
+        self.dctDataTypes = {}
+        self.dctFeatureData = {}
+        self.dctHexColors = {}
+        self.hasZeroInsert = True
+        self._read()
+        self._close()
+
+    def _convert_string(self, string):
+        return string.replace('\'','').replace('"','')
+
+    def _read(self):
+        in_data = False
+
+        lstClassNames = []
+        lstClassLabels = []
+        lstHexColors = []
+
+        for line in self.oFile.readlines():
+            line = line.rstrip()
+
+            if len(line) > 0:
+
+                if line[0] in ['@', '%']:
+                    lstToken = line.split(' ')
+                    first = lstToken[0].lower()
+
+                    if first == '@relation':
+                        self.strRelationName = lstToken[1]
+
+                    elif first == '@attribute':
+                        if lstToken[2][0] == '{':
+                            i1 = line.find('{')
+                            i2 = line.find('}')
+                            assert i1 != i2 != -1
+                            lstClassNames = [self._convert_string(x).strip(" ")
+                                             for x in line[i1+1:i2].split(',')]
+                            setClassNames = set(lstClassNames)
+                        else:
+                            strFeatureName = lstToken[1]
+                            strDataType = lstToken[2].lower()
+                            self.lstFeatureNames.append(strFeatureName)
+                            self.dctDataTypes[strFeatureName] = \
+                                self.DCT_DATA_TYPES[strDataType]
+
+                    elif first == '%class-labels':
+                        if lstToken[1][0] == '{':
+                            i1 = line.find('{')
+                            i2 = line.find('}')
+                            assert i1 != i2 != -1
+                            lstClassLabels = [int(self._convert_string(x))
+                                              for x in
+                                              line[i1+1:i2].split(',')]
+
+                    elif first == '%class-colors':
+                        if lstToken[1][0] == '{':
+                            i1 = line.find('{')
+                            i2 = line.find('}')
+                            assert i1 != i2 != -1
+                            lstHexColors = [self._convert_string(x).upper()
+                                            for x in
+                                            line[i1+1:i2].split(',')]
+
+                    elif first == '%has-zero-inserted-in-feature-vector':
+                        self.hasZeroInsert = int(lstToken[1]) != 0
+
+                    elif first == '@data':
+                        in_data = True
+
+                elif in_data:
+                    lstItems = line.split(',')
+                    strClassName = self._convert_string(lstItems[-1])
+                    lstItems = lstItems[:-1]
+                    #print strClassName, lstClassNames
+                    assert strClassName in setClassNames
+                    assert len(lstItems) == len(self.lstFeatureNames)
+                    lstFeatureData = []
+                    for strFeatureName, item in zip(self.lstFeatureNames,
+                                                    lstItems):
+                        if self.dctDataTypes[strFeatureName] == str:
+                            value = self._convert_string(item)
+                        else:
+                            value = self.dctDataTypes[strFeatureName](item)
+                        lstFeatureData.append(value)
+                    if strClassName not in self.dctFeatureData:
+                        self.dctFeatureData[strClassName] = []
+                    self.dctFeatureData[strClassName].append(lstFeatureData)
+
+        for strClassName in self.dctFeatureData:
+            self.dctFeatureData[strClassName] = np.array(self.dctFeatureData[strClassName], np.float)
+
+        for iClassLabel, strClassName in zip(lstClassLabels, lstClassNames):
+            self.dctClassLabels[strClassName] = iClassLabel
+            self.dctClassNames[iClassLabel] = strClassName
+
+        for hexColor, strClassName in zip(lstHexColors, lstClassNames):
+            self.dctHexColors[strClassName] = hexColor
+
+
+    def _close(self):
+        self.oFile.close()
+
+
     
 if __name__ == '__main__':
     small = '/cbio/donnees/aschoenauer/data/mitocheck/results'

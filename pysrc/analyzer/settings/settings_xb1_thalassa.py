@@ -47,11 +47,16 @@ density_plot_settings = {
     'min_count': 20,
     'max_count': 600,
     'min_circularity': 0.1,
-    'max_circularity': 0.7,
-    'min_proliferation': 0.1, 
-    'max_proliferation': 2.5,
+    'max_circularity': 0.8,
+    'min_proliferation': 0.5, 
+    'max_proliferation': 2.0,
     'min_death': 0.1, 
-    'max_death': 3.0
+    'max_death': 2.5
+}
+
+well_plot_settings={
+                    'cell_count':(0, 600),
+                    'circularity':(0, 0.75)
 }
 
 TRANSLATION_WHOLENAMED = {

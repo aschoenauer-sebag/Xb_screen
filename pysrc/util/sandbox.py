@@ -1,4 +1,4 @@
-import os, pdb, shutil
+import os, pdb, shutil, sys
 from collections import defaultdict
 from operator import itemgetter
 import cPickle as pickle
@@ -23,6 +23,25 @@ def dependentJobs(debut, filename):
         
     return
 
+def homeMadeGraphLaplacian(W, normed = True):
+    n_nodes = W.shape[0]
+    lap = -np.asarray(W) # minus sign leads to a copy
+
+    # set diagonal to zero WHY ???
+#    lap.flat[::n_nodes + 1] = 0
+    w = -lap.sum(axis=0) #matrice D
+    if normed:#I choose to compute Lrw = inv(D)*(D-W)
+        #w = np.sqrt(w)
+        w_zeros = (w == 0)
+        w[w_zeros] = 1
+        #lap /= w
+        #We multiply by inv(D) on the left
+        lap /= w[:, np.newaxis]
+        lap.flat[::n_nodes + 1] = (1 - w_zeros).astype(lap.dtype)+lap.flat[::n_nodes + 1]
+    else:
+        print "pbl"
+        sys.exit()
+    return lap
 
 def pointsCommuns(filename, div_name = 'transportation_exact', iteration = 5, ddimensional = False,
                  folder = "/media/lalil0u/New/workspace2/Xb_screen/resultData/sinkhornKMeans/results_PCA_MAR1"):

@@ -18,6 +18,8 @@ from util.movies import makeMovieMultiChannels
 import brewer2mpl
 import matplotlib.pyplot as p
 
+from plates.models import Well
+
 
 class HTMLGenerator():
     def __init__(self, settings_file, nb_row = 8, nb_col =12):
@@ -61,7 +63,7 @@ class HTMLGenerator():
     
     def featureHist(self, array, bins, binOfInterest):
         h1,_ = np.histogram(array, bins = bins)
-        return h1[0]/float(np.sum(h1))
+        return h1[binOfInterest]/float(np.sum(h1))
         
     def formatData(self, frameLot, resD, featureL, featureChannels):
         featureL = list(featureL)
@@ -76,14 +78,15 @@ class HTMLGenerator():
                     continue
                 
                 #well2=well[:-3]
-                result={'cell_count':[], 'red_only_dist':[], 'circularity':[]}
+                result={'cell_count':[], 'red_only':[], 'circularity':[]}
                 argL = zip(filter(lambda x: x != 'roisize', featureL), featureChannels)
                 result.update({'{}_ch{}'.format(arg[0], arg[1]+1):[] for arg in argL})
                 
                 for frame_nb in frameLot.lstFrames[plate][well]:
                     frame = frameLot.lstFrames[plate][well][frame_nb]
                     result["cell_count"].append(frame.centers.shape[0])
-                    result["red_only_dist"].append(self.featureComparison(frame.features, featureL.index("roisize")))
+                    red_only_dist =self.featureComparison(frame.features, featureL.index("roisize"))
+                    result["red_only"].append(self.featureHist(red_only_dist, bins = [0, 0.95, 1], binOfInterest = 1))
 
                     for arg in argL:
                         if arg[0]=='irregularity':
@@ -92,17 +95,23 @@ class HTMLGenerator():
                         result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])])
                     if "circularity_ch2" in result:
                     #circularity at well level
-                        result['circularity'].append(self.featureHist(result["circularity_ch2"][-1], bins = [1, 1.4, 5], binOfInterest = 0))
+                        result['circularity'].append(self.featureHist(result["circularity_ch2"][-1], bins = [1, 1.5, 5], binOfInterest = 0))
 
                         
                 result["initCellCount"]=result["cell_count"][0]
                 result["endCellCount"]=result["cell_count"][-1]
                 result["proliferation"]=result["cell_count"][-1]/float(result["cell_count"][0])
+
+                result["initNucleusOnly"]=result["red_only"][0]
+                result["endNucleusOnly"]=result["red_only"][-1]
                 
                 result['initCircularity']= self.featureHist(result["circularity_ch2"][0], bins = [1, 1.4, 5], binOfInterest = 0)
                 result['endCircularity'] = self.featureHist(result["circularity_ch2"][-1], bins = [1, 1.4, 5], binOfInterest = 0)
                 
-                result["death"]=result['initCircularity']/float(result['endCircularity'])
+                result['initCircMNucleus']= result['initCircularity']-result["initNucleusOnly"]
+                result['endCircMNucleus']= result['endCircularity']-result["endNucleusOnly"]
+                
+                result["death"]=result['endCircMNucleus']/float(result['initCircMNucleus']+0.0001)
                 resD[plate][int(well[:-3])].update(result)
                         
         return 1
@@ -125,7 +134,7 @@ class HTMLGenerator():
         return        
 
     
-    def generateDensityPlots(self, plate, resD):
+    def generatePlatePlots(self, plate, resD):
         
         try:
             resCour = resD[plate]
@@ -137,9 +146,15 @@ class HTMLGenerator():
             {'min': self.settings.density_plot_settings['min_count'], 'max': self.settings.density_plot_settings['max_count'], 'int_labels': True},
             {'min': self.settings.density_plot_settings['min_count'], 'max': self.settings.density_plot_settings['max_count'], 'int_labels': True},
             {'min': self.settings.density_plot_settings['min_proliferation'], 'max': self.settings.density_plot_settings['max_proliferation'], 'int_labels': False},
+            
             {'min': self.settings.density_plot_settings['min_circularity'], 'max': self.settings.density_plot_settings['max_circularity'], 'int_labels': False},
             {'min': self.settings.density_plot_settings['min_circularity'], 'max': self.settings.density_plot_settings['max_circularity'], 'int_labels': False},
-            {'min': self.settings.density_plot_settings['min_death'], 'max': self.settings.density_plot_settings['max_death'], 'int_labels': False}
+            
+            {'min': self.settings.density_plot_settings['min_circularity'], 'max': self.settings.density_plot_settings['max_circularity'], 'int_labels': False},
+            {'min': self.settings.density_plot_settings['min_circularity'], 'max': self.settings.density_plot_settings['max_circularity'], 'int_labels': False},
+            
+            {'min': self.settings.density_plot_settings['min_circularity'], 'max': self.settings.density_plot_settings['max_circularity'], 'int_labels': False},
+            {'min': self.settings.density_plot_settings['min_circularity'], 'max': self.settings.density_plot_settings['max_circularity'], 'int_labels': False}
             ]
         
         plotDir = os.path.join(self.settings.plot_dir, plate)
@@ -153,14 +168,18 @@ class HTMLGenerator():
         ###printing plate setup
         print "working on plate setup"
         filename = '%s--%s.png' % ('plate', plate)
-        self.ap.plotPlate(resCour,self.params, filename, plotDir, title='{} {}'.format(plate, 'plate'))
+        well_setup, texts = self.ap.plotPlate(resCour,self.params, filename, plotDir,missing_col = missing_col, title='{} {}'.format(plate, 'plate'))
         
-        for pheno, setting in zip(['initCellCount', 'endCellCount', 'proliferation', 'initCircularity', 'endCircularity', 'death'], settingL):
+        for pheno, setting in zip(['initCellCount', 'endCellCount', 'proliferation', 
+                                   'initCircularity', 'endCircularity',  
+                                   "initNucleusOnly", "endNucleusOnly",
+                                   'initCircMNucleus', 'endCircMNucleus'], settingL):
             print "working on ", pheno
             filename = '%s--%s.png' % (pheno, plate)
             
             data = self.ap.prepareData(resCour, self.ap.getPhenoVal(pheno), missing_col)
-            absent = np.where(data==0)
+            absent = np.where(data==-1)
+            data[absent]=0
             self.ap.plotArray(data, filename, plotDir=plotDir,
                 title='{} {}'.format(plate, pheno),
                 absent= absent,
@@ -168,17 +187,18 @@ class HTMLGenerator():
                 norm = True,
                 min_val=setting['min'], max_val=setting['max'], 
                 label_colors = False, #labeledPosD=labeledPosD,
-                legend_plot = True, legend_filename='legend_%s' % filename)
+                legend_plot = True, legend_filename='legend_%s' % filename,
+                texts=texts)
 #TODO investigate this normalization story
-        return absent
+        return well_setup
     
-    def generateAllPlots(self, plate, resD):
+    def generateWellPlots(self, plate, resD, well_setup):
         try:
             resCour = resD[plate]
         except KeyError:
             print plate, ' not in result dictionary.'
             return
-
+        well_setup=well_setup.flatten()
         plotDir = os.path.join(self.settings.plot_dir, plate)
         if not os.path.isdir(plotDir):
             os.makedirs(plotDir)
@@ -187,40 +207,66 @@ class HTMLGenerator():
             #we want to plot cell count and circularity evolutions
             
             print "working on well ", well
-            
+            final_well_num = np.where(well_setup==well)[0][0]+1
             for pheno in self.settings.well_features:
                 print "working on ", pheno
-                filename = '{}_{}--W{:>05}.png'.format(pheno,plate, well)
+                filename = '{}_{}--W{:>05}.png'.format(pheno,plate, final_well_num)
                 try:
                     data = self.wp.prepareData(resCour[well][pheno])
                 except KeyError:
                     continue
                 else:
-                    self.wp.plotEvolution(well, data, filename, plotDir=plotDir,
-                    title='Plate {}, well {}, evolution of {}'.format(plate, well, pheno))
+                    if pheno =='circularity':
+                        data2=self.wp.prepareData(resCour[well]['red_only'])
+                    else:
+                        data2=None
+                    try:
+                        min_=self.settings.well_plot_settings[pheno][0];max_=self.settings.well_plot_settings[pheno][1]
+                    except KeyError:
+                        max_=None; min_=None
+                        
+                    self.wp.plotEvolution(final_well_num, data, filename,pheno, plotDir=plotDir,
+                    max_=max_, min_=min_, data2=data2,
+                    title='Plate {}, well {}, evolution of {}'.format(plate, final_well_num, pheno))
         return
     
-    def generateMovies(self, plate, wellL=None):
-        if wellL ==None:
-            wellL = range(1, self.nb_col*self.nb_row+1) if not self.settings.startAtZero else range(self.nb_col*self.nb_row)
-            
-        for well in wellL:
+    def generateMovies(self, plate, well_setup):
+        well_setup=well_setup.flatten()
+
+        for well in well_setup[np.where(well_setup>0)]:
+            #even if there are missing columns don't forget that the image directory uses Zeiss counting
             imgDir= os.path.join(self.settings.raw_data_dir, plate, 'W{:>05}'.format(well))
             try:
                 l=os.listdir(imgDir)
             except OSError:
-                print "No image for well ", well, 'plate ', plate
+                print "No image for well ", np.where(well_setup==well)[0][0]+1, 'plate ', plate
                 continue
             else:
                 if l==[]:
-                    print "No image for well ", well, 'plate ', plate
+                    print "No image for well ", np.where(well_setup==well)[0][0]+1, 'plate ', plate
                     continue
                 else:
-                    makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=plate, well=well, redo=self.settings.redoMovies)
-        return        
+                    makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=plate, well=np.where(well_setup==well)[0][0]+1, redo=self.settings.redoMovies)
+        return    
+    
+    def changeDBWellNumbers(self,plate, well_setup, idL):
+        well_setup =well_setup.flatten()
+        try:
+            idCour = idL[plate]
+        except KeyError:
+            print plate, ' not in result dictionary.'
+            return
+        
+        for Zeiss_well_num in idCour:
+            db_id = idCour[Zeiss_well_num]
+            final_well_num = np.where(well_setup == Zeiss_well_num)[0][0]+1
+            w=Well.objects.get(pk=db_id)
+            w.num=final_well_num; w.save()
+            
+        return
         
         
-    def __call__(self, plateL=None, featureL = None, featureChannels =None):
+    def __call__(self, plateL=None, featureL = None, featureChannels =None, saveDB=True):
         
     #Getting plate list
         if plateL is None:
@@ -236,46 +282,50 @@ class HTMLGenerator():
         if 'roisize' not in featureL:
             featureL.append('roisize')
             self.FEATURE_NUMBER +=1
-        #first we get the plate setting, counting empty wells.
+            
+        #first we get the plate setting, not counting empty wells. In particular it means that 
+        #wells are counted according to their Zeiss number and not number on the plate.
         #After that step, resD contains only information regarding well treatments
         print ' *** reading plate settings and saving info for plate, well, condition and treatment in db for %s ***' % plateL
         
-        #la liste d'id sert dans le cas ou des puits sont vides pour renumeroter eventuellement les puits
+        #idL is a dictionary {plate:{well_Zeiss_num:well_id in db}} to renumber the wells in case
+        #some wells were on the plate were not taken into account while doing plate setup on Zeiss software.
+        #in resD, wells are numbered according to Zeiss numbering
         resD, self.params, idL = readPlateSetting(plateL, self.settings.confDir, self.nb_row, self.nb_col, 
                                              countEmpty = self.settings.countEmpty,
                                              startAtZero = self.settings.startAtZero,
                                              plateName = self.settings.name,
                                              dateFormat= self.settings.date_format,
-                                             addPlateWellsToDB=True,
-                                             addCondToDB = True, addTreatmentToDB=True)
-        pdb.set_trace()
+                                             addPlateWellsToDB=saveDB,
+                                             addCondToDB=saveDB, addTreatmentToDB=saveDB)
+
         print ' *** get result dictionary ***'
         featureL, frameLot = self.targetedDataExtraction(plateL, featureL)
         self.formatData(frameLot, resD, featureL, featureChannels)
-        
-        #for labtekId in labtekIdL:
-        #   self.copyMovies(labtekId)
-#todo REGLER LE PBL DES NUMEROS DE PUITS ET ORDRE DES PUITS SUR LA PLAQUE
+
         for plate in plateL:
             if True:
                 print ' *** generate density plots for %s: ***' % plate
-                absent = self.generateDensityPlots(plate, resD)
+                #well_setup is an array representing the plate with the Zeiss well numbers
+                #on the plate. So well_setup.flatten() gives the following: on absolute position
+                #final well_number there is either a zero either the Zeiss well number.
+                
+                #This function is used to generate all 
+                well_setup = self.generatePlatePlots(plate, resD)
                 
                 print ' *** generate spot plots ***'
-                self.generateAllPlots(plate, resD)
+                #S
+                self.generateWellPlots(plate, resD, well_setup)
 
-#                for control in self.settings.controlD.keys():
-#                    print ' *** generate %s plots for %s' % (control, plate)
-#                    #self.generateControlPlots(plate, control)
+                if len(np.where(well_setup>0)[0])>1:
+                    print ' *** changing well numbers in db, plate ', plate
+                    self.changeDBWellNumbers(plate, well_setup, idL)
+
                 print ' *** generate movies ***'
-                self.generateMovies(plate)
-#TODO : mettre les data directement dans le dossier pour les mettre sur l'interface ?                
-                #self.copyMovies(plate)
-#                
-#                print ' *** adding plate and wells to databases, plate ' % plate
-#                self.addToDB(plate, resD, absent)        
+                self.generateMovies(plate, well_setup)
+     
             else: 
-                print ' ERROR while generating page for %s' % plate
+                print ' ERROR while working for %s' % plate
                 continue
         return
     
@@ -301,7 +351,7 @@ class ArrayPlotter():
             try:
                 return valuesD[self.phenoClass]
             except KeyError:
-                return 0
+                return -1
 
 
     def prepareData(self, resD, getLabel,missing_col, expL=None):
@@ -311,13 +361,13 @@ class ArrayPlotter():
 
         nb_exp = len(expL)
         hitValueL = [0 for x in range(nb_exp)]
-
+    
         for i in range(len(expL)):
             id = expL[i]
             if resD.has_key(id):
                 label = getLabel(resD[id])
             else:
-                label = 0
+                label = -1
             hitValueL[i] = label
             
         try:
@@ -326,19 +376,24 @@ class ArrayPlotter():
             warn("Missing columns in Zeiss plate setup. We put zeros as columns "+str(missing_col))
             if missing_col !=[]:
                 hitData=np.reshape(hitValueL, (self.nb_row, self.nb_col-len(missing_col)))
-                exp = np.hstack((np.zeros(shape=(self.nb_row, len(missing_col))), hitData))
+                miss = np.zeros(shape=(self.nb_row, len(missing_col)))
+                miss.fill(-1)
+                exp = np.hstack((miss, hitData))
+                print np.min(exp[np.where(exp>-1)]), np.max(exp)
                 return exp
             else:
                 raise ValueError
-        else:        
+        else:   
+            print np.min(hitData[np.where(hitData>-1)]), np.max(hitData)
+            print hitData
             return hitData    
   
-    def plotPlate(self, res,params, filename, plotDir=None, title='', show=False):
+    def plotPlate(self, res,params, filename, plotDir=None,missing_col=[], title='', show=False):
         
         if plotDir is None:
             plotDir = self.plotDir
         full_filename = os.path.join(plotDir, filename)
-
+        texts = []
         nrow = self.nb_row
         ncol = self.nb_col
         fig = p.figure(figsize=(12,7))
@@ -364,24 +419,34 @@ class ArrayPlotter():
         
         ax.set_title(title)
 
-        exp = range(1, nrow*ncol+1)
-        exp=np.reshape(exp, (nrow, ncol))
+        if len(res.keys())<nrow*ncol:
+            if missing_col !=[]:
+                exp=np.reshape(range(1, (ncol-len(missing_col))*nrow+1), (nrow, ncol-len(missing_col)))
+                exp=(np.hstack((np.zeros(shape=(self.nb_row, len(missing_col))), exp))).astype(int)
+            else:
+                raise ValueError
+        else:
+            exp = range(1, nrow*ncol+1)
+            exp=np.reshape(exp, (nrow, ncol))
         #exp=np.flipud(exp)
         for well in res.keys():
             a,b=np.where(exp==well)
             txt = res[well]['Name']
-            for param in params: txt+='\n'+res[well][param]
+            txt+='\n'+res[well]['Xenobiotic']+' '+res[well]['Dose']
+            txt+='\n'+res[well]['Medium']+' '+res[well]['Serum']
             ax.text(b+0.1, nrow-a-1+0.1, txt, fontsize=10)
-        
+            texts.append((b, nrow-a-1, txt))
         if show:
             p.show()
         else:
             p.savefig(full_filename)
+        print exp
+        return exp, texts
         
         
     def plotArray(self, data, filename, plotDir=None, labeledPosD=None,
                   title='', label_colors = True, absent =None,
-                  legend_plot = False, legend_filename=None, 
+                  legend_plot = False, legend_filename=None, texts=None,
                   control_color='black', numeric_as_int = False,
                   norm = False, min_val=0, max_val=1,
                   grid=False,int_labels=False, show=False):
@@ -389,10 +454,11 @@ class ArrayPlotter():
         if plotDir is None:
             plotDir = self.plotDir
         full_filename = os.path.join(plotDir, filename)
-        print title, np.min(data), np.max(data)
+        #print title, np.min(data), np.max(data)
         nrow = self.nb_row
         ncol = self.nb_col
-        fig, ax = p.subplots(1)
+        fig = p.figure(figsize=(12,7))
+        ax=fig.add_subplot(111)
         
         if numeric_as_int:
 #TODO
@@ -436,9 +502,11 @@ class ArrayPlotter():
         abs[absent] = 1
         absent=np.where(np.flipud(abs)==1)
         for el in zip(absent[0], absent[1]):
-            ax.text(el[1]+0.5, el[0]+0.5, 'n', fontweight = 'bold')
+            ax.text(el[1]+0.5, el[0]+0.5, 'n', fontweight = 'bold', fontsize=20)
         if grid: ax.grid(True)
-        
+        if texts is not None:
+            for el in filter(lambda x: (x[0], x[1]) not in zip(absent[1], absent[0]), texts):
+                ax.text(el[0]+0.1, el[1]+0.1, el[2],fontsize=10)
         if show:
             p.show()
         else:
@@ -491,7 +559,7 @@ class WellPlotter():
             return None    
         
         
-    def plotEvolution(self, well_num, data, filename, plotDir=None,
+    def plotEvolution(self, well_num, data, filename,pheno, plotDir=None, max_=None, min_=None,data2=None,
                   title='', ctrl_data=None, show=False):
         
         if plotDir is None:
@@ -501,9 +569,13 @@ class WellPlotter():
 
         fig, ax = p.subplots(1)
         if data is not None:
-            ax.scatter(range(data.shape[0]), data, label="Well {}".format(well_num), color = 'blue')
+            ax.scatter(range(data.shape[0]), data, label="{}".format(pheno), color = 'blue')
         if ctrl_data is not None:
             ax.scatter(range(data.shape[0]), ctrl_data, label="Ctrl", color = 'black')
+        if data2 is not None:
+            ax.scatter(range(data.shape[0]), data2, label="Fraction of cells simply marked", color = 'red')
+        if min_ is not None:
+            ax.set_ylim(min_, max_)
         ax.set_title(title)
         ax.legend()
         ax.grid(True)
