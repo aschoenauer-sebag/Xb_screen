@@ -1,11 +1,14 @@
 import string, getpass, datetime
 from warnings import warn
+from collections import defaultdict
 
 if getpass.getuser()=='aschoenauer':
     import matplotlib as mpl
     mpl.use('Agg')
+    show = False
 elif getpass.getuser()=='lalil0u':
     import matplotlib as mpl
+    show=True
 
 from util import settings
 from tracking.importPack.imp import importTargetedFromHDF5
@@ -13,7 +16,7 @@ from tracking.importPack.imp import importTargetedFromHDF5
 from analyzer import *
 from plateSetting import readPlateSetting
 
-from util.plots import makeColorRamp
+from util.plots import makeColorRamp, couleurs, basic_colors
 from util.movies import makeMovieMultiChannels
 import brewer2mpl
 import matplotlib.pyplot as p
@@ -28,11 +31,11 @@ class HTMLGenerator():
         self.plate = self.settings.plate
         self.nb_row = nb_row
         self.nb_col = nb_col
-        self.ap = ArrayPlotter(plotDir=os.path.join(self.settings.plot_dir, 'plots'), 
-                               legendDir=os.path.join(self.settings.plot_dir, 'plots'), 
+        self.ap = ArrayPlotter(plotDir=self.settings.plot_dir, 
+                               legendDir=self.settings.plot_dir, 
                                nb_row=self.nb_row, 
                                nb_col=self.nb_col)
-        self.wp = WellPlotter(plotDir=os.path.join(self.settings.plot_dir, 'plots'))
+        self.wp = WellPlotter(plotDir=self.settings.plot_dir)
         
         
     def targetedDataExtraction(self, plateL, featureL):
@@ -131,7 +134,116 @@ class HTMLGenerator():
                             'proliferation': np.nan                            
                             }
             
-        return        
+        return  
+    
+    def saveResults(self, plate, resD):
+        try:
+            resCour = resD[plate]
+        except KeyError:
+            print plate, ' not in result dictionary.'
+            return
+        
+        f=open(os.path.join(self.settings.result_dir, 'processedDictResult_P{}.pkl'.format(plate)), 'w')
+        pickle.dump(resCour, f)
+        f.close()
+        return
+    
+    def plotALaDemande(self, outputInterest, parametersInterest, divideByInitVal=False, plotMoy=True):
+        '''
+        Here the idea is to plot cellCount or any well feature called outputInterest, as a function of some parameters of interest,
+        parametersInterest.
+        
+        Input:
+        - outputInterest : string
+        - parametersInterest: list
+        - divideByInitVal: bool, say if the values should be divided by the initial value (makes sense if it's cell count for example)
+        - plotMoy: bool, say if you want one curve per condition, or as many curves as there are wells
+        
+        '''
+        results = filter(lambda x: 'processedDictResult' in x, os.listdir(self.settings.result_dir))
+        if results==[]:
+            self.__call__()
+            return self.plotALaDemande(outputInterest, parametersInterest)
+        else:
+            f=p.figure(figsize=(24,13))
+            ax=f.add_subplot(111)
+            paramIntVal=[]
+            paramIntDict={}
+            for result in results:
+                f=open(os.path.join(self.settings.result_dir, result), 'r')
+                resCour = pickle.load(f); f.close()
+                plate = result.split("_")[1][1:6]
+                for well in resCour:
+                    try:
+                        legendName = ''
+                        for parameterInterest in parametersInterest:
+                            legendName +=' '+resCour[well][parameterInterest].strip(' ').split('_')[0]
+                        legendName+=' plate {} wells'.format(max(resCour.keys()))
+                        if legendName not in paramIntVal:
+                            paramIntVal.append(legendName)
+                            legend = True
+                            paramIntDict[legendName]=None
+                        else:
+                            legend=False
+                    except KeyError:
+                        print 'Parameter {} not in result for well {}'.format(parameterInterest, well)
+                        #pdb.set_trace()
+                    else:
+                        try:
+                            if divideByInitVal:
+                                val = np.array(resCour[well][outputInterest])/float(resCour[well][outputInterest][0])
+                            else:
+                                val = np.array(resCour[well][outputInterest])
+                        except KeyError:
+                            print 'Output {} not in results for well {}, plate {}'.format(outputInterest, well, plate)
+                            if legend:
+                                paramIntVal.pop()
+                        else:
+                            if plotMoy:
+                                if paramIntDict[legendName] is None:
+                                    paramIntDict[legendName]=val
+                                else:
+                                    try:
+                                        paramIntDict[legendName]=np.vstack((paramIntDict[legendName], val))
+                                    except:
+                                        if val.shape[0]>paramIntDict[legendName].shape[1]:
+                                            paramIntDict[legendName]=np.vstack((paramIntDict[legendName], val[:paramIntDict[legendName].shape[1]]))
+                                        elif val.shape[0]<paramIntDict[legendName].shape[1]:
+                                            paramIntDict[legendName]=np.vstack((paramIntDict[legendName][:,:val.shape[0]], val))
+                            else:                 
+                                if legend:
+                                    ax.scatter(range(len(resCour[well]['cell_count'])), val, 
+                                        color=couleurs[paramIntVal.index(legendName)],
+                                        label = legendName)
+                                else:
+                                    ax.scatter(range(len(resCour[well]['cell_count'])), val,
+                                        color=couleurs[paramIntVal.index(legendName)])
+                                ax.text(len(resCour[well]["cell_count"]), val[-1], 
+                                        'p{} w{}'.format(plate, int(well)), fontsize=10)
+
+            if plotMoy:
+                length = np.min(np.array([paramIntDict[legendName].shape[1] for legendName in paramIntDict]))
+                for paramVal in paramIntVal:
+                    ax.errorbar(range(length), np.mean(paramIntDict[paramVal], 0)[:length], np.std(paramIntDict[paramVal], 0)[:length],
+                                color=couleurs[paramIntVal.index(paramVal)],
+                                label = paramVal)
+            
+                ax.set_xlim(0,200)
+                if divideByInitVal:
+                    ax.set_ylim(0.5,3)
+                else:
+                    ax.set_ylim(0,1)
+                ax.grid(True)
+                ax.legend()
+                ax.set_title("Plot param {} output {}/value at t=0".format(parametersInterest, outputInterest))
+                if show:
+                    p.show()
+                else:
+                    legendName = ''
+                    for parameterInterest in parametersInterest:
+                            legendName +=' '+parameterInterest
+                    p.savefig(os.path.join(self.settings.result_dir, 'im_{}_{}.png'.format(outputInterest, legendName)))
+            
 
     
     def generatePlatePlots(self, plate, resD):
@@ -246,7 +358,8 @@ class HTMLGenerator():
                     print "No image for well ", np.where(well_setup==well)[0][0]+1, 'plate ', plate
                     continue
                 else:
-                    makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=plate, well=np.where(well_setup==well)[0][0]+1, redo=self.settings.redoMovies)
+                    makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=plate, well=np.where(well_setup==well)[0][0]+1, 
+                                           redo=self.settings.redoMovies)
         return    
     
     def changeDBWellNumbers(self,plate, well_setup, idL):
@@ -266,7 +379,7 @@ class HTMLGenerator():
         return
         
         
-    def __call__(self, plateL=None, featureL = None, featureChannels =None, saveDB=True):
+    def __call__(self, plateL=None, featureL = None, featureChannels =None, saveDB=True, fillDBOnly=False):
         
     #Getting plate list
         if plateL is None:
@@ -292,41 +405,43 @@ class HTMLGenerator():
         #some wells were on the plate were not taken into account while doing plate setup on Zeiss software.
         #in resD, wells are numbered according to Zeiss numbering
         resD, self.params, idL = readPlateSetting(plateL, self.settings.confDir, self.nb_row, self.nb_col, 
+                                             addPlateWellsToDB=saveDB,
                                              countEmpty = self.settings.countEmpty,
                                              startAtZero = self.settings.startAtZero,
                                              plateName = self.settings.name,
                                              dateFormat= self.settings.date_format,
-                                             addPlateWellsToDB=saveDB,
-                                             addCondToDB=saveDB, addTreatmentToDB=saveDB)
+                                             )
 
-        print ' *** get result dictionary ***'
-        featureL, frameLot = self.targetedDataExtraction(plateL, featureL)
-        self.formatData(frameLot, resD, featureL, featureChannels)
-
-        for plate in plateL:
-            if True:
-                print ' *** generate density plots for %s: ***' % plate
-                #well_setup is an array representing the plate with the Zeiss well numbers
-                #on the plate. So well_setup.flatten() gives the following: on absolute position
-                #final well_number there is either a zero either the Zeiss well number.
-                
-                #This function is used to generate all 
-                well_setup = self.generatePlatePlots(plate, resD)
-                
-                print ' *** generate spot plots ***'
-                #S
-                self.generateWellPlots(plate, resD, well_setup)
-
-                if len(np.where(well_setup>0)[0])>1:
-                    print ' *** changing well numbers in db, plate ', plate
-                    self.changeDBWellNumbers(plate, well_setup, idL)
-
-                print ' *** generate movies ***'
-                self.generateMovies(plate, well_setup)
-     
-            else: 
-                print ' ERROR while working for %s' % plate
-                continue
+        if not fillDBOnly:
+            print ' *** get result dictionary ***'
+            featureL, frameLot = self.targetedDataExtraction(plateL, featureL)
+            self.formatData(frameLot, resD, featureL, featureChannels)
+            for plate in plateL:
+                if True:
+                    print ' *** generate density plots for %s: ***' % plate
+                    #well_setup is an array representing the plate with the Zeiss well numbers
+                    #on the plate. So well_setup.flatten() gives the following: on absolute position
+                    #final well_number there is either a zero either the Zeiss well number.
+                    
+                    #This function is used to generate all 
+                    well_setup = self.generatePlatePlots(plate, resD)
+                    
+                    print ' *** generate well plots ***'
+                    self.generateWellPlots(plate, resD, well_setup)
+    
+                    print ' *** saving result dictionary ***'
+                    self.saveResults(plate, resD)
+    
+                    if len(np.where(well_setup>0)[0])>1:
+                        print ' *** changing well numbers in db, plate ', plate
+                        self.changeDBWellNumbers(plate, well_setup, idL)
+    
+                    print ' *** generate movies ***'
+                    self.generateMovies(plate, well_setup)
+         
+                else: 
+                    print ' ERROR while working for %s' % plate
+                    continue
         return
     
     

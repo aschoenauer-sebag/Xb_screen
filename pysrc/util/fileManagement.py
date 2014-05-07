@@ -9,15 +9,22 @@ from PIL import Image
 from tracking.trajPack import sdFeatures1, logTrsf
 
 def renameFromZeiss(inputFolder, clone, dose, well, outputFolder=None):        
-    images = os.listdir(inputFolder)
-    
-    for image in images:
-        l=image.split('_')
-        new_name = 'Clone{}-Dose{}--W{:>05}--P00001_t{:>05}_c{:>05}.tif'.format(clone, dose, well, l[1][1:4], l[1][-1])
-        if outputFolder is None:
-            os.rename(os.path.join(inputFolder, image), os.path.join(inputFolder, new_name))
-        else:
-            shutil.copy(os.path.join(inputFolder, image), os.path.join(outputFolder, new_name))
+#ici c'est pour renommer des images dans le cas ou pour une raison connue de Dieu seul
+#le puits n'est pas passe dans le nom du fichier
+#inputfolder doit etre le nom du dossier avec la plaque
+    for well in os.listdir(inputFolder):
+        for file_ in os.listdir(os.path.join(inputFolder,well)):
+            os.rename(os.path.join(inputFolder,well, file_), os.path.join(inputFolder,well, file_[:-18]+'_--'+well+'--P00001'+file_[-18:]))
+
+    #SI ON A DES IMAGES ZEISS PUREMENT ET SIMPLEMENT
+#    images = os.listdir(inputFolder)
+#    for image in images:
+#        l=image.split('_')
+#        new_name = 'Clone{}-Dose{}--W{:>05}--P00001_t{:>05}_c{:>05}.tif'.format(clone, dose, well, l[1][1:4], l[1][-1])
+#        if outputFolder is None:
+#            os.rename(os.path.join(inputFolder, image), os.path.join(inputFolder, new_name))
+#        else:
+#            shutil.copy(os.path.join(inputFolder, image), os.path.join(outputFolder, new_name))
 
 
 '''
@@ -262,32 +269,6 @@ def strToTuple(strList, platesList):
         else:
             result.append((pl, '{:>05}_01'.format(el[-3:])))
     return result
-
-#def gettingOneTable(*args):
-#    r=np.array(args[0][0])
-#    who=list(args[0][1])
-#    ctrlStatus=list(args[0][2])
-#    length=list(args[0][3])
-#    genes=list(args[0][4])
-#    lgwho=[who[k][0]+'__'+who[k][1] for k in range(len(who))]
-#    
-#    for i, tab in enumerate(args):
-#        if i>0:
-#            lr, lwho, lctrlStatus, llength, lgenes=tab
-#            llwho=[lwho[k][0]+'__'+lwho[k][1] for k in range(len(lwho))]
-#
-#            for el in filter(lambda x: x not in lgwho, llwho):
-#                ind=llwho.index(el)
-#                r=np.vstack((r, lr[np.sum(llength[:ind]):np.sum(llength[:ind+1])]))
-#                who.append(lwho[ind]); lgwho.append(llwho[ind])
-#                ctrlStatus.append(lctrlStatus[ind])
-#                length.append(llength[ind])
-#                genes.append(lgenes[ind])
-#                
-#    if np.sum(length)!=r.shape[0] or len(length)!=len(who) or len(length)!=len(ctrlStatus) or len(length)!=len(genes):
-#        raise
-#    else:
-#        return r, who, ctrlStatus, length, genes
     
 def noRaw(arrExp, moviesD='/share/data20T/mitocheck/compressed_data'):
     '''

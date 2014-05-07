@@ -1,15 +1,22 @@
 #SETTINGS FOR aschoenauer@cbio.ensmp.fr sur thalassa
 
 ###DIRECTORY SETTINGS
+#where the images are
 raw_data_dir = "/cbio/donnees/aschoenauer/data/Xb_screen/raw_data"
 
 base_result_dir = '/cbio/donnees/aschoenauer/projects/Xb_screen'
 base_html = "/cbio/donnees/aschoenauer/public_html"
 
+#where hdf5 files are
 raw_result_dir = "/share/data20T/mitocheck/Alice/Xb_screen/results"
-result_dir = os.path.join(base_html, 'interface_screen/plates/static')
-plot_dir = os.path.join(result_dir, 'plots')
-movie_dir = os.path.join(result_dir, "movies")
+
+#Where to save processed results
+result_dir = os.path.join(base_result_dir, 'results')
+
+#Where to save data to be put online
+media_dir = os.path.join(base_html, 'interface_screen/plates/static')
+plot_dir = os.path.join(media_dir, 'plots')
+movie_dir = os.path.join(media_dir, "movies")
 
 # Plate setups directory
 confDir = os.path.join(base_result_dir, 'plate_setups')
@@ -45,7 +52,7 @@ redoMovies = False
 
 density_plot_settings = {
     'min_count': 20,
-    'max_count': 600,
+    'max_count': 1100,
     'min_circularity': 0.1,
     'max_circularity': 0.8,
     'min_proliferation': 0.5, 
@@ -55,8 +62,8 @@ density_plot_settings = {
 }
 
 well_plot_settings={
-                    'cell_count':(0, 600),
-                    'circularity':(0, 0.75)
+                    'cell_count':(20, 1100),
+                    'circularity':(0.1, 0.75)
 }
 
 TRANSLATION_WHOLENAMED = {

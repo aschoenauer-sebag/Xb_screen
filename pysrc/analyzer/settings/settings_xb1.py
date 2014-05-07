@@ -1,11 +1,17 @@
 #SETTINGS FOR lalil0u@Trulove
 
 ###DIRECTORY SETTINGS
+#where the images are
 raw_data_dir = "/media/lalil0u/New/data/Xb_screen/Screen_trials"
-
 base_result_dir = '/media/lalil0u/New/projects/Xb_screen'
+
+#where hdf5 files are
 raw_result_dir = os.path.join(base_result_dir, 'plates')
+
+#Where to save processed results
 result_dir = os.path.join(base_result_dir, 'results')
+
+#Where to save data to be put online
 plot_dir = os.path.join('/media/lalil0u/New/workspace2/interface_screen/plates/static', 'plots')
 movie_dir = os.path.join('/media/lalil0u/New/workspace2/interface_screen/plates/static', "movies")
 

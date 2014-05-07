@@ -32,7 +32,7 @@ from util.fileManagement import ArffReader
 from util.kkmeans import KernelKMeans
 from util.plots import couleurs, markers, makeColorRamp
 from util.sandbox import dist, homeMadeGraphLaplacian
-from nucleus import methods, params, extended_params, param_sets, pca_param, whiten_param
+from nucleus import methods, params, extended_params, param_sets, pca_param, whiten_param, outFile
 
 def getData(filename, pca=26, whiten=False):
     '''
@@ -185,6 +185,41 @@ python nucleus/clustering.py -a %s -o %i
     print sub_cmd
     return
 
+def plotMoy(outFolder='../resultData/nucleus', show=False):
+    f=p.figure(figsize=(24,17))
+    
+    for i, algo in enumerate(["gaussianmixture", 'mini-batchk-means', 'kernelk-means','spectralclustering']):
+        file_=open(os.path.join(outFolder, outFile.format(algo)), 'r')
+        resultDict = pickle.load(file_); file_.close()
+    
+        perClass = []; perCluster = []
+        for parameter_set in resultDict:
+            currLperClass=[]
+            currLperCluster = []
+            for morphoClass in resultDict[parameter_set]:
+                currLperClass.append(np.mean(resultDict[parameter_set][morphoClass][0]))
+                currLperCluster.append(np.mean(resultDict[parameter_set][morphoClass][1]))
+            perClass.append(currLperClass)
+            perCluster.append(currLperCluster)
+            
+        
+        ax=f.add_subplot(2,2,i)
+        for k in range(len(perClass)):
+            ax.errorbar(np.mean(perCluster[k]), np.mean(perClass[k]), xerr = np.std(perCluster[k]), yerr=np.std(perClass[k]), 
+                            fmt = markers[methods.index(algo)],
+                           label = '{}'.format(algo))
+        ax.grid(True)
+        ax.set_xlim(0,1)
+        ax.set_ylim(0,1)
+        ax.set_title("Algorithm {}, on average on all morphological classes".format(algo))
+        ax.set_xlabel("Nb of class elements in cluster/cluster size")
+        ax.set_ylabel("Nb of class elements in cluster/class size")
+    if show:
+        p.show()
+    else:
+        p.savefig(os.path.join(outFolder, 'figure {}_MOY.png'.format(algo)))
+
+
 class NucleusClustering():
     
     def __init__(self, inFolder, filename, algo,pca, whiten, outFolder='../resultData/nucleus',n_iteration =10, **kwargs):
@@ -199,7 +234,7 @@ class NucleusClustering():
         self.algo = algo
         self.iterations= n_iteration
         self.outFolder = outFolder
-        self.outFile = 'result_{}.pkl'.format(self.algo)
+        self.outFile = outFile.format(self.algo)
         
         self.parameters = kwargs
         self.pca = pca
@@ -473,10 +508,10 @@ class NucleusClustering():
         elif type(resultDict.keys()[0])==tuple:
             f=p.figure(figsize=(24,17))
             ax=f.add_subplot(111)
+            colors = makeColorRamp(17, hex_output=True)
             for param_set in resultDict:
                 for morpho in resultDict[param_set]:
                     r = resultDict[param_set][morpho]
-                    colors = makeColorRamp(17, hex_output=True)
                     ax.errorbar(np.mean(r[1]), np.mean(r[0]), xerr = np.std(r[1]), yerr=np.std(r[0]), 
                             color =colors[self.classNames.index(morpho)], fmt = markers[methods.index(self.algo)],
                            label = '{} {}'.format(self.algo, morpho))
@@ -491,7 +526,7 @@ class NucleusClustering():
                 p.show()
             else:
                 p.savefig(os.path.join(self.outFolder, 'figure {}.png'.format(self.algo)))
-                
+                                
                 
 if __name__ == '__main__':
     description =\

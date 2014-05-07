@@ -3,14 +3,24 @@ import numpy as np
 basic_colors = ["#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00" ]
 markers =('o', 'v','*', '^', '<','8', '>',  's', 'p',  'h', 'H', 'D', 'd', 'o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd')
 couleurs=[]
-couleurs.append("#A50026")
-couleurs.append("#D73027")
-couleurs.append("#4575B4")
-couleurs.append("#ABDDA4")
-couleurs.append("#F46D43")
-couleurs.append("#FDAE61")
-couleurs.append("#A50026")
-couleurs.append("#D73027")
+couleurs.append("#9e0142")
+couleurs.append("#d53e4f")
+couleurs.append("#f46d43")
+couleurs.append("#fdae61")
+couleurs.append("#fee08b")
+couleurs.append("#e6f598")
+couleurs.append("#abdda4")
+couleurs.append("#66c2a5")
+couleurs.append("#3288bd")
+couleurs.append("#5e4fa2")
+#couleurs.append("#A50026")
+#couleurs.append("#D73027")
+#couleurs.append("#4575B4")
+#couleurs.append("#ABDDA4")
+#couleurs.append("#F46D43")
+#couleurs.append("#FDAE61")
+#couleurs.append("#A50026")
+#couleurs.append("#D73027")
 
 def makeColorRamp(N, hex_output=False):
     basic_colors = couleurs[:6]
