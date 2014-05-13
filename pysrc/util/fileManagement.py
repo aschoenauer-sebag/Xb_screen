@@ -249,7 +249,7 @@ def writeGSEARankingFile(genes, name):
 
 def strToTuple(strList, platesList):
     '''
-    Goes from an experiment list in the form LT00*****, 00*** to 
+    Goes from an experiment list in the form LT00*****--00*** to 
     the whole name as recorded in the mitocheck raw data folder
     
     Input:

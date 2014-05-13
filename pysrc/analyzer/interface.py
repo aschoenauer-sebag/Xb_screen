@@ -2,6 +2,8 @@ import string, getpass, datetime
 from warnings import warn
 from collections import defaultdict
 
+from scipy.stats import nanmean, nanstd
+
 if getpass.getuser()=='aschoenauer':
     import matplotlib as mpl
     mpl.use('Agg')
@@ -52,7 +54,7 @@ class HTMLGenerator():
                 try:
                     featureL, frameLotC= importTargetedFromHDF5(filename, plate, well,featureL, secondary=self.settings.secondaryChannel)
                 except ValueError:
-                    sys.stderr.write(sys.exc_info()[1])
+                    sys.stderr.write(sys.exc_info())
                     sys.stderr.write("File {} containing data for plate {}, well {} does not contain all necessary data".format(filename, plate, well))
 
                 if newFrameLot == None:
@@ -148,7 +150,7 @@ class HTMLGenerator():
         f.close()
         return
     
-    def plotALaDemande(self, outputInterest, parametersInterest, divideByInitVal=False, plotMoy=True):
+    def plotALaDemande(self, outputInterest, parametersInterest, plateL=None, divideByInitVal=False, plotMoy=True):
         '''
         Here the idea is to plot cellCount or any well feature called outputInterest, as a function of some parameters of interest,
         parametersInterest.
@@ -160,10 +162,13 @@ class HTMLGenerator():
         - plotMoy: bool, say if you want one curve per condition, or as many curves as there are wells
         
         '''
-        results = filter(lambda x: 'processedDictResult' in x, os.listdir(self.settings.result_dir))
+        if plateL is None:
+            results = filter(lambda x: 'processedDictResult' in x, os.listdir(self.settings.result_dir))
+        else:
+            results = filter(lambda x: x in ['processedDictResult_P{}.pkl'.format(plate) for plate in plateL],os.listdir(self.settings.result_dir)) 
         if results==[]:
-            self.__call__()
-            return self.plotALaDemande(outputInterest, parametersInterest)
+            self.__call__(plateL)
+            return self.plotALaDemande(outputInterest, parametersInterest, plateL)
         else:
             f=p.figure(figsize=(24,13))
             ax=f.add_subplot(111)
@@ -176,6 +181,8 @@ class HTMLGenerator():
                 for well in resCour:
                     try:
                         legendName = ''
+                        if 'CloneA' in resCour[well]['Name']:
+                            continue
                         for parameterInterest in parametersInterest:
                             legendName +=' '+resCour[well][parameterInterest].strip(' ').split('_')[0]
                         legendName+=' plate {} wells'.format(max(resCour.keys()))
@@ -194,11 +201,18 @@ class HTMLGenerator():
                                 val = np.array(resCour[well][outputInterest])/float(resCour[well][outputInterest][0])
                             else:
                                 val = np.array(resCour[well][outputInterest])
+                            if val.shape[0]<180:
+                                print well, ' taille inf a 150'
+                                continue
+
                         except KeyError:
                             print 'Output {} not in results for well {}, plate {}'.format(outputInterest, well, plate)
                             if legend:
                                 paramIntVal.pop()
                         else:
+#                            if np.any(np.isnan(val)):
+#                                pdb.set_trace()
+                            
                             if plotMoy:
                                 if paramIntDict[legendName] is None:
                                     paramIntDict[legendName]=val
@@ -224,7 +238,9 @@ class HTMLGenerator():
             if plotMoy:
                 length = np.min(np.array([paramIntDict[legendName].shape[1] for legendName in paramIntDict]))
                 for paramVal in paramIntVal:
-                    ax.errorbar(range(length), np.mean(paramIntDict[paramVal], 0)[:length], np.std(paramIntDict[paramVal], 0)[:length],
+                    if paramIntVal.index(paramVal)>=len(couleurs):
+                        couleurs.extend(basic_colors)
+                    ax.errorbar(range(length), nanmean(paramIntDict[paramVal], 0)[:length], nanstd(paramIntDict[paramVal], 0)[:length],
                                 color=couleurs[paramIntVal.index(paramVal)],
                                 label = paramVal)
             

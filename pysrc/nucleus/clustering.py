@@ -8,7 +8,7 @@ if getpass.getuser()=='aschoenauer':
     show = False
 elif getpass.getuser()=='lalil0u':
     import matplotlib as mpl
-    show=True
+    show=False
 import matplotlib.pyplot as p
 from collections import Counter
 from itertools import product
@@ -105,10 +105,13 @@ def givingAllParameterSets(algo=None, l=None):
                 result.append(new)
         return result
     
-def savingParameterSets(algo, outFolder = '../resultData/nucleus/parameters'):
+def savingParameterSets(algo=None, outFolder = '../resultData/nucleus/parameters'):
     if not os.path.isdir(outFolder):
         os.makedirs(outFolder)
-    
+    if algo==None:
+        for algo in param_sets:
+            savingParameterSets(algo=algo, outFolder =outFolder)
+        return
     parameter_set = givingAllParameterSets(algo)
     for i, paramL in enumerate(parameter_set):
         d = dict(zip(extended_params[algo], paramL))
@@ -117,7 +120,12 @@ def savingParameterSets(algo, outFolder = '../resultData/nucleus/parameters'):
         
     return
 
-def writeJobArray(algo, paramFolder = '../resultData/nucleus/parameters'):
+def writeJobArray(algo=None, paramFolder = '../resultData/nucleus/parameters'):
+    if algo==None:
+        for algo in param_sets:
+            writeJobArray(algo=algo, paramFolder=paramFolder)
+        return
+    
     jobNum= len(filter(lambda x: algo in x, os.listdir(paramFolder)))
 
     progFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc'
@@ -398,18 +406,23 @@ class NucleusClustering():
     #        variance_r.append(1-pearsonr(W.flatten(), ideal_W.flatten())[0]**2)            
     
     def isomap(self, data):
-        
         print 'Isomap neighbours :', self.parameters["n_neighbors"]
         print 'Isomap components, ie final number of coordinates :', self.k
-        m = Isomap(**self.parameters)#eigen_solver='auto', tol=0, path_method='auto', neighbors_algorithm='kd_tree')
+        
+        k_means_n_clusters=self.parameters['k_means_n_clusters']
+        isomap_params = dict(self.parameters)
+        del isomap_params["k_means_n_clusters"]
+        m = Isomap(neighbors_algorithm = 'kd_tree',**isomap_params)#eigen_solver='auto', tol=0, path_method='auto', neighbors_algorithm='kd_tree')
         x = m.fit_transform(data)
+        
         error=m.reconstruction_error() 
         geod_d = m.dist_matrix_.flatten()
         new_euclid_d = cdist(x, x, metric='euclidean').flatten()
         corr=1- pearsonr(geod_d, new_euclid_d)[0]**2
         
         new_data = x
-        return self.batch_kmeans(new_data, parameters = dict(zip(params["mini-batch k-means"], [17, 1000, 500, 1000, 'k-means++', 5])))
+        print self.parameters
+        return self.batch_kmeans(new_data, parameters = dict(zip(params["mini-batchk-means"], [k_means_n_clusters, 1000, 500, 1000, 'k-means++', 5])))
     
     def c_means(self, data):
         k=self.parameters['n_clusters']
@@ -451,9 +464,9 @@ class NucleusClustering():
         return labels[np.argmin(XB_courant)]
         
         
-    def __call__(self):
+    def __call__(self, eps=0.00001):
         self.classNames, data, trueLabels = getData(self.file, pca = self.pca, whiten =self.whiten)
-        result = {el:([], []) for el in self.classNames}
+        result = {el:([], [], [], []) for el in self.classNames}
         for iter_ in range(self.iterations):
             try:
                 predictedLabels = self.cluster(data)
@@ -473,12 +486,27 @@ class NucleusClustering():
     
                 confusion_matrix = np.array(confusion_matrix)
                 for i, el in enumerate(self.classNames):
-                    print '{:<30}{}'.format( el, np.argmax(confusion_matrix[i]))
+                    print '{:<30}{}'.format( el, confusion_matrix[i])
+                    currCluster = np.argmax(confusion_matrix[self.classNames.index(el)])
+
                     result[el][0].append(
                                 np.max(confusion_matrix[self.classNames.index(el)]/float(np.sum(confusion_matrix[self.classNames.index(el)]))))
                     result[el][1].append(
-                                np.max(confusion_matrix[self.classNames.index(el)])/float(np.sum(confusion_matrix[:,np.argmax(confusion_matrix[self.classNames.index(el)])]))
+                                np.max(confusion_matrix[self.classNames.index(el)])/float(np.sum(confusion_matrix[:,currCluster]))
                                 )
+                    
+                    result[el][2].append(
+                                         np.sum(-np.log(eps+confusion_matrix[self.classNames.index(el)]/float(np.sum(confusion_matrix[self.classNames.index(el)])))
+                                         *
+                                         confusion_matrix[self.classNames.index(el)]/float(np.sum(confusion_matrix[self.classNames.index(el)])))
+                                         /np.log(self.k)
+                                         )
+                    result[el][3].append(
+                                         np.sum(-np.log(eps+confusion_matrix[:,currCluster]/float(np.sum(confusion_matrix[:,currCluster])))
+                                         *
+                                         confusion_matrix[:,currCluster]/float(np.sum(confusion_matrix[:,currCluster])))
+                                         /np.log(len(self.classNames))
+                                         )
                 
                 
         self.parameters['pca'] = self.pca
@@ -506,22 +534,80 @@ class NucleusClustering():
             #meaning we are dealing with many alg results
             pass
         elif type(resultDict.keys()[0])==tuple:
-            f=p.figure(figsize=(24,17))
+        #plotting legend plot
+            f=p.figure(figsize=(17,17))
             ax=f.add_subplot(111)
-            colors = makeColorRamp(17, hex_output=True)
+            param_set = resultDict.keys()[0]
+            for morpho in resultDict[param_set]:
+                r = resultDict[param_set][morpho]
+                colors = makeColorRamp(17, hex_output=True)
+                ax.errorbar(np.mean(r[1]), np.mean(r[0]), xerr = np.std(r[1]), yerr=np.std(r[0]), 
+                            color =colors[self.classNames.index(morpho)], fmt = markers[methods.index(self.algo)],
+                           label = '{} {}'.format(self.algo, morpho))
+            ax.legend()
+            f.suptitle("Algorithm {}".format(self.algo))
+            p.savefig(os.path.join(self.outFolder, 'legend {}.png'.format(self.algo)))
+            
+        #plotting result plot, one for all classes and one for each morphological class
+            plots = {morphological_class : p.subplots(2, sharex=True) for morphological_class in self.classNames}
+            
+            f=p.figure(figsize=(17,17))
+            ax=f.add_subplot(121)
+            
             for param_set in resultDict:
+                param_dict=dict(param_set)
                 for morpho in resultDict[param_set]:
                     r = resultDict[param_set][morpho]
                     ax.errorbar(np.mean(r[1]), np.mean(r[0]), xerr = np.std(r[1]), yerr=np.std(r[0]), 
                             color =colors[self.classNames.index(morpho)], fmt = markers[methods.index(self.algo)],
                            label = '{} {}'.format(self.algo, morpho))
+                    
+                    plots[morpho][1][0].errorbar(np.mean(r[1]), np.mean(r[0]), xerr = np.std(r[1]), yerr=np.std(r[0]), 
+                            color =colors[whiten_param.index(param_dict['whiten'])], fmt = markers[pca_param.index(param_dict['pca'])],
+                           label = 'W{} PCA {}'.format(param_dict['whiten'],param_dict["pca"]))
+                    plots[morpho][1][0].grid(True)
+                    plots[morpho][1][0].set_xlim(0,1)
+                    plots[morpho][1][0].set_ylim(0,1)
+                    plots[morpho][1][0].set_xlabel("Nb of class elements in cluster/cluster size")
+                    plots[morpho][1][0].set_ylabel("Nb of class elements in cluster/class size")
+                    plots[morpho][1][0].legend()
+
             ax.grid(True)
             ax.set_xlim(0,1)
             ax.set_ylim(0,1)
-            ax.set_title("Algorithm {}".format(self.algo))
             ax.set_xlabel("Nb of class elements in cluster/cluster size")
             ax.set_ylabel("Nb of class elements in cluster/class size")
-            ax.legend()
+            
+            ax=f.add_subplot(122)
+            for param_set in resultDict:
+                param_dict=dict(param_set)
+                for morpho in resultDict[param_set]:
+                    r = resultDict[param_set][morpho]
+                    ax.errorbar(np.mean(r[3]), np.mean(r[2]), xerr = np.std(r[3]), yerr=np.std(r[2]), 
+                            color =colors[self.classNames.index(morpho)], fmt = markers[methods.index(self.algo)],
+                           label = '{} {}'.format(self.algo, morpho))
+                    
+                    plots[morpho][1][1].errorbar(np.mean(r[3]), np.mean(r[2]), xerr = np.std(r[3]), yerr=np.std(r[2]), 
+                            color =colors[whiten_param.index(param_dict['whiten'])], fmt = markers[pca_param.index(param_dict['pca'])],
+                           label = 'W{} PCA {}'.format(param_dict['whiten'],param_dict["pca"]))
+                    plots[morpho][1][1].grid(True)
+                    plots[morpho][1][1].set_xlim(0,1)
+                    plots[morpho][1][1].set_ylim(0,1)
+                    plots[morpho][1][1].set_xlabel("Entropy of cluster which is the one with the most elements from this class")
+                    plots[morpho][1][1].set_ylabel("Entropy of class with regard to the clustering")
+            ax.grid(True)
+            ax.set_xlim(0,1)
+            ax.set_ylim(0,1)
+            ax.set_xlabel("Entropy of cluster which is the one with the most elements from this class")
+            ax.set_ylabel("Entropy of class with regard to the clustering")
+            
+
+            f.suptitle("Algorithm {}".format(self.algo))
+            
+            for morpho in plots:
+                plots[morpho][0].suptitle("Algorithm {}, class {}".format(self.algo, morpho))
+                plots[morpho][0].savefig(os.path.join(self.outFolder, 'figure {} {}.png'.format(morpho, self.algo)))
+            
             if show:
                 p.show()
             else:

@@ -51,12 +51,12 @@ countEmpty = False
 redoMovies = False
 
 density_plot_settings = {
-    'min_count': 20,
+    'min_count': 0,
     'max_count': 1100,
-    'min_circularity': 0.1,
+    'min_circularity': 0,
     'max_circularity': 0.8,
     'min_proliferation': 0.5, 
-    'max_proliferation': 2.0,
+    'max_proliferation': 3.0,
     'min_death': 0.1, 
     'max_death': 2.5
 }

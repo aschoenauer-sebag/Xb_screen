@@ -32,12 +32,12 @@ from util.listDealing import gettingSiRNA, expSi, siEntrez
 from util.plots import basic_colors, couleurs
 
 from tracking.histograms import *
-from tracking.trajPack.kkmeans import KernelKMeans
+from util.kkmeans import KernelKMeans
 
 #from joblib import Parallel, delayed, Memory
 
 
-def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeatures_{}.pkl'):
+def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeatures_{}.pkl', verbose=1):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; sirna=[]; genes=[]
     time_length=[]
     histNtot={nom:[] for nom in featuresHisto}
@@ -62,7 +62,6 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
         return histConcatenation(folder, exp_list)
     
     else:
-        print "loading from experiments list"
         i=0
         for pl, w in exp_list:
             print i,
@@ -121,13 +120,13 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
                                 genes.append(dictSiEntrez[siCourant])
                             except KeyError:
                                 pdb.set_trace()
-                                
-        print r.shape
-       #log trsforming data
-        r2 = histLogTrsforming(r)        
+        if verbose>0:           
+            print r.shape
+#log trsforming data
+        r2 = histLogTrsforming(r, verbose=verbose)        
 
         print 'WARNING, the data was not normalized. Please check that it will be done before applying any algorithm.'
-        
+        print sirna
         return r2[:,:-1], histNtot,  who,ctrlStatus, length, genes, sirna, time_length
 
 def concatenation(folder, exp_list, mitocheck, qc):
@@ -463,7 +462,7 @@ def outputBin(data, ctrlSize,nbPheno, lPheno, binSize, sigma, nbDim=2, nbNeighbo
 
 def homeMadeSpectralClust(data, cluster_nb_min, cluster_nb_max, neighbours_nb, sig, show=False, affinity =None):
     '''
-    Affinity if we provide an affinity matrix not using affinity(x,y)=exp(-sigma*||x-y||²)
+    Affinity if we provide an affinity matrix not using affinity(x,y)=exp(-sigma*||x-y||^2)
     '''
     #here we expect an n_samples x n_features array
 

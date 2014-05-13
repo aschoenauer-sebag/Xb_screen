@@ -3,6 +3,7 @@ import warnings, pdb, time, sys, os
 sys.path.insert(0, '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/') #CHAUD
 import cPickle as pickle
 import numpy as np
+from operator import itemgetter
 import scipy.sparse as sp
 from optparse import OptionParser
 from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
@@ -1230,7 +1231,7 @@ class histogramMiniKMeans(MiniBatchKMeans):
         
         if dist_weights==None:
             dist_weights =np.ones(shape=(mat_hist_sizes.shape[1]+1))#np.reshape( np.ones(shape=(1+mat_hist_sizes.shape[0]*mat_hist_sizes.shape[1],1)),1+mat_hist_sizes.shape[0]*mat_hist_sizes.shape[1])
-        print "CURRENT WEIGHTS", dist_weights
+        print "Init mini-batch k-means, CURRENT WEIGHTS", dist_weights
             
         self.previous_centers=previous_centers
         self.div_name=div_name
@@ -1381,11 +1382,30 @@ class histogramMiniKMeans(MiniBatchKMeans):
         if self.compute_labels:
             if self.verbose:
                 print 'Computing label assignements and total inertia'
-            self.labels_, self.inertia_, _ = _labels_inertia_precompute_dense(
+            self.labels_, self.inertia_, self.mindist = _labels_inertia_precompute_dense(
                 X,self.div_name, self.lambda_, self.cost_matrix, self.mat_hist_sizes, self.nb_feat_num, self.dist_weights,
                     self.cluster_centers_)
 
         return self
+    
+    def find_representatives(self, N):
+        '''
+        This function returns N trajectories per cluster, the N that are the closest to the cluster center.
+        More precisely, it returns a list of indices in the array of trajectories from the experiment at hand,
+        of length N*n_clusters.
+        '''
+        representatives = []
+        dist_data = sorted(np.vstack((range(len(self.labels_)), self.labels_, self.mindist)).T, key=itemgetter(2))
+        
+        count={num_cluster:0 for num_cluster in range(self.n_clusters)}
+        for el in dist_data:
+            if count[el[1]]<10:
+                representatives.append(el[0])
+                count[el[1]]+=1
+        
+        return np.array(sorted(representatives), dtype=int)
+            
+            
 
 if __name__ == '__main__':
     

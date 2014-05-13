@@ -205,11 +205,12 @@ def returnCoordFromExpDict(dicti, lab, length, genes, who):
 def dist(x,y, sig):
     return np.exp( -sig*np.sum((x-y)**2) )
 
-def histLogTrsforming(r, plus=1.0):
+def histLogTrsforming(r, plus=1.0, verbose=1):
     result = np.array(r)
     print r.shape
     allLogTrsf = histLogTrsf; allLogTrsf.extend(histLogTrsf_meanHistFeat)
-    print "We suppose that the first {} features are ".format(len(featuresSaved[:18])), featuresSaved[:18]
+    if verbose>0:
+        print "We suppose that the first {} features are ".format(len(featuresSaved[:18])), featuresSaved[:18]
 #    if r.shape[1]>len(histLogTrsf)+1:
 #        raise AttributeError
     for k in range(len(featuresSaved[:18])):

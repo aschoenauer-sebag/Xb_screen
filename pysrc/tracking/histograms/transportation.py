@@ -670,22 +670,25 @@ def computingddBins(histogramme, nb_bins_list, bin_type='minmax'):
                                                                                
     return matrice_result, quantiles  
 
-def computingBins(histogramme, nb_bins_list, bin_type='minmax'):
+def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning=None):
    
     assert len(nb_bins_list)==len(featuresHisto)
     #Bin list to return in case needed to compute the ground matrix (if bin_type=='quantile')
     quantiles=None
     
     if bin_type=='minmax':
-        minMax=np.empty(shape=(len(featuresHisto), 2))
-        for i, feature in enumerate(featuresHisto):
-            lCour=[]; print feature
-            for ll in histogramme[feature]:
-                lCour.extend(np.array(ll)[np.where(np.isinf(np.array(ll))==False)])
-            lCour=np.array(lCour)
-            minMax[i,0]=np.min(lCour)
-            minMax[i,1]=np.max(lCour)
-        
+        if previous_binning is None:
+            minMax=np.empty(shape=(len(featuresHisto), 2))
+            for i, feature in enumerate(featuresHisto):
+                lCour=[]; print feature
+                for ll in histogramme[feature]:
+                    lCour.extend(np.array(ll)[np.where(np.isinf(np.array(ll))==False)])
+                lCour=np.array(lCour)
+                minMax[i,0]=np.min(lCour)
+                minMax[i,1]=np.max(lCour)
+        else:
+            minMax = previous_binning
+            
         nb_traj = len(histogramme[feature])
         matrice_result=np.empty(shape=(nb_traj, np.sum(nb_bins_list)), dtype=np.float64)
         matrice_result.fill(-1)
@@ -705,13 +708,17 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax'):
                 up_to+=nb_bins_list[i]
                 
     elif bin_type=='quantile':
-        quantiles = np.empty(shape=(len(featuresHisto),), dtype=object)
-        for i, feature in enumerate(featuresHisto):
-            lCour=[]; print feature
-            for ll in histogramme[feature]:
-                lCour.extend(np.array(ll)[np.where(np.isinf(np.array(ll))==False)])
-            lCour=np.array(lCour)
-            quantiles[i] = [scoreatpercentile(lCour, per) for per in [k*100/float(nb_bins_list[i]) for k in range(nb_bins_list[i]+1)]]
+        if previous_binning is None:
+            quantiles = np.empty(shape=(len(featuresHisto),), dtype=object)
+            for i, feature in enumerate(featuresHisto):
+                lCour=[]; print feature
+                for ll in histogramme[feature]:
+                    lCour.extend(np.array(ll)[np.where(np.isinf(np.array(ll))==False)])
+                lCour=np.array(lCour)
+                quantiles[i] = [scoreatpercentile(lCour, per) for per in [k*100/float(nb_bins_list[i]) for k in range(nb_bins_list[i]+1)]]
+                
+        else:
+            quantiles = previous_binning
         #so we should have nb_bins_list[i]+1 values in quantiles[i] since we also give the rightmost edge
         
         nb_traj = len(histogramme[feature])
@@ -739,7 +746,10 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax'):
             moy=np.mean(matrice_result[np.where(matrice_result[:,fr:to]>-0.5)[0],fr:to], 0)
             matrice_result[toAverage[feature], fr:to]=moy       
                                                                                
-    return matrice_result, quantiles  
+    if bin_type=='minmax':
+        return matrice_result, minMax
+    else:
+        return matrice_result, quantiles  
 
 if __name__ == '__main__':
     #MAINTENANT ON VOUDRAIT CALCULER LES DISTANCES ENTRE LES POINTS, ON VA REPARTIR CA SUR PLUSIEURS NOEUDS
