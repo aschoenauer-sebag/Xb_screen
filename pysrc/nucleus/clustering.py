@@ -1,7 +1,7 @@
 import numpy as np
 import cPickle as pickle
 import os, pdb, getpass, sys
-sys.path.append("/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc")
+
 if getpass.getuser()=='aschoenauer':
     import matplotlib as mpl
     mpl.use('Agg')
@@ -133,7 +133,7 @@ def writeJobArray(algo=None, paramFolder = '../resultData/nucleus/parameters'):
     path_command = """setenv PATH /cbio/donnees/nvaroquaux/.local/bin:${PATH}
     setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/cbio/donnees/nvaroquaux/.local/lib
     setenv LIBRARY_PATH /cbio/donnees/nvaroquaux/.local/lib
-    setenv PYTHONPATH /cbio/donnees/aschoenauer/workspace2/cecog/pysrc:/cbio/donnees/aschoenauer/workspace2/Tracking/src
+    setenv PYTHONPATH /cbio/donnees/aschoenauer/workspace2/cecog/pysrc:/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc
     setenv DRMAA_LIBRARY_PATH /opt/gridengine/lib/lx26-amd64/libdrmaa.so
     """
     pbsOutDir = '/cbio/donnees/aschoenauer/PBS/OUT'
@@ -225,7 +225,39 @@ def plotMoy(outFolder='../resultData/nucleus', show=False):
     if show:
         p.show()
     else:
-        p.savefig(os.path.join(outFolder, 'figure {}_MOY.png'.format(algo)))
+        p.savefig(os.path.join(outFolder, 'figure_MOY.png'.format(algo)))
+    
+    f=p.figure(figsize=(24,17))
+    for i, algo in enumerate(["gaussianmixture", 'mini-batchk-means', 'kernelk-means','spectralclustering']):
+        file_=open(os.path.join(outFolder, outFile.format(algo)), 'r')
+        resultDict = pickle.load(file_); file_.close()
+    
+        perClass = []; perCluster = []
+        for parameter_set in resultDict:
+            currLperClass=[]
+            currLperCluster = []
+            for morphoClass in resultDict[parameter_set]:
+                currLperClass.append(np.mean(resultDict[parameter_set][morphoClass][2]))
+                currLperCluster.append(np.mean(resultDict[parameter_set][morphoClass][3]))
+            perClass.append(currLperClass)
+            perCluster.append(currLperCluster)
+            
+        
+        ax=f.add_subplot(2,2,i)
+        for k in range(len(perClass)):
+            ax.errorbar(np.mean(perCluster[k]), np.mean(perClass[k]), xerr = np.std(perCluster[k]), yerr=np.std(perClass[k]), 
+                            fmt = markers[methods.index(algo)],
+                           label = '{}'.format(algo))
+        ax.grid(True)
+        ax.set_xlim(0,1)
+        ax.set_ylim(0,1)
+        ax.set_title("Algorithm {}, on average on all morphological classes".format(algo))
+        ax.set_xlabel("Cluster entropy")
+        ax.set_ylabel("Class entropy")
+    if show:
+        p.show()
+    else:
+        p.savefig(os.path.join(outFolder, 'figure_ENT_MOY.png'.format(algo)))
 
 
 class NucleusClustering():
@@ -535,9 +567,14 @@ class NucleusClustering():
             pass
         elif type(resultDict.keys()[0])==tuple:
         #plotting legend plot
+            param_set = resultDict.keys()[0]
+            try:
+                print self.classNames
+            except AttributeError:
+                self.classNames = resultDict[param_set].keys()
             f=p.figure(figsize=(17,17))
             ax=f.add_subplot(111)
-            param_set = resultDict.keys()[0]
+            
             for morpho in resultDict[param_set]:
                 r = resultDict[param_set][morpho]
                 colors = makeColorRamp(17, hex_output=True)
@@ -570,7 +607,7 @@ class NucleusClustering():
                     plots[morpho][1][0].set_ylim(0,1)
                     plots[morpho][1][0].set_xlabel("Nb of class elements in cluster/cluster size")
                     plots[morpho][1][0].set_ylabel("Nb of class elements in cluster/class size")
-                    plots[morpho][1][0].legend()
+                    #plots[morpho][1][0].legend()
 
             ax.grid(True)
             ax.set_xlim(0,1)

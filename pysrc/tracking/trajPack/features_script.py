@@ -267,7 +267,7 @@ if __name__ == '__main__':
 #    parser.add_option("-t", "--three_d", dest="TroisD",
 #                      help="If you want plots in 3D True, else False")
     parser.add_option("-d", "--data_folder", dest="dataFolder", type=str, default='/share/data20T/mitocheck/Alice/results',
-                      help="Give absolute path to tracking data")
+                      help="Give absolute path to hdf5 data")
     parser.add_option("--traj", dest="trajToDo", type=str, default= None,
                       help="Give absolute path to the file where you have listed the experiments you're interested in")
     parser.add_option("--feat", dest="featToDo", type=str, default= None,

@@ -70,7 +70,7 @@ def gettingSiRNA(labels, who, ctrlStatus, length, genes, qc):
         raise
     else: return nlabels, who, ctrlStatus, length, genes, sirna
 
-def EntrezToExp(corresEntrezEnsemble='NatureEntrezEnsemble.txt', mitocheck='mitocheck_siRNAs_target_genes_Ens72.txt', qc='qc_export.txt'):
+def EntrezToExp(corresEntrezEnsemble='NatureEntrezEnsemble.txt', mitocheck='mitocheck_siRNAs_target_genes_Ens72.txt', qc='qc_export.txt', sub_EntrezList=None):
     EE=txtToList(corresEntrezEnsemble)
     EElist=[]
     for k in range(len(EE)):
@@ -78,8 +78,13 @@ def EntrezToExp(corresEntrezEnsemble='NatureEntrezEnsemble.txt', mitocheck='mito
     EElist=np.array(EElist) #entrez ID of the Nature genes to ensembl
     
     entrrezs=defaultdict(list)
-    for k in range(len(EElist[:,0])):
-        entrrezs[EElist[k][0]].append(EElist[k][1])
+    if sub_EntrezList == None:
+        for k in range(len(EElist[:,0])):
+            entrrezs[EElist[k][0]].append(EElist[k][1])
+    else:
+        for k in range(len(EElist[:,0])):
+            if EElist[k][0] in sub_EntrezList:
+                entrrezs[EElist[k][0]].append(EElist[k][1])
 
     mitocheck_siRNAs=txtToList(mitocheck)    
     siEnsembl=[]
@@ -89,15 +94,17 @@ def EntrezToExp(corresEntrezEnsemble='NatureEntrezEnsemble.txt', mitocheck='mito
     siEns=defaultdict(list)
     for k in range(len(siEnsembl)):
         siEns[siEnsembl[k][1]].append(siEnsembl[k][0]) #ensembl ID of the Mitocheck genes to siRNA
+    siRNAresult = []
     yeSiExp=expSi(qc, 0)
     expDict=defaultdict(list)
     for entrez in entrrezs:
         for ens in entrrezs[entrez]:
             for sirna in siEns[ens]:
+                siRNAresult.append(sirna)
                 for exp in yeSiExp[sirna]:
                     expDict[entrez].append(exp)
     missingEntrez=filter(lambda x: x not in expDict.keys(), entrrezs.keys())
-    return expDict, missingEntrez
+    return expDict, missingEntrez, siRNAresult
 
 def expSi(qc, sens=1):
     qc=txtToList(qc)

@@ -7,7 +7,7 @@ scriptFolder = '/cbio/donnees/aschoenauer/data/tracking/scripts'
 path_command = """setenv PATH /cbio/donnees/nvaroquaux/.local/bin:${PATH}
 setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/cbio/donnees/nvaroquaux/.local/lib
 setenv LIBRARY_PATH /cbio/donnees/nvaroquaux/.local/lib
-setenv PYTHONPATH /cbio/donnees/aschoenauer/workspace2/cecog/pysrc:/cbio/donnees/aschoenauer/workspace2/Tracking/src
+setenv PYTHONPATH /cbio/donnees/aschoenauer/workspace2/cecog/pysrc:/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc
 setenv DRMAA_LIBRARY_PATH /opt/gridengine/lib/lx26-amd64/libdrmaa.so
 """
 pbsOutDir = '/cbio/donnees/aschoenauer/PBS/OUT'

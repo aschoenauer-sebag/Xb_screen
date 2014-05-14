@@ -215,7 +215,7 @@ def txtToList(fichier):
     '''
     f=open(fichier, 'r');
     lines = [x.rstrip().strip('\n').split('\t') for x in f.readlines()]; f.close()
-    print lines[0]
+    #print lines[0]
     lines=np.array(lines[1:])
     return lines
 

@@ -57,11 +57,11 @@ class hitFinder():
     def _findControls(self, expList):
         '''
         For a given list of experiments, returns a list of their control experiments.
-        There is a filter on control experiments which have been used to do the clustering for the moment
+        There is NOT a filter on control experiments which have been used to do the clustering for the moment
         '''
         plates = Counter(np.array(expList)[:,0]).keys()
-        result = filter(lambda x: self.settings.summary_filename.format(x[0], x[1]) in os.listdir(self.settings.result_folder), appendingControl(plates))
-        
+#        result = filter(lambda x: self.settings.summary_filename.format(x[0], x[1]) in os.listdir(self.settings.result_folder), appendingControl(plates))
+        result = appendingControl(plates)
         return result
     
     def _dataPrep(self, expList, ctrlList):
@@ -243,25 +243,29 @@ class clusteringExperiments():
         hist_features = {hist_feature : [] for hist_feature in featuresHisto}
 
         count=0
-        for experiment in self.expList:
+        for i, experiment in enumerate(self.expList):
+            print '------{}/{} experiments'.format(i, len(self.expList))
             try:
                 f=open(os.path.join(self.settings.result_folder, self.settings.summary_filename.format(experiment[0], experiment[1])))
                 representatives = pickle.load(f); f.close()
             except IOError:
-                sys.stderr.write("Representative trajectories for experiment {} have not yet been calculated.".format(experiment))
+                sys.stderr.write("Representative trajectories for experiment {} have not been calculated at all.".format(experiment))
+
             else:
                 
                 r, histNtot,  _,_, _, _, _, _ = histConcatenation(self.settings.data_folder, [experiment], self.settings.mitocheck_file,
                                         self.settings.quality_control_file, verbose=self.verbose)
                 
                 curr_parameters = self.parameters(with_n_cluster=False)
-                
-                num_features=r[representatives[curr_parameters], :self.settings.nb_feat_num] if num_features is None else \
+                try:
+                    num_features=r[representatives[curr_parameters], :self.settings.nb_feat_num] if num_features is None else \
                     np.vstack((num_features, r[representatives[curr_parameters], :self.settings.nb_feat_num]))
-                
-                for hist_feature in hist_features:
-                    hist_features[hist_feature].extend([histNtot[hist_feature][k] for k in representatives[curr_parameters]])
-                count+=len(representatives[curr_parameters]) 
+                except KeyError:
+                    sys.stderr.write("Representative trajectories for experiment {}, parameters {} have not yet been calculated.".format(experiment, curr_parameters))
+                else:                    
+                    for hist_feature in hist_features:
+                        hist_features[hist_feature].extend([histNtot[hist_feature][k] for k in representatives[curr_parameters]])
+                    count+=len(representatives[curr_parameters]) 
                     
         if self.verbose:     
             print num_features.shape, 'not normalized'
@@ -461,9 +465,11 @@ class summarizingExperiment():
         print np.array([(np.mean(stability[n_clusters]), np.std(stability[n_clusters])) for n_clusters in range(self.settings.k_min, self.settings.k_max)])
         
         arr=np.array([np.mean(stability[n_clusters])+np.std(stability[n_clusters]) for n_clusters in range(self.settings.k_min, self.settings.k_max)])
-        k = self.settings.k_min+np.where(arr>0.6)[0][-1]
+        try:
+            k = self.settings.k_min+np.where(arr>0.6)[0][-1]
+        except IndexError:
+            k=self.settings.k_min+np.argmax(arr)
         print 'Chosen k', k
-        pdb.set_trace()
         model = histogramMiniKMeans(k,self.lambda_, self.mat_hist_sizes,
                          div_name=self.div_name, M=self.cost_matrix, 
                          dist_weights=dist_weights, nb_feat_num = self.nb_feat_num,
@@ -497,18 +503,18 @@ if __name__ == '__main__':
     
     #parser.add_option('--sim', type=int, dest='simulated', default=0)
     
-    parser.add_option('-p', type=str, dest='plate', default=None)
-    parser.add_option('-w', type=str, dest='well', default=None)
+    parser.add_option('--plate', type=str, dest='plate', default=None)
+    parser.add_option('--well', type=str, dest='well', default=None)
     parser.add_option('--experimentFile', type=str, dest='experimentFile', default = None)
     parser.add_option('--siRNA', type=str, dest='siRNA', default=None)
     
-    parser.add_option('-a', type=str, default = 'summary')
+    parser.add_option('-a', type=str, dest='action',default = 'summary')
     
     parser.add_option('--div_name', type=str, dest='div_name', default='transportation')
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
     parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
     parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
-    parser.add_option('--ddimensional', type=int, dest='ddim', default=0)
+    parser.add_option('--ddimensional', type=int, dest='ddimensional', default=0)
     parser.add_option("-k", type=int, dest="n_cluster")
     parser.add_option("-w", type=int, dest="weights", default=0)
     parser.add_option("-l",type=int, dest="lambda_", default=10)
@@ -518,9 +524,9 @@ if __name__ == '__main__':
     parser.add_option("--verbose", dest="verbose", type=int,default=0)
     (options, args) = parser.parse_args()
     if getpass.getuser()=='lalil0u':
-        settings_file = 'settings/settings_Trulove.py'
+        settings_file = 'tracking/histograms/settings/settings_Trulove.py'
     else:
-        settings_file = 'settings/settings_thalassa.py'
+        settings_file = 'tracking/histograms/settings/settings_Thalassa.py'
 #    if options.simulated:
 #        datafile = 'hist_tabFeatures_WO.pkl'
 #        folder = '../resultData/simulated_traj'

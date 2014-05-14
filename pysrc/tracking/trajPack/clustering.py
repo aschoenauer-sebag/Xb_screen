@@ -28,7 +28,7 @@ from util.kkmeans import KernelKMeans
 from tracking.trajPack import featuresHisto, featuresNumeriques
 from tracking.plots import plotClustInd, makeColorRamp, plotMovies, plotKMeansPerFilm, markers
 from util.sandbox import cleaningLength, logTrsforming, subsampling, dist, histLogTrsforming, homeMadeGraphLaplacian
-from util.listDealing import gettingSiRNA, expSi, siEntrez
+from util.listDealing import gettingSiRNA, expSi, siEntrez, typeD, typeD2
 from util.plots import basic_colors, couleurs
 
 from tracking.histograms import *
@@ -44,7 +44,11 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
 #    histAvStot={nom:[] for nom in featuresHisto}
 #    histAvMtot={nom:[] for nom in featuresHisto}
 #    histApStot={nom:[] for nom in featuresHisto}
-    whoCtrl=['00074_01', '00315_01']
+    ctrlWell1 = []; ctrlWell2=[]
+    for el in typeD:
+        ctrlWell1.extend(typeD[el])
+    for el in typeD2:
+        ctrlWell2.extend(typeD2[el])
     
     yqualDict=expSi(qc)
     dictSiEntrez=siEntrez(mitocheck)
@@ -54,6 +58,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
         plates = os.listdir(folder)
         print len(plates)
         for pl in plates:
+
             listfiles = filter(lambda x: 'hist2_tabFeatures' in x, os.listdir(os.path.join(folder, pl)))
             
             for fichier in listfiles:
@@ -64,13 +69,19 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
     else:
         i=0
         for pl, w in exp_list:
-            print i,
+            id_plate = int(pl.split('_')[0][2:])
+
+            if id_plate<50:
+                whoCtrl = ctrlWell1
+            else:
+                whoCtrl = ctrlWell2
+
             i+=1
             if pl[:9]+'--'+w[2:5] not in yqualDict:
     #i. checking if quality control passed
                 print "Quality control not passed", pl[:9], w[2:5]
                 continue   
-            elif w not in whoCtrl and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
+            elif w[2:5] not in whoCtrl and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
     #ii.checking if siRNA corresponds to a single target in the current state of knowledge
                 print "SiRNA having no target or multiple target"  
                 continue

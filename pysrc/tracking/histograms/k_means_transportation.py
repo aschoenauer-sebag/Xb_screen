@@ -1,6 +1,6 @@
 import warnings, pdb, time, sys, os
 
-sys.path.insert(0, '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/') #CHAUD
+#sys.path.insert(0, '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/') #CHAUD
 import cPickle as pickle
 import numpy as np
 from operator import itemgetter

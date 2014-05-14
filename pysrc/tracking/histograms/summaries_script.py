@@ -1,0 +1,291 @@
+import os, pdb
+from optparse import OptionParser
+from collections import Counter
+import numpy as np
+import cPickle as pickle
+
+from util.listDealing import expSi, appendingControl
+from util.fileManagement import strToTuple
+
+jobSize = 10
+progFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc'
+scriptFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/scripts'
+path_command = """setenv PATH /cbio/donnees/nvaroquaux/.local/bin:${PATH}
+setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/cbio/donnees/nvaroquaux/.local/lib
+setenv LIBRARY_PATH /cbio/donnees/nvaroquaux/.local/lib
+setenv PYTHONPATH /cbio/donnees/aschoenauer/workspace2/cecog/pysrc:/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc
+setenv DRMAA_LIBRARY_PATH /opt/gridengine/lib/lx26-amd64/libdrmaa.so
+"""
+pbsOutDir = '/cbio/donnees/aschoenauer/PBS/OUT'
+pbsErrDir = '/cbio/donnees/aschoenauer/PBS/ERR'
+pbsArrayEnvVar = 'SGE_TASK_ID'
+
+def globalSummaryScript(baseName,  siRNAFile,
+                        n_clusters_min, n_clusters_max,
+                       div_name,  lambda_,  weights, 
+                       bins_type,  bin_size,  cost_type,
+                       batch_size,  n_init,  init, 
+                       ddim):
+    
+    f=open(siRNAFile, 'r')
+    siRNAList = pickle.load(f); f.close()
+    
+    siExpDict = expSi(qc = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt', sens=0)
+    jobCount = 0
+    i=0
+    total_expList = []
+    head = """#!/bin/sh
+cd %s""" %progFolder
+    baseName = baseName+'{}_w{}_{}_{}_{}'.format(div_name[:5], weights, bins_type, bin_size, cost_type)
+#A. DEALING WITH EXPERIMENTS
+    for siRNA in siRNAList:
+        try:
+            expList = siExpDict[siRNA]
+        except KeyError:
+            print "siRNA not in siRNA-experiment dictionary"
+        else:
+            expList = strToTuple(expList, os.listdir("/share/data20T/mitocheck/tracking_results"))
+            total_expList.extend(expList)
+            for plate, well in expList:        
+                jobCount += 1; i+=1
+                cmd = plateWellSummaryScript(plate, well, div_name, lambda_, weights, bins_type, bin_size, cost_type, batch_size, n_init, init, ddim)
+
+                # this is now written to a script file (simple text file)
+                # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
+                script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
+                script_file = file(script_name, "w")
+                script_file.write(head + cmd)
+                script_file.close()
+        
+                # make the script executable (without this, the cluster node cannot call it)
+                os.system('chmod a+x %s' % script_name)
+    
+#B. DEALING WITH CONTROLS
+    ctrlExp = appendingControl( Counter(np.array(total_expList)[:,0]).keys())
+    np.random.shuffle(ctrlExp)
+    ctrlExp=ctrlExp[:int(0.2*len(total_expList))]
+    for plate, well in ctrlExp:
+        jobCount += 1; i+=1
+        cmd = plateWellSummaryScript(plate, well, div_name, lambda_, weights, bins_type, bin_size, cost_type, batch_size, n_init, init, ddim)
+
+        # this is now written to a script file (simple text file)
+        # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
+        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
+        script_file = file(script_name, "w")
+        script_file.write(head + cmd)
+        script_file.close()
+
+        # make the script executable (without this, the cluster node cannot call it)
+        os.system('chmod a+x %s' % script_name)
+    
+            # write the main script
+    array_script_name = '%s.sh' % os.path.join(scriptFolder, baseName)
+    main_script_file = file(array_script_name, 'w')
+    main_content = """#!/bin/sh
+%s
+#$ -o %s
+#$ -e %s
+%s$%s.sh
+""" % (path_command,
+       pbsOutDir,  
+       pbsErrDir, 
+       os.path.join(scriptFolder, baseName),
+       pbsArrayEnvVar)
+
+    main_script_file.write(main_content)
+    main_script_file.close()
+    os.system('chmod a+x %s' % array_script_name)
+    sub_cmd = 'qsub -t 1-%i %s' % (jobCount, array_script_name)
+
+    print sub_cmd
+    
+#C. DOING EXPERIMENT CLUSTERING STEP
+    expFilename = 'exp_Simpson.pkl'
+    total_expList.extend(ctrlExp)
+    f=open(expFilename, 'w')
+    pickle.dump(total_expList, f)
+    f.close()
+    baseName = baseName+'_clustering'
+    for n_clusters in range(n_clusters_min, n_clusters_max):
+        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(n_clusters-n_clusters_min))
+        script_file = file(script_name, "w")
+        cmd="""
+    python tracking/histograms/summarization_clustering.py -a clustering --experimentFile %s -k %i --ddimensional %i --bins_type %s --cost_type %s --bin_size %i --div_name %s -w %i --init %s --batch_size %i
+    """
+        cmd %= (
+                expFilename,
+                n_clusters,
+                 ddim,
+                 bins_type,
+                 cost_type,
+                 bin_size,
+                 div_name,
+                 weights,
+                 init,
+                 batch_size
+            )
+        script_file.write(head + cmd)
+        script_file.close()
+        os.system('chmod a+x %s' % script_name)
+    
+                # write the main script
+    array_script_name = '%s.sh' % os.path.join(scriptFolder, baseName)
+    main_script_file = file(array_script_name, 'w')
+    main_content = """#!/bin/sh
+%s
+#$ -o %s
+#$ -e %s
+%s$%s.sh
+""" % (path_command,
+       pbsOutDir,  
+       pbsErrDir, 
+       os.path.join(scriptFolder, baseName),
+       pbsArrayEnvVar)
+
+    main_script_file.write(main_content)
+    main_script_file.close()
+    os.system('chmod a+x %s' % array_script_name)
+    sub_cmd = 'qsub -hold_jid  -t 1-%i %s' % (n_clusters_max - n_clusters_min, array_script_name)
+
+    print sub_cmd
+    
+#D. GOING BACK TO EXPERIMENTS AND TESTING IF DIFFERENT FROM CONTROLS
+    
+    return 1
+
+def plateWellSummaryScript(plate, well,
+                       div_name,  lambda_,  weights, 
+                       bins_type,  bin_size,  cost_type,
+                       batch_size,  n_init,  init, 
+                       ddim):
+
+    # command to be executed on the cluster
+    temp_cmd = """
+python tracking/histograms/summarization_clustering.py -a summary --plate %s --well %s --ddimensional %i --bins_type %s --cost_type %s --bin_size %i --div_name %s -w %i --init %s --batch_size %i
+"""
+    temp_cmd %= (
+                 plate, 
+                 well,
+                 ddim,
+                 bins_type,
+                 cost_type,
+                 bin_size,
+                 div_name,
+                 weights,
+                 init,
+                 batch_size
+            )
+
+
+    return temp_cmd
+
+
+def generationScript(baseName, algo, data, debut, fin, neighbours, sigma, density, covar, fuzzifier, num_samp):
+    jobCount = 0
+    nb_jobs = fin-debut+1
+    if algo==0:
+        baseName = baseName+'_n{}_'.format(neighbours)
+    if algo==4:
+        baseName = baseName+'_n{}_s{}'.format(neighbours, sigma)
+    head = """#!/bin/sh
+cd %s""" %progFolder
+    for i in range(nb_jobs):
+        jobCount += 1
+        cmd = ''
+
+        # command to be executed on the cluster
+        temp_cmd = """
+python trajPack/clustering.py -f /cbio/donnees/aschoenauer/workspace2/Tracking/resultData -a %i -n %i -g %i -s %f -d %i --density %i --covariance %s --fuzzy %i --numsampling %i
+"""
+
+        temp_cmd %= (
+                algo,
+                int(debut)+i,
+                int(neighbours),
+                sigma,
+                data,
+                density,
+                covar,
+                fuzzifier,
+                num_samp
+                )
+
+        cmd += temp_cmd
+
+        # this is now written to a script file (simple text file)
+        # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
+        script_name = os.path.join(scriptFolder, '%s%i.sh' % (baseName, jobCount))
+        script_file = file(script_name, "w")
+        script_file.write(head + cmd)
+        script_file.close()
+
+        # make the script executable (without this, the cluster node cannot call it)
+        os.system('chmod a+x %s' % script_name)
+
+        # write the main script
+    array_script_name = '%s.sh' % os.path.join(scriptFolder, baseName)
+    main_script_file = file(array_script_name, 'w')
+    main_content = """#!/bin/sh
+%s
+#$ -o %s
+#$ -e %s
+%s$%s.sh
+""" % (path_command,
+       pbsOutDir,  
+       pbsErrDir, 
+       os.path.join(scriptFolder, baseName),
+       pbsArrayEnvVar)
+
+    main_script_file.write(main_content)
+    os.system('chmod a+x %s' % array_script_name)
+
+    # the submission commando is:
+    #sub_cmd = 'qsub -o %s -e %s -t 1-%i %s' % (self.oBatchSettings.pbsOutDir,  
+    #                                           self.oBatchSettings.pbsErrDir, 
+    #                                           jobCount, array_script_name)
+    sub_cmd = 'qsub -t 1-%i %s' % (jobCount, array_script_name)
+
+    print 'array containing %i jobs' % jobCount
+    print sub_cmd
+    return 1
+
+if __name__ == '__main__':
+    description =\
+'''
+%prog - Script generating for experiment summarization, summary clustering and hit finder
+'''
+
+    parser = OptionParser(usage="usage: %prog [options]",
+                         description=description)
+    parser.add_option("-b", "--base_name", dest="baseName",
+                      help="Base name for script")
+
+    parser.add_option('--siRNA', type=str, dest='siRNAListFile', default=None)
+    
+    parser.add_option('--nmin', type=int, dest='n_clusters_min', help="Min number of clusters to use in the experiment clustering step")
+    parser.add_option('--nmax', type=int, dest='n_clusters_max', help="Max number of clusters to use in the experiment clustering step")
+    
+    parser.add_option('--div_name', type=str, dest='div_name', default='transportation')
+    parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
+    parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
+    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
+    parser.add_option('--ddimensional', type=int, dest='ddim', default=0)
+    
+    parser.add_option("-w", type=int, dest="weights", default=0)
+    parser.add_option("-l",type=int, dest="lambda_", default=10)
+    parser.add_option("--batch_size", dest="batch_size", type=int,default=1000)
+    parser.add_option("--init", dest="init", type=str,default='k-means++')
+    parser.add_option("--n_init", dest="n_init", type=int,default=5)
+    parser.add_option("--verbose", dest="verbose", type=int,default=0)
+    
+    
+    (options, args) = parser.parse_args()
+    
+    globalSummaryScript(options.baseName, options.siRNAListFile,
+                        options.n_clusters_min, options.n_clusters_max,
+                      options.div_name, options.lambda_, options.weights, 
+                      options.bins_type, options.bin_size, options.cost_type,
+                      options.batch_size, options.n_init, options.init, 
+                      options.ddim
+                      )
+    
