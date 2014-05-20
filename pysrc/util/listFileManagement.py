@@ -6,7 +6,19 @@ import numpy as np
 import vigra.impex as vi
 from PIL import Image
 
+from util import typeD, typeD2
 from tracking.trajPack import sdFeatures1, logTrsf
+
+def is_ctrl(experiment):
+    id_ = int(experiment[0].split('_')[0][2:])
+    if id_<50:
+        if np.any(np.array([experiment[1][2:5] in l for l in typeD.values()])):
+            return True
+    else:
+        if np.any(np.array([experiment[1][2:5] in l for l in typeD2.values()])):
+            return True
+    return False
+
 
 def renameFromZeiss(inputFolder, clone, dose, well, outputFolder=None):        
 #ici c'est pour renommer des images dans le cas ou pour une raison connue de Dieu seul
@@ -261,6 +273,7 @@ def strToTuple(strList, platesList):
     result = []
 #    f=open(fichier, "r")
 #    platesList = pickle.load(f); f.close()
+    
     for el in strList:
         try:
             pl = filter(lambda x: el[:9] in x, platesList)[0]
@@ -397,7 +410,115 @@ def fromShareToCBIO(expdict,wellFolder=False, dst='/cbio/donnees/aschoenauer/clu
                     shutil.copytree(os.path.join(folderIn, pl, ww[0]), os.path.join(dst, gene, pl, ww[0][:3]))
                 except:
                     pass
-                
+
+def appendingControl(plateL):
+    todo=[]
+
+    for el in plateL:
+        id_ = int(el.split('_')[0][2:])
+        if id_<50:
+            for si in typeD:
+                for val in typeD[si]:
+                    todo.append((el, '{:>05}_01'.format(int(val))))
+        else:
+            for si in typeD2:
+                for val in typeD2[si]:
+                    todo.append((el, '{:>05}_01'.format(int(val))))
+
+    return todo
+
+
+def gettingSiRNA(labels, who, ctrlStatus, length, genes, qc):
+    '''
+    This function gives the siRNA list of a set of Mitocheck experiments, also removing experiments
+    that did not go through the quality control
+    '''
+    sirna=[]; unfound=[]
+    yqualDict=expSi(qc)
+    for k in range(len(who)):
+        try:
+            sirna.append(yqualDict[who[k][0][:9]+'--'+who[k][1][2:5]])
+        except KeyError:
+            unfound.append( k)
+            sirna.append('unfound')
+            print who[k][0][:9]+'--'+who[k][1][2:5]
+    todel=[]
+    for indice in unfound:
+        todel.extend(range(np.sum(length[:indice]), np.sum(length[:indice+1])))
+        
+    todel.sort(); unfound.sort(reverse=True)
+    nlabels = np.delete(labels, todel, 0)
+    for indice in unfound:
+        del genes[indice]
+        del sirna[indice]
+        del length[indice]
+        del ctrlStatus[indice]
+        del who[indice]
+    if np.sum(length)!=len(nlabels) or len(length)!=len(who) or len(length)!=len(ctrlStatus) or len(length)!=len(genes) or len(length)!=len(sirna) \
+        or 'unfound' in sirna:
+        raise
+    else: return nlabels, who, ctrlStatus, length, genes, sirna
+
+def EntrezToExp(corresEntrezEnsemble='NatureEntrezEnsemble.txt', mitocheck='mitocheck_siRNAs_target_genes_Ens72.txt', qc='qc_export.txt', sub_EntrezList=None):
+    EE=txtToList(corresEntrezEnsemble)
+    EElist=[]
+    for k in range(len(EE)):
+        EElist.append((EE[k][0], EE[k][1]))
+    EElist=np.array(EElist) #entrez ID of the Nature genes to ensembl
+    
+    entrrezs=defaultdict(list)
+    if sub_EntrezList == None:
+        for k in range(len(EElist[:,0])):
+            entrrezs[EElist[k][0]].append(EElist[k][1])
+    else:
+        for k in range(len(EElist[:,0])):
+            if EElist[k][0] in sub_EntrezList:
+                entrrezs[EElist[k][0]].append(EElist[k][1])
+
+    mitocheck_siRNAs=txtToList(mitocheck)    
+    siEnsembl=[]
+    for k in range(len(mitocheck_siRNAs)):
+        siEnsembl.append((mitocheck_siRNAs[k][1], mitocheck_siRNAs[k][2]))
+        
+    siEns=defaultdict(list)
+    for k in range(len(siEnsembl)):
+        siEns[siEnsembl[k][1]].append(siEnsembl[k][0]) #ensembl ID of the Mitocheck genes to siRNA
+    siRNAresult = []
+    yeSiExp=expSi(qc, 0)
+    expDict=defaultdict(list)
+    for entrez in entrrezs:
+        for ens in entrrezs[entrez]:
+            for sirna in siEns[ens]:
+                siRNAresult.append(sirna)
+                for exp in yeSiExp[sirna]:
+                    expDict[entrez].append(exp)
+    missingEntrez=filter(lambda x: x not in expDict.keys(), entrrezs.keys())
+    return expDict, missingEntrez, siRNAresult
+
+def expSi(qc, sens=1):
+    qc=txtToList(qc)
+    yes=qc[np.where(qc[:,-2]=='True')]
+    
+    if sens==0:
+        yeSiExp=defaultdict(list)
+    #siRNA to plate,well for experiments that have passed the quality control    
+        for k in range(yes.shape[0]):
+            yeSiExp[yes[k,1]].append(yes[k,0])
+    else:
+        yeSiExp={}
+        for k in range(yes.shape[0]):
+            yeSiExp[yes[k,0]]=yes[k,1]
+    return yeSiExp
+
+def siEntrez(mitocheck):
+    mitocheck=txtToList(mitocheck)
+    result = {}
+    for k in range(len(mitocheck)):
+        if len(mitocheck[k])==4:
+            result[mitocheck[k][1]]=mitocheck[k][-1]
+
+    return result
+
 class ArffReader(object):
     '''
     modified (from Cecog + me) ARFF reader from Pradeep Kishore Gowda

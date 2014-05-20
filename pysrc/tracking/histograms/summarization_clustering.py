@@ -1,7 +1,17 @@
 import warnings, pdb, time, sys, os
 import getpass
+from scipy.stats.stats import ks_2samp
 
-sys.path.insert(0, '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/') #CHAUD
+if getpass.getuser()=='aschoenauer':
+    import matplotlib as mpl
+    mpl.use('Agg')
+    show = False
+elif getpass.getuser()=='lalil0u':
+    import matplotlib as mpl
+    show=True
+from matplotlib import pyplot as p
+import brewer2mpl
+
 import cPickle as pickle
 import numpy as np
 
@@ -17,9 +27,7 @@ from tracking.trajPack import featuresNumeriques
 from tracking.trajPack.clustering import histConcatenation
 from tracking.histograms import *
 from tracking.histograms.k_means_transportation import _labels_inertia_precompute_dense
-from util.sandbox import histLogTrsforming
-from util.listDealing import expSi, appendingControl
-from util.fileManagement import strToTuple
+from util.listFileManagement import strToTuple, expSi, appendingControl, is_ctrl
 from util import settings
 
 from rpy2 import robjects
@@ -40,9 +48,10 @@ def stabilityCalculation(labels1, labels2, set1, set2):
     return np.sum(corr1*corr2)/np.sqrt(np.sum(corr1*corr1)*np.sum(corr2*corr2))
 
 class hitFinder():
-    def __init__(self, settings_file, siRNA):            
+    def __init__(self, settings_file, siRNA, verbose=0):            
         self.settings = settings.Settings(settings_file, globals())
         self.siRNA = siRNA
+        self.verbose=verbose
         
     def _findExperiment(self):
         '''
@@ -84,10 +93,15 @@ class hitFinder():
         except IOError:
             raise
         else:
-            for param_tuple in d:
-                centers, mean, std, bins = d[param_tuple]
+            for iter_, param_tuple in enumerate(d):
+                centers, mean, std, bins, expList = d[param_tuple]
+                dd=dict(param_tuple)
+#                if self.verbose and dd['dist_weights']!=1:
+#                    print 'weights', dd['dist_weights'], 'k', dd['n_cluster']
+#                    pdb.set_trace()
                 curr_parameters = dict(param_tuple)
-                
+                if self.verbose:
+                    print curr_parameters
                 mat_hist_sizes = np.array([[curr_parameters['bin_size'] for k in range(5)]])
                 cost_matrix = None
                 if curr_parameters['ddimensional']:
@@ -108,25 +122,28 @@ class hitFinder():
                         print 'cost type value'
                         cost_matrix=bins
                     cost_matrix=_costMatrix(mat_hist_sizes, cost_matrix)
+                    weights = WEIGHTS[curr_parameters["dist_weights"]]
                 
                 labels, _, _ = _labels_inertia_precompute_dense(data, 
-                                                                curr_parameters['div_name'], curr_parameters["lambda_"], 
+                                                                curr_parameters['div_name'], curr_parameters["lambda"], 
                                                                 M=cost_matrix, 
                                                                 mat_hist_sizes=mat_hist_sizes, 
                                                                 nb_feat_num=self.settings.nb_feat_num, 
-                                                                dist_weights=curr_parameters["dist_weights"], centers=centers)
+                                                                dist_weights=weights, centers=centers)
                 result[param_tuple] = labels
+#                if iter_>5:
+#                    break
             
             return result
         
     def _computePValues(self, labelDict, ctrlList, who, ctrlStatus, length):
-        info = np.array( zip((who, ctrlStatus, length)))
-        p_vals = {}
+        info = np.array( zip((who, ctrlStatus, length)))[:,0]
+        p_vals = defaultdict(list)
+        r=[]
         for param_tuple in labelDict:
             labels = labelDict[param_tuple]
-            p_vals[param_tuple] = defaultdict(list)
-            
-            for experiment in info[np.where(info[1]==1), 0]:
+            d=dict(param_tuple)
+            for experiment in info[0,np.where(info[1]==1)[0]]:
                 i=who.index(experiment)
                 pLabelsCour = labels[np.sum(length[:i]):np.sum(length[:i+1])]
                 ctrlPl = filter(lambda x: x[0]==experiment[0], ctrlList)
@@ -139,19 +156,34 @@ class hitFinder():
                     else:
                         cLabelsCour.extend(labels[np.sum(length[:index]):np.sum(length[:index+1])])
                 
-                vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
-                cLabelsCour.extend(pLabelsCour)
+                llength = len(cLabelsCour)
+                #vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
+                #cLabelsCour.extend(pLabelsCour)
+                #r.append([cLabelsCour, vecLongueurs])
                 try:
-                    p_vals[param_tuple].append(np.float64(rStats.fisher_test(robjects.IntVector(cLabelsCour), robjects.IntVector(vecLongueurs), 
-                                                                             workspace=200000000, simulate_p_value=True)[0])[0])
+                    p_vals[param_tuple].append(ks_2samp(pLabelsCour, cLabelsCour)[1])
+                    #p_vals[param_tuple].append(np.float64(rStats.fisher_test(robjects.IntVector(cLabelsCour), robjects.IntVector(vecLongueurs), 
+                                                        #                     workspace=200000000, simulate_p_value=True)[0][0]))
+                    if self.verbose:
+                        print '---------------weights', d['dist_weights'], 'k', d['n_cluster']
+                        print len(pLabelsCour), np.bincount(pLabelsCour)/float(len(pLabelsCour))
+                        print llength, np.bincount(cLabelsCour[:llength])/float(llength)
+                        print p_vals[param_tuple][-1]
                 except:
-                    pdb.set_trace()
+                    if np.all(np.array(cLabelsCour)==np.zeros(len(cLabelsCour))):
+                        p_vals[param_tuple].append(1.0)
+                    #print experiment, param_tuple
+                    continue
+            
         #statistical test according to Fisher's method http://en.wikipedia.org/wiki/Fisher%27s_method
-            stat = -2*np.sum(np.log(p_vals[param_tuple]))
-            chi2_dist = chi2(df = 2*len(p_vals[param_tuple]))
-        #Given that what we're checking for is small p-values = big stat values, we can limit ourselves to computing
-            #right-tail p-values
-            p_vals[param_tuple] = chi2_dist.sf(stat)
+            if len(p_vals[param_tuple])>1:
+                stat = -2*np.sum(np.log(p_vals[param_tuple]))
+                p_vals[param_tuple] = chi2.sf(stat, 2*len(p_vals[param_tuple]))
+  
+            #Given that what we're checking for is small p-values = big stat values, we can limit ourselves to computing
+                #right-tail p-values
+#        f=open('p_val_{}.pkl'.format(self.siRNA), 'w')
+#        pickle.dump(r, f); f.close()
         return p_vals
     
     def _saveResults(self, p_values):
@@ -170,8 +202,12 @@ class hitFinder():
         pickle.dump(hits, f); f.close()
     
     def __call__(self):
+        
         #i. getting experiments corresponding to siRNA
         expList=self._findExperiment()
+        if expList==[]:
+            sys.stderr.write("No experiments for siRNA {}".format(self.siRNA))
+            return
         
         #ii.getting controls corresponding to experiments
         ctrlList = self._findControls(expList)
@@ -189,6 +225,79 @@ class hitFinder():
         self._saveResults(pvalues)
         
         return
+    
+    def plot_heatmap(self, other_hit_fileL):
+    #getting list of all parameter sets
+        try:
+            f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename), 'r')
+            d=pickle.load(f); f.close()
+        except IOError:
+            raise
+        else:
+            parameters = d.keys()
+    #getting list of all siRNAs for which p-values have been calculated in at least one case
+        hitsL=[]; other_hit_fileL.insert(0,self.settings.hit_filename)
+            
+        for file_ in other_hit_fileL:
+            try:
+                f=open(os.path.join(self.settings.result_folder, file_))
+                hitsL.append(pickle.load(f))
+                f.close()
+            except:
+                pdb.set_trace()
+                
+        siL = []
+        for el in hitsL:
+            siL.extend(el.keys())
+        siL = Counter(siL).keys()
+        print type(siL)
+
+        result = np.empty(shape=(len(other_hit_fileL), len(siL), len(parameters)), dtype=float)
+        result.fill(np.NAN)
+        for k in range(len(hitsL)):
+            for siRNA in hitsL[k]:
+                i=siL.index(siRNA)
+                for j,parameter_set in enumerate(parameters):
+                    try:
+                        if type(hitsL[k][siRNA][parameter_set])==list:
+                            try:
+                                result[k,i,j]=hitsL[k][siRNA][parameter_set][0] 
+                            except IndexError:
+                                continue
+                        else:
+                            result[k,i,j]=hitsL[k][siRNA][parameter_set]
+                    except KeyError:
+                        print 
+                        continue
+        min_=np.nanmin(result) 
+        cmap = brewer2mpl.get_map('PRGn', 'diverging', 11).mpl_colormap
+        
+        axes= p.subplots(len(other_hit_fileL), sharex=True)
+        for k in range(len(other_hit_fileL)):
+            zou=axes[1][k].pcolormesh(result[k],
+                  cmap=cmap,
+                  norm = mpl.colors.LogNorm(vmin=min_, vmax=np.nanmax(result)),
+                  edgecolors = 'None')
+            axes[1][k].set_title('P-values for file {}'.format(other_hit_fileL[k]))
+        axes[0].colorbar(zou)
+#        xticks = np.array(range(ncol))
+#        yticks = np.array(range(nrow))
+#        
+#        yticklabels=list(string.uppercase[:data.shape[0]]); yticklabels.reverse()
+#        xticklabels=range(1,data.shape[1]+1)
+#        
+#        ax.set_xticks(xticks+0.5)
+#        ax.set_xticklabels(xticklabels)
+#        
+#        ax.set_yticks(yticks+0.5)
+#        ax.set_yticklabels(yticklabels)
+        
+        
+        if show:
+            p.show()
+        else:
+            p.savefig(os.path.join(self.settings.result_folder, self.settings.figure_name))
+        return result
 
 
 class clusteringExperiments():
@@ -242,7 +351,8 @@ class clusteringExperiments():
         num_features=None
         hist_features = {hist_feature : [] for hist_feature in featuresHisto}
 
-        count=0
+        count=0; ctrl_count=0; ctrl_exp_count=0
+        self.actual_expList = []
         for i, experiment in enumerate(self.expList):
             print '------{}/{} experiments'.format(i, len(self.expList))
             try:
@@ -252,22 +362,27 @@ class clusteringExperiments():
                 sys.stderr.write("Representative trajectories for experiment {} have not been calculated at all.".format(experiment))
 
             else:
-                
                 r, histNtot,  _,_, _, _, _, _ = histConcatenation(self.settings.data_folder, [experiment], self.settings.mitocheck_file,
                                         self.settings.quality_control_file, verbose=self.verbose)
-                
+    
                 curr_parameters = self.parameters(with_n_cluster=False)
                 try:
                     num_features=r[representatives[curr_parameters], :self.settings.nb_feat_num] if num_features is None else \
                     np.vstack((num_features, r[representatives[curr_parameters], :self.settings.nb_feat_num]))
+    
                 except KeyError:
                     sys.stderr.write("Representative trajectories for experiment {}, parameters {} have not yet been calculated.".format(experiment, curr_parameters))
                 else:                    
+                    self.actual_expList.append(experiment)
                     for hist_feature in hist_features:
                         hist_features[hist_feature].extend([histNtot[hist_feature][k] for k in representatives[curr_parameters]])
                     count+=len(representatives[curr_parameters]) 
-                    
-        if self.verbose:     
+                    if is_ctrl(experiment):
+                        ctrl_exp_count+=1
+                        ctrl_count +=len(representatives[curr_parameters]) 
+        if self.verbose:   
+            print "{} representatives from {} experiments, among which {} ctrl representatives from {} ctrl experiments".format(count,\
+                                         len(self.actual_expList), ctrl_count, ctrl_exp_count)  
             print num_features.shape, 'not normalized'
             print 'computing bins, bin type {}, d-dimensional? {}'.format(self.bins_type, bool(self.ddimensional))
         assert(count == num_features.shape[0])
@@ -275,6 +390,7 @@ class clusteringExperiments():
         if self.ddimensional:
             histogrammeMatrix, bins = computingddBins(hist_features, self.mat_hist_sizes[0], bin_type=self.bins_type)
         else:
+
             histogrammeMatrix, bins = computingBins(hist_features, self.mat_hist_sizes[0], bin_type=self.bins_type)
             
         self.mean = np.mean(num_features,0)
@@ -291,7 +407,7 @@ class clusteringExperiments():
             d=pickle.load(f); f.close()
         else:
             d={}
-        d.update({self.parameters():[centers, self.mean, self.std, bins]})
+        d.update({self.parameters(with_n_cluster=True):[centers, self.mean, self.std, bins, self.actual_expList]})
         f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename), 'w')
         pickle.dump(d, f); f.close()
 
@@ -302,6 +418,7 @@ class clusteringExperiments():
         
         #i. assembling all data 
         data, bins=self._dataPrep()
+        
         if self.ddimensional:
             self.cost_matrix={(0,0):ddcostMatrix(np.product(self.mat_hist_sizes[0]), self.mat_hist_sizes[0])}
             self.mat_hist_sizes=np.array([[np.product(self.mat_hist_sizes)]])
@@ -407,7 +524,10 @@ class summarizingExperiment():
 #i.Data preparation: putting histogram data in bins and normalizing
         
         #if self.cost_type==value then returning the bins for further ground metric calculation
-        data, bins=self._dataPrep()
+        try:
+            data, bins=self._dataPrep()
+        except AttributeError:
+            return
         
         if self.ddimensional:
             raise ValueError
@@ -515,7 +635,7 @@ if __name__ == '__main__':
     parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
     parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
     parser.add_option('--ddimensional', type=int, dest='ddimensional', default=0)
-    parser.add_option("-k", type=int, dest="n_cluster")
+    parser.add_option("-k", type=int, dest="n_cluster", default=4)
     parser.add_option("-w", type=int, dest="weights", default=0)
     parser.add_option("-l",type=int, dest="lambda_", default=10)
     parser.add_option("--batch_size", dest="batch_size", type=int,default=1000)
@@ -524,9 +644,9 @@ if __name__ == '__main__':
     parser.add_option("--verbose", dest="verbose", type=int,default=0)
     (options, args) = parser.parse_args()
     if getpass.getuser()=='lalil0u':
-        settings_file = 'tracking/histograms/settings/settings_Trulove.py'
+        settings_file = 'tracking/settings/settings_summaries_Trulove.py'
     else:
-        settings_file = 'tracking/histograms/settings/settings_Thalassa.py'
+        settings_file = 'tracking/settings/settings_summaries_Thalassa.py'
 #    if options.simulated:
 #        datafile = 'hist_tabFeatures_WO.pkl'
 #        folder = '../resultData/simulated_traj'
@@ -553,7 +673,8 @@ if __name__ == '__main__':
         model()
     
     elif options.action =='hitFinder':
-        pass
+        model = hitFinder(settings_file, options.siRNA, options.verbose)
+        model()
         
     
                  

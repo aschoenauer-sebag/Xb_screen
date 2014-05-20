@@ -23,7 +23,7 @@ from tracking.histograms import *
 from util.sandbox import histLogTrsforming
 
 
-def calculDistances(data, center, div_name, weight, lambda_=10, M=None, mat_hist_sizes=None, nb_feat_num=12, simulated=False):
+def calculDistances(data, center, div_name, weight, lambda_=10, M=None, mat_hist_sizes=None, nb_feat_num=12):
     print 'divergence ', div_name
 
     print 'weight {}'.format(weight)

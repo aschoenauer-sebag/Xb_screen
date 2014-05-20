@@ -1,19 +1,19 @@
-import os, pdb
+import os, pdb, time
 from optparse import OptionParser
 from collections import Counter
 import numpy as np
 import cPickle as pickle
 
-from util.listDealing import expSi, appendingControl
-from util.fileManagement import strToTuple
+from util.listFileManagement import expSi, appendingControl, strToTuple, countingDone
 
 jobSize = 10
 progFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc'
 scriptFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/scripts'
-path_command = """setenv PATH /cbio/donnees/nvaroquaux/.local/bin:${PATH}
-setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/cbio/donnees/nvaroquaux/.local/lib
-setenv LIBRARY_PATH /cbio/donnees/nvaroquaux/.local/lib
+path_command = """setenv PATH /cbio/donnees/nvaroquaux/.local/bin:/cbio/donnees/twalter/software/bin:${PATH}
+setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/cbio/donnees/nvaroquaux/.local/lib:/cbio/donnees/twalter/software/lib64/R/lib:/cbio/donnees/twalter/software/lib
+setenv LIBRARY_PATH /cbio/donnees/nvaroquaux/.local/lib:/cbio/donnees/twalter/software/lib:/cbio/donnees/twalter/software/lib64/R/lib
 setenv PYTHONPATH /cbio/donnees/aschoenauer/workspace2/cecog/pysrc:/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc
+setenv R_HOME 
 setenv DRMAA_LIBRARY_PATH /opt/gridengine/lib/lx26-amd64/libdrmaa.so
 """
 pbsOutDir = '/cbio/donnees/aschoenauer/PBS/OUT'
@@ -62,6 +62,7 @@ cd %s""" %progFolder
     
 #B. DEALING WITH CONTROLS
     ctrlExp = appendingControl( Counter(np.array(total_expList)[:,0]).keys())
+    ctrlExp = countingDone(ctrlExp)
     np.random.shuffle(ctrlExp)
     ctrlExp=ctrlExp[:int(0.2*len(total_expList))]
     for plate, well in ctrlExp:
@@ -100,7 +101,7 @@ cd %s""" %progFolder
     print sub_cmd
     
 #C. DOING EXPERIMENT CLUSTERING STEP
-    expFilename = 'exp_Simpson.pkl'
+    expFilename = 'exp_Simpson_{}.pkl'.format(int(time.time()))
     total_expList.extend(ctrlExp)
     f=open(expFilename, 'w')
     pickle.dump(total_expList, f)
@@ -179,50 +180,32 @@ python tracking/histograms/summarization_clustering.py -a summary --plate %s --w
 
     return temp_cmd
 
-
-def generationScript(baseName, algo, data, debut, fin, neighbours, sigma, density, covar, fuzzifier, num_samp):
+def hitFinderScript(baseName, siRNAFile):
+    f=open(siRNAFile, 'r')
+    siRNAList = pickle.load(f); f.close()
     jobCount = 0
-    nb_jobs = fin-debut+1
-    if algo==0:
-        baseName = baseName+'_n{}_'.format(neighbours)
-    if algo==4:
-        baseName = baseName+'_n{}_s{}'.format(neighbours, sigma)
+    
     head = """#!/bin/sh
 cd %s""" %progFolder
-    for i in range(nb_jobs):
-        jobCount += 1
-        cmd = ''
-
-        # command to be executed on the cluster
-        temp_cmd = """
-python trajPack/clustering.py -f /cbio/donnees/aschoenauer/workspace2/Tracking/resultData -a %i -n %i -g %i -s %f -d %i --density %i --covariance %s --fuzzy %i --numsampling %i
-"""
-
-        temp_cmd %= (
-                algo,
-                int(debut)+i,
-                int(neighbours),
-                sigma,
-                data,
-                density,
-                covar,
-                fuzzifier,
-                num_samp
-                )
-
-        cmd += temp_cmd
-
+    #baseName = baseName+'{}'.format(siRNAFile)
+    
+    for i,siRNA in enumerate(siRNAList):
+        jobCount+=1; i+=1
+        cmd = '''
+python tracking/histograms/summarization_clustering.py -a hitFinder --siRNA %s --verbose 0
+'''
+        cmd%=siRNA
         # this is now written to a script file (simple text file)
         # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
-        script_name = os.path.join(scriptFolder, '%s%i.sh' % (baseName, jobCount))
+        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
         script_file = file(script_name, "w")
         script_file.write(head + cmd)
         script_file.close()
 
         # make the script executable (without this, the cluster node cannot call it)
         os.system('chmod a+x %s' % script_name)
-
-        # write the main script
+        
+    # write the main script
     array_script_name = '%s.sh' % os.path.join(scriptFolder, baseName)
     main_script_file = file(array_script_name, 'w')
     main_content = """#!/bin/sh
@@ -237,17 +220,12 @@ python trajPack/clustering.py -f /cbio/donnees/aschoenauer/workspace2/Tracking/r
        pbsArrayEnvVar)
 
     main_script_file.write(main_content)
+    main_script_file.close()
     os.system('chmod a+x %s' % array_script_name)
-
-    # the submission commando is:
-    #sub_cmd = 'qsub -o %s -e %s -t 1-%i %s' % (self.oBatchSettings.pbsOutDir,  
-    #                                           self.oBatchSettings.pbsErrDir, 
-    #                                           jobCount, array_script_name)
     sub_cmd = 'qsub -t 1-%i %s' % (jobCount, array_script_name)
 
-    print 'array containing %i jobs' % jobCount
     print sub_cmd
-    return 1
+        
 
 if __name__ == '__main__':
     description =\
@@ -259,11 +237,11 @@ if __name__ == '__main__':
                          description=description)
     parser.add_option("-b", "--base_name", dest="baseName",
                       help="Base name for script")
-
+    parser.add_option('-a', dest='action', help='Telling which action to perform', default="summary")
     parser.add_option('--siRNA', type=str, dest='siRNAListFile', default=None)
     
-    parser.add_option('--nmin', type=int, dest='n_clusters_min', help="Min number of clusters to use in the experiment clustering step")
-    parser.add_option('--nmax', type=int, dest='n_clusters_max', help="Max number of clusters to use in the experiment clustering step")
+    parser.add_option('--nmin', type=int, dest='n_clusters_min',default=4, help="Min number of clusters to use in the experiment clustering step")
+    parser.add_option('--nmax', type=int, dest='n_clusters_max',default=13, help="Max number of clusters to use in the experiment clustering step")
     
     parser.add_option('--div_name', type=str, dest='div_name', default='transportation')
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
@@ -280,8 +258,10 @@ if __name__ == '__main__':
     
     
     (options, args) = parser.parse_args()
-    
-    globalSummaryScript(options.baseName, options.siRNAListFile,
+    if options.action == 'hitFinder':
+        hitFinderScript(options.baseName, options.siRNAListFile)
+    else:
+        globalSummaryScript(options.baseName, options.siRNAListFile,
                         options.n_clusters_min, options.n_clusters_max,
                       options.div_name, options.lambda_, options.weights, 
                       options.bins_type, options.bin_size, options.cost_type,

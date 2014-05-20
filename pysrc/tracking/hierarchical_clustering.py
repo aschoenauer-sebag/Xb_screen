@@ -28,21 +28,29 @@ import scipy.spatial.distance as dist
 import numpy
 import string
 import time
-import sys, os
+import sys, os, pdb
 import getopt
 
 ################# Perform the hierarchical clustering #################
 
 def heatmap(x, row_header, column_header, row_method,
             column_method, row_metric, column_metric,
-            color_gradient, filename):
+            color_gradient, filename, log=False):
     
-    print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric)
+    print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric),
+    if numpy.any(numpy.isnan(x)):
+        sys.stderr.write("WARNING, there are NaN values in the data. Hence distances with data elements that have NaN values will have value NaN, which might perturb the hierarchical clustering.")
         
     """
     This below code is based in large part on the protype methods:
     http://old.nabble.com/How-to-plot-heatmap-with-matplotlib--td32534593.html
     http://stackoverflow.com/questions/7664826/how-to-get-flat-clustering-corresponding-to-color-clusters-in-the-dendrogram-cre
+    
+    Possibilities for methods: single, complete, average, centroid, median, ward
+    
+    Possibilities for metrics: 'braycurtis', 'canberra', 'chebyshev', 'cityblock', 'correlation', 
+    'cosine', 'dice', 'euclidean', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'matching', 
+    'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule
 
     x is an m by n ndarray, m observations, n genes
     """
@@ -67,12 +75,14 @@ def heatmap(x, row_header, column_header, row_method,
         cmap=pylab.cm.coolwarm
 
     ### Scale the max and min colors so that 0 is white/black
-    vmin=x.min()
-    vmax=x.max()
+    vmin=numpy.nanmin(x)
+    vmax=numpy.nanmax(x)
     vmax = max([vmax,abs(vmin)])
-    vmin = vmax*-1
-    norm = mpl.colors.Normalize(vmin/2, vmax/2) ### adjust the max and min to scale these colors
-
+    #vmin = vmax*-1
+    if log:
+        norm = mpl.colors.LogNorm(vmin, vmax) ### adjust the max and min to scale these colors
+    else:
+        norm = mpl.colors.Normalize(vmin, vmax)
     ### Scale the Matplotlib window size
     default_window_hight = 8.5
     default_window_width = 12
@@ -300,7 +310,7 @@ def RedBlackSkyBlue():
                        (1.0, 0.0, 0.0))
             }
 
-    my_cmap = matplotlib.colors.LinearSegmentedColormap('my_colormap',cdict,256)
+    my_cmap = mpl.colors.LinearSegmentedColormap('my_colormap',cdict,256)
     return my_cmap
 
 def RedBlackBlue():
@@ -316,7 +326,7 @@ def RedBlackBlue():
                        (1.0, 0.0, 0.0))
             }
 
-    my_cmap = matplotlib.colors.LinearSegmentedColormap('my_colormap',cdict,256)
+    my_cmap = mpl.colors.LinearSegmentedColormap('my_colormap',cdict,256)
     return my_cmap
 
 def RedBlackGreen():
@@ -332,7 +342,7 @@ def RedBlackGreen():
                        (1.0, 0.0, 0.0))
             }
     
-    my_cmap = matplotlib.colors.LinearSegmentedColormap('my_colormap',cdict,256)
+    my_cmap = mpl.colors.LinearSegmentedColormap('my_colormap',cdict,256)
     return my_cmap
 
 def YellowBlackBlue():
@@ -350,7 +360,7 @@ def YellowBlackBlue():
             }
     ### yellow is created by adding y = 1 to RedBlackSkyBlue green last tuple
     ### modulate between blue and cyan using the last y var in the first green tuple
-    my_cmap = matplotlib.colors.LinearSegmentedColormap('my_colormap',cdict,256)
+    my_cmap = mpl.colors.LinearSegmentedColormap('my_colormap',cdict,256)
     return my_cmap
 
 ################# General data import methods #################

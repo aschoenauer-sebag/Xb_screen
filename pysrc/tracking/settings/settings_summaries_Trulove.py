@@ -10,6 +10,7 @@ result_folder = '/media/lalil0u/New/workspace2/Xb_screen/resultData/summaries'
 summary_filename = "summary_{}_{}.pkl"
 clustering_filename = 'centers.pkl'
 hit_filename = 'hits.pkl'
+figure_name = "comparaison_p-values.png" 
 
 mitocheck_file = '/media/lalil0u/New/workspace2/Xb_screen/data/mapping/mitocheck_siRNAs_target_genes_Ens72.txt'
 

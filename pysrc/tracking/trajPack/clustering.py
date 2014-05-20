@@ -28,7 +28,7 @@ from util.kkmeans import KernelKMeans
 from tracking.trajPack import featuresHisto, featuresNumeriques
 from tracking.plots import plotClustInd, makeColorRamp, plotMovies, plotKMeansPerFilm, markers
 from util.sandbox import cleaningLength, logTrsforming, subsampling, dist, histLogTrsforming, homeMadeGraphLaplacian
-from util.listDealing import gettingSiRNA, expSi, siEntrez, typeD, typeD2
+from util.listFileManagement import gettingSiRNA, expSi, siEntrez, typeD, typeD2
 from util.plots import basic_colors, couleurs
 
 from tracking.histograms import *
@@ -79,11 +79,11 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
             i+=1
             if pl[:9]+'--'+w[2:5] not in yqualDict:
     #i. checking if quality control passed
-                print "Quality control not passed", pl[:9], w[2:5]
+                sys.stderr.write("Quality control not passed {} {} \n".format(pl[:9], w[2:5]))
                 continue   
             elif w[2:5] not in whoCtrl and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
     #ii.checking if siRNA corresponds to a single target in the current state of knowledge
-                print "SiRNA having no target or multiple target"  
+                sys.stderr.write( "SiRNA having no target or multiple target")  
                 continue
             try:
     #iii.loading data
@@ -91,17 +91,16 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
                 arr, coord, histN= pickle.load(f)
                 f.close()
             except IOError:
-                print "Pas de fichier {}".format(os.path.join(pl, filename.format(w)))
+                sys.stderr.write("Pas de fichier {}".format(os.path.join(pl, filename.format(w))))
             except EOFError:
-                print "Probleme EOFError d'ouverture du fichier {}".format(os.path.join(pl, filename.format(w)))
-                pdb.set_trace()
+                sys.stderr.write("Probleme EOFError d'ouverture du fichier {}".format(os.path.join(pl, filename.format(w))))
             else:
                 if arr==None:
-                    print "Array {} is None".format(os.path.join(pl, filename.format(w)))
-                    pdb.set_trace()
+                    sys.stderr.write( "Array {} is None".format(os.path.join(pl, filename.format(w))))
+                    continue
                 elif np.any(arr[:,-1]>=5) or np.any(np.isnan(arr)):
+                    sys.stderr.write("Probleme de NaN dans le fichier  {}".format(os.path.join(pl, filename.format(w))))
     #ii. checking density and nan values. Should not be any because they're deleted just after feature extraction
-                    pdb.set_trace()
                     continue        
                 else:
                     try:
@@ -115,14 +114,14 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
         
                     except (TypeError, EOFError, ValueError, AttributeError):
                         print "Probleme avec le fichier {}".format(os.path.join(pl, filename.format(w)))
-                        pdb.set_trace()
+            
                     else:   
                         time_length.extend([len(coord[k][0]) for k in range(len(coord))])
                         siCourant = yqualDict[pl[:9]+'--'+w[2:5]]
                         sirna.append(siCourant)
                         who.append((pl, w))
                         length.append(ll)
-                        if w in whoCtrl:
+                        if w[2:5] in whoCtrl:
                             ctrlStatus.append(0)
                             genes.append('ctrl')
                         else:
@@ -130,7 +129,10 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
                             try:
                                 genes.append(dictSiEntrez[siCourant])
                             except KeyError:
-                                pdb.set_trace()
+                                print "Key Error for experiment {} {}".format(pl, w)
+                                continue
+        if r ==[]:
+            raise AttributeError
         if verbose>0:           
             print r.shape
 #log trsforming data

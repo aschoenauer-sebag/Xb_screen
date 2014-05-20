@@ -1,17 +1,62 @@
-import getpass, os,pdb, operator
+import getpass, os,pdb, operator, sys
 import numpy as np
 import cPickle as pickle
-
+from optparse import OptionParser
+from operator import itemgetter
 from collections import Counter, defaultdict
 from scipy.stats import scoreatpercentile
 
-from trajPack import featuresSaved, featuresHisto
-from fileManagement import fromShareToCBIO
-from PyPack.fHacktrack2 import initXml, finirXml
-from histograms.k_means_transportation import DIVERGENCES, _distances
-from histograms.transportation import costMatrix
-from sandbox import concatCtrl
-from plots import plotAlignedTraj
+from tracking.trajPack import featuresSaved, featuresHisto, featuresNumeriques
+from util.listFileManagement import fromShareToCBIO, appendingControl
+from tracking.trajPack.clustering import histConcatenation
+from tracking.PyPack.fHacktrack2 import initXml, finirXml
+from tracking.histograms.k_means_transportation import DIVERGENCES, _distances
+from tracking.histograms.transportation import costMatrix, computingBins
+from util.sandbox import concatCtrl
+from tracking.plots import plotAlignedTraj
+
+from util import settings
+from scipy.stats.stats import ks_2samp
+
+
+nb_exp_list=[100, 500, 1000, 2000]
+
+def compareDistributions(bins_type, nb_exp, folder="../resultData/features_on_films"):
+    '''
+    Ici on va comparer la distribution d'une feature dans differents tirages de nb_exp films.
+    Le but est de trouver in fine le nb_exp minimal pour lequel la distribution est stable.
+    Ca va me dire a quel point je peux paralleliser le calcul de la distance d'un film a ses controles
+    '''
+    
+    pvalues = defaultdict(list)
+    for feature in featuresNumeriques:
+        print feature
+        l = filter(lambda x: feature in x and bins_type in x and int(x.split('_')[2])>0.75*nb_exp and int(x.split('_')[2])<1.25*nb_exp, os.listdir(folder))
+        for file_ in l:
+            iter_ = int(file_.split('_')[-1].split('.')[0])
+            print '----', iter_
+            for other_file in filter(lambda x: int(x.split('_')[-1].split('.')[0])>iter_, l):
+                iter2 = int(other_file.split('_')[-1].split('.')[0])
+                print iter2
+                f=open(os.path.join(folder, file_))
+                l1=pickle.load(f); f.close()
+    
+                f=open(os.path.join(folder, other_file))
+                l2=pickle.load(f); f.close()
+                if bins_type =='quantile':
+                    ks, pval = ks_2samp(l1[1], l2[1])
+                else:
+                    ks, pval = ks_2samp(l1, l2)
+                    
+                pvalues[feature].append(pval)
+    for feature in featuresNumeriques:
+        print feature, np.mean(pvalues[feature]), scoreatpercentile(pvalues[feature], 90)
+        
+    f=open(os.path.join(folder, 'pvalues_{}_{}'.format(bins_type, nb_exp)), 'w')
+    pickle.dump(pvalues, f); f.close()
+    return
+    
+    
 
 def _writeXml(plate, well, resultCour, num=1):
     tmp=''
@@ -62,52 +107,155 @@ def compFeatures(data, length, who, ctrlStatus, percentile, *args):
         
     
 class cellExtractor():
-    def __init__(self, feature_name, mat_hist_sizes=np.array([[50, 50, 50, 50, 50]]), verbose=0):
-        assert((feature_name in featuresSaved) or
-               (feature_name in featuresHisto) )
-        self.feature_name=feature_name
-        self.numerical=feature_name in featuresSaved
+    def __init__(self, expList, settings_file,slot,iter_=None,div_name='total_variation', bin_type = 'quantile',
+                 bin_size=50,lambda_=10,M=None, verbose=0):
+
+        self.expList = np.array(expList)
+        self.settings = settings.Settings(settings_file, globals())
+        self.iter_=iter_
+        self.slot=slot
         
-        if not self.numerical:
-            self.mat_hist_sizes=mat_hist_sizes
-            self.dist_weights = np.zeros(shape=(mat_hist_sizes.shape[1]+1))
-            self.dist_weights[1+featuresHisto.index(self.feature_name)]=1
-        
+        self.div_name =div_name
+        self.bin_type = bin_type
+        self.bin_size = bin_size        
         self.verbose=verbose
+        self.currInterestFeatures = featuresNumeriques
+        if self.settings.histDataAsWell:
+            raise AttributeError
+    
+    def getData(self, histDataAsWell):
+        '''
+        Ici sur toutes les experiences dans self.expList on construit l'histogramme de toutes les features numeriques
+        '''
+        histDict = [[] for feature in self.currInterestFeatures]
+        for experiment in self.expList:
+            print experiment
+            try:
+                r, _, _,_, _, _, _, _ = histConcatenation(self.settings.data_folder, [experiment], self.settings.mitocheck_file,
+                                        self.settings.quality_control_file, verbose=self.verbose)
+            except:
+                sys.stderr.write("Problem with experiment {}".format(experiment))
+            else:
+                for k in range(len(self.currInterestFeatures)):
+                    histDict[k].append(r[:,k])
+                    
+        histDict={self.currInterestFeatures[k]:histDict[k] for k in range(len(self.currInterestFeatures))}
+        histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bin_type, iter_=self.iter_ )
+                    
+        return histogrammes, bins
+    
+    def ctrlHistograms(self, bins):
+        plates = Counter(np.array(self.expList)[:0]).keys()
+        histDict = [[] for feature in self.currInterestFeatures]
+        for plate in plates:
+            ctrl_exp = appendingControl([plate])
+            curr_r=None
+            for exp in ctrl_exp:
+                print exp
+                try:
+                    r, _, _,_, _, _, _, _ = histConcatenation(self.settings.data_folder, [exp], self.settings.mitocheck_file,
+                                            self.settings.quality_control_file, verbose=self.verbose)
+                except:
+                    sys.stderr.write("Problem with experiment {}".format(exp))
+                else:
+                    curr_r=r if curr_r is None else np.vstack((curr_r, r))
+                    
+            for k in range(len(self.currInterestFeatures)):
+                histDict[k].append(curr_r[:,k])
+                    
+        histDict={self.currInterestFeatures[k]:histDict[k] for k in range(len(self.currInterestFeatures))}
+        histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bin_type, previous_binning=bins)
         
-    def __call__(self, data, length, who,ctrlStatus, percentile, outputFolder='../resultData/images', how_many=5,
-                div_name='total_variation', nb_feat_num=12, sample_size=20,lambda_=10,M=None):
+        return plates, histogrammes
+    
+    def parameters(self):
+        r={
+           'bins_type': self.bins_type,
+           'bin_size':self.bin_size,
+           'div_name':self.div_name,
+           'lambda':self.lambda_,
+           'cost_type':self.cost_type
+           }
+        return tuple(sorted(zip(r.keys(), r.values()), key=itemgetter(0)))
+    
+    def calculateDistances(self, plates, histogrammes, ctrl_histogrammes):
+        distances = np.zeros(shape=(len(self.expList),len(self.currInterestFeatures)))
+        for i,plate in enumerate(plates):
+            ctrl_hist = ctrl_histogrammes[i]
+            other_exp = histogrammes[np.where(self.expList[:,0]==plate)]
+            for k, feature in enumerate(self.currInterestFeatures):
+                dist_weights = np.zeros(shape=(len(self.currInterestFeatures)+1,))
+                dist_weights[k+1]=1
+                distances[other_exp, k]=_distances(histogrammes, ctrl_hist[np.newaxis,:],div_name=self.div_name, lambda_=self.lambda_, M=None,
+                                     mat_hist_sizes=[[self.bin_size for j in range(len(self.currInterestFeatures))]], nb_feat_num=0, dist_weights=dist_weights)
+        return distances
+    
+    def saveResults(self, distances):
+        if self.settings.outputFile in os.listdir(self.settings.outputFolder):
+            f=open(os.path.join(self.settings.outputFolder, self.settings.outputFile.format(self.slot)))
+            d=pickle.load(f)
+            f.close()
+            try:
+                l=d[self.parameters()]
+                sys.stderr.write("Bizarre, on dirait que cela a deja ete calcule")
+            except KeyError:
+                l=None
+        else:
+            d={}
+            l=None
+        l=distances if l is None else np.vstack((l, distances))
+        d.update({self.parameters():l})
+        f=open(os.path.join(self.settings.outputFolder, self.settings.outputFile), 'w')
+        pickle.dump(d, f)
+        f.close()
+        return
+    
+    def __call__(self, distribution_only):
+        #i.calculate the histograms and binnings of experiments, 20% of controls
+        histogrammes, bins = self.getData(self.settings.histDataAsWell)
+        if distribution_only:
+            return
         
+        #ii. calculate the histograms of corresponding controls. Should be per plate then, a dictionary
+        plates, ctrl_histogrammes = self.ctrlHistograms(bins)
         
-        down, up, ctrl=self.find(data, ctrlStatus,length, percentile, how_many, div_name, nb_feat_num, sample_size,
-                lambda_,M)
-        all_={}
-    #DEALING WITH PERCENTILES 
-        wells=self.trajToWells(length, who, up)
+        #iii. calculate the distance from each experiment to its control
+        distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes)
         
-        tab=[(id_, len(wells[id_])) for id_ in wells]
-        sort=sorted(tab, key=operator.itemgetter(1))
-        bestMovies={a[0]:wells[a[0]] for a in sort[-how_many:]}
-
-        all_['up']=dict(bestMovies)
+        #iv. save results
+        self.saveResults(distances)
         
-    #dealing with the other half
-        wells=self.trajToWells(length, who, down)
-        
-        tab=[(id_, len(wells[id_])) for id_ in wells]
-        sort=sorted(tab, key=operator.itemgetter(1))
-        bestMovies={a[0]:wells[a[0]] for a in sort[-how_many:]}
-        all_['do']=dict(bestMovies)
-
-    #DEALING WITH MEDIAN ONES
-        ctrlW=self.trajToWells(length, who, ctrl)
-        tab=[(id_, len(ctrlW[id_])) for id_ in ctrlW]
-        sort=sorted(tab, key=operator.itemgetter(1))
-        bestMovies={a[0]:ctrlW[a[0]] for a in sort[-how_many:]}
-        
-        all_['med']=dict(bestMovies)
-#        #fromShareToCBIO({self.feature_name:bestMovies.keys()}, wellFolder=True)
-        self.wellToPlot(length, who,all_, outputFolder, median=True)
+        return
+#        
+#        down, up, ctrl=self.find(data, ctrlStatus,length, percentile, how_many, div_name, nb_feat_num, sample_size,
+#                lambda_,M)
+#        all_={}
+#    #DEALING WITH PERCENTILES 
+#        wells=self.trajToWells(length, who, up)
+#        
+#        tab=[(id_, len(wells[id_])) for id_ in wells]
+#        sort=sorted(tab, key=operator.itemgetter(1))
+#        bestMovies={a[0]:wells[a[0]] for a in sort[-how_many:]}
+#
+#        all_['up']=dict(bestMovies)
+#        
+#    #dealing with the other half
+#        wells=self.trajToWells(length, who, down)
+#        
+#        tab=[(id_, len(wells[id_])) for id_ in wells]
+#        sort=sorted(tab, key=operator.itemgetter(1))
+#        bestMovies={a[0]:wells[a[0]] for a in sort[-how_many:]}
+#        all_['do']=dict(bestMovies)
+#
+#    #DEALING WITH MEDIAN ONES
+#        ctrlW=self.trajToWells(length, who, ctrl)
+#        tab=[(id_, len(ctrlW[id_])) for id_ in ctrlW]
+#        sort=sorted(tab, key=operator.itemgetter(1))
+#        bestMovies={a[0]:ctrlW[a[0]] for a in sort[-how_many:]}
+#        
+#        all_['med']=dict(bestMovies)
+##        #fromShareToCBIO({self.feature_name:bestMovies.keys()}, wellFolder=True)
+#        self.wellToPlot(length, who,all_, outputFolder, median=True)
         return 1
         
     def trajToWells(self, length, who, trajectories):
@@ -229,4 +377,39 @@ class cellExtractor():
         if self.verbose:
             print "{} examples retrieved for feature {}, percentile {}".format(len(r), self.feature_name, percentile)
         return r
- 
+    
+if __name__ == '__main__':
+    '''
+    Idea here is to calculate the distance of an experiment histogram to its control, for each numerical feature
+    nb_exp should be the minimum number of experiments to get a stable distribution of the feature among
+    considered experiments, so that the calculation is parallelizable
+    '''
+    parser = OptionParser(usage="usage: %prog [options]")    
+    
+    parser.add_option('--experimentFile', type=str, dest='experimentFile', default = None)
+    parser.add_option('--first_exp', type=int, dest='first_exp', default =0)
+    parser.add_option('--iter', type=int, default =0, dest='iter_')
+    parser.add_option('--div_name', type=str, dest='div_name', default='transportation')
+    parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
+    parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
+    parser.add_option('--bin_size', type=int, dest="bin_size", default=50)
+    parser.add_option('--nb_exp', type=int, dest='size', default=1000)
+    
+    parser.add_option("-l",type=int, dest="lambda_", default=10)
+    parser.add_option("--verbose", dest="verbose", type=int,default=0)
+    (options, args) = parser.parse_args()
+    
+    settings_file = 'tracking/settings/settings_feature_extraction.py'
+    
+    distribution_only=True
+    
+    f=open(options.experimentFile)
+    expList = pickle.load(f)
+    f.close()
+    
+    if distribution_only:
+        np.random.shuffle(expList)
+    
+    extractor=cellExtractor(expList[options.first_exp:options.first_exp+options.size], settings_file,options.first_exp, options.iter_,options.div_name, options.bins_type,
+                 bin_size=options.bin_size,lambda_=options.lambda_, verbose=options.verbose)
+    extractor(distribution_only)

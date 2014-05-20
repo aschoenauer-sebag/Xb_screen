@@ -670,11 +670,14 @@ def computingddBins(histogramme, nb_bins_list, bin_type='minmax'):
                                                                                
     return matrice_result, quantiles  
 
-def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning=None):
-   
-    assert len(nb_bins_list)==len(featuresHisto)
+def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning=None, iter_=None):
+    '''
+        iter_ should not be None if one wishes to save the distrbutions of features
+    '''
     #Bin list to return in case needed to compute the ground matrix (if bin_type=='quantile')
     quantiles=None
+    featuresHisto = sorted(histogramme.keys())
+    
     
     if bin_type=='minmax':
         if previous_binning is None:
@@ -686,8 +689,14 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
                 lCour=np.array(lCour)
                 minMax[i,0]=np.min(lCour)
                 minMax[i,1]=np.max(lCour)
+
+                if iter_ is not None:
+                    f=open('../resultData/features_on_films/minmax_{}_{}_{}.pkl'.format(feature, len(histogramme[feature]), iter_), 'w')
+                    pickle.dump(lCour, f)
+                    f.close()
         else:
             minMax = previous_binning
+            feature = histogramme.keys()[0]
             
         nb_traj = len(histogramme[feature])
         matrice_result=np.empty(shape=(nb_traj, np.sum(nb_bins_list)), dtype=np.float64)
@@ -702,7 +711,20 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
                     toAverage[feature].append(traj_num)
                 else:
                     zz=np.histogram(ll, nb_bins_list[i],(minMax[i,0], minMax[i,1]))[0]
-                    assert np.sum(zz)==len(ll)
+                    try:
+                        assert np.sum(zz)==len(ll)
+                    except AssertionError:
+                        if previous_binning is not None:
+                            bins = np.array([minMax[i,0]+ (minMax[i,1]-minMax[i,0])*k/float(nb_bins_list[i]) for k in range(nb_bins_list[i]+1)])
+                            if np.min(ll)<minMax[i,0]:
+                                bins[0]=np.min(ll)
+                            elif np.max(ll)>minMax[i,1]:
+                                bins[-1]=np.max(ll)
+                            else:
+                                raise
+                            zz=np.histogram(ll, bins=bins)[0]
+                            assert np.sum(zz)==len(ll)
+                            
                     matrice_result[traj_num, up_to:up_to+nb_bins_list[i]]=zz/float(len(ll))
                 
                 up_to+=nb_bins_list[i]
@@ -716,9 +738,14 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
                     lCour.extend(np.array(ll)[np.where(np.isinf(np.array(ll))==False)])
                 lCour=np.array(lCour)
                 quantiles[i] = [scoreatpercentile(lCour, per) for per in [k*100/float(nb_bins_list[i]) for k in range(nb_bins_list[i]+1)]]
-                
+                if iter_ is not None:
+                    f=open('../resultData/features_on_films/quantiles_{}_{}_{}.pkl'.format(feature, len(histogramme[feature]), iter_), 'w')
+                    pickle.dump((quantiles[i], lCour), f)
+                    f.close()
+
         else:
             quantiles = previous_binning
+            feature = histogramme.keys()[0]
         #so we should have nb_bins_list[i]+1 values in quantiles[i] since we also give the rightmost edge
         
         nb_traj = len(histogramme[feature])

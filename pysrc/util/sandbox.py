@@ -10,7 +10,7 @@ from tracking.trajPack import sdFeatures1, logTrsf, featuresSaved, histLogTrsf,\
     histLogTrsf_meanHistFeat
 from tracking.plots import plotTraj3d
 from tracking.histograms import *
-from util.listDealing import expSi
+from util.listFileManagement import expSi
 #from histograms.k_means_transportation import WEIGHTS
 
 def dependentJobs(debut, filename):
@@ -296,59 +296,6 @@ def returnPheno(data, ctrl, length, N, ind=False):
         return datapheno, index
     else:
         return datapheno
-
-#def cecogLeftToDo(folder, phenonames):
-#    countp = 0; countw=0; cecogToDo = {}
-#    print "you are working with folder {}, are you sure that you want to continue ? Because if wrong folder you'll delete lots of files".format(folder)
-#    pdb.set_trace()
-#    for pl in phenonames:
-#        if pl not in os.listdir(folder):
-#	    print '1', pl
-#            cecogToDo.update({pl:phenonames[pl]})
-#	    countp+=1; countw+=len(phenonames[pl])
-#        elif 'hdf5' not in os.listdir(os.path.join(folder, pl)):
-#	    print "pas hdf5", pl
-#            shutil.rmtree(os.path.join(folder, pl))
-#	    cecogToDo.update({pl:phenonames[pl]})
-#	    countp+=1; countw+=len(phenonames[pl])
-#
-#        else:
-#            currWtodo = []
-#            for w in phenonames[pl]:
-#                if w+'.hdf5' not in os.listdir(os.path.join(folder, pl, 'hdf5')):
-#		    print pl, w
-#                    currWtodo.append(w)
-#	    if currWtodo!=[]:
-#                cecogToDo.update({pl:currWtodo})
-#	    	countp+=1; countw+=len(currWtodo)
-#
-#    return cecogToDo, countp, countw
-#
-#
-#def entrop(d1, d2,trajFolder):
-#    entr=[]
-#    for pl in os.listdir(trajFolder):
-#        l=os.listdir(os.path.join(trajFolder, pl))
-#        for fi in filter(lambda x: 'traj_noF_densities' in x, l):
-#            w = fi[20:28]
-#            if w not in d1[pl] and w not in d2[pl]:
-#                entr.append((pl, w))
-#    return entr
-#
-#def zou(dict, trajFolder):
-#    todo=[]; done = []; untouched=[]
-#    for pl in dict:
-#        try:
-#            l = os.listdir(os.path.join(trajFolder, pl))
-#        except OSError:
-#            untouched.append(pl)
-#        else:
-#            for w in dict[pl]:
-#                if 'traj_noF_densities_w{}.hdf5.pkl'.format(w) in os.listdir(os.path.join(trajFolder, pl)):
-#                    done.append((pl, w))
-#                else:
-#                    todo.append((pl, w))
-#    return done, todo, untouched
 
     
 if __name__ == '__main__':

@@ -9,7 +9,8 @@ data_folder = '/share/data20T/mitocheck/tracking_results'
 result_folder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/resultData/summaries'
 summary_filename = "summary_{}_{}.pkl"
 clustering_filename = 'centers.pkl'
-hit_filename = 'hits.pkl'
+hit_filename = 'hits_KS.pkl'
+figure_name = "comparaison_p-values.png" 
 
 mitocheck_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens72.txt'
 
