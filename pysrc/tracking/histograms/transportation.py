@@ -718,9 +718,9 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
                             bins = np.array([minMax[i,0]+ (minMax[i,1]-minMax[i,0])*k/float(nb_bins_list[i]) for k in range(nb_bins_list[i]+1)])
                             if np.min(ll)<minMax[i,0]:
                                 bins[0]=np.min(ll)
-                            elif np.max(ll)>minMax[i,1]:
+                            if np.max(ll)>minMax[i,1]:
                                 bins[-1]=np.max(ll)
-                            else:
+                            if np.max(ll)<minMax[i,1] and np.min(ll)>minMax[i,0]:
                                 raise
                             zz=np.histogram(ll, bins=bins)[0]
                             assert np.sum(zz)==len(ll)

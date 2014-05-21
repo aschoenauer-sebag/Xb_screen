@@ -83,7 +83,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
                 continue   
             elif w[2:5] not in whoCtrl and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
     #ii.checking if siRNA corresponds to a single target in the current state of knowledge
-                sys.stderr.write( "SiRNA having no target or multiple target")  
+                sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(pl[:9], w[2:5]))  
                 continue
             try:
     #iii.loading data
@@ -91,15 +91,18 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
                 arr, coord, histN= pickle.load(f)
                 f.close()
             except IOError:
-                sys.stderr.write("Pas de fichier {}".format(os.path.join(pl, filename.format(w))))
+                sys.stderr.write("Pas de fichier {}\n".format(os.path.join(pl, filename.format(w))))
             except EOFError:
-                sys.stderr.write("Probleme EOFError d'ouverture du fichier {}".format(os.path.join(pl, filename.format(w))))
+                sys.stderr.write("Probleme EOFError d'ouverture du fichier {}\n".format(os.path.join(pl, filename.format(w))))
             else:
                 if arr==None:
-                    sys.stderr.write( "Array {} is None".format(os.path.join(pl, filename.format(w))))
+                    sys.stderr.write( "Array {} is None\n".format(os.path.join(pl, filename.format(w))))
+                    continue
+                elif len(arr.shape)==1:
+                    sys.stderr.write("Array {} has only one trajectory. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
                     continue
                 elif np.any(arr[:,-1]>=5) or np.any(np.isnan(arr)):
-                    sys.stderr.write("Probleme de NaN dans le fichier  {}".format(os.path.join(pl, filename.format(w))))
+                    sys.stderr.write("Probleme de NaN dans le fichier  {}\n".format(os.path.join(pl, filename.format(w))))
     #ii. checking density and nan values. Should not be any because they're deleted just after feature extraction
                     continue        
                 else:

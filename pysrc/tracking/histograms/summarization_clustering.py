@@ -187,18 +187,15 @@ class hitFinder():
         return p_vals
     
     def _saveResults(self, p_values):
-        if self.settings.hit_filename in os.listdir(self.settings.result_folder):
-            f=open(os.path.join(self.settings.result_folder, self.settings.hit_filename), 'r')
+        if self.settings.pval_filename.format(self.siRNA) in os.listdir(self.settings.result_folder):
+            f=open(os.path.join(self.settings.result_folder, self.settings.pval_filename.format(self.siRNA)), 'r')
             hits = pickle.load(f); f.close()
         else:
             hits={}
             
-        if self.siRNA in hits:
-            hits[self.siRNA].update(p_values)
-        else:
-            hits[self.siRNA]=p_values
+        hits.update(p_values)
             
-        f=open(os.path.join(self.settings.result_folder, self.settings.hit_filename), 'w')
+        f=open(os.path.join(self.settings.result_folder, self.settings.pval_filename.format(self.siRNA)), 'w')
         pickle.dump(hits, f); f.close()
     
     def __call__(self):
@@ -297,7 +294,7 @@ class hitFinder():
             p.show()
         else:
             p.savefig(os.path.join(self.settings.result_folder, self.settings.figure_name))
-        return result
+        return result, parameters
 
 
 class clusteringExperiments():
@@ -348,6 +345,10 @@ class clusteringExperiments():
         return tuple(l)
     
     def _dataPrep(self):
+        '''
+        This function gets the data from each experiment, and then selects the lines corresponding to the representatives of
+        the experiment which have been selected in the previous step (summarizingExperiment)
+        '''
         num_features=None
         hist_features = {hist_feature : [] for hist_feature in featuresHisto}
 
@@ -362,24 +363,27 @@ class clusteringExperiments():
                 sys.stderr.write("Representative trajectories for experiment {} have not been calculated at all.".format(experiment))
 
             else:
-                r, histNtot,  _,_, _, _, _, _ = histConcatenation(self.settings.data_folder, [experiment], self.settings.mitocheck_file,
-                                        self.settings.quality_control_file, verbose=self.verbose)
-    
-                curr_parameters = self.parameters(with_n_cluster=False)
                 try:
-                    num_features=r[representatives[curr_parameters], :self.settings.nb_feat_num] if num_features is None else \
-                    np.vstack((num_features, r[representatives[curr_parameters], :self.settings.nb_feat_num]))
-    
-                except KeyError:
-                    sys.stderr.write("Representative trajectories for experiment {}, parameters {} have not yet been calculated.".format(experiment, curr_parameters))
-                else:                    
-                    self.actual_expList.append(experiment)
-                    for hist_feature in hist_features:
-                        hist_features[hist_feature].extend([histNtot[hist_feature][k] for k in representatives[curr_parameters]])
-                    count+=len(representatives[curr_parameters]) 
-                    if is_ctrl(experiment):
-                        ctrl_exp_count+=1
-                        ctrl_count +=len(representatives[curr_parameters]) 
+                    r, histNtot,  _,_, _, _, _, _ = histConcatenation(self.settings.data_folder, [experiment], self.settings.mitocheck_file,
+                                        self.settings.quality_control_file, verbose=self.verbose)
+                except AttributeError:
+                    sys.stderr.write("No data for experiment {}".format(experiment))
+                else:        
+                    curr_parameters = self.parameters(with_n_cluster=False)
+                    try:
+                        num_features=r[representatives[curr_parameters], :self.settings.nb_feat_num] if num_features is None else \
+                        np.vstack((num_features, r[representatives[curr_parameters], :self.settings.nb_feat_num]))
+        
+                    except KeyError:
+                        sys.stderr.write("Representative trajectories for experiment {}, parameters {} have not yet been calculated.".format(experiment, curr_parameters))
+                    else:                    
+                        self.actual_expList.append(experiment)
+                        for hist_feature in hist_features:
+                            hist_features[hist_feature].extend([histNtot[hist_feature][k] for k in representatives[curr_parameters]])
+                        count+=len(representatives[curr_parameters]) 
+                        if is_ctrl(experiment):
+                            ctrl_exp_count+=1
+                            ctrl_count +=len(representatives[curr_parameters]) 
         if self.verbose:   
             print "{} representatives from {} experiments, among which {} ctrl representatives from {} ctrl experiments".format(count,\
                                          len(self.actual_expList), ctrl_count, ctrl_exp_count)  

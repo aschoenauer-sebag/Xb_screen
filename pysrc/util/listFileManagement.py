@@ -490,8 +490,8 @@ def EntrezToExp(corresEntrezEnsemble='NatureEntrezEnsemble.txt', mitocheck='mito
         for ens in entrrezs[entrez]:
             for sirna in siEns[ens]:
                 siRNAresult.append(sirna)
-                for exp in yeSiExp[sirna]:
-                    expDict[entrez].append(exp)
+                expDict[entrez].extend(yeSiExp[sirna])
+
     missingEntrez=filter(lambda x: x not in expDict.keys(), entrrezs.keys())
     return expDict, missingEntrez, siRNAresult
 
