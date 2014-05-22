@@ -10,6 +10,7 @@ from tracking.hierarchical_clustering import heatmap
 from math import sqrt
 from numpy.linalg import inv
 from optparse import OptionParser
+from warnings import warn
 
 from peach import FuzzyCMeans
 from sklearn.metrics import silhouette_score
@@ -37,7 +38,7 @@ from util.kkmeans import KernelKMeans
 #from joblib import Parallel, delayed, Memory
 
 
-def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeatures_{}.pkl', verbose=1):
+def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeatures_{}.pkl', verbose=0):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; sirna=[]; genes=[]
     time_length=[]
     histNtot={nom:[] for nom in featuresHisto}
@@ -138,11 +139,12 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
             raise AttributeError
         if verbose>0:           
             print r.shape
+            print sirna
 #log trsforming data
         r2 = histLogTrsforming(r, verbose=verbose)        
 
-        print 'WARNING, the data was not normalized. Please check that it will be done before applying any algorithm.'
-        print sirna
+        warn('The data was not normalized. Please check that it will be done before applying any algorithm.')
+        
         return r2[:,:-1], histNtot,  who,ctrlStatus, length, genes, sirna, time_length
 
 def concatenation(folder, exp_list, mitocheck, qc):

@@ -56,51 +56,34 @@ def compareDistributions(bins_type, nb_exp, folder="../resultData/features_on_fi
     pickle.dump(pvalues, f); f.close()
     return
 
-def computeBins(bins_type,bin_size, folder="../resultData/features_on_films"):
+def computeBins(bin_size, folder="../resultData/features_on_films"):
+    '''
+    WARNING DON'T FORGET TO SORT LISTS OF FEATURES
+    '''
+    print 'Using sorted numerical features'
+    
     if type(bin_size)!=list:
         bin_size=[bin_size for k in range(len(featuresNumeriques))]
-        
-    if bins_type=="minmax":
-        minMax=np.empty(shape=(len(featuresNumeriques), 2))
-    else:
-        quantiles = np.empty(shape=(len(featuresNumeriques),), dtype=object)
+    minMax=np.empty(shape=(len(featuresNumeriques), 2))
+    quantiles = np.empty(shape=(len(featuresNumeriques),), dtype=object)
     
-    for i,feature in enumerate(featuresNumeriques):
+    for i,feature in enumerate(sorted(featuresNumeriques)):
         print feature
-        file_ = "quantiles_{}_11989_0.pkl".format(feature)
+        file_ = "quantiles_{}_11718_0.pkl".format(feature)
         f=open(os.path.join(folder, file_), 'r')
         distribution = pickle.load(f)[1]
         f.close()
         
-        if bins_type=="minmax":
-            minMax[i,0]=np.min(distribution)
-            minMax[i,1]=np.max(distribution)
-        elif bins_type=="quantile":
-            quantiles[i] = [scoreatpercentile(distribution, per) for per in [k*100/float(bin_size[i]) for k in range(bin_size[i]+1)]]
+        minMax[i,0]=np.min(distribution)
+        minMax[i,1]=np.max(distribution)
+        quantiles[i] = [scoreatpercentile(distribution, per) for per in [k*100/float(bin_size[i]) for k in range(bin_size[i]+1)]]
             
-    f=open('distExp_123etctrl_{}_{}.pkl'.format(bins_type, bin_size[0]), 'w')
-    if bins_type=="minmax":
-        pickle.dump(minMax, f)
-    else:
-        pickle.dump(quantiles, f)
-    f.close()
-    return
-    
 
-def _writeXml(plate, well, resultCour, num=1):
-    tmp=''
-    for traj in resultCour:
-        tmp+="\n      <Marker_Type>\n        <Type>{0}</Type>".format(num)#for the color of the cells in the xml file
-        
-        for t, x, y in zip(traj[0], traj[1], traj[2]):
-            numFramePourXml = t+1
-            
-            tmp+="\n        <Marker>\n          <MarkerX>{1}</MarkerX>\n          <MarkerY>{2}</MarkerY>\n          <MarkerZ>{0}</MarkerZ>\n        </Marker>".format(numFramePourXml, int(x), int(y))
-            
-        tmp+="\n      </Marker_Type>"
-    print len(tmp)
-    assert len(tmp)>0
-    return tmp
+    f=open(os.path.join(folder, 'distExp_123etctrl_minmax_{}.pkl'.format(bin_size[0])), 'w')
+    pickle.dump(minMax, f); f.close()
+    f=open(os.path.join(folder, 'distExp_123etctrl_quantile_{}.pkl'.format(bin_size[0])), 'w')
+    pickle.dump(quantiles, f); f.close()
+    return
         
     
 class distributionExtractor():

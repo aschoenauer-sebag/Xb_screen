@@ -1,5 +1,5 @@
 import pdb, time
-
+from warnings import warn
 import cplex as c
 import cPickle as pickle
 import numpy as np
@@ -168,7 +168,6 @@ def findWassersteinIsobarycenter(points, M=None, max_iter = 1500, eps=0.001, fil
     Minf = np.max(M)
     t_0=np.sqrt(2*np.log(nb_bins))/float(Minf)
 
-    print M, nb_bins, nb_points
     a=np.ones(shape=nb_bins)/nb_bins; a_old=None
     print "init ", a
     for k in range(1, max_iter):
@@ -581,7 +580,7 @@ def multEMD1d(M, r,C):
     """
     ATTENTION THE CENTER MATRIX IS OF SHAPE N_FEATURES, N_CENTERS
     """
-    print M
+    #print M
     if np.testing.assert_approx_equal(np.sum(r), 1, 0.001) or \
             np.testing.assert_allclose(np.sum(C, 0), np.ones(shape=(C.shape[1],)), 0, 0.001, "Center vectors are not in the probability simplex"):
         print np.sum(r), np.sum(C)
@@ -678,7 +677,6 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
     quantiles=None
     featuresHisto = sorted(histogramme.keys())
     
-    
     if bin_type=='minmax':
         if previous_binning is None:
             minMax=np.empty(shape=(len(featuresHisto), 2))
@@ -714,16 +712,22 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
                     try:
                         assert np.sum(zz)==len(ll)
                     except AssertionError:
+                        print feature
+                        warn("Previous binning not adapted to current experiments")
                         if previous_binning is not None:
                             bins = np.array([minMax[i,0]+ (minMax[i,1]-minMax[i,0])*k/float(nb_bins_list[i]) for k in range(nb_bins_list[i]+1)])
                             if np.min(ll)<minMax[i,0]:
+                                print "MIN", np.min(ll), minMax[i,0]
                                 bins[0]=np.min(ll)
                             if np.max(ll)>minMax[i,1]:
+                                print "MAX", np.max(ll), minMax[i,1]
                                 bins[-1]=np.max(ll)
                             if np.max(ll)<minMax[i,1] and np.min(ll)>minMax[i,0]:
                                 raise
                             zz=np.histogram(ll, bins=bins)[0]
                             assert np.sum(zz)==len(ll)
+                        else:
+                            raise AssertionError
                             
                     matrice_result[traj_num, up_to:up_to+nb_bins_list[i]]=zz/float(len(ll))
                 
@@ -761,7 +765,26 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
                     toAverage[feature].append(traj_num)
                 else:
                     zz=np.histogram(ll, bins=quantiles[i])[0]
-                    assert np.sum(zz)==len(ll)
+                    try:
+                        assert np.sum(zz)==len(ll)
+                    except AssertionError:
+                        print feature
+                        warn("Previous binning not adapted to current experiments")
+                        if previous_binning is not None:
+                            bins = list(quantiles[i])
+                            if np.min(ll)<bins[0]:
+                                print "MIN", np.min(ll), bins[0]
+                                bins[0]=np.min(ll)
+                            if np.max(ll)>bins[-1]:
+                                print "MAX",np.max(ll), bins[-1]
+                                bins[-1]=np.max(ll)
+                            if np.max(ll)<bins[-1] and np.min(ll)>bins[0]:
+                                raise
+                            zz=np.histogram(ll, bins=bins)[0]
+                            assert np.sum(zz)==len(ll)
+                        else:
+                            raise AssertionError
+                 
                     matrice_result[traj_num, up_to:up_to+nb_bins_list[i]]=zz/float(len(ll))
                 up_to+=nb_bins_list[i]
     else:

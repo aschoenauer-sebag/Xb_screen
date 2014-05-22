@@ -1,10 +1,20 @@
 import getpass, os,pdb, operator, sys
 import numpy as np
 import cPickle as pickle
+
+if getpass.getuser()=='aschoenauer':
+    import matplotlib as mpl
+    mpl.use('Agg')
+    show = False
+elif getpass.getuser()=='lalil0u':
+    import matplotlib as mpl
+    show=True
+
 from optparse import OptionParser
 from operator import itemgetter
 from collections import Counter, defaultdict
-from scipy.stats import scoreatpercentile
+from scipy.stats import pearsonr
+import matplotlib.pyplot as p
 
 from tracking.trajPack import featuresSaved, featuresHisto, featuresNumeriques
 from util.listFileManagement import fromShareToCBIO, appendingControl
@@ -21,72 +31,6 @@ from scipy.stats.stats import ks_2samp
 
 
 nb_exp_list=[100, 500, 1000, 2000]
-
-def compareDistributions(bins_type, nb_exp, folder="../resultData/features_on_films"):
-    '''
-    Ici on va comparer la distribution d'une feature dans differents tirages de nb_exp films.
-    Le but est de trouver in fine le nb_exp minimal pour lequel la distribution est stable.
-    Ca va me dire a quel point je peux paralleliser le calcul de la distance d'un film a ses controles
-    '''
-    
-    pvalues = defaultdict(list)
-    for feature in featuresNumeriques:
-        print feature
-        l = filter(lambda x: feature in x and bins_type in x and int(x.split('_')[2])>0.75*nb_exp and int(x.split('_')[2])<1.25*nb_exp, os.listdir(folder))
-        for file_ in l:
-            iter_ = int(file_.split('_')[-1].split('.')[0])
-            print '----', iter_
-            for other_file in filter(lambda x: int(x.split('_')[-1].split('.')[0])>iter_, l):
-                iter2 = int(other_file.split('_')[-1].split('.')[0])
-                print iter2
-                f=open(os.path.join(folder, file_))
-                l1=pickle.load(f); f.close()
-    
-                f=open(os.path.join(folder, other_file))
-                l2=pickle.load(f); f.close()
-                if bins_type =='quantile':
-                    ks, pval = ks_2samp(l1[1], l2[1])
-                else:
-                    ks, pval = ks_2samp(l1, l2)
-                    
-                pvalues[feature].append(pval)
-    for feature in featuresNumeriques:
-        print feature, np.mean(pvalues[feature]), scoreatpercentile(pvalues[feature], 90)
-        
-    f=open(os.path.join(folder, 'pvalues_{}_{}'.format(bins_type, nb_exp)), 'w')
-    pickle.dump(pvalues, f); f.close()
-    return
-
-def computeBins(bins_type,bin_size, folder="../resultData/features_on_films"):
-    if type(bin_size)!=list:
-        bin_size=[bin_size for k in range(len(featuresNumeriques))]
-        
-    if bins_type=="minmax":
-        minMax=np.empty(shape=(len(featuresNumeriques), 2))
-    else:
-        quantiles = np.empty(shape=(len(featuresNumeriques),), dtype=object)
-    
-    for i,feature in enumerate(featuresNumeriques):
-        print feature
-        file_ = "quantiles_{}_11989_0.pkl".format(feature)
-        f=open(os.path.join(folder, file_), 'r')
-        distribution = pickle.load(f)[1]
-        f.close()
-        
-        if bins_type=="minmax":
-            minMax[i,0]=np.min(distribution)
-            minMax[i,1]=np.max(distribution)
-        elif bins_type=="quantile":
-            quantiles[i] = [scoreatpercentile(distribution, per) for per in [k*100/float(bin_size[i]) for k in range(bin_size[i]+1)]]
-            
-    f=open(os.path.join(folder, 'distExp_123etctrl_{}_{}.pkl'.format(bins_type, bin_size[0])), 'w')
-    if bins_type=="minmax":
-        pickle.dump(minMax, f)
-    else:
-        pickle.dump(quantiles, f)
-    f.close()
-    return
-
 
 def _writeXml(plate, well, resultCour, num=1):
     tmp=''
@@ -134,18 +78,98 @@ def compFeatures(data, length, who, ctrlStatus, percentile, *args):
         file_.write(finirXml())
         file_.close()
     return chosen
+
+def plotDistanceDist(folder = '../resultData/features_on_films',siRNA_folder = '../data', feature=None, sh=None):
+    if feature == None:
+        featureL = featuresNumeriques
+    else:
+        featureL=[feature]
+    f=open(os.path.join(siRNA_folder, 'siRNA_MAR_genes.pkl'))
+    MAR_siRNA=pickle.load(f); f.close()
+    
+    if sh==None:
+        sh=show
+    
+    parameters = None
+    fileL = filter(lambda x: 'distances_' in x, os.listdir(folder))
+    n_siRNA = len(fileL)
+    result_MAX=[np.zeros(shape=(4,n_siRNA), dtype=float) for k in range(len(featureL))]
+    result=[np.zeros(shape=(4,), dtype=object) for k in range(len(featureL))]
+    for i in range(len(featureL)):
+        for k in range(4):
+            result[i][k]=[]
+
+    siRNAL=[]; colors=[]
+    count=0
+    for j, file_ in enumerate(fileL):
+        siRNA = file_.split('_')[-1][:-4]
+        siRNAL.append(siRNA)
+        if siRNA in MAR_siRNA:
+            colors.append('red')
+        else:
+            colors.append('green')
+            
+        f=open(os.path.join(folder, file_))
+        distances = pickle.load(f); f.close()
+        if parameters == None:
+            parameters = distances.keys()
+        else:
+            for param in filter(lambda x: x not in parameters, distances.keys()):
+                parameters.append(param)
         
+        for i,feature in enumerate(featureL):
+            for k,param in enumerate(parameters):
+                result_MAX[i][k,j]=np.max(distances[param][:,featuresNumeriques.index(feature)])
+                l=list(distances[param][:,featuresNumeriques.index(feature)])
+                count+=len(l)
+                result[i][k].extend(l)
+                
+    print count, len(result[i][0])
+    for i,feature in enumerate(featureL):
+        f, axes = p.subplots(len(parameters), sharex=True, sharey=True,figsize=(24,17))
+        for k,param in enumerate(parameters):
+            axes[k].scatter(range(len(siRNAL)), result_MAX[i][k,:], color=colors)
+            axes[k].text(3,3, np.std(result_MAX[i][k]))
+            try:
+                axes[k].text(5,5, pearsonr(result_MAX[i][0],result_MAX[i][k])[0])
+            except ValueError:
+                pass
+            axes[k].set_title('Distances from exp to control {}'.format(param))
+        f.suptitle('{}'.format(feature))
+        if sh:
+            p.show()
+        else:
+            p.savefig(os.path.join(folder, 'distribution_MAX_{}.png'.format(feature)))
+            
+    for i,feature in enumerate(featureL):
+        f2, axes2 = p.subplots(len(parameters), sharex=True, sharey=True,figsize=(24,17))
+        for k,param in enumerate(parameters):
+            n,bins,patches=axes2[k].hist(result[i][k], bins=1000, normed=False)
+            axes2[k].text(3,3, np.std(result[i][k]))
+            try:
+                axes2[k].text(5,5, pearsonr(result[i][0],result[i][k])[0])
+            except ValueError:
+                pass
+            axes2[k].set_title('Distribution of distances from exp to control{}'.format(param))
+        f2.suptitle('{}'.format(feature))
+        if sh:
+            p.show()
+        else:
+            p.savefig(os.path.join(folder, 'distribution_{}.png'.format(feature)))
+    return
     
 class cellExtractor():
-    def __init__(self, siRNA, settings_file,div_name='total_variation', bin_type = 'quantile',
+    def __init__(self, siRNA, settings_file,div_name='total_variation', bin_type = 'quantile', cost_type = 'number',
                  bin_size=50,lambda_=10,M=None, verbose=0):
 
         self.siRNA = siRNA
         self.settings = settings.Settings(settings_file, globals())
         
         self.div_name =div_name
-        self.bin_type = bin_type
-        self.bin_size = bin_size        
+        self.cost_type=cost_type
+        self.bins_type = bin_type
+        self.bin_size = bin_size
+        self.lambda_=lambda_        
         self.verbose=verbose
         self.currInterestFeatures = featuresNumeriques
         if self.settings.histDataAsWell:
@@ -176,10 +200,10 @@ class cellExtractor():
             for k,feature in enumerate(self.currInterestFeatures):
                 histDict[feature].append(r[np.sum(length[:i]):np.sum(length[:i+1]),k])
         
-        f=open(os.path.join(self.settings.result_folder, 'distExp_123etctrl_{}_{}.pkl'.format(self.bin_type, self.bin_size)))
+        f=open(os.path.join(self.settings.result_folder, 'distExp_123etctrl_{}_{}.pkl'.format(self.bins_type, self.bin_size)))
         bins = pickle.load(f); f.close()
         
-        histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bin_type, previous_binning=bins)
+        histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
                     
         return length, histogrammes, bins
     
@@ -206,9 +230,8 @@ class cellExtractor():
                     histDict[feature].append(curr_r[:,k])
         assert(len(length)==len(plates))
         assert(len(histDict["entropy1"])==len(plates))
-        pdb.set_trace()
                     
-        histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bin_type, previous_binning=bins)
+        histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
         
         return plates, length, histogrammes
     
@@ -227,13 +250,16 @@ class cellExtractor():
         for i,experiment in enumerate(self.expList):
             corresponding_ctrl = plates.index(experiment[0])
             ctrl_hist = ctrl_histogrammes[corresponding_ctrl]
-
+            if "transportation" in self.div_name:
+                if self.cost_type!='number':
+                    print 'Need to set up cost matrix to match with cost_type value'
+                    raise
             for k, feature in enumerate(self.currInterestFeatures):
                 dist_weights = np.zeros(shape=(len(self.currInterestFeatures)+1,))
                 dist_weights[k+1]=1
-                distances[i, k]=_distances(histogrammes[np.sum(length[:i]):np.sum(length[:i+1])],
-                                           ctrl_hist[np.newaxis,:],div_name=self.div_name, lambda_=self.lambda_, M=None,
-                                     mat_hist_sizes=[[self.bin_size for j in range(len(self.currInterestFeatures))]], nb_feat_num=0, dist_weights=dist_weights)
+                mat_hist_sizes = np.array([[self.bin_size for j in range(len(self.currInterestFeatures))]])
+                distances[i, k]=_distances(histogrammes[np.newaxis, i], ctrl_hist[np.newaxis,:],div_name=self.div_name, lambda_=self.lambda_, M=None,
+                                     mat_hist_sizes=mat_hist_sizes, nb_feat_num=0, dist_weights=dist_weights)[0][0]
                 
         return distances
     
@@ -252,7 +278,7 @@ class cellExtractor():
             l=None
         l=distances if l is None else np.vstack((l, distances))
         d.update({self.parameters():l})
-        f=open(os.path.join(self.settings.result_folder, self.settings.outputFile), 'w')
+        f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)), 'w')
         pickle.dump(d, f)
         f.close()
         return
@@ -272,7 +298,7 @@ class cellExtractor():
         
         #iii. calculate the distance from each experiment to its control
         distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes, length, ctrl_length)
-        
+        print distances
         #iv. save results
         self.saveResults(distances)
         
@@ -408,7 +434,7 @@ if __name__ == '__main__':
     
     parser.add_option('--siRNA', type=str, dest='siRNA', default=None)
 
-    parser.add_option('--div_name', type=str, dest='div_name', default='transportation')
+    parser.add_option('--div_name', type=str, dest='div_name', default='total_variation')
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
     parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
     parser.add_option('--bin_size', type=int, dest="bin_size", default=50)

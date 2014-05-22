@@ -223,7 +223,7 @@ class hitFinder():
         
         return
     
-    def plot_heatmap(self, other_hit_fileL):
+    def plot_heatmap(self):
     #getting list of all parameter sets
         try:
             f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename), 'r')
@@ -233,49 +233,63 @@ class hitFinder():
         else:
             parameters = d.keys()
     #getting list of all siRNAs for which p-values have been calculated in at least one case
-        hitsL=[]; other_hit_fileL.insert(0,self.settings.hit_filename)
+        pvalL = filter(lambda x: 'pval' in x, os.listdir(self.settings.result_folder))
+        siRNAL=[el.split('_')[-1][:-4] for el in pvalL]
+        siRNAL = Counter(siRNAL).keys()
+        
+        comparisons = [el.split('_')[1] for el in pvalL] 
+        comparisons = Counter(comparisons).keys()
+        
+        result = np.empty(shape=(len(comparisons), len(siRNAL), len(parameters)), dtype=float)
+        result.fill(np.NAN)
+        
+        for k, comparison in enumerate(comparisons):
+            for i,siRNA in enumerate(siRNAL):
+                try:
+                    f=open(os.path.join(self.settings.result_folder, 'pval_{}_{}.pkl'.format(comparison, siRNA)))
+                    d=pickle.load(f); f.close()
+                except IOError:
+                    continue
+                for j,parameter_set in enumerate(parameters):
+                    if parameter_set in d:
+                        if type(d[parameter_set])==list and d[parameter_set]!=[]:
+                            result[k,i,j]=d[parameter_set][0]
+                        else:
+                            result[k,i,j]=d[parameter_set]
+                            
+        todel=[]
+        for j, parameter_set in enumerate(parameters):
+            if np.all(np.isnan(result[:,:,j])):
+                print "NAN", parameter_set
+                todel.append(j)
             
-        for file_ in other_hit_fileL:
-            try:
-                f=open(os.path.join(self.settings.result_folder, file_))
-                hitsL.append(pickle.load(f))
-                f.close()
-            except:
+            elif np.all(result[:,:,j]==1):
+                print "ONE", parameter_set
                 pdb.set_trace()
                 
-        siL = []
-        for el in hitsL:
-            siL.extend(el.keys())
-        siL = Counter(siL).keys()
-        print type(siL)
-
-        result = np.empty(shape=(len(other_hit_fileL), len(siL), len(parameters)), dtype=float)
-        result.fill(np.NAN)
-        for k in range(len(hitsL)):
-            for siRNA in hitsL[k]:
-                i=siL.index(siRNA)
-                for j,parameter_set in enumerate(parameters):
-                    try:
-                        if type(hitsL[k][siRNA][parameter_set])==list:
-                            try:
-                                result[k,i,j]=hitsL[k][siRNA][parameter_set][0] 
-                            except IndexError:
-                                continue
-                        else:
-                            result[k,i,j]=hitsL[k][siRNA][parameter_set]
-                    except KeyError:
-                        print 
-                        continue
-        min_=np.nanmin(result) 
+        for j in sorted(todel, reverse=True):
+            result = np.delete(result, j, 2)
+            parameters.remove(parameters[j])
+        assert(result.shape[2]==len(parameters))
+        
         cmap = brewer2mpl.get_map('PRGn', 'diverging', 11).mpl_colormap
         
-        axes= p.subplots(len(other_hit_fileL), sharex=True)
-        for k in range(len(other_hit_fileL)):
-            zou=axes[1][k].pcolormesh(result[k],
-                  cmap=cmap,
-                  norm = mpl.colors.LogNorm(vmin=min_, vmax=np.nanmax(result)),
-                  edgecolors = 'None')
-            axes[1][k].set_title('P-values for file {}'.format(other_hit_fileL[k]))
+        axes= p.subplots(len(comparisons), sharex=True)
+        if len(comparisons)==1:
+            #have to do this because if this is the case then axes[1] is not a list
+            zou=axes[1].pcolormesh(result[k],
+                      cmap=cmap,
+                      norm = mpl.colors.LogNorm(vmin=np.nanmin(result) , vmax=np.nanmax(result)),
+                      edgecolors = 'None')
+            axes[1].set_title('P-values for file {}'.format(comparisons[k]))
+
+        else:
+            for k in range(len(comparisons)):
+                zou=axes[1][k].pcolormesh(result[k],
+                      cmap=cmap,
+                      norm = mpl.colors.LogNorm(vmin=np.nanmin(result) , vmax=np.nanmax(result)),
+                      edgecolors = 'None')
+                axes[1][k].set_title('P-values for file {}'.format(comparisons[k]))
         axes[0].colorbar(zou)
 #        xticks = np.array(range(ncol))
 #        yticks = np.array(range(nrow))

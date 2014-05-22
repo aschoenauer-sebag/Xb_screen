@@ -205,7 +205,7 @@ def returnCoordFromExpDict(dicti, lab, length, genes, who):
 def dist(x,y, sig):
     return np.exp( -sig*np.sum((x-y)**2) )
 
-def histLogTrsforming(r, plus=1.0, verbose=1):
+def histLogTrsforming(r, plus=1.0, verbose=0):
     result = np.array(r)
     print r.shape
     allLogTrsf = histLogTrsf; allLogTrsf.extend(histLogTrsf_meanHistFeat)
