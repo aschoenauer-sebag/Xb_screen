@@ -712,7 +712,7 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
                     try:
                         assert np.sum(zz)==len(ll)
                     except AssertionError:
-                        print feature
+                        print feature, traj_num
                         warn("Previous binning not adapted to current experiments")
                         if previous_binning is not None:
                             bins = np.array([minMax[i,0]+ (minMax[i,1]-minMax[i,0])*k/float(nb_bins_list[i]) for k in range(nb_bins_list[i]+1)])
@@ -768,7 +768,7 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
                     try:
                         assert np.sum(zz)==len(ll)
                     except AssertionError:
-                        print feature
+                        print feature, traj_num
                         warn("Previous binning not adapted to current experiments")
                         if previous_binning is not None:
                             bins = list(quantiles[i])

@@ -15,7 +15,7 @@ from operator import itemgetter
 from collections import Counter, defaultdict
 from scipy.stats import pearsonr
 import matplotlib.pyplot as p
-
+import brewer2mpl
 from tracking.trajPack import featuresSaved, featuresHisto, featuresNumeriques
 from util.listFileManagement import fromShareToCBIO, appendingControl
 from tracking.trajPack.clustering import histConcatenation
@@ -27,7 +27,7 @@ from util.sandbox import concatCtrl
 from tracking.plots import plotAlignedTraj
 
 from util import settings
-from scipy.stats.stats import ks_2samp
+from scipy.stats.stats import ks_2samp, spearmanr, scoreatpercentile
 
 
 nb_exp_list=[100, 500, 1000, 2000]
@@ -78,6 +78,114 @@ def compFeatures(data, length, who, ctrlStatus, percentile, *args):
         file_.write(finirXml())
         file_.close()
     return chosen
+
+def Spearman(folder = '../resultData/features_on_films',feature=None, outputFile='pval_Spearman', sh=None, extreme=False, 
+             percentile=95, saveExtreme=False, savePlots=True):
+    '''
+    Objective is to calculate Spearman's rank correlation coefficient between the distances given under
+    different distance parameters
+    '''
+    if feature == None:
+        featureL = featuresNumeriques
+    else:
+        featureL=[feature]
+    if sh==None:
+        sh=show
+           
+    parameters = None
+    fileL = filter(lambda x: 'distances_' in x and '.pkl' in x, os.listdir(folder))
+    n_siRNA = len(fileL)
+
+    result=[np.zeros(shape=(4,), dtype=object) for k in range(len(featureL))]
+    
+    for i in range(len(featureL)):
+        for k in range(4):
+            result[i][k]=[]
+
+    siRNAL=[]
+    count=0
+    
+    for j, file_ in enumerate(fileL):
+        siRNA = file_.split('_')[-1][:-4]
+        
+            
+        f=open(os.path.join(folder, file_))
+        distances = pickle.load(f); f.close()
+        siRNAL.extend([siRNA for k in range(len(distances[distances.keys()[0]]))])
+        if parameters == None:
+            parameters = distances.keys()
+        elif len(distances.keys())!=4:
+            print file_
+            pdb.set_trace()
+        elif not np.all([parameter in distances.keys() for parameter in parameters]):
+            print file_
+            pdb.set_trace()
+        elif np.any([len(distances[parameters[0]][:,featuresNumeriques.index(feature)])!=len(distances[parameter][:,featuresNumeriques.index(feature)]) for parameter in parameters]):
+            print file_
+            continue
+        else:
+            for param in filter(lambda x: x not in parameters, distances.keys()):
+                parameters.append(param)
+        
+        for i,feature in enumerate(featureL):
+            for k,param in enumerate(parameters):
+    
+                l=list(distances[param][:,featuresNumeriques.index(feature)])
+                count+=len(l)
+                
+                result[i][k].extend(l)
+
+    pvalues_mat = np.zeros(shape=(len(featureL),4,4))
+    if saveExtreme:
+        targetExp={}; yeSiExp=expSi('../data/mapping/qc_export.txt', 0)
+    for i, feature in enumerate(featureL):
+        for k, param in enumerate(parameters):
+            if i==0:
+                print param
+            pvalues_mat[i,k,k]=1
+            result[i][k]=np.array(result[i][k])
+            extreme1=result[i][k][np.where(result[i][k]>scoreatpercentile(result[i][k], percentile))]
+            
+            if saveExtreme and k==2:
+                ext1 = np.where(result[i][k]>scoreatpercentile(result[i][k], percentile))[0]
+                subExtreme1 = np.where(result[i][k]<scoreatpercentile(result[i][k], percentile+1))[0]
+                commonIndices = filter(lambda x: x in ext1, subExtreme1)
+                
+                targetExp[feature]=[]
+                #np.random.shuffle(commonIndices)
+                for el in commonIndices[:10]:
+                    L = np.where(np.array(siRNAL)==siRNAL[el])
+                    currExp=yeSiExp[siRNAL[el]]
+                    targetExp[feature].append(currExp[np.where(L[0]==el)[0]])
+                    
+            for j in range(k+1, len(parameters)):
+                if extreme==False:
+                    pvalues_mat[i, k,j]=spearmanr(result[i][k], result[i][j])[0]
+                else:
+                    result[i][j]=np.array(result[i][j])
+                    extreme2=result[i][j][np.where(result[i][j]>scoreatpercentile(result[i][j], percentile))]
+
+                    pvalues_mat[i, k,j]=spearmanr(extreme1[-min(len(extreme1), len(extreme2)):], extreme2[-min(len(extreme1), len(extreme2)):])[0]
+                pvalues_mat[i,j,k]=pvalues_mat[i, k,j]
+    if saveExtreme:
+        f=open(os.path.join(folder, 'targetExperiments_{}.pkl'.format(percentile)), 'w')
+        pickle.dump(targetExp, f); f.close()
+        
+    if savePlots or sh:
+        cmap = brewer2mpl.get_map('Blues', 'sequential', 3).mpl_colormap
+        for i,feature in enumerate(featureL):
+            f, ax = p.subplots(1, sharex=True, sharey=True)
+            zou=ax.pcolormesh(pvalues_mat[i],
+                          cmap=cmap,
+                          norm=mpl.colors.Normalize(vmin=0, vmax=1),
+                          edgecolors = 'None')
+            ax.set_title("P-values, Spearman's rank correlation for feature {}, extreme experiments? {}".format(feature, extreme))
+            f.colorbar(zou)
+            if sh:
+                p.show()
+            else:
+                p.savefig(os.path.join(folder, outputFile+'{}_e{}.png'.format(feature, extreme)))
+    return
 
 def plotDistanceDist(folder = '../resultData/features_on_films',siRNA_folder = '../data', feature=None, sh=None):
     if feature == None:

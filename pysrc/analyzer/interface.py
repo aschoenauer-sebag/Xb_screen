@@ -182,6 +182,10 @@ class HTMLGenerator():
                     try:
                         legendName = ''
                         if 'CloneA' in resCour[well]['Name']:
+                            print 'Not taking Clone A into account'
+                            continue
+                        if 'Complet' in resCour[well]['Medium']:
+                            print 'Not taking whole medium into account'
                             continue
                         for parameterInterest in parametersInterest:
                             legendName +=' '+resCour[well][parameterInterest].strip(' ').split('_')[0]

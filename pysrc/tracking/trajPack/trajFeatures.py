@@ -349,7 +349,13 @@ def computingHisto(traj, m_length, average, movie_start, verbose, a,d, training)
     debut = min(l)[0]; fin = max(l)[0]
     X=np.array([traj.lstPoints[k][0] for k in l])
     Y = np.array([traj.lstPoints[k][1] for k in l])
-
+    t=[el[0] for el in l]
+    
+#also keeping raw coordinates in case i want to do smt with cell visualization in cell cognition
+    raw_t = list(t)    
+    raw_X = np.array(X)
+    raw_Y = np.array(Y)
+    
 #i.removing average displacement in movie to correct for plate movement
     if average is not None:
         if debut ==movie_start:
@@ -361,7 +367,6 @@ def computingHisto(traj, m_length, average, movie_start, verbose, a,d, training)
     else:
         if not training:
             raise AttributeError
-    t=[el[0] for el in l]
     
 #ii. keeping every coordinate above 0 so that the calculus for turning angle is ok
     X-=X.min()
@@ -540,7 +545,7 @@ def computingHisto(traj, m_length, average, movie_start, verbose, a,d, training)
     r['FLATmoments']=list(r['moments'].flatten())
     del r['moments'] #ATTENTION QUE SUIVANT LA DUREE DE LA TRAJECTOIRE LES GENS N'ONT PAS LE MEME NB DE PTS DS LES MOMENTS
 
-    return r, [t, X, Y],histN
+    return r, [t, X, Y],[raw_t, raw_X, raw_Y],histN
 
 def computingFeatures(traj, m_length, average, movie_start, verbose):
 #FEATURES
@@ -888,7 +893,7 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
                 if a==None or d==None:
                     raise AttributeError
                 
-                f, coordC, histN=computingHisto(track, movie_length[plate][well], average, movie_start, verbose, a, d, training)
+                f, coordC,rawCoordC, histN=computingHisto(track, movie_length[plate][well], average, movie_start, verbose, a, d, training)
                 arr=[f[k] for k in featuresSaved]
                 
             #densities
@@ -896,7 +901,7 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
                 arr.extend(trackDensity)
                 arr=np.array(arr, dtype=float)
                 if trackDensity[0]<5 and np.all(np.isnan(arr)==False):
-                    coord.append(coordC)
+                    coord.append(rawCoordC)
                     tabFeatures = arr if tabFeatures==None else np.vstack((tabFeatures, arr))
                     for nom in histNC:
                         histNC[nom].append(histN[nom])

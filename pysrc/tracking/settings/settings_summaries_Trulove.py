@@ -7,11 +7,13 @@ data_folder = '/media/lalil0u/New/data/test'
 
 #folder for output data
 result_folder = '/media/lalil0u/New/workspace2/Xb_screen/resultData/summaries'
-summary_filename = "summary_{}_{}.pkl"
-clustering_filename = 'centers.pkl'
+summary_filename = "summary_iter{}_{}_{}.pkl"
+clustering_filename = 'centers_iter{}.pkl'
 hit_filename = 'hits_KS.pkl'
-pval_filename = 'pval_KS_{}.pkl'
-figure_name = "comparaison_p-values.png" 
+pval_filename = 'pval_F_iter{}_{}.pkl'
+label_filename = 'labels_iter{}_{}.pkl'
+figure_name = "comparaison_{}_{}.png" 
+threshold_filename = 'thresholds_significancy_5_{}_{}.pkl' 
 
 mitocheck_file = '/media/lalil0u/New/workspace2/Xb_screen/data/mapping/mitocheck_siRNAs_target_genes_Ens72.txt'
 
@@ -30,3 +32,9 @@ n_representatives = 10
 
 #number of numeric features
 nb_feat_num = len(featuresNumeriques)
+
+#Fisher test or Kolmogorv-Smirnov ?
+Fisher = True
+
+#do you want to calculate all p-values from all parameter sets even if they have already been calculated?
+redo = False

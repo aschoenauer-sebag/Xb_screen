@@ -1,6 +1,7 @@
 import os, pdb, shutil
 from collections import defaultdict
 from operator import itemgetter
+from collections import Counter
 import cPickle as pickle
 import numpy as np
 import vigra.impex as vi
@@ -413,6 +414,8 @@ def fromShareToCBIO(expdict,wellFolder=False, dst='/cbio/donnees/aschoenauer/clu
 
 def appendingControl(plateL):
     todo=[]
+    if type(plateL[0])==tuple:
+        plateL = Counter(np.array(plateL)[:,0]).keys()
 
     for el in plateL:
         id_ = int(el.split('_')[0][2:])

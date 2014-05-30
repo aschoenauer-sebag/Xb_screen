@@ -82,7 +82,7 @@ def heatmap(x, row_header, column_header, row_method,
     if log:
         norm = mpl.colors.LogNorm(vmin, vmax) ### adjust the max and min to scale these colors
     else:
-        norm = mpl.colors.Normalize(vmin, vmax)
+        norm = mpl.colors.Normalize(10**(-5), 0.1)
     ### Scale the Matplotlib window size
     default_window_hight = 8.5
     default_window_width = 12

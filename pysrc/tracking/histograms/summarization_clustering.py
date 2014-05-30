@@ -1,6 +1,6 @@
 import warnings, pdb, time, sys, os
 import getpass
-from scipy.stats.stats import ks_2samp
+from scipy.stats.stats import ks_2samp, pearsonr, scoreatpercentile, spearmanr
 
 if getpass.getuser()=='aschoenauer':
     import matplotlib as mpl
@@ -20,19 +20,17 @@ from sklearn.utils import check_random_state
 from optparse import OptionParser
 from collections import defaultdict, Counter
 from operator import itemgetter
+from itertools import product
 
 from transportation import multSinkhorn,multEMD1d, costMatrix, ddcostMatrix, computingBins, computingddBins
 from k_means_transportation import _costMatrix, histogramMiniKMeans
 from tracking.trajPack import featuresNumeriques
 from tracking.trajPack.clustering import histConcatenation
+from tracking.plots import plotAlignedTraj
 from tracking.histograms import *
 from tracking.histograms.k_means_transportation import _labels_inertia_precompute_dense
-from util.listFileManagement import strToTuple, expSi, appendingControl, is_ctrl
+from util.listFileManagement import strToTuple, expSi, appendingControl, is_ctrl, siEntrez
 from util import settings
-
-from rpy2 import robjects
-from rpy2.robjects.packages import importr
-rStats=importr("stats")
 
 def stabilityCalculation(labels1, labels2, set1, set2):
     intersection = filter(lambda x: x in set2, set1)
@@ -48,10 +46,25 @@ def stabilityCalculation(labels1, labels2, set1, set2):
     return np.sum(corr1*corr2)/np.sqrt(np.sum(corr1*corr1)*np.sum(corr2*corr2))
 
 class hitFinder():
-    def __init__(self, settings_file, siRNA, verbose=0):            
+    def __init__(self, settings_file, siRNA, verbose=0,iter_=0, testCtrl = False):
+        '''
+        This class is supposed to look at experiments for a given siRNA, and compare
+        the repartition of its trajectories in clusters with the repartition of control trajectories
+        in the same clusters. However, if testCtrl is a plate, then this class will select two CONTROL
+        wells at random on the plate and do the exact same procedure but for the control wells.
+        '''            
         self.settings = settings.Settings(settings_file, globals())
         self.siRNA = siRNA
         self.verbose=verbose
+        self.iter_=iter_
+        if not testCtrl:
+            self.plate = None
+        else:
+            if self.verbose:
+                print "Testing controls for plate {}".format(testCtrl)
+            assert (testCtrl in os.listdir(self.settings.data_folder))
+            self.plate = testCtrl
+            self.siRNA = 'CTRL_{}'.format(self.plate[:9])
         
     def _findExperiment(self):
         '''
@@ -59,7 +72,9 @@ class hitFinder():
         '''
         yqualDict=expSi(self.settings.quality_control_file, sens=0)
         l= strToTuple(yqualDict[self.siRNA], os.listdir(self.settings.data_folder))
-        assert( np.all([self.settings.summary_filename.format(el[0], el[1]) in os.listdir(self.settings.result_folder) for el in l]))
+        if self.verbose:
+            print l
+        assert( np.all([self.settings.summary_filename.format(self.iter_, el[0], el[1]) in os.listdir(self.settings.result_folder) for el in l]))
             
         return l
     
@@ -81,24 +96,29 @@ class hitFinder():
         
         r, histNtot,  who,ctrlStatus, length, _, sirna, _ = histConcatenation(self.settings.data_folder, expList, self.settings.mitocheck_file,
                                         self.settings.quality_control_file)
-        assert(np.all(np.array(sirna)[np.where(np.array(ctrlStatus)==1)]==self.siRNA))
+        if self.plate is None:
+            assert(np.all(np.array(sirna)[np.where(np.array(ctrlStatus)==1)]==self.siRNA))
+        else:
+            assert np.all(np.array(ctrlStatus)==0)
+            ctrlStatus[:2]=[1,1] 
         
         return r[:,:self.settings.nb_feat_num], histNtot, who, ctrlStatus, length
     
-    def _attribute_labels(self, r, hist_features):
+    def _attribute_labels(self, r, hist_features,ctrlIter, param_tuple=None):
         result={}
         try:
-            f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename), 'r')
+            f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename.format(self.iter_)), 'r')
             d=pickle.load(f); f.close()
         except IOError:
             raise
         else:
-            for iter_, param_tuple in enumerate(d):
-                centers, mean, std, bins, expList = d[param_tuple]
-                dd=dict(param_tuple)
-#                if self.verbose and dd['dist_weights']!=1:
-#                    print 'weights', dd['dist_weights'], 'k', dd['n_cluster']
-#                    pdb.set_trace()
+            if param_tuple is not None:
+                small_param_set = [param_tuple]                
+            elif not self.settings.redo:
+                small_param_set=self._cleanParameterSetsFromDoneWork(d, ctrlIter)
+            
+            for param_tuple in small_param_set:
+                centers, mean, std, bins, _ = d[param_tuple]
                 curr_parameters = dict(param_tuple)
                 if self.verbose:
                     print curr_parameters
@@ -110,8 +130,8 @@ class hitFinder():
                 else:
                     histogrammeMatrix, bins = computingBins(hist_features, nb_bins_list = mat_hist_sizes[0], bin_type=curr_parameters["bins_type"], previous_binning = bins)
                     
-                r=(r-mean)/std
-                data=np.hstack((r, histogrammeMatrix))
+                norm_r=(r-mean)/std
+                data=np.hstack((norm_r, histogrammeMatrix))
                 if curr_parameters['ddimensional']:
                     pass
 #                    self.cost_matrix={(0,0):ddcostMatrix(np.product(self.mat_hist_sizes[0]), self.mat_hist_sizes[0])}
@@ -131,15 +151,13 @@ class hitFinder():
                                                                 nb_feat_num=self.settings.nb_feat_num, 
                                                                 dist_weights=weights, centers=centers)
                 result[param_tuple] = labels
-#                if iter_>5:
-#                    break
-            
+
             return result
         
     def _computePValues(self, labelDict, ctrlList, who, ctrlStatus, length):
         info = np.array( zip((who, ctrlStatus, length)))[:,0]
         p_vals = defaultdict(list)
-        r=[]
+#        r=[]
         for param_tuple in labelDict:
             labels = labelDict[param_tuple]
             d=dict(param_tuple)
@@ -157,23 +175,23 @@ class hitFinder():
                         cLabelsCour.extend(labels[np.sum(length[:index]):np.sum(length[:index+1])])
                 
                 llength = len(cLabelsCour)
-                #vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
-                #cLabelsCour.extend(pLabelsCour)
+                vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
+                cLabelsCour.extend(pLabelsCour)
                 #r.append([cLabelsCour, vecLongueurs])
-                try:
-                    p_vals[param_tuple].append(ks_2samp(pLabelsCour, cLabelsCour)[1])
-                    #p_vals[param_tuple].append(np.float64(rStats.fisher_test(robjects.IntVector(cLabelsCour), robjects.IntVector(vecLongueurs), 
-                                                        #                     workspace=200000000, simulate_p_value=True)[0][0]))
-                    if self.verbose:
-                        print '---------------weights', d['dist_weights'], 'k', d['n_cluster']
-                        print len(pLabelsCour), np.bincount(pLabelsCour)/float(len(pLabelsCour))
-                        print llength, np.bincount(cLabelsCour[:llength])/float(llength)
-                        print p_vals[param_tuple][-1]
-                except:
-                    if np.all(np.array(cLabelsCour)==np.zeros(len(cLabelsCour))):
-                        p_vals[param_tuple].append(1.0)
-                    #print experiment, param_tuple
+                if np.all(np.array(cLabelsCour)==np.zeros(len(cLabelsCour))):
+                    p_vals[param_tuple].append(1.0)
                     continue
+                if self.settings.Fisher:
+                    p_vals[param_tuple].append(np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
+                                                                         simulate_p_value=True, B=2000000)[0][0]))
+                else:    
+                    p_vals[param_tuple].append(ks_2samp(pLabelsCour, cLabelsCour)[1])
+                #
+                if self.verbose:
+                    print '---------------weights', d['dist_weights'], 'k', d['n_cluster'], 'bins_type', d['bins_type']
+                    print len(pLabelsCour), np.bincount(pLabelsCour)/float(len(pLabelsCour))
+                    print llength, np.bincount(cLabelsCour[:llength])/float(llength)
+                    print p_vals[param_tuple][-1]
             
         #statistical test according to Fisher's method http://en.wikipedia.org/wiki/Fisher%27s_method
             if len(p_vals[param_tuple])>1:
@@ -186,135 +204,389 @@ class hitFinder():
 #        pickle.dump(r, f); f.close()
         return p_vals
     
-    def _saveResults(self, p_values):
-        if self.settings.pval_filename.format(self.siRNA) in os.listdir(self.settings.result_folder):
-            f=open(os.path.join(self.settings.result_folder, self.settings.pval_filename.format(self.siRNA)), 'r')
+    def _cleanParameterSetsFromDoneWork(self, parameter_set_list, ctrlIter):
+        '''
+        The purpose of this function is to return a parameter_set_list that is cleaned from
+        parameter sets for which the p-values have already be calculated, if settings.redo is not True
+        '''
+        if self.plate is not None:
+            siRNA = self._giveFilename(ctrlIter)
+        else:
+            siRNA = self.siRNA
+            
+        if self.settings.pval_filename.format(self.iter_,siRNA) in os.listdir(self.settings.result_folder):
+            f=open(os.path.join(self.settings.result_folder, self.settings.pval_filename.format(self.iter_, siRNA)), 'r')
+            hits = pickle.load(f); f.close()
+            
+            return filter(lambda x: x not in hits, parameter_set_list)
+        else:
+            return parameter_set_list
+            
+        
+    
+    def _giveFilename(self, ctrlIter):
+        if ctrlIter==0:
+            return '{}{}'.format(ctrlIter, self.siRNA)
+        else:
+            return '{}{}'.format(ctrlIter, self.siRNA[1:])
+    
+    def _saveResults(self, p_values, ctrlIter):
+        if self.plate is not None:
+            self.siRNA = self._giveFilename(ctrlIter)
+        if self.settings.pval_filename.format(self.iter_, self.siRNA) in os.listdir(self.settings.result_folder):
+            f=open(os.path.join(self.settings.result_folder, self.settings.pval_filename.format(self.iter_, self.siRNA)), 'r')
             hits = pickle.load(f); f.close()
         else:
             hits={}
             
         hits.update(p_values)
             
-        f=open(os.path.join(self.settings.result_folder, self.settings.pval_filename.format(self.siRNA)), 'w')
+        f=open(os.path.join(self.settings.result_folder, self.settings.pval_filename.format(self.iter_, self.siRNA)), 'w')
         pickle.dump(hits, f); f.close()
+        
+    def _saveLabels(self, labelDict, ctrlIter):
+        if self.plate is not None:
+            self.siRNA = self._giveFilename(ctrlIter)
+        if self.settings.label_filename.format(self.iter_, self.siRNA) in os.listdir(self.settings.result_folder):
+            f=open(os.path.join(self.settings.result_folder, self.settings.label_filename.format(self.iter_, self.siRNA)), 'r')
+            labels = pickle.load(f); f.close()
+        else:
+            labels={}
+            
+        labels.update(labelDict)
+            
+        f=open(os.path.join(self.settings.result_folder, self.settings.label_filename.format(self.iter_, self.siRNA)), 'w')
+        pickle.dump(labels, f); f.close()
+        
+    def plotTrajectories(self, expList, labels):
+        resultCour=[]
+        clusters = Counter(labels).keys()
+        for plate, well in expList:
+            if self.verbose:
+                print "Taking care of plate {}, well {}".format(plate, well)
+        
+            f=open(os.path.join(self.settings.data_folder,plate, 'hist2_tabFeatures_{}.pkl'.format(well)))
+            _, coord, _=pickle.load(f); f.close()
+            resultCour.extend(coord)
+
+        XX=[]; YY=[]
+        for k in range(len(resultCour)):
+            X=np.array(resultCour[k][1]); X-=X[0]; XX.append(X)
+            Y=np.array( resultCour[k][2]); Y-=Y[0]; YY.append(Y)
+        minx,maxx = min([min(X) for X in XX]), max([max(X) for X in XX])
+        miny,maxy = min([min(Y) for Y in YY]), max([max(Y) for Y in YY])
+        
+        for cluster in clusters:
+            for i in np.where(np.array(labels)==cluster)[0][:10]:
+                if not os.path.isdir(os.path.join(self.settings.result_folder, 'images')): 
+                    os.mkdir(os.path.join(self.settings.result_folder, 'images'))
+                plotAlignedTraj(XX[i], YY[i], minx, maxx, miny, maxy, show=False, 
+                     name=os.path.join(self.settings.result_folder, 'images', 'cluster{}_{}_{}.png'.format(cluster, self.siRNA,i)))
+
+        return 1
     
-    def __call__(self):
+    def labelOnly(self, param_tuple,plot=True, ctrlIter=0):
         
-        #i. getting experiments corresponding to siRNA
-        expList=self._findExperiment()
-        if expList==[]:
-            sys.stderr.write("No experiments for siRNA {}".format(self.siRNA))
-            return
-        
-        #ii.getting controls corresponding to experiments
-        ctrlList = self._findControls(expList)
+        #i. getting experiments corresponding to siRNA if we're not looking for control experiments only
+        if self.plate is None:
+            expList=self._findExperiment()
+            ctrlList = []
+            if expList==[]:
+                sys.stderr.write("No experiments for siRNA {}".format(self.siRNA))
+                return
+        else:
+            #not returning any control labels if it's not only control labels
+            expList = [(self.plate, '00001_01')]
+            if self.verbose:
+                print "ctrl", expList
+            ctrlList = self._findControls(expList)
+            if self.plate is not None:
+                np.random.shuffle(ctrlList)
+                expList = ctrlList[:2]
+                ctrlList = ctrlList[2:]
+                print 'Picked ctrl experiments', expList
         
         #iii. get data
-        r, histNtot, who, ctrlStatus, length = self._dataPrep(expList, ctrlList) 
+        r, histNtot, who, ctrlStatus, length = self._dataPrep(expList, ctrlList)
         
         #iv. find labels for data
-        labelDict = self._attribute_labels(r, histNtot)
+        labelDict = self._attribute_labels(r, histNtot,ctrlIter, param_tuple)
+        
+        #vi. save labels
+        self._saveLabels(labelDict, ctrlIter)
+        print self.siRNA, np.bincount(labelDict[param_tuple])
+        if self.plate is not None and ctrlIter==0:
+            print 'going for another round'
+            self.__call__(ctrlIter=1)
+        if plot:
+            self.plotTrajectories(expList, labelDict[param_tuple])
+        return labelDict[param_tuple]
+    
+    def __call__(self, ctrlIter=0):
+        
+        #i. getting experiments corresponding to siRNA if we're not looking for control experiments only
+        if self.plate is None:
+            expList=self._findExperiment()
+            if expList==[]:
+                sys.stderr.write("No experiments for siRNA {}".format(self.siRNA))
+                return
+        else:
+            expList = [(self.plate, '00001_01')]
+            if self.verbose:
+                print "ctrl", expList
+        
+        #ii.getting controls corresponding to experiments if not looking for ctrl experiments only,
+            #else getting all controls on self.plate
+        ctrlList = self._findControls(expList)
+        if self.plate is not None:
+            np.random.shuffle(ctrlList)
+            expList = ctrlList[:2]
+            ctrlList = ctrlList[2:]
+            print 'Picked ctrl experiments', expList
+        
+        #iii. get data
+        r, histNtot, who, ctrlStatus, length = self._dataPrep(expList, ctrlList)
+        
+        #iv. find labels for data
+        labelDict = self._attribute_labels(r, histNtot, ctrlIter)
         
         #v. compute p-values: are experiment trajectories significantly differently clustered than control trajectories
         pvalues = self._computePValues(labelDict, ctrlList, who, ctrlStatus, length)
         
         #vi. save results
-        self._saveResults(pvalues)
-        
+        self._saveResults(pvalues, ctrlIter)
+        if self.plate is not None and ctrlIter==0:
+            print 'going for another round'
+            self.__call__(ctrlIter=1)
         return
     
-    def plot_heatmap(self):
-    #getting list of all parameter sets
-        try:
-            f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename), 'r')
-            d=pickle.load(f); f.close()
-        except IOError:
-            raise
-        else:
-            parameters = d.keys()
-    #getting list of all siRNAs for which p-values have been calculated in at least one case
-        pvalL = filter(lambda x: 'pval' in x, os.listdir(self.settings.result_folder))
-        siRNAL=[el.split('_')[-1][:-4] for el in pvalL]
-        siRNAL = Counter(siRNAL).keys()
-        
-        comparisons = [el.split('_')[1] for el in pvalL] 
-        comparisons = Counter(comparisons).keys()
-        
-        result = np.empty(shape=(len(comparisons), len(siRNAL), len(parameters)), dtype=float)
-        result.fill(np.NAN)
+    def _correlationParamParam(self, comparisons, parameters, result, testCtrl,iterations, sh,test=spearmanr, save=True):
+        '''
+        One should be aware that scoreatpercentile is influenced by nan values. 
+        Indeed scoreatpercentile([0,1,0,1,np.nan]) is 1 when scoreatpercentile([0,1,0,1]) is 0.5
+        '''
+
+        parameter_corr = np.zeros(shape=(len(comparisons), result.shape[1], result.shape[1]))
         
         for k, comparison in enumerate(comparisons):
-            for i,siRNA in enumerate(siRNAL):
+            msg=''; thresholds=[]
+            msg+='Value of ctrl p-values\n'
+            for j in range(result.shape[1]):
+                parameter_corr[k,j,j]=1    
                 try:
-                    f=open(os.path.join(self.settings.result_folder, 'pval_{}_{}.pkl'.format(comparison, siRNA)))
-                    d=pickle.load(f); f.close()
-                except IOError:
-                    continue
-                for j,parameter_set in enumerate(parameters):
-                    if parameter_set in d:
-                        if type(d[parameter_set])==list and d[parameter_set]!=[]:
-                            result[k,i,j]=d[parameter_set][0]
-                        else:
-                            result[k,i,j]=d[parameter_set]
-                            
-        todel=[]
-        for j, parameter_set in enumerate(parameters):
-            if np.all(np.isnan(result[:,:,j])):
-                print "NAN", parameter_set
-                todel.append(j)
-            
-            elif np.all(result[:,:,j]==1):
-                print "ONE", parameter_set
-                pdb.set_trace()
+                    thresholds.append(scoreatpercentile(result[k,j], 5))
+                except:
+                    pdb.set_trace()
+                msg+='{} {} \n'.format(j, thresholds[-1])
+
+                for l in range(j+1, result.shape[1]):
+                    parameter_corr[k,j,l]=test(result[k,j], result[k,l])[0]
+                    parameter_corr[k,l,j]=parameter_corr[k,j,l]
+            if testCtrl and save:
+                print msg
+                for iter_ in range(len(iterations)):
+                    dict_thresholds = dict(zip(parameters, thresholds[iter_::len(iterations)]))    
+                    f=open(os.path.join(self.settings.result_folder, self.settings.threshold_filename.format(comparison, iter_)), 'w')
+                    pickle.dump(dict_thresholds, f); f.close()
+            elif not testCtrl:
+                thresholds=np.zeros(shape=(len(parameters)*len(iterations)))
+                for iter_ in range(len(iterations)):
+                    f=open(os.path.join(self.settings.result_folder, self.settings.threshold_filename.format(comparison, iter_)), 'r')
+                    dict_thresholds=pickle.load(f); f.close()
+                    thresholds[iter_::len(iterations)]=np.array([dict_thresholds[el] for el in parameters])
+                for j in range(result.shape[1]):
+                    print '{} {}'.format(j, thresholds[j])
+                if k==0:
+                    mean_corr=[]
+                    for z, param in enumerate(parameters):
+                        mean_corr.append(np.mean(parameter_corr[k, 3*z:3*z+3, 3*z:3*z+3]))
+                    f=open(os.path.join(self.settings.result_folder, '{}_mean_itercorr.pkl'.format(test.func_name)), 'w')
+                    pickle.dump(mean_corr, f); f.close()
+        #plotting this correlation
+        cmap = brewer2mpl.get_map('Blues', 'sequential', 3).mpl_colormap
+        for k, comparison in enumerate(comparisons):
+            f, ax = p.subplots(1, sharex=True, sharey=True)
+            zou=ax.pcolormesh(parameter_corr[k],
+                          cmap=cmap,
+                          norm=mpl.colors.Normalize(vmin=0, vmax=1),
+                          edgecolors = 'None')
+            ax.set_xlim(0,result.shape[1])
+            ax.set_ylim(0,result.shape[1])
+            ax.set_title("P-values, {}'s correlation for {}".format(test.func_name, comparison))
+            f.colorbar(zou)
+            if sh:
+                p.show()
+            else:
+                p.savefig(os.path.join(self.settings.result_folder, 'Pvalues{}_CTRL{}.png'.format(comparison, testCtrl)))
                 
-        for j in sorted(todel, reverse=True):
-            result = np.delete(result, j, 2)
-            parameters.remove(parameters[j])
-        assert(result.shape[2]==len(parameters))
+        return np.array(thresholds)
+    
+    def _correlationExpParam(self, comparisons, parameters, result, testCtrl, sh,thresholds=None):
+        cmap = brewer2mpl.get_map('RdBu', 'diverging', 11).mpl_colormap
         
-        cmap = brewer2mpl.get_map('PRGn', 'diverging', 11).mpl_colormap
+        if thresholds is not None:
+            result=np.array(result)
+            min_=0; max_=1
+            title = "Hits"  
+            for k in range(result.shape[0]):
+                for j in range(result.shape[1]):
+                    threshold = thresholds[j]
+                    result[k,j]=result[k,j]<threshold
+        else:
+            title = 'P-values'
+            min_=10**(-5)
+            max_=0.1
         
         axes= p.subplots(len(comparisons), sharex=True)
+        k=0
         if len(comparisons)==1:
             #have to do this because if this is the case then axes[1] is not a list
             zou=axes[1].pcolormesh(result[k],
                       cmap=cmap,
-                      norm = mpl.colors.LogNorm(vmin=np.nanmin(result) , vmax=np.nanmax(result)),
+                      norm = mpl.colors.Normalize(vmin= min_, vmax=max_),
                       edgecolors = 'None')
-            axes[1].set_title('P-values for file {}'.format(comparisons[k]))
+            axes[1].set_ylim(0, result[0].shape[0])
+            axes[1].set_xlim(0, result[0].shape[1])
+            axes[1].set_title("{} for file {}, CTRL {}".format(title, comparisons[k], testCtrl))
 
         else:
             for k in range(len(comparisons)):
                 zou=axes[1][k].pcolormesh(result[k],
                       cmap=cmap,
-                      norm = mpl.colors.LogNorm(vmin=np.nanmin(result) , vmax=np.nanmax(result)),
+                      norm = mpl.colors.Normalize(vmin=min_ , vmax=max_),
                       edgecolors = 'None')
-                axes[1][k].set_title('P-values for file {}'.format(comparisons[k]))
-        axes[0].colorbar(zou)
-#        xticks = np.array(range(ncol))
-#        yticks = np.array(range(nrow))
-#        
-#        yticklabels=list(string.uppercase[:data.shape[0]]); yticklabels.reverse()
-#        xticklabels=range(1,data.shape[1]+1)
-#        
-#        ax.set_xticks(xticks+0.5)
-#        ax.set_xticklabels(xticklabels)
-#        
-#        ax.set_yticks(yticks+0.5)
-#        ax.set_yticklabels(yticklabels)
+                axes[1][k].set_ylim(0, result[0].shape[0])
+                axes[1][k].set_xlim(0, result[0].shape[1])
+                axes[1][k].set_title("{} for file {}, CTRL {}".format(title, comparisons[k], testCtrl))
+        axes[0].colorbar(zou)        
         
-        
-        if show:
+        if sh:
             p.show()
         else:
-            p.savefig(os.path.join(self.settings.result_folder, self.settings.figure_name))
-        return result, parameters
+            p.savefig(os.path.join(self.settings.result_folder, self.settings.figure_name.format(title, testCtrl)))
+        return result
+    
+    def plot_heatmaps(self, testCtrl=False, iterations=[0,1,2], sh=None):
+        if sh==None:
+            sh=show
+    #getting list of all parameter sets, from iterations[1], 31 parameter sets
+        try:
+            f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename.format(iterations[1])), 'r')
+            d=pickle.load(f); f.close()
+        except IndexError:
+            f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename.format(1)), 'r')
+            d=pickle.load(f); f.close()
+            parameters = sorted(d.keys(), key=itemgetter(4))
+        except IOError:
+            raise
+        else:
+            parameters = sorted(d.keys(), key=itemgetter(4, 1, 7))
+    #getting list of all siRNAs for which p-values have been calculated in at least one case
+    
+        if not testCtrl:
+            pvalL = filter(lambda x: 'pval' in x and 'CTRL' not in x, os.listdir(self.settings.result_folder))
+            siRNAL=[el.split('_')[-1][:-4] for el in pvalL]
+        else:
+            #in this case we're working with ctrl experiments so siRNAL will contain plate names
+            pvalL = filter(lambda x: 'pval' in x and 'CTRL' in x, os.listdir(self.settings.result_folder))
+            siRNAL=['{}_{}'.format(el.split('_')[-2],el.split('_')[-1][:-4]) for el in pvalL]
+        
+        siRNAL = Counter(siRNAL).keys()
+        platesL=[]
+        comparisons = [el.split('_')[1] for el in pvalL] 
+        comparisons = Counter(comparisons).keys()
+        print comparisons
+
+
+#idea: get iterations of same parameter set next to one another
+        result = np.empty(shape=(len(comparisons), len(parameters),len(iterations)), dtype=object)
+        result.fill(None)
+        
+        for k, comparison in enumerate(comparisons):
+            iterations=['iter{}'.format(m) for m in iterations]
+            if testCtrl:
+                ctrl_iterations=['_0CTRL', '_1CTRL']#[comparison+'_0CTRL', comparison+'_1CTRL']
+            else:
+                ctrl_iterations=['']
+            for i, iter_ in enumerate(iterations):
+                for ctrl_iter in ctrl_iterations:
+                    for siRNA in siRNAL:
+                        platesL.append(siRNA)
+                        try:
+                            f=open(os.path.join(self.settings.result_folder, 'pval_{}_{}{}_{}.pkl'.format(comparison, iter_, ctrl_iter, siRNA)))
+                            d=pickle.load(f); f.close()
+                        except IOError:
+                            print siRNA, iter_
+                            d={}
+                        for j,parameter_set in enumerate(parameters):
+                            
+                            if parameter_set in d:
+                                if type(d[parameter_set])==list and d[parameter_set]!=[]:
+                                    try:
+                                        result[k,j,i].append(d[parameter_set][0])
+                                    except AttributeError:
+                                        result[k,j,i]=d[parameter_set]
+                                else:
+                                    try:
+                                        result[k,j,i].append(d[parameter_set])
+                                    except AttributeError:
+                                        result[k,j,i]=[d[parameter_set]]
+                            else:
+                                try:
+                                    result[k,j,i].append(np.nan)
+                                except AttributeError:
+                                    result[k,j,i] = [np.nan]
+        new=None
+        for k in range(result.shape[0]):
+            N=None
+            for j in range(result.shape[1]):
+                for i in range(result.shape[2]):
+                    try:
+                        N=np.vstack((N, np.array(result[k,j,i]) )) if N is not None else np.array(result[k,j,i])
+                    except:
+                        pdb.set_trace()
+            if new is None:
+                new = N[np.newaxis, :]
+            else:
+                new=np.vstack((new, N[np.newaxis, :]))
+        result=new
+        print result.shape
+        if len(np.where(np.isnan(result))[2])>0:
+            pdb.set_trace()
+        genesToDel = np.where(np.isnan(result))[2]
+        result = np.delete(result, genesToDel, 2)
+        print "And after deleting lines with NaN", result.shape           
+     
+        #calculating correlations between differents parameter sets and computing p-values thresholds for different parameters
+        thresholds = self._correlationParamParam(comparisons, parameters, result, testCtrl,iterations, sh)
+        
+        #plotting results: experiments vs parameters. Just another way to see the correlations between different parameters
+        _ = self._correlationExpParam(comparisons,parameters, result, testCtrl, sh)
+        
+        #plotting results in terms of hits, and returning the matrix with 1 where the hits were found
+        hit_matrix = self._correlationExpParam(comparisons, parameters, result, testCtrl, sh, thresholds=thresholds)
+        
+        #plotting correlations for different iterations and parameters between the hit lists
+        _ = self._correlationParamParam(comparisons, parameters, hit_matrix, testCtrl,iterations, sh, test=pearsonr, save=False)
+        #giving gene list
+        genes=platesL
+        if not testCtrl:
+            genes=[]
+            dictSiEntrez=siEntrez(self.settings.mitocheck_file)
+            for siRNA in siRNAL:
+                try:
+                    genes.append(dictSiEntrez[siRNA])
+                except KeyError:
+                    pdb.set_trace()
+        genes = np.delete(np.array(genes), genesToDel)
+        siRNAL = np.delete(np.array(siRNAL), genesToDel)
+        return hit_matrix, result, parameters, genes, siRNAL
 
 
 class clusteringExperiments():
     def __init__(self, settings_file, experimentList,n_cluster, div_name, bins_type, cost_type, bin_size, 
                  init='k-means++',lambda_=10, M=None, dist_weights=None, batch_size=100, init_size=1000,
-                 n_init=5, verbose=0, ddim = 0):
+                 n_init=5, verbose=0, ddim = 0, iter_=0):
         
         assert(div_name in DIVERGENCES)
             
@@ -341,6 +613,7 @@ class clusteringExperiments():
         self.random_state=None
         
         self.ddimensional = ddim
+        self.iter_=iter_
         
     def parameters(self, with_n_cluster=False):
         r={
@@ -371,7 +644,7 @@ class clusteringExperiments():
         for i, experiment in enumerate(self.expList):
             print '------{}/{} experiments'.format(i, len(self.expList))
             try:
-                f=open(os.path.join(self.settings.result_folder, self.settings.summary_filename.format(experiment[0], experiment[1])))
+                f=open(os.path.join(self.settings.result_folder, self.settings.summary_filename.format(self.iter_, experiment[0], experiment[1])))
                 representatives = pickle.load(f); f.close()
             except IOError:
                 sys.stderr.write("Representative trajectories for experiment {} have not been calculated at all.".format(experiment))
@@ -420,13 +693,13 @@ class clusteringExperiments():
     
     def _saveResults(self, centers, bins):
         
-        if self.settings.clustering_filename in os.listdir(self.settings.result_folder):
-            f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename), 'r')
+        if self.settings.clustering_filename.format(self.iter_) in os.listdir(self.settings.result_folder):
+            f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename.format(self.iter_)), 'r')
             d=pickle.load(f); f.close()
         else:
             d={}
         d.update({self.parameters(with_n_cluster=True):[centers, self.mean, self.std, bins, self.actual_expList]})
-        f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename), 'w')
+        f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename.format(self.iter_)), 'w')
         pickle.dump(d, f); f.close()
 
         return
@@ -468,7 +741,7 @@ class summarizingExperiment():
     
     def __init__(self,settings_file, experiment,div_name, bins_type, cost_type, bin_size, 
                  init='k-means++',lambda_=10, M=None, dist_weights=None, batch_size=1000, init_size=1000,
-                 n_init=5, verbose=0, ddim = 0, random_state=None,max_no_improvement=None):
+                 n_init=5, verbose=0, ddim = 0,iter_=0, random_state=None,max_no_improvement=None):
         
         assert(div_name in DIVERGENCES)
             
@@ -494,6 +767,8 @@ class summarizingExperiment():
         self.random_state=random_state
         
         self.ddimensional = ddim
+        
+        self.iter_=iter_
         
     def _dataPrep(self):
         r, hist, _,_, _, _,_, _ = histConcatenation(self.settings.data_folder, [self.experiment], self.settings.mitocheck_file,
@@ -534,7 +809,7 @@ class summarizingExperiment():
         return tuple(l)
     
     def __call__(self):
-        filename=self.settings.summary_filename.format(self.experiment[0], self.experiment[1])
+        filename=self.settings.summary_filename.format(self.iter_, self.experiment[0], self.experiment[1])
         fraction = self.settings.fraction
         num_iterations_stability = self.settings.num_iterations_stability
         dist_weights = WEIGHTS[self.dist_weights] if not self.ddimensional else ddWEIGHTS[self.dist_weights]
@@ -645,6 +920,8 @@ if __name__ == '__main__':
     parser.add_option('--well', type=str, dest='well', default=None)
     parser.add_option('--experimentFile', type=str, dest='experimentFile', default = None)
     parser.add_option('--siRNA', type=str, dest='siRNA', default=None)
+    parser.add_option('--testCtrl', type=str, dest='testCtrl', default=0)
+    parser.add_option('--iter', type=int, dest='iter_', default=0)
     
     parser.add_option('-a', type=str, dest='action',default = 'summary')
     
@@ -676,7 +953,7 @@ if __name__ == '__main__':
         model = summarizingExperiment(settings_file, (options.plate, options.well), 
                 options.div_name, options.bins_type, options.cost_type, options.bin_size, 
                   init=options.init,lambda_=options.lambda_, dist_weights=options.weights, batch_size=options.batch_size,
-                 n_init=options.n_init, verbose=options.verbose, ddim = options.ddimensional)
+                 n_init=options.n_init, verbose=options.verbose, ddim = options.ddimensional, iter_=options.iter_)
         model()
         
     elif options.action=='clustering':
@@ -686,12 +963,15 @@ if __name__ == '__main__':
         model = clusteringExperiments(settings_file, experimentList,options.n_cluster, 
                 options.div_name, options.bins_type, options.cost_type, options.bin_size, 
                  init=options.init,lambda_=options.lambda_, dist_weights=options.weights, batch_size=options.batch_size,
-                 n_init=options.n_init, verbose=options.verbose, ddim = options.ddimensional)
+                 n_init=options.n_init, verbose=options.verbose, ddim = options.ddimensional, iter_=options.iter_)
         
         model()
     
     elif options.action =='hitFinder':
-        model = hitFinder(settings_file, options.siRNA, options.verbose)
+        from rpy2.robjects import IntVector
+        from rpy2.robjects.packages import importr
+        rStats=importr("stats")
+        model = hitFinder(settings_file, options.siRNA, options.verbose, testCtrl = options.testCtrl, iter_=options.iter_)
         model()
         
     

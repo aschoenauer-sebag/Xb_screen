@@ -19,23 +19,26 @@ pbsOutDir = '/cbio/donnees/aschoenauer/PBS/OUT'
 pbsErrDir = '/cbio/donnees/aschoenauer/PBS/ERR'
 pbsArrayEnvVar = 'SGE_TASK_ID'
 
+quality_control_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt'
+data_folder = "/share/data20T/mitocheck/tracking_results"
+
 def globalSummaryScript(baseName,  siRNAFile,
                         n_clusters_min, n_clusters_max,
                        div_name,  lambda_,  weights, 
                        bins_type,  bin_size,  cost_type,
                        batch_size,  n_init,  init, 
-                       ddim):
+                       ddim, iter_=0):
     
     f=open(siRNAFile, 'r')
     siRNAList = pickle.load(f); f.close()
     
-    siExpDict = expSi(qc = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt', sens=0)
+    siExpDict = expSi(qc = quality_control_file , sens=0)
     jobCount = 0
     i=0
     total_expList = []
     head = """#!/bin/sh
 cd %s""" %progFolder
-    baseName = baseName+'{}_w{}_{}_{}_{}'.format(div_name[:5], weights, bins_type, bin_size, cost_type)
+    baseName = baseName+'{}{}_w{}_{}_{}_{}'.format(iter_,div_name[:5], weights, bins_type, bin_size, cost_type)
 #A. DEALING WITH EXPERIMENTS
     for siRNA in siRNAList:
         try:
@@ -43,11 +46,11 @@ cd %s""" %progFolder
         except KeyError:
             print "siRNA not in siRNA-experiment dictionary"
         else:
-            expList = strToTuple(expList, os.listdir("/share/data20T/mitocheck/tracking_results"))
+            expList = strToTuple(expList, os.listdir(data_folder))
             total_expList.extend(expList)
             for plate, well in expList:        
                 jobCount += 1; i+=1
-                cmd = plateWellSummaryScript(plate, well, div_name, lambda_, weights, bins_type, bin_size, cost_type, batch_size, n_init, init, ddim)
+                cmd = plateWellSummaryScript(plate, well, div_name, lambda_, weights, bins_type, bin_size, cost_type, batch_size, n_init, init, ddim, iter_)
 
                 # this is now written to a script file (simple text file)
                 # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
@@ -60,13 +63,13 @@ cd %s""" %progFolder
                 os.system('chmod a+x %s' % script_name)
     
 #B. DEALING WITH CONTROLS
-    ctrlExp = appendingControl( Counter(np.array(total_expList)[:,0]).keys())
+    ctrlExp = appendingControl(total_expList)
     ctrlExp = countingDone(ctrlExp)
     np.random.shuffle(ctrlExp)
     ctrlExp=ctrlExp[:int(0.2*len(total_expList))]
     for plate, well in ctrlExp:
         jobCount += 1; i+=1
-        cmd = plateWellSummaryScript(plate, well, div_name, lambda_, weights, bins_type, bin_size, cost_type, batch_size, n_init, init, ddim)
+        cmd = plateWellSummaryScript(plate, well, div_name, lambda_, weights, bins_type, bin_size, cost_type, batch_size, n_init, init, ddim, iter_)
 
         # this is now written to a script file (simple text file)
         # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
@@ -110,7 +113,7 @@ cd %s""" %progFolder
         script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(n_clusters-n_clusters_min))
         script_file = file(script_name, "w")
         cmd="""
-    python tracking/histograms/summarization_clustering.py -a clustering --experimentFile %s -k %i --ddimensional %i --bins_type %s --cost_type %s --bin_size %i --div_name %s -w %i --init %s --batch_size %i
+    python tracking/histograms/summarization_clustering.py -a clustering --experimentFile %s -k %i --ddimensional %i --bins_type %s --cost_type %s --bin_size %i --div_name %s -w %i --init %s --batch_size %i --iter %i
     """
         cmd %= (
                 expFilename,
@@ -122,7 +125,8 @@ cd %s""" %progFolder
                  div_name,
                  weights,
                  init,
-                 batch_size
+                 batch_size,
+                 iter_
             )
         script_file.write(head + cmd)
         script_file.close()
@@ -157,11 +161,11 @@ def plateWellSummaryScript(plate, well,
                        div_name,  lambda_,  weights, 
                        bins_type,  bin_size,  cost_type,
                        batch_size,  n_init,  init, 
-                       ddim):
+                       ddim, iter_=0):
 
     # command to be executed on the cluster
     temp_cmd = """
-python tracking/histograms/summarization_clustering.py -a summary --plate %s --well %s --ddimensional %i --bins_type %s --cost_type %s --bin_size %i --div_name %s -w %i --init %s --batch_size %i
+python tracking/histograms/summarization_clustering.py -a summary --plate %s --well %s --ddimensional %i --bins_type %s --cost_type %s --bin_size %i --div_name %s -w %i --init %s --iter %i --batch_size %i
 """
     temp_cmd %= (
                  plate, 
@@ -173,37 +177,60 @@ python tracking/histograms/summarization_clustering.py -a summary --plate %s --w
                  div_name,
                  weights,
                  init,
+                 iter_,
                  batch_size
             )
 
 
     return temp_cmd
 
-def hitFinderScript(baseName, siRNAFile):
+def hitFinderScript(baseName, siRNAFile, testCtrl=False, iter_=0):
     f=open(siRNAFile, 'r')
     siRNAList = pickle.load(f); f.close()
     jobCount = 0
-    
     head = """#!/bin/sh
 cd %s""" %progFolder
-    #baseName = baseName+'{}'.format(siRNAFile)
+    baseName+='{}'.format(iter_)
+    if testCtrl:
+        baseName = baseName+'CTRL'
+        expList = []
+        yqualDict=expSi(quality_control_file, sens=0)
+        for siRNA in siRNAList:
+            expList.extend(strToTuple(yqualDict[siRNA], os.listdir(data_folder)))
+        plates = Counter(np.array(expList)[:,0]).keys()
+        for i,plate in enumerate(plates):
+            jobCount+=1; i+=1
+            cmd = '''
+python tracking/histograms/summarization_clustering.py -a hitFinder --verbose 0 --testCtrl %s --iter %i
+    '''
+            cmd%=(plate, iter_)
+            # this is now written to a script file (simple text file)
+            # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
+            script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
+            script_file = file(script_name, "w")
+            script_file.write(head + cmd)
+            script_file.close()
     
-    for i,siRNA in enumerate(siRNAList):
-        jobCount+=1; i+=1
-        cmd = '''
-python tracking/histograms/summarization_clustering.py -a hitFinder --siRNA %s --verbose 0
-'''
-        cmd%=siRNA
-        # this is now written to a script file (simple text file)
-        # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
-        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
-        script_file = file(script_name, "w")
-        script_file.write(head + cmd)
-        script_file.close()
-
-        # make the script executable (without this, the cluster node cannot call it)
-        os.system('chmod a+x %s' % script_name)
-        
+            # make the script executable (without this, the cluster node cannot call it)
+            os.system('chmod a+x %s' % script_name)
+    
+    else:
+        for i,siRNA in enumerate(siRNAList):
+            jobCount+=1; i+=1
+            cmd = '''
+python tracking/histograms/summarization_clustering.py -a hitFinder --siRNA %s --verbose 0 --iter %i
+    '''
+            cmd%=(siRNA, iter_)
+            # this is now written to a script file (simple text file)
+            # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
+            script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
+            script_file = file(script_name, "w")
+            script_file.write(head + cmd)
+            script_file.close()
+    
+            # make the script executable (without this, the cluster node cannot call it)
+            os.system('chmod a+x %s' % script_name)
+            
     # write the main script
     array_script_name = '%s.sh' % os.path.join(scriptFolder, baseName)
     main_script_file = file(array_script_name, 'w')
@@ -225,6 +252,7 @@ python tracking/histograms/summarization_clustering.py -a hitFinder --siRNA %s -
 
     print sub_cmd
         
+    return
 
 if __name__ == '__main__':
     description =\
@@ -238,6 +266,8 @@ if __name__ == '__main__':
                       help="Base name for script")
     parser.add_option('-a', dest='action', help='Telling which action to perform', default="summary")
     parser.add_option('--siRNA', type=str, dest='siRNAListFile', default=None)
+    parser.add_option('--iter', type=int, dest='iter_', default=0)
+    parser.add_option('--testCtrl', type=int, dest='testCtrl', default = 0)
     
     parser.add_option('--nmin', type=int, dest='n_clusters_min',default=4, help="Min number of clusters to use in the experiment clustering step")
     parser.add_option('--nmax', type=int, dest='n_clusters_max',default=13, help="Max number of clusters to use in the experiment clustering step")
@@ -258,13 +288,17 @@ if __name__ == '__main__':
     
     (options, args) = parser.parse_args()
     if options.action == 'hitFinder':
-        hitFinderScript(options.baseName, options.siRNAListFile)
+        if int(options.testCtrl)==0:
+            testCtrl=0
+        else:
+            testCtrl=options.testCtrl
+        hitFinderScript(options.baseName, options.siRNAListFile, iter_=options.iter_, testCtrl = testCtrl)
     else:
         globalSummaryScript(options.baseName, options.siRNAListFile,
                         options.n_clusters_min, options.n_clusters_max,
                       options.div_name, options.lambda_, options.weights, 
                       options.bins_type, options.bin_size, options.cost_type,
                       options.batch_size, options.n_init, options.init, 
-                      options.ddim
+                      options.ddim, options.iter_
                       )
     
