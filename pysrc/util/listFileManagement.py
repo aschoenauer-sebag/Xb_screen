@@ -362,7 +362,7 @@ def countingDone(experiments,featlistonly=True, name=None,rawD='/share/data20T/m
     print len(no_hdf5)
     lt, noraw, todoraw = noRaw(no_hdf5)
 #    
-#    print 'saving missing hdf5 list in ', "/cbio/donnees/aschoenauer/workspace2/Tracking/{}.pkl".format('rawToDo')
+    print noraw
 #    f=open("/cbio/donnees/aschoenauer/workspace2/Tracking/{}.pkl".format('rawToDo'), 'w'); pickle.dump(todo,f); f.close()
     
     lt2, noraw2, todotracking =noRaw(no_tracking)
