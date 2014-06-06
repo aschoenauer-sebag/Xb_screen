@@ -209,8 +209,14 @@ def trackletBuilder(new_sol, centresFolder, training=False):
     return res, connexions, movie_length
 
 def movementType(mom, length, verbose):
+    '''
+    Here we compute the movement type as indicated in this publication: Sbalzarini 2005a
+    If the correlation coefficient for the coefficient diffusion regression is low, we put 0 instead
     
-    D=None
+    Returns: diffusion coefficient, movement type and adequateness of diffusion
+    '''
+    
+    D=0;corr=0
     x=np.log(range(1, int(length/3)+1));y=np.log(mom)
     gamma=np.zeros(shape=(len(moments),))
     for nu in moments:
@@ -218,17 +224,18 @@ def movementType(mom, length, verbose):
         if verbose>5:
             print "correlation coefficient", r[2]
             print 'p-value', r[3]
-        if r[2]<0.80:
+        if r[2]<0.70:
             print CorrelationError().msg,
-            return 0, nu, D
+            return 0, nu, D, corr
         gamma[nu-1]=r[0]
         if nu==2:
             D=np.exp(r[1])/(4)
+            corr = r[2]
     r2=linregress(moments, gamma)
 
     if verbose>5:
         print "slope ", r2[0], "diffusion coefficient", D 
-    return 1, r2[0], D
+    return 1, r2[0], D, corr
 
 def localStraightness(vecX, vecY, sh=False):
     debut = time.clock()
@@ -506,7 +513,7 @@ def computingHisto(traj, m_length, average, movie_start, verbose, a,d, training)
 #NON CETTE FEATURE N'EST QUE DU BRUIT
 
     #FEATURE movement type, diffusion coefficient
-    w, r['movement type'], r['diffusion coefficient'] = movementType(r['moments'], len(t), verbose)        
+    w, r['movement type'], r['diffusion coefficient'], r['diffusion adequation'] = movementType(r['moments'], len(t), verbose)        
     if w==0:
         r['pbl']=r['movement type']
         r['movement type']=None
@@ -900,7 +907,7 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
                 trackDensity = computingDensity(track).flatten() if not training else [4]
                 arr.extend(trackDensity)
                 arr=np.array(arr, dtype=float)
-                if trackDensity[0]<5 and np.all(np.isnan(arr)==False):
+                if True:#trackDensity[0]<5 and np.all(np.isnan(arr)==False):
                     coord.append(rawCoordC)
                     tabFeatures = arr if tabFeatures==None else np.vstack((tabFeatures, arr))
                     for nom in histNC:

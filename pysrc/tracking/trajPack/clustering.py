@@ -103,6 +103,9 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
                     sys.stderr.write("Array {} has only one trajectory. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
                     continue
                 elif np.any(arr[:,-1]>=5) or np.any(np.isnan(arr)):
+                    print "need to change for filtering high neighbours and tracks with nan values"
+                    pdb.set_trace()
+                    
                     sys.stderr.write("Probleme de NaN dans le fichier  {}\n".format(os.path.join(pl, filename.format(w))))
     #ii. checking density and nan values. Should not be any because they're deleted just after feature extraction
                     continue        

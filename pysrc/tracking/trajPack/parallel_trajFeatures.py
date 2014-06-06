@@ -130,7 +130,7 @@ Input:
     parser.add_option("-c", "--choice", dest="choice", default = False, 
                       help="False to build trajectories and true to compute features from existing trajectories")
 
-    parser.add_option("-n", "--name", dest="filename", default = 'hist2_tabFeatures_{}.pkl', 
+    parser.add_option("-n", "--name", dest="filename", default = 'hist_tabFeatures_{}.pkl', 
                       help="Filename for trajectory features")
     
     parser.add_option("-r", "--repeat", dest="repeat", default = False, 

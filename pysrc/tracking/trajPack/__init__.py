@@ -63,6 +63,7 @@ featuresSaved=[
                'mean squared displacement',
                'movement type', 
                'signed turning angle', 
+               'diffusion adequation',
        
        #ii.features that will not be used in the analysis
        'mean acceleration',  'mean displacements',  'mean persistence',  'mean straight',  'mean turningangle',#we want this for analyzing the feature roughly
@@ -80,7 +81,8 @@ featuresNumeriques=['ball number1','ball number2',
                     'largest move', 
                     'mean squared displacement',
                     'movement type', 
-                    'signed turning angle'
+                    'signed turning angle',
+                    'diffusion adequation'
                     ]
 
 featuresHisto=['acceleration', 'displacements', 'persistence', 'straight', 'turningangle']
@@ -90,7 +92,7 @@ featuresHisto=['acceleration', 'displacements', 'persistence', 'straight', 'turn
 histLogTrsf = [1,1,0,
                1, 1, 1,
                0, 0, 1,
-               1, 1, 1, 0]
+               1, 1, 1, 0, 0]
 histLogTrsf_meanHistFeat=[0,1,0,1,0]
 
 #RSS window 6, 8, 10 : oui oui oui

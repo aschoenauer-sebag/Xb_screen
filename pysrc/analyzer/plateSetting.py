@@ -1,11 +1,6 @@
 import os, pdb, datetime
 from warnings import warn
 from collections import defaultdict
-
-if os.getcwd().split('/')[-1]=='pysrc':
-    from django.core.exceptions import ObjectDoesNotExist
-    from plates.models import Plate,Cond, Treatment, Well
-    from analyzer import CONTROLS
     
 WELL_PARAMETERS = ['Medium', 'Serum', 'Xenobiotic', 'Dose']
 
@@ -17,6 +12,12 @@ def readPlateSetting(plateL, confDir, nb_row=None, nb_col=None, countEmpty=False
     
     The csv file should not contain spaces in the cells
     '''
+    
+    if addPlateWellsToDB:
+        from django.core.exceptions import ObjectDoesNotExist
+        from plates.models import Plate,Cond, Treatment, Well
+        from analyzer import CONTROLS
+    
     result = {}
     idL = {}
     for plate in plateL:
