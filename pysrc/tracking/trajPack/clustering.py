@@ -38,9 +38,9 @@ from util.kkmeans import KernelKMeans
 #from joblib import Parallel, delayed, Memory
 
 
-def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeatures_{}.pkl', verbose=0):
+def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeatures_{}.pkl', verbose=0, hist=True):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; sirna=[]; genes=[]
-    time_length=[]
+    time_length=[]; pbl_well=[]
     histNtot={nom:[] for nom in featuresHisto}
 #    histAvStot={nom:[] for nom in featuresHisto}
 #    histAvMtot={nom:[] for nom in featuresHisto}
@@ -92,35 +92,40 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
                 arr, coord, histN= pickle.load(f)
                 f.close()
             except IOError:
-                sys.stderr.write("Pas de fichier {}\n".format(os.path.join(pl, filename.format(w))))
+                sys.stderr.write("No file {}\n".format(os.path.join(pl, filename.format(w))))
             except EOFError:
-                sys.stderr.write("Probleme EOFError d'ouverture du fichier {}\n".format(os.path.join(pl, filename.format(w))))
+                sys.stderr.write("EOFError with file {}\n".format(os.path.join(pl, filename.format(w))))
+                pbl_well.append((pl, w))
             else:
                 if arr==None:
                     sys.stderr.write( "Array {} is None\n".format(os.path.join(pl, filename.format(w))))
+                    pbl_well.append((pl, w))
                     continue
-                elif len(arr.shape)==1:
-                    sys.stderr.write("Array {} has only one trajectory. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
+                elif arr.shape[0]<20:
+                    sys.stderr.write("Array {} has less than 20 trajectories. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
+                    pbl_well.append((pl, w))
                     continue
-                elif np.any(arr[:,-1]>=5) or np.any(np.isnan(arr)):
-                    print "need to change for filtering high neighbours and tracks with nan values"
-                    pdb.set_trace()
-                    
-                    sys.stderr.write("Probleme de NaN dans le fichier  {}\n".format(os.path.join(pl, filename.format(w))))
-    #ii. checking density and nan values. Should not be any because they're deleted just after feature extraction
-                    continue        
                 else:
                     try:
+                        if np.any(arr[:,-1]>=5) or np.any(np.isnan(arr[:,:len(featuresNumeriques)])):
+                            toDel = np.where(arr[:,-1]>=5)[0]
+                            toDel=np.hstack((toDel, np.where(np.isnan(arr[:,:len(featuresNumeriques)]))[0]))
+                            arr=np.delete(arr, toDel, 0)
+
                         arr=np.hstack((arr[:,:len(featuresNumeriques)+len(featuresHisto)], arr[:,-1, np.newaxis]))
                         r= arr if r==[] else np.vstack((r, arr))
-                        for nom in featuresHisto:
-                            histNtot[nom].extend(histN[nom])
-#                            histAvStot[nom].extend(histAvS[nom]); histAvMtot[nom].extend(histAvM[nom])
-#                            histApStot[nom].extend(histApS[nom])
+                        if hist:
+                            for nom in featuresHisto:
+    #TODO check that this works
+                                histN[nom]=np.delete(np.array(histN[nom]), toDel)
+                                histNtot[nom].extend(list(histN[nom]))
+    #                            histAvStot[nom].extend(histAvS[nom]); histAvMtot[nom].extend(histAvM[nom])
+    #                            histApStot[nom].extend(histApS[nom])
                         ll=arr.shape[0]
         
-                    except (TypeError, EOFError, ValueError, AttributeError):
+                    except (TypeError, ValueError, AttributeError):
                         print "Probleme avec le fichier {}".format(os.path.join(pl, filename.format(w)))
+                        pdb.set_trace()
             
                     else:   
                         time_length.extend([len(coord[k][0]) for k in range(len(coord))])
@@ -148,7 +153,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
 
         warn('The data was not normalized. Please check that it will be done before applying any algorithm.')
         
-        return r2[:,:-1], histNtot,  who,ctrlStatus, length, genes, sirna, time_length
+        return pbl_well, r2[:,:-1], histNtot,  who,ctrlStatus, length, genes, sirna, time_length
 
 def concatenation(folder, exp_list, mitocheck, qc):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; genes=[]; sirna=[]

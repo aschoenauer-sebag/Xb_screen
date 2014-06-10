@@ -66,6 +66,7 @@ featuresSaved=[
                'diffusion adequation',
        
        #ii.features that will not be used in the analysis
+       'mvt type adequation',
        'mean acceleration',  'mean displacements',  'mean persistence',  'mean straight',  'mean turningangle',#we want this for analyzing the feature roughly
        'convex hull area',
        'correlation speed and persistence',
@@ -92,7 +93,7 @@ featuresHisto=['acceleration', 'displacements', 'persistence', 'straight', 'turn
 histLogTrsf = [1,1,0,
                1, 1, 1,
                0, 0, 1,
-               1, 1, 1, 0, 0]
+               1, 1, 1, 1, 0]
 histLogTrsf_meanHistFeat=[0,1,0,1,0]
 
 #RSS window 6, 8, 10 : oui oui oui

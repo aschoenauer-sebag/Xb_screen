@@ -3,7 +3,7 @@ import numpy as np
 import cPickle as pickle
 #import matplotlib.pyplot as plt
 
-from math import sqrt, log
+from math import sqrt, log, fabs
 from optparse import OptionParser
 from scipy import odr
 from scipy.stats import linregress
@@ -211,12 +211,15 @@ def trackletBuilder(new_sol, centresFolder, training=False):
 def movementType(mom, length, verbose):
     '''
     Here we compute the movement type as indicated in this publication: Sbalzarini 2005a
-    If the correlation coefficient for the coefficient diffusion regression is low, we put 0 instead
+    If the correlation coefficient for the coefficient diffusion regression is low, we put 0 instead.
+    If one of the regressions leading to the movement type has a correlation coefficient that is under 
+    0.7, then we add 1 to indicateur. It's because we are interested to know which trajectories have
+    this issue, and if it's only for one regression or for all.
     
     Returns: diffusion coefficient, movement type and adequateness of diffusion
     '''
     
-    D=0;corr=0
+    indicateur = 0
     x=np.log(range(1, int(length/3)+1));y=np.log(mom)
     gamma=np.zeros(shape=(len(moments),))
     for nu in moments:
@@ -224,18 +227,21 @@ def movementType(mom, length, verbose):
         if verbose>5:
             print "correlation coefficient", r[2]
             print 'p-value', r[3]
-        if r[2]<0.70:
-            print CorrelationError().msg,
-            return 0, nu, D, corr
         gamma[nu-1]=r[0]
         if nu==2:
-            D=np.exp(r[1])/(4)
+            if r[2]>=0.70:
+                D=np.exp(r[1])/(4)
+            else:
+                D=0
             corr = r[2]
+
+        if r[2]<0.70:
+            indicateur += 1
     r2=linregress(moments, gamma)
 
     if verbose>5:
         print "slope ", r2[0], "diffusion coefficient", D 
-    return 1, r2[0], D, corr
+    return indicateur, r2[0], D, corr
 
 def localStraightness(vecX, vecY, sh=False):
     debut = time.clock()
@@ -503,8 +509,8 @@ def computingHisto(traj, m_length, average, movie_start, verbose, a,d, training)
     r['norm convex hull area'] = r['convex hull area']/float(r['time length']-1)
     
     #FEATURE signed turning angle
-    r['signed turning angle']=np.arctan2(np.sum([np.sin(angles[k+1]-angles[k]) for k in range(len(angles)-1)]),
-                    np.sum([np.cos(angles[k+1]-angles[k]) for k in range(len(angles)-1)]))
+    r['signed turning angle']=fabs(np.arctan2(np.sum([np.sin(angles[k+1]-angles[k]) for k in range(len(angles)-1)]),
+                    np.sum([np.cos(angles[k+1]-angles[k]) for k in range(len(angles)-1)])))
     
     #FEATURE : corrected straightness index
     r['corrected straightness index']=sqrt(r['time length'])*r['effective space length']/float(r['total space length'])
@@ -513,10 +519,7 @@ def computingHisto(traj, m_length, average, movie_start, verbose, a,d, training)
 #NON CETTE FEATURE N'EST QUE DU BRUIT
 
     #FEATURE movement type, diffusion coefficient
-    w, r['movement type'], r['diffusion coefficient'], r['diffusion adequation'] = movementType(r['moments'], len(t), verbose)        
-    if w==0:
-        r['pbl']=r['movement type']
-        r['movement type']=None
+    r['mvt type adequation'], r['movement type'], r['diffusion coefficient'], r['diffusion adequation'] = movementType(r['moments'], len(t), verbose)        
 
     #FEATURE effective speed    
     r['effective speed']=r['effective space length']/float(sqrt(r['time length']-1))
@@ -553,214 +556,6 @@ def computingHisto(traj, m_length, average, movie_start, verbose, a,d, training)
     del r['moments'] #ATTENTION QUE SUIVANT LA DUREE DE LA TRAJECTOIRE LES GENS N'ONT PAS LE MEME NB DE PTS DS LES MOMENTS
 
     return r, [t, X, Y],[raw_t, raw_X, raw_Y],histN
-
-def computingFeatures(traj, m_length, average, movie_start, verbose):
-#FEATURES
-    #here we are working with tracklets ie no split or merge in the lstPoints
-    l= sorted(traj.lstPoints.keys())
-    debut = min(l)[0]; fin = max(l)[0]
-    X=np.array([traj.lstPoints[k][0] for k in l])
-    Y = np.array([traj.lstPoints[k][1] for k in l])
-
-    #X=X-average[debut:fin+1, 0]; Y=Y-average[debut:fin+1,1]
-    if debut ==movie_start:
-        X[1:] = X[1:]-average[:fin-movie_start,0]
-        Y[1:] = Y[1:]-average[:fin-movie_start,1]
-    else:
-        X = X-average[debut-1-movie_start:fin-movie_start,0]
-        Y = Y-average[debut-1-movie_start:fin-movie_start,1]
-    t=[el[0] for el in l]
-    
-    compteur=np.zeros(shape=(len(moments),int(len(l)/3)), dtype=float); p=True
-    count=np.zeros(shape=(TIMEDEPTH,))
-    vec_displacements=[]
-    vec_persistence = [[] for ll in range(TIMEDEPTH)]
-    err = dict(zip(['RSS window {}'.format(k) for k in windows], [1000000]))
-                    
-    r={'time length':len(l),\
-       'density':traj.density,\
-       'total space length' : 0,\
-       'moments':np.zeros(shape=(len(moments), int(len(l)/3)), dtype=float), 
-       'direction':0,\
-       'turning angle':np.zeros(shape=(5,), dtype=float),\
-       'signed turning angle':np.zeros(shape=(TIMEDEPTH,), dtype=float),\
-       'effective speed':0,\
-       'sinuosity':0,\
-       'persistence':np.zeros(shape=(TIMEDEPTH,), dtype=float),\
-       #'correlation speed and persistence':0,\
-       #'slope SP':0,\
-       'largest move':0,\
-       'convex hull area': 0,\
-       'entropy':np.zeros(shape=(len(rayon),), dtype=float)
-       }
-
-#BE CAREFUL that try/except ZeroDivisionError don't work here I don't know why
-    for k in range(len(X)):
-        x=X[k]; y=Y[k]
-#FEATURE RSS of line closest to points in time windows
-        for timeWindow in windows:
-            try:
-                vecX = X[k:k+timeWindow]; vecY = Y[k:k+timeWindow]
-            except IndexError:
-                pass
-            else:
-                if len(vecX)==timeWindow:
-                    err_cour = linregress(vecX, vecY)
-                    if verbose>1:
-                        print err_cour
-                    err['RSS window {}'.format(timeWindow)]=min(err['RSS window {}'.format(timeWindow)], err_cour[-1])
-        try:
-            dT = (X[k+1]-x, Y[k+1]-y)
-        except IndexError:
-            #pdb.set_trace()
-            continue
-        else:
-            n=np.linalg.norm(dT)
-#FEATURE largest move
-            r['largest move']=max(n, r['largest move'])
-            vec_displacements.append(n)
-            #r['total space length']+= n
-            if n!=0:
-                dire = np.sign(dT[1])*np.arccos(dT[0]/n)
-#FEATURE direction = signed angle of movement => calculated later
-                r['direction']+=dire
-            for j in range(1,TIMEDEPTH+1):
-                try:
-                    dTplus = (X[k+j+1]-X[k+j],Y[k+j+1]-Y[k+j])
-                except IndexError:
-                    pass
-                else:
-                    n2=np.linalg.norm(dTplus)
-                    count[j-1]+=1
-                    if n!=0 and n2!=0:
-                        if np.dot(dT, dTplus)/(n*n2)>1:
-                            vv=0
-                        elif np.dot(dT, dTplus)/(n*n2)<-1:
-                            vv=np.pi
-                        else:
-                            vv=np.arccos(np.dot(dT, dTplus)/(n*n2))
-#FEATURE turning angle
-                        r['turning angle'][j-1]+=vv
-                        r['signed turning angle'][j-1]+=np.sign(dTplus[1]-dT[1])*vv
-#FEATURE persistence by measuring direction correlation
-                        persistence = np.dot(dT, dTplus)/(n*n2)
-                        r['persistence'][j-1]+= persistence
-                        vec_persistence[j-1].append(persistence)
-       
-#FEATURE : moment of order nu at interval delta
-        for nu in moments:
-            for delta in range(1, int(len(l)/3)+1):
-                try:
-                    v=((x-X[k+delta])**2+(y-Y[k+delta])**2)**(float(nu)/2)
-                except IndexError:
-                    continue
-                else:
-                    compteur[nu-1][delta-1]+=1  
-                    r['moments'][nu-1][delta-1]+=v
-#FEATURE entropy in circles of radius epsilon, divided by maximum entropy (log (length traj))
-    
-    eps=4; b=[]; msg=''
-    for i,ll in enumerate(rayon):
-        bb=Boules(ll+eps, X, Y)
-        b.append(bb)
-        r['entropy'][i]=bb.entropy()
-        if verbose>5:
-            msg+='radius {}, entropy {}'.format(ll, r['entropy'][i])
-#if one wishes to draw the circles
-#    plotAllBoules(b)
-#if one wishes to plot the trajectory aligned with the x-absciss
-#    curBall = b[2]
-#    i=2
-#    while len(curBall.lstBoules)<2 and i>0:
-#        i-=1
-#        curBall = b[i] 
-#if one wishes to plot the trajectories
-#    turnedX, turnedY = plotAlignedTraj(curBall, X, Y)
-#    if np.all(turnedX==X): print "egalite des abscisses avant et apres rotation"
-#UNNORMALIZED FEATURES
-    #FEATURE : trajectory length 
-    r['total space length']=r['moments'][0][0]
-    #FEATURE  effective distance
-    p=0; P=len(l)-1; tdT = (X[P]-X[p], Y[P]-Y[p])
-    r['effective space length']=np.linalg.norm(tdT)
-    #FEATURE largest move
-    #FEATURE convex hull area
-    r['convex hull area'] = convexHullArea(X, Y, verbose)
-    
-#NORMALIZED FEATURES
-    r['moments']=r['moments']/compteur
-    
-    #FEATURE mean squared displacement
-    r['mean squared displacement']=r['moments'][1][0]
-    
-    #FEATURE convex hull area divided by time length
-    r['norm convex hull area'] = r['convex hull area']/float(r['time length']-1)
-    
-    #FEATURE direction
-    r['direction']=r['direction']/float(r['time length']-1)
-    
-    #FEATURE turning angle and signed turning angle
-    r['turning angle']=r['turning angle']/float(r['time length']-2)
-    r['signed turning angle']=r['signed turning angle']/float(r['time length']-2)
-    
-    #FEATURE persistence
-    r['persistence']=r['persistence']/count
-    r['stdev persistence1'] = np.std(vec_persistence[0])
-       
-    #FEATURE sinuosity
-    r['sinuosity']=2*sqrt(r['total space length']/float(r['moments'][1][0]))
-
-    #FEATURE movement type, diffusion coefficient
-    w, r['movement type'], r['diffusion coefficient'] = movementType(r['moments'], len(l), verbose)        
-    if w==0:
-        r['pbl']=r['movement type']
-        r['movement type']=None
-
-    #FEATURE effective speed    
-    r['effective speed']=r['effective space length']/float(r['time length']-1)
-    
-    #FEATURE mean instantaneous speed and mean instantaneous acceleration
-    r['mean instantaneous speed']=r['total space length']/float(r['time length']-1)
-    r['stdev instantaneous speed'] = np.std(vec_displacements)
-    r['mean instantaneous acceleration']=np.linalg.norm((X[p]+X[P]-X[p+1]-X[P-1],Y[P]+Y[p]-Y[p+1]-Y[P-1]))/float(r['time length']-3)
-    
-    #FEATURE : corrected straightness index
-    r['corrected straightness index']=sqrt(r['time length'])*r['effective space length']/float(r['total space length'])
-    
-    if verbose>5:
-        print "tracklet length", r['time length']
-        print msg
-        print 'mean instantaneous acceleration', r['mean instantaneous acceleration']
-        print 'corrected straightness index', r['corrected straightness index'] 
-        print 'sinuosity', r['sinuosity']
-        print 'total space length', r['total space length'] 
-#    print "finally correlation between instantaneous speed and persistence:"
-#    
-#    if len(vec_persistence)+1!=len(vec_speed):
-#        raise
-#    else:
-#        correlationCoeff, pValue, slope = speedPersistenceCorr(vec_speed[:-1], vec_persistence)
-#        r['correlation speed and persistence'] = correlationCoeff
-#        r['slope SP'] = slope
-#        print 'corr coeff', correlationCoeff, 'p-value', pValue
-    #pdb.set_trace()
-   
-#FOR NUMPY ARRAY OF FEATURES
-    for feature in ['persistence', 'turning angle', 'signed turning angle']: 
-        for k in range(1,TIMEDEPTH+1):
-            nom = feature+str(k)
-            r[nom]=r[feature][k-1]
-        del r[feature]
-    feature='entropy'
-    for k in range(len(rayon)):
-        nom = feature+str(k+1)
-        r[nom]=r[feature][k]
-    del r[feature]
-        
-    r['FLATmoments']=list(r['moments'].flatten())
-    del r['moments'] #ATTENTION QUE SUIVANT LA DUREE DE LA TRAJECTOIRE LES GENS N'ONT PAS LE MEME NB DE PTS DS LES MOMENTS
-    r.update(err)
-    return r, [t, X, Y]
 
 def driftCorrection(m_length, outputFolder, plate, well, totalTracklets):
     #TO CORRECT for drift we take into account all displacements, even those in tracks with length smaller than 10
@@ -907,11 +702,10 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
                 trackDensity = computingDensity(track).flatten() if not training else [4]
                 arr.extend(trackDensity)
                 arr=np.array(arr, dtype=float)
-                if True:#trackDensity[0]<5 and np.all(np.isnan(arr)==False):
-                    coord.append(rawCoordC)
-                    tabFeatures = arr if tabFeatures==None else np.vstack((tabFeatures, arr))
-                    for nom in histNC:
-                        histNC[nom].append(histN[nom])
+                coord.append(rawCoordC)
+                tabFeatures = arr if tabFeatures==None else np.vstack((tabFeatures, arr))
+                for nom in histNC:
+                    histNC[nom].append(histN[nom])
 #                    for nom in histAvSC:
 #                        histAvSC[nom].append(histAvS[nom])
 #                    for nom in histApSC:
@@ -931,92 +725,6 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
             tabF[plate][well]=tabFeatures
             
     return tabF, coord
-
-def featuresPreparationFromTracklets(dicT, connexions, outputFolder, training, verbose, tab=False, length=None):
-    r={}; coord=[]; nuCount=[0 for x in range(len(moments))]; tabF={}
-    
-    if length is None:
-        global movie_length
-    else:
-        movie_length=length
-        
-    for plate in dicT:
-        if plate not in r:
-            r[plate]={}
-            tabF[plate]={}
-        for well in dicT[plate]:
-            if well not in r[plate]:
-                r[plate][well]=[]
-                tabF[plate][well]=None
-            print plate, well
-            dicC = dicT[plate][well]
-            movie_start = movie_length[plate][well]
-            
-            #going into all trajectories to get small tracklets
-            #THEN computing all displacement vectors
-            #THEN averaging that to prevent prbl from mvts of the microscope, table etc
-            print 'First pass of all tracks to correct drift'
-
-            if not training:  
-                average, movie_start = driftCorrection(movie_length[plate][well]-1, outputFolder, plate, well, dicC.lstTraj)
-            else:
-                try:
-                    f=open(os.path.join(outputFolder, ("avcum_P{}_{}.pkl".format(plate, well))), "r")
-                except IOError:
-                    print "IOError when loading averages to correct from drift"
-                    continue
-                else:
-                    average = pickle.load(f)
-                    f.close()
-
-#ATTENTION here we throw away tracklets whose length is smaller than 10 (otherwise we don't have diffusion info because
-#I use delta t in range (1, len(track)/3 +1) ie (1,2,3) if len(track)>9, and then do regression on it,
-#so if we have less than three points to do linear regression it seems a bit dubious to me)
-            print 'Second pass of all tracks to extract features of tracks longer than 9 frames'
-#            pbl=dict(zip(moments, [[] for x in range(len(moments))]))
-            tabFeatures = None; #turnedX = None; turnedY=[]
-            for track in filter(lambda x: x.fusion !=True and len(x.lstPoints)>9 ,dicC.lstTraj):#tracklets):
-                t=track.lstPoints.keys(); t.sort(); 
-                labelsSequence = [k[1] for k in t]
-#                x= [track.lstPoints[k][0] for k in t]
-#                y =[track.lstPoints[k][1] for k in t]
-                
-                if verbose>5:
-                    print "debut de l'extrait de trajectoire", min(t)[0], "fin ", max(t)[0]
-                
-                f, coordC=computingFeatures(track, movie_length[plate][well], average, movie_start, verbose)
-                arr=[f[k] for k in features1]
-                movie_end = movie_length[plate][well] + movie_start-1
-                
-        #completion info sur les trajectoires :
-#            #app et disp
-#                a, d = app(track, connexions[plate][well], movie_start), disp(track, connexions[plate][well], movie_end)
-#                if a==None or d==None:
-#                    raise AttributeError
-#                arr.extend([a,d])
-            #densities
-                trackDensity = computingDensity(track).flatten()
-                arr.extend(trackDensity)
-                arr=np.array(arr, dtype=float)
-            
-#                turnedX = np.array(x) if turnedX == None else np.hstack((turnedX, x))
-#                turnedY = np.array(y) if turnedY == None else np.hstack((turnedY, y)) 
-                if trackDensity<5 and np.all(np.isnan(arr)==False):
-                    coord.append(coordC)
-                    if tab:
-                        tabFeatures = arr if tabFeatures==None else np.vstack((tabFeatures, arr))
-                        r[plate][well].append(featuredTraj(track.id, labelsSequence, min(t)[0], max(t)[0], track.numCellule, features=None))
-                    else:
-                        r[plate][well].append(featuredTraj(track.id, labelsSequence, min(t)[0], max(t)[0], track.numCellule, f))  
-
-            if tab:
-                name = 'd_tabFeatures_{}.pkl'.format(well)
-                f=open(os.path.join(outputFolder, name), 'w')
-                pickle.dump([tabFeatures, coord], f)
-                f.close()
-                
-                tabF[plate][well]=tabFeatures
-    return r, tabF, coord
 
 def WhoIsWhen(features, plate, well):
     

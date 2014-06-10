@@ -35,7 +35,7 @@ import getopt
 
 def heatmap(x, row_header, column_header, row_method,
             column_method, row_metric, column_metric,
-            color_gradient, filename, log=False):
+            color_gradient, filename, normalization=True, log=False):
     
     print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric),
     if numpy.any(numpy.isnan(x)):
@@ -81,8 +81,10 @@ def heatmap(x, row_header, column_header, row_method,
     #vmin = vmax*-1
     if log:
         norm = mpl.colors.LogNorm(vmin, vmax) ### adjust the max and min to scale these colors
-    else:
+    elif normalization:
         norm = mpl.colors.Normalize(10**(-5), 0.1)
+    else:
+        norm = mpl.colors.Normalize()
     ### Scale the Matplotlib window size
     default_window_hight = 8.5
     default_window_width = 12

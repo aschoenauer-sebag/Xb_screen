@@ -84,9 +84,8 @@ def countingHDF5(filename, plate, well):
     pathObjects = "/sample/0/plate/"+plate+"/experiment/"+well[:-3]+"/position/"+well[-1]+"/object/primary__primary"
     try:
         tabObjects = vi.readHDF5(filename, pathObjects)
-    except IOError:
-        print "pbl de fichier", plate, well
-        return 0
+    except:
+        return 1000
     else:
         return tabObjects[-1][0]+1#otherwise we forget the last frame
 
@@ -94,8 +93,8 @@ def checkingAllHDF5(folder="/share/data20T/mitocheck/Alice/results",
     folderRaw='/share/data20T/mitocheck/compressed_data'):
     '''
     Checking the number of images for all experiments in a certain folder.
-    First the function checks the number of images in the hdf5 files produced by CellCognition.
-    If it's under 90 it checks in the raw data folder whether the images are more than 90 or not.
+    The function checks the number of images in the raw data folder as well as the number of images
+    in the hdf5 file. If any of those is under 90, it is recorded. A table summing up the results is saved
     
     Input:
     - folder: location of hdf5 files 
@@ -107,33 +106,31 @@ def checkingAllHDF5(folder="/share/data20T/mitocheck/Alice/results",
     + saves a file hdf5ToDel.pkl with both outputs
     '''    
     
-    BAD = []; ok=[]; veryBAD=[]
-    liste=os.listdir(folder); liste.sort()
+    result_arr=np.zeros(shape=(1,2)); debut =True
+    liste=os.listdir(folderRaw); liste.sort()
 
     for plate in liste:
-        print "'",plate, "',"
-        try:
-            fileList = os.listdir(os.path.join(folder, plate, 'hdf5'))
-        except OSError:
-            print plate, 'pas de folder'
-            continue
+        print plate
+        fileList = os.listdir(os.path.join(folderRaw, plate))
         fileList.sort()
         for fichier in fileList:
-            well=fichier[:8]
-            filename = os.path.join(folder, plate, 'hdf5', fichier)
-            number = countingHDF5(filename, plate, well)
-            
-            if number<90:
-                print number, '******************',plate, well,
-                BAD.append(filename)
-                ww=filter(lambda x: well[2:5] == x[:3],os.listdir(os.path.join(folderRaw, plate)))
-                nbImages = len(os.listdir(os.path.join(folderRaw, plate, ww[0])))
-                print nbImages
-                if nbImages<90:
-                    veryBAD.append(os.path.join(folderRaw, plate, ww[0]))
-        ok.append(plate)
-    f=open('hdf5ToDel.pkl', 'w'); pickle.dump([BAD, veryBAD], f); f.close()
-    return BAD, veryBAD
+            well=fichier[:3]
+
+            nbImages = len(os.listdir(os.path.join(folderRaw, plate, fichier)))
+
+            filename = os.path.join(folder, plate, 'hdf5', '00{}_01.hdf5'.format(well))
+            number = countingHDF5(filename, plate, '00{}_01'.format(well))
+                        
+            if debut and (nbImages<90 or number<90):
+                print well,
+                result_arr[0,0]=nbImages
+                result_arr[0,1]=number
+                debut =False
+            elif (nbImages<90 or number<90):
+                print well,
+                result_arr=np.hstack((result_arr, np.array([nbImages, number])[np.newaxis, :]))
+    f=open('nb_Images_raw_hdf5.pkl', 'w'); pickle.dump(result_arr, f); f.close()
+    return 
 
 def countingImages(folder='/share/data20T/mitocheck/compressed_data'):
     '''
@@ -156,6 +153,7 @@ def countingImages(folder='/share/data20T/mitocheck/compressed_data'):
             if nbImages<90:
                 print nbImages, '******************',plate, well
                 small.append(os.path.join(folder, plate, well))
+                
     f=open('small.pkl', 'w'); pickle.dump(small, f); f.close()
     return
                     
@@ -313,7 +311,7 @@ def noRaw(arrExp, moviesD='/share/data20T/mitocheck/compressed_data'):
     return bou, resultNoRaw, resultToDo    
 
 def countingDone(experiments,featlistonly=True, name=None,rawD='/share/data20T/mitocheck/Alice/results',\
-                 trajD = "/share/data20T/mitocheck/tracking_results"):
+                 trajD = "/share/data20T/mitocheck/tracking_results", featureTabName='hist2_tabFeatures_{}.pkl'):
     '''
     Counts of a list of experiments how many have been dealt with with regard to object feature extraction,
     cell trajectory extraction and finally trajectory feature extraction.
@@ -332,7 +330,7 @@ def countingDone(experiments,featlistonly=True, name=None,rawD='/share/data20T/m
     '''
 
 
-    baseNames = ['{}.hdf5', 'traj_noF_densities_w{}.hdf5.pkl', 'hist2_tabFeatures_{}.pkl']
+    baseNames = ['{}.hdf5', 'traj_noF_densities_w{}.hdf5.pkl', featureTabName]
     print "experiments : ", len(experiments)
     no_hdf5=[]
     no_tracking=[]; no_trajfeat =[]
@@ -352,7 +350,7 @@ def countingDone(experiments,featlistonly=True, name=None,rawD='/share/data20T/m
                     no_tracking.append(line)
                 else:
                     counttracking+=1
-            elif baseName == 'hist2_tabFeatures_{}.pkl':
+            elif baseName == featureTabName:
                 if line[0] not in os.listdir(os.path.join(trajD)) or baseName.format(line[1]) not in os.listdir(os.path.join(trajD, line[0])):
                     no_trajfeat.append(line)
                 else:
@@ -642,6 +640,4 @@ class ArffReader(object):
 
     
 if __name__ == '__main__':
-    small = '/cbio/donnees/aschoenauer/data/mitocheck/results'
-    big = '/share/data20T/mitocheck/Alice/results'
-    copying(small, big)
+    checkingAllHDF5()

@@ -261,6 +261,7 @@ def cleaningLength(traj_indices, length):
         ll = l[np.where(l>=np.sum(length[:k]))[0]]
         newl[k]-= len(ll)
     return newl
+
 def concatCtrl(data, ctrl, length, N, ind=False):
     p=np.where(np.array(ctrl)==0)[0][0]
     index=[]

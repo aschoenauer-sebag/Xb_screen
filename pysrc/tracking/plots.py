@@ -8,12 +8,14 @@ from scipy.stats import linregress, pearsonr
 
 import numpy as np
 
-from trajPack import features1, featuresSaved
+from trajPack import features1, featuresSaved, featuresNumeriques
 from PyPack import fHacktrack2
 from dataPack.joining import FeatureException
 from trajPack import featuresListArray, featuresHisto
 
 from util.plots import makeColorRamp, basic_colors, markers
+
+from hierarchical_clustering import heatmap
 
 def plotPermutationResults(res):
     f=p.figure(figsize=(24,13))
@@ -23,20 +25,6 @@ def plotPermutationResults(res):
         ax.set_title('{} {}'.format(el[0][:9], el[1]))
     p.title("P-values from Fisher's exact test, nb permutations = {}".format(len(res[el])))   
     p.show()
-
-def timeFeatures(time_length, data, feature_names, sh=True):
-    f=p.figure(figsize=(24,13))
-    for i,feature in enumerate(feature_names):
-        ax=f.add_subplot(3,3,i)
-        zou=zip(time_length, data[:,featuresSaved.index(feature)])
-        zou=np.array(sorted(zou, key=operator.itemgetter(0)))
-        ax.scatter(zou[:,0], zou[:,1])
-        ax.set_title('{} \n corr {}'.format(feature, pearsonr(zou[:,0], zou[:,1])[0]))
-        
-    if sh: p.show()
-    else:
-        p.savefig('../TIMEFEATURES.png')
-    return
 
 def plotCompaDiv(*args):
     for i,tab in enumerate(args[:-1]):
@@ -655,7 +643,44 @@ def plotMovies(folder, arr, filename = 'patternMovies'):
         p.savefig(os.path.join(folder, '{}_{}.png'.format(filename, k)))
     return 1
 
-def histFeat(vector, vectorC, vectorP, name, nbins=500):
+def featureFeatureCorrelation(data, feature_names = featuresNumeriques, sh=True, method = 'ward', metric='euclidean'):
+    '''
+    This function plots the correlation between features
+    '''
+    correlation_mat = np.zeros(shape=(len(feature_names), len(feature_names)))
+    for i in range(len(feature_names)):
+        correlation_mat[i,i]=1
+        for j in range(i+1, len(feature_names)):
+            correlation_mat[i,j]=pearsonr(data[:,i], data[:,j])[0]
+            correlation_mat[j,i]=correlation_mat[i,j]
+    if sh:
+        heatmap(correlation_mat, feature_names, feature_names, normalization =False, row_method=method,
+            column_method=method, row_metric=metric, column_metric=metric, color_gradient = 'red_black_sky', filename = 'correlation_features')
+    else:
+        return correlation_mat
+    
+
+def featureTimeCorrelation(time_length, data, feature_names, sh=True):
+    ''' 
+    This function plots the correlation of given features in list feature_names, with temporal trajectory length
+    '''
+    f=p.figure(figsize=(24,13))
+    for i,feature in enumerate(feature_names):
+        ax=f.add_subplot(3,3,i)
+        zou=zip(time_length, data[:,featuresSaved.index(feature)])
+        zou=np.array(sorted(zou, key=operator.itemgetter(0)))
+        ax.scatter(zou[:,0], zou[:,1])
+        ax.set_title('{} \n corr {}'.format(feature, pearsonr(zou[:,0], zou[:,1])[0]))
+        
+    if sh: p.show()
+    else:
+        p.savefig('../TIMEFEATURES.png')
+    return
+
+def featureLogTransformation(vector, vectorC, vectorP, name, nbins=500):
+    '''
+    This function compares a feature distribution with and without logarithm transformation by plotting them
+    '''
     f=p.figure(figsize=(24,13))
     ax=f.add_subplot(221); histogramme(ax, vector, name, nbins)
     ax=f.add_subplot(222); histogramme(ax, vectorP, name, nbins, None, vectorC)
