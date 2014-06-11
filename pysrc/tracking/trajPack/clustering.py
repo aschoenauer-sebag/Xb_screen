@@ -57,7 +57,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
     if exp_list ==None:
         exp_list=[]
         plates = os.listdir(folder)
-        print len(plates)
+        sys.stderr.write('{} \n'.format(len(plates)))
         for pl in plates:
 
             listfiles = filter(lambda x: 'hist2_tabFeatures' in x, os.listdir(os.path.join(folder, pl)))
@@ -70,6 +70,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
     else:
         i=0
         for pl, w in exp_list:
+            print i,
             id_plate = int(pl.split('_')[0][2:])
 
             if id_plate<50:
@@ -101,7 +102,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
                     sys.stderr.write( "Array {} is None\n".format(os.path.join(pl, filename.format(w))))
                     pbl_well.append((pl, w))
                     continue
-                elif arr.shape[0]<20:
+                elif len(arr.shape)==1 or arr.shape[0]<20:
                     sys.stderr.write("Array {} has less than 20 trajectories. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
                     pbl_well.append((pl, w))
                     continue

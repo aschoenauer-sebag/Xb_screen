@@ -33,6 +33,9 @@ n_representatives = 10
 #number of numeric features
 nb_feat_num = len(featuresNumeriques)
 
+#number of principal components that are retained to get approx 92% of the variance
+nb_composantes = 6
+
 #Fisher test or Kolmogorv-Smirnov ?
 Fisher = True
 

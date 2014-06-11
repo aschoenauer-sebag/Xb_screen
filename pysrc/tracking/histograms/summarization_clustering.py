@@ -32,6 +32,16 @@ from tracking.histograms.k_means_transportation import _labels_inertia_precomput
 from util.listFileManagement import strToTuple, expSi, appendingControl, is_ctrl, siEntrez
 from util import settings
 
+
+def _ctrlPca(r, whiten,nb_composantes, folder, filename='pca_ctrlSimpson_whiten{}.pkl'):
+    print "PCA, whiten ", whiten
+    f=open(os.path.join(folder, filename.format(whiten)))
+    pca, mean, std = pickle.load(f)
+    f.close()
+    
+    r=(r-mean)/std
+    return pca.transform(r)[:nb_composantes]
+
 def stabilityCalculation(labels1, labels2, set1, set2):
     intersection = filter(lambda x: x in set2, set1)
     indices1=[np.where(set1==i)[0][0] for i in intersection]
@@ -770,7 +780,7 @@ class summarizingExperiment():
         
         self.iter_=iter_
         
-    def _dataPrep(self):
+    def _dataPrep(self, pcaParameter):
         r, hist, _,_, _, _,_, _ = histConcatenation(self.settings.data_folder, [self.experiment], self.settings.mitocheck_file,
                                         self.settings.quality_control_file, verbose=self.verbose) 
         r=r[:,:len(featuresNumeriques)]
@@ -784,13 +794,17 @@ class summarizingExperiment():
             histogrammeMatrix, bins = computingddBins(hist, self.mat_hist_sizes[0], bin_type=self.bins_type)
         else:
             histogrammeMatrix, bins = computingBins(hist, self.mat_hist_sizes[0], bin_type=self.bins_type)
-
-        r=(r-np.mean(r,0))/np.std(r,0)
+        if pcaParameter[0]==0:
+#no PCA at all
+            r=(r-np.mean(r,0))/np.std(r,0)
+        else:
+#PCA
+            r=_ctrlPca(r, pcaParameter[1], self.settings.nb_composantes, self.settings.result_folder)
         r=np.hstack((r, histogrammeMatrix))
         
         return r, bins
     
-    def parameters(self):
+    def parameters(self, pcaParameter):
         '''
         The number of clusters that is finally chosen for the experiment is not a parameter per se
         as it comes from the output of the clustering algorithm
@@ -802,7 +816,9 @@ class summarizingExperiment():
            'lambda':self.lambda_,
            'cost_type':self.cost_type,
            'dist_weights':self.dist_weights,
-           'ddimensional':self.ddimensional
+           'ddimensional':self.ddimensional,
+           'PCA': pcaParameter[0],
+           'whiten': pcaParameter[1]
            }
         
         l = sorted(zip(r.keys(), r.values()), key=itemgetter(0))
@@ -814,100 +830,102 @@ class summarizingExperiment():
         num_iterations_stability = self.settings.num_iterations_stability
         dist_weights = WEIGHTS[self.dist_weights] if not self.ddimensional else ddWEIGHTS[self.dist_weights]
         self.random_state = check_random_state(self.random_state)
-#i.Data preparation: putting histogram data in bins and normalizing
-        
-        #if self.cost_type==value then returning the bins for further ground metric calculation
-        try:
-            data, bins=self._dataPrep()
-        except AttributeError:
-            return
-        
-        if self.ddimensional:
-            raise ValueError
-#            self.cost_matrix={(0,0):ddcostMatrix(np.product(self.mat_hist_sizes[0]), self.mat_hist_sizes[0])}
-#            self.mat_hist_sizes=np.array([[np.product(self.mat_hist_sizes)]])
-#            filename = 'dd_'+filename 
-        else:   
-            if self.cost_type=='value':
-                print 'cost type value'
-                self.cost_matrix=bins
-            self.cost_matrix=_costMatrix(self.mat_hist_sizes, self.cost_matrix)
-            
-#ii.Looking for the number of clusters in the data
-        stability=defaultdict(list)
-        for n_clusters in range(self.settings.k_min, self.settings.k_max):
-            if self.verbose:
-                print 'Launching minibatch k-means, n_clusters {}, divergence {}, bin_type {}, bin_size {}, cost_type {}, init size {}, batch size {}'\
-                        .format(n_clusters, self.div_name, self.bins_type, self.bin_size, self.cost_type,\
-                                                self.init_size, self.batch_size) 
-            else:
-                print n_clusters   
-            
-            if num_iterations_stability==0:
-                raise ValueError        
+#i.Data preparation: putting histogram data in bins and normalizing. We do that for each of the three possible cases:
+#no PCA, PCA no whitening, PCA and whitening.
 
-            elif num_iterations_stability>0:
-        #IMPLEMENTATION DU TEST POUR LA STABILITE DU CLUSTERING TEL QU'IL FIGURE DANS BEN-HUR ET AL 2002
-                for it_ in range(num_iterations_stability):
-                    if self.verbose>0:
-                        print 'stability iteration ', it_
-                    
-                        print 'ONE'
-                    model1 = histogramMiniKMeans(n_clusters,self.lambda_, self.mat_hist_sizes,
-                         div_name=self.div_name, M=self.cost_matrix, 
-                         dist_weights=dist_weights, nb_feat_num = self.nb_feat_num,
-                         init=self.init,
-                         batch_size=self.batch_size,
-                         init_size =self.init_size, verbose=self.verbose,n_init=self.n_init)
-                    set1= self.random_state.permutation(data.shape[0])[:int(fraction*data.shape[0])]; set1.sort()
-                    model1.fit(data[set1])
-                    
-                    if self.verbose>0:print 'TWO'
-                    model2 = histogramMiniKMeans(n_clusters,self.lambda_, self.mat_hist_sizes,
-                         div_name=self.div_name, M=self.cost_matrix, 
-                         dist_weights=dist_weights, nb_feat_num = self.nb_feat_num,
-                         init=self.init,
-                         batch_size=self.batch_size,
-                         init_size =self.init_size, verbose=self.verbose,n_init=self.n_init)
-                    set2= self.random_state.permutation(data.shape[0])[:int(fraction*data.shape[0])]; set2.sort()
-                    model2.fit(data[set2])
-                    
-                    stability[n_clusters].append(stabilityCalculation(np.array(model1.labels_), np.array(model2.labels_), set1, set2))
-                    if self.verbose>0:print 'stability calculation over'
-        print np.array([stability[n_clusters] for n_clusters in range(self.settings.k_min, self.settings.k_max)])
-        print np.array([(np.mean(stability[n_clusters]), np.std(stability[n_clusters])) for n_clusters in range(self.settings.k_min, self.settings.k_max)])
-        
-        arr=np.array([np.mean(stability[n_clusters])+np.std(stability[n_clusters]) for n_clusters in range(self.settings.k_min, self.settings.k_max)])
-        try:
-            k = self.settings.k_min+np.where(arr>0.6)[0][-1]
-        except IndexError:
-            k=self.settings.k_min+np.argmax(arr)
-        print 'Chosen k', k
-        model = histogramMiniKMeans(k,self.lambda_, self.mat_hist_sizes,
-                         div_name=self.div_name, M=self.cost_matrix, 
-                         dist_weights=dist_weights, nb_feat_num = self.nb_feat_num,
-                         init=self.init,
-                         batch_size=self.batch_size,
-                         init_size =self.init_size, verbose=self.verbose,n_init=self.n_init)
-        model.fit(data)
-        representatives = model.find_representatives(N=self.settings.n_representatives) 
-        
-    #saving results
-        if not os.path.isdir(self.settings.result_folder):
-            os.mkdir(self.settings.result_folder)
-    
-        if filename in os.listdir(self.settings.result_folder):
-            f=open(os.path.join(self.settings.result_folder, filename), 'r')
-            d = pickle.load(f); f.close()
-            d.update({self.parameters():representatives})
-        else:
-            d={self.parameters():representatives}
+        for pcaParameter in [(0,0), (1,0), (1,1)]:
+            #if self.cost_type==value then returning the bins for further ground metric calculation
+            try:
+                data, bins=self._dataPrep(pcaParameter)
+            except AttributeError:
+                return
             
-#So in the file summary_experiment.pkl, we have a list of indices in the original feature array, of representatives
-#from the experiment
-        f=open(os.path.join(self.settings.result_folder, filename), 'w')
-        pickle.dump(d, f)
-        f.close()
+            if self.ddimensional:
+                raise ValueError
+    #            self.cost_matrix={(0,0):ddcostMatrix(np.product(self.mat_hist_sizes[0]), self.mat_hist_sizes[0])}
+    #            self.mat_hist_sizes=np.array([[np.product(self.mat_hist_sizes)]])
+    #            filename = 'dd_'+filename 
+            else:   
+                if self.cost_type=='value':
+                    print 'cost type value'
+                    self.cost_matrix=bins
+                self.cost_matrix=_costMatrix(self.mat_hist_sizes, self.cost_matrix)
+                
+    #ii.Looking for the number of clusters in the data
+            stability=defaultdict(list)
+            for n_clusters in range(self.settings.k_min, self.settings.k_max):
+                if self.verbose:
+                    print 'Launching minibatch k-means, n_clusters {}, divergence {}, bin_type {}, bin_size {}, cost_type {}, init size {}, batch size {}'\
+                            .format(n_clusters, self.div_name, self.bins_type, self.bin_size, self.cost_type,\
+                                                    self.init_size, self.batch_size) 
+                else:
+                    print n_clusters   
+                
+                if num_iterations_stability==0:
+                    raise ValueError        
+    
+                elif num_iterations_stability>0:
+            #IMPLEMENTATION DU TEST POUR LA STABILITE DU CLUSTERING TEL QU'IL FIGURE DANS BEN-HUR ET AL 2002
+                    for it_ in range(num_iterations_stability):
+                        if self.verbose>0:
+                            print 'stability iteration ', it_
+                        
+                            print 'ONE'
+                        model1 = histogramMiniKMeans(n_clusters,self.lambda_, self.mat_hist_sizes,
+                             div_name=self.div_name, M=self.cost_matrix, 
+                             dist_weights=dist_weights, nb_feat_num = self.nb_feat_num,
+                             init=self.init,
+                             batch_size=self.batch_size,
+                             init_size =self.init_size, verbose=self.verbose,n_init=self.n_init)
+                        set1= self.random_state.permutation(data.shape[0])[:int(fraction*data.shape[0])]; set1.sort()
+                        model1.fit(data[set1])
+                        
+                        if self.verbose>0:print 'TWO'
+                        model2 = histogramMiniKMeans(n_clusters,self.lambda_, self.mat_hist_sizes,
+                             div_name=self.div_name, M=self.cost_matrix, 
+                             dist_weights=dist_weights, nb_feat_num = self.nb_feat_num,
+                             init=self.init,
+                             batch_size=self.batch_size,
+                             init_size =self.init_size, verbose=self.verbose,n_init=self.n_init)
+                        set2= self.random_state.permutation(data.shape[0])[:int(fraction*data.shape[0])]; set2.sort()
+                        model2.fit(data[set2])
+                        
+                        stability[n_clusters].append(stabilityCalculation(np.array(model1.labels_), np.array(model2.labels_), set1, set2))
+                        if self.verbose>0:print 'stability calculation over'
+            print np.array([stability[n_clusters] for n_clusters in range(self.settings.k_min, self.settings.k_max)])
+            print np.array([(np.mean(stability[n_clusters]), np.std(stability[n_clusters])) for n_clusters in range(self.settings.k_min, self.settings.k_max)])
+            
+            arr=np.array([np.mean(stability[n_clusters])+np.std(stability[n_clusters]) for n_clusters in range(self.settings.k_min, self.settings.k_max)])
+            try:
+                k = self.settings.k_min+np.where(arr>0.6)[0][-1]
+            except IndexError:
+                k=self.settings.k_min+np.argmax(arr)
+            print 'Chosen k', k
+            model = histogramMiniKMeans(k,self.lambda_, self.mat_hist_sizes,
+                             div_name=self.div_name, M=self.cost_matrix, 
+                             dist_weights=dist_weights, nb_feat_num = self.nb_feat_num,
+                             init=self.init,
+                             batch_size=self.batch_size,
+                             init_size =self.init_size, verbose=self.verbose,n_init=self.n_init)
+            model.fit(data)
+            representatives = model.find_representatives(N=self.settings.n_representatives) 
+            
+        #saving results
+            if not os.path.isdir(self.settings.result_folder):
+                os.mkdir(self.settings.result_folder)
+        
+            if filename in os.listdir(self.settings.result_folder):
+                f=open(os.path.join(self.settings.result_folder, filename), 'r')
+                d = pickle.load(f); f.close()
+                d.update({self.parameters(pcaParameter):representatives})
+            else:
+                d={self.parameters(pcaParameter):representatives}
+                
+    #So in the file summary_experiment.pkl, we have a list of indices in the original feature array, of representatives
+    #from the experiment
+            f=open(os.path.join(self.settings.result_folder, filename), 'w')
+            pickle.dump(d, f)
+            f.close()
         return
     
 if __name__ == '__main__':
