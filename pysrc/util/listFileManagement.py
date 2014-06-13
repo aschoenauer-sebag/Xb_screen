@@ -85,12 +85,13 @@ def countingHDF5(filename, plate, well):
     try:
         tabObjects = vi.readHDF5(filename, pathObjects)
     except:
+        print 'No file'
         return 1000
     else:
         return tabObjects[-1][0]+1#otherwise we forget the last frame
 
 def checkingAllHDF5(folder="/share/data20T/mitocheck/Alice/results",
-    folderRaw='/share/data20T/mitocheck/compressed_data'):
+    folderRaw='/share/data20T/mitocheck/compressed_data', liste=None):
     '''
     Checking the number of images for all experiments in a certain folder.
     The function checks the number of images in the raw data folder as well as the number of images
@@ -107,7 +108,9 @@ def checkingAllHDF5(folder="/share/data20T/mitocheck/Alice/results",
     '''    
     
     result_arr=np.zeros(shape=(1,2)); debut =True
-    liste=os.listdir(folderRaw); liste.sort()
+    if liste == None:
+        liste=os.listdir(folderRaw)
+    liste.sort()
 
     for plate in liste:
         print plate

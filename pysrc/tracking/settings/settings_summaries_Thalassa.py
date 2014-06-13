@@ -33,6 +33,8 @@ n_representatives = 10
 #number of numeric features
 nb_feat_num = len(featuresNumeriques)
 
+#list to take into account or not pca, and whitening
+pcaParameters = [(0,0), (1,0), (1,1)]
 #number of principal components that are retained to get approx 92% of the variance
 nb_composantes = 6
 

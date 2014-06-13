@@ -38,7 +38,7 @@ from util.kkmeans import KernelKMeans
 #from joblib import Parallel, delayed, Memory
 
 
-def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeatures_{}.pkl', verbose=0, hist=True):
+def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.pkl', verbose=0, hist=True):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; sirna=[]; genes=[]
     time_length=[]; pbl_well=[]
     histNtot={nom:[] for nom in featuresHisto}
@@ -108,6 +108,9 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist2_tabFeat
                     continue
                 else:
                     try:
+                        #espece de bricolage si movement type a un coeff de correlation inf a 0.7 pour >=2 regressions
+                        arr[np.where(arr[:,14]>1),11]=None
+                        toDel = []
                         if np.any(arr[:,-1]>=5) or np.any(np.isnan(arr[:,:len(featuresNumeriques)])):
                             toDel = np.where(arr[:,-1]>=5)[0]
                             toDel=np.hstack((toDel, np.where(np.isnan(arr[:,:len(featuresNumeriques)]))[0]))

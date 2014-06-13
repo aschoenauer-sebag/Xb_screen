@@ -33,14 +33,14 @@ from util.listFileManagement import strToTuple, expSi, appendingControl, is_ctrl
 from util import settings
 
 
-def _ctrlPca(r, whiten,nb_composantes, folder, filename='pca_ctrlSimpson_whiten{}.pkl'):
+def _ctrlPca(r, whiten,nb_features_num,nb_composantes, folder, filename='pca_ctrlSimpson_whiten{}.pkl'):
     print "PCA, whiten ", whiten
     f=open(os.path.join(folder, filename.format(whiten)))
     pca, mean, std = pickle.load(f)
     f.close()
     
-    r=(r-mean)/std
-    return pca.transform(r)[:nb_composantes]
+    r=(r-mean[:nb_features_num])/std[:nb_features_num]
+    return pca.transform(r)[:,:nb_composantes]
 
 def stabilityCalculation(labels1, labels2, set1, set2):
     intersection = filter(lambda x: x in set2, set1)
@@ -104,7 +104,7 @@ class hitFinder():
         '''
         expList.extend(ctrlList)
         
-        r, histNtot,  who,ctrlStatus, length, _, sirna, _ = histConcatenation(self.settings.data_folder, expList, self.settings.mitocheck_file,
+        _, r, histNtot,  who,ctrlStatus, length, _, sirna, _ = histConcatenation(self.settings.data_folder, expList, self.settings.mitocheck_file,
                                         self.settings.quality_control_file)
         if self.plate is None:
             assert(np.all(np.array(sirna)[np.where(np.array(ctrlStatus)==1)]==self.siRNA))
@@ -195,7 +195,7 @@ class hitFinder():
                     p_vals[param_tuple].append(np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
                                                                          simulate_p_value=True, B=2000000)[0][0]))
                 else:    
-                    p_vals[param_tuple].append(ks_2samp(pLabelsCour, cLabelsCour)[1])
+                    raise ValueError
                 #
                 if self.verbose:
                     print '---------------weights', d['dist_weights'], 'k', d['n_cluster'], 'bins_type', d['bins_type']
@@ -625,7 +625,7 @@ class clusteringExperiments():
         self.ddimensional = ddim
         self.iter_=iter_
         
-    def parameters(self, with_n_cluster=False):
+    def parameters(self, pcaParameter, with_n_cluster=False):
         r={
            'bins_type': self.bins_type,
            'bin_size':self.bin_size,
@@ -633,7 +633,9 @@ class clusteringExperiments():
            'lambda':self.lambda_,
            'cost_type':self.cost_type,
            'dist_weights':self.dist_weights,
-           'ddimensional':self.ddimensional
+           'ddimensional':self.ddimensional,
+           'PCA': pcaParameter[0],
+           'whiten': pcaParameter[1]
            }
         if with_n_cluster:
             r.update({'n_cluster':self.n_cluster})
@@ -646,8 +648,8 @@ class clusteringExperiments():
         This function gets the data from each experiment, and then selects the lines corresponding to the representatives of
         the experiment which have been selected in the previous step (summarizingExperiment)
         '''
-        num_features=None
-        hist_features = {hist_feature : [] for hist_feature in featuresHisto}
+        num_features=[None, None, None]; dataL=[]
+        hist_features = [{hist_feature : [] for hist_feature in featuresHisto} for k in range(3)]
 
         count=0; ctrl_count=0; ctrl_exp_count=0
         self.actual_expList = []
@@ -661,54 +663,64 @@ class clusteringExperiments():
 
             else:
                 try:
-                    r, histNtot,  _,_, _, _, _, _ = histConcatenation(self.settings.data_folder, [experiment], self.settings.mitocheck_file,
+                    _, r, histNtot,  _,_, _, _, _, _ = histConcatenation(self.settings.data_folder, [experiment], self.settings.mitocheck_file,
                                         self.settings.quality_control_file, verbose=self.verbose)
                 except AttributeError:
                     sys.stderr.write("No data for experiment {}".format(experiment))
                 else:        
-                    curr_parameters = self.parameters(with_n_cluster=False)
-                    try:
-                        num_features=r[representatives[curr_parameters], :self.settings.nb_feat_num] if num_features is None else \
-                        np.vstack((num_features, r[representatives[curr_parameters], :self.settings.nb_feat_num]))
-        
-                    except KeyError:
-                        sys.stderr.write("Representative trajectories for experiment {}, parameters {} have not yet been calculated.".format(experiment, curr_parameters))
-                    else:                    
-                        self.actual_expList.append(experiment)
-                        for hist_feature in hist_features:
-                            hist_features[hist_feature].extend([histNtot[hist_feature][k] for k in representatives[curr_parameters]])
-                        count+=len(representatives[curr_parameters]) 
-                        if is_ctrl(experiment):
-                            ctrl_exp_count+=1
-                            ctrl_count +=len(representatives[curr_parameters]) 
+                    for i, pcaParameter in enumerate(self.settings.pcaParameters):
+                        curr_parameters = self.parameters(pcaParameter, with_n_cluster=False)
+                        try:
+                            num_features[i]=r[representatives[curr_parameters], :self.settings.nb_feat_num] if num_features[i] is None else \
+                            np.vstack((num_features[i], r[representatives[curr_parameters], :self.settings.nb_feat_num]))
+            
+                        except KeyError:
+                            sys.stderr.write("Representative trajectories for experiment {}, parameters {} have not yet been calculated.".format(experiment, curr_parameters))
+                        else:                    
+                            
+                            for hist_feature in hist_features[i]:
+                                hist_features[i][hist_feature].extend([histNtot[hist_feature][k] for k in representatives[curr_parameters]])
+                            if i==0:
+                                self.actual_expList.append(experiment)
+                                count+=len(representatives[curr_parameters]) 
+                                if is_ctrl(experiment):
+                                    ctrl_exp_count+=1
+                                    ctrl_count +=len(representatives[curr_parameters]) 
         if self.verbose:   
             print "{} representatives from {} experiments, among which {} ctrl representatives from {} ctrl experiments".format(count,\
                                          len(self.actual_expList), ctrl_count, ctrl_exp_count)  
-            print num_features.shape, 'not normalized'
+            print num_features[0].shape, 'not normalized'
             print 'computing bins, bin type {}, d-dimensional? {}'.format(self.bins_type, bool(self.ddimensional))
-        assert(count == num_features.shape[0])
-            
-        if self.ddimensional:
-            histogrammeMatrix, bins = computingddBins(hist_features, self.mat_hist_sizes[0], bin_type=self.bins_type)
-        else:
-
-            histogrammeMatrix, bins = computingBins(hist_features, self.mat_hist_sizes[0], bin_type=self.bins_type)
-            
-        self.mean = np.mean(num_features,0)
-        self.std = np.std(num_features,0)
-        num_features=(num_features-self.mean)/self.std
-        data=np.hstack((num_features, histogrammeMatrix))
+        assert(count == num_features[0].shape[0])
         
-        return data, bins     
+        for i, pcaParameter in enumerate(self.settings.pcaParameters):            
+            if self.ddimensional:
+                histogrammeMatrix, bins = computingddBins(hist_features[i], self.mat_hist_sizes[0], bin_type=self.bins_type)
+            else:
     
-    def _saveResults(self, centers, bins):
+                histogrammeMatrix, bins = computingBins(hist_features[i], self.mat_hist_sizes[0], bin_type=self.bins_type)
+            
+            if pcaParameter[0]==0:
+    #no PCA at all
+                self.mean = np.mean(num_features,0)
+                self.std = np.std(num_features,0)
+                nnum_features=(num_features[i]-self.mean)/self.std
+            
+            else:
+    #PCA
+                nnum_features=_ctrlPca(num_features[i], pcaParameter[1], self.settings.nb_composantes, self.settings.result_folder)
+            dataL.append(np.hstack((nnum_features, histogrammeMatrix)))
+        
+        return dataL, bins     
+    
+    def _saveResults(self, centers, bins, pcaParameter):
         
         if self.settings.clustering_filename.format(self.iter_) in os.listdir(self.settings.result_folder):
             f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename.format(self.iter_)), 'r')
             d=pickle.load(f); f.close()
         else:
             d={}
-        d.update({self.parameters(with_n_cluster=True):[centers, self.mean, self.std, bins, self.actual_expList]})
+        d.update({self.parameters(pcaParameter,with_n_cluster=True):[centers, self.mean, self.std, bins, self.actual_expList]})
         f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename.format(self.iter_)), 'w')
         pickle.dump(d, f); f.close()
 
@@ -718,7 +730,7 @@ class clusteringExperiments():
         dist_weights = WEIGHTS[self.dist_weights] if not self.ddimensional else ddWEIGHTS[self.dist_weights]
         
         #i. assembling all data 
-        data, bins=self._dataPrep()
+        dataL, bins=self._dataPrep()
         
         if self.ddimensional:
             self.cost_matrix={(0,0):ddcostMatrix(np.product(self.mat_hist_sizes[0]), self.mat_hist_sizes[0])}
@@ -729,18 +741,19 @@ class clusteringExperiments():
                 print 'cost type value'
                 self.cost_matrix=bins
             self.cost_matrix=_costMatrix(self.mat_hist_sizes, self.cost_matrix)
-        
-        #ii.clustering the data
-        model = histogramMiniKMeans(self.n_cluster,self.lambda_, self.mat_hist_sizes,
-                         div_name=self.div_name, M=self.cost_matrix, 
-                         dist_weights=dist_weights, nb_feat_num = self.settings.nb_feat_num,
-                         init=self.init,
-                         batch_size=self.batch_size,
-                         init_size =self.init_size, verbose=self.verbose,n_init=self.n_init)
-        model.fit(data)
-        
-        #iii.saving the centers, mean and std to be further used movie per movie
-        self._saveResults(model.cluster_centers_, bins)        
+#here we deal with different pca parameters after loading data since it's so long
+        for i,pcaParameter in enumerate(self.settings.pcaParameters):
+            #ii.clustering the data
+            model = histogramMiniKMeans(self.n_cluster,self.lambda_, self.mat_hist_sizes,
+                             div_name=self.div_name, M=self.cost_matrix, 
+                             dist_weights=dist_weights, nb_feat_num = self.settings.nb_feat_num,
+                             init=self.init,
+                             batch_size=self.batch_size,
+                             init_size =self.init_size, verbose=self.verbose,n_init=self.n_init)
+            model.fit(dataL[i])
+            
+            #iii.saving the centers, mean and std to be further used movie per movie
+            self._saveResults(model.cluster_centers_, bins, pcaParameter)        
         return
 
 class summarizingExperiment():
@@ -781,7 +794,7 @@ class summarizingExperiment():
         self.iter_=iter_
         
     def _dataPrep(self, pcaParameter):
-        r, hist, _,_, _, _,_, _ = histConcatenation(self.settings.data_folder, [self.experiment], self.settings.mitocheck_file,
+        _, r, hist, _,_, _, _,_, _ = histConcatenation(self.settings.data_folder, [self.experiment], self.settings.mitocheck_file,
                                         self.settings.quality_control_file, verbose=self.verbose) 
         r=r[:,:len(featuresNumeriques)]
         self.nb_feat_num = len(featuresNumeriques)
@@ -799,7 +812,7 @@ class summarizingExperiment():
             r=(r-np.mean(r,0))/np.std(r,0)
         else:
 #PCA
-            r=_ctrlPca(r, pcaParameter[1], self.settings.nb_composantes, self.settings.result_folder)
+            r=_ctrlPca(r, pcaParameter[1], self.settings.nb_feat_num, self.settings.nb_composantes, self.settings.result_folder)
         r=np.hstack((r, histogrammeMatrix))
         
         return r, bins
@@ -833,7 +846,7 @@ class summarizingExperiment():
 #i.Data preparation: putting histogram data in bins and normalizing. We do that for each of the three possible cases:
 #no PCA, PCA no whitening, PCA and whitening.
 
-        for pcaParameter in [(0,0), (1,0), (1,1)]:
+        for pcaParameter in self.settings.pcaParameters:
             #if self.cost_type==value then returning the bins for further ground metric calculation
             try:
                 data, bins=self._dataPrep(pcaParameter)
