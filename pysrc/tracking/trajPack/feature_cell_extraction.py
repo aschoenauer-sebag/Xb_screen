@@ -87,19 +87,21 @@ def Spearman(folder = '../resultData/features_on_films',feature=None, outputFile
     '''
     if feature == None:
         featureL = featuresNumeriques
-    else:
+    elif type(feature)!=list:
         featureL=[feature]
+    else:
+        featureL = feature
     if sh==None:
         sh=show
            
     parameters = None
     fileL = filter(lambda x: 'distances_' in x and '.pkl' in x, os.listdir(folder))
     n_siRNA = len(fileL)
-
-    result=[np.zeros(shape=(4,), dtype=object) for k in range(len(featureL))]
+    set_number = 8
+    result=[np.zeros(shape=(set_number,), dtype=object) for k in range(len(featureL))]
     
     for i in range(len(featureL)):
-        for k in range(4):
+        for k in range(set_number):
             result[i][k]=[]
 
     siRNAL=[]
@@ -114,7 +116,7 @@ def Spearman(folder = '../resultData/features_on_films',feature=None, outputFile
         siRNAL.extend([siRNA for k in range(len(distances[distances.keys()[0]]))])
         if parameters == None:
             parameters = distances.keys()
-        elif len(distances.keys())!=4:
+        elif len(distances.keys())!=set_number:
             print file_
             pdb.set_trace()
         elif not np.all([parameter in distances.keys() for parameter in parameters]):
@@ -126,7 +128,7 @@ def Spearman(folder = '../resultData/features_on_films',feature=None, outputFile
         else:
             for param in filter(lambda x: x not in parameters, distances.keys()):
                 parameters.append(param)
-        
+        parameters = sorted(parameters, key=itemgetter(3, 1, 0))
         for i,feature in enumerate(featureL):
             for k,param in enumerate(parameters):
     
@@ -134,8 +136,7 @@ def Spearman(folder = '../resultData/features_on_films',feature=None, outputFile
                 count+=len(l)
                 
                 result[i][k].extend(l)
-
-    pvalues_mat = np.zeros(shape=(len(featureL),4,4))
+    pvalues_mat = np.zeros(shape=(len(featureL),set_number,set_number))
     if saveExtreme:
         targetExp={}; yeSiExp=expSi('../data/mapping/qc_export.txt', 0)
     for i, feature in enumerate(featureL):
@@ -144,16 +145,16 @@ def Spearman(folder = '../resultData/features_on_films',feature=None, outputFile
                 print param
             pvalues_mat[i,k,k]=1
             result[i][k]=np.array(result[i][k])
-            extreme1=result[i][k][np.where(result[i][k]>scoreatpercentile(result[i][k], percentile))]
+            ext1 = np.where(result[i][k]>scoreatpercentile(result[i][k], percentile))[0]
             
             if saveExtreme and k==2:
-                ext1 = np.where(result[i][k]>scoreatpercentile(result[i][k], percentile))[0]
-                subExtreme1 = np.where(result[i][k]<scoreatpercentile(result[i][k], percentile+1))[0]
+                subExtreme1 = np.where(result[i][k]<scoreatpercentile(result[i][k], 100))[0]
                 commonIndices = filter(lambda x: x in ext1, subExtreme1)
-                
+                orderedIndices = np.array(sorted(zip(commonIndices, result[i][k][commonIndices]), key=itemgetter(1), reverse=True))[:,0]
+
                 targetExp[feature]=[]
                 #np.random.shuffle(commonIndices)
-                for el in commonIndices[:10]:
+                for el in np.array(orderedIndices, dtype=int)[:20]:
                     L = np.where(np.array(siRNAL)==siRNAL[el])
                     currExp=yeSiExp[siRNAL[el]]
                     targetExp[feature].append(currExp[np.where(L[0]==el)[0]])
@@ -163,9 +164,12 @@ def Spearman(folder = '../resultData/features_on_films',feature=None, outputFile
                     pvalues_mat[i, k,j]=spearmanr(result[i][k], result[i][j])[0]
                 else:
                     result[i][j]=np.array(result[i][j])
-                    extreme2=result[i][j][np.where(result[i][j]>scoreatpercentile(result[i][j], percentile))]
-
-                    pvalues_mat[i, k,j]=spearmanr(extreme1[-min(len(extreme1), len(extreme2)):], extreme2[-min(len(extreme1), len(extreme2)):])[0]
+                    ext2=np.where(result[i][j]>scoreatpercentile(result[i][j], percentile))[0]
+                    
+        #here there's no reason that this calculus makes sense because no reason that the extremes for different parameter sets
+        #are the same.
+                    #pvalues_mat[i, k,j]=spearmanr(extreme1[-min(len(extreme1), len(extreme2)):], extreme2[-min(len(extreme1), len(extreme2)):])[0]
+                    pvalues_mat[i, k,j]=(spearmanr(result[i][k][ext1], result[i][j][ext1])[0]+spearmanr(result[i][k][ext2], result[i][j][ext2])[0])/2
                 pvalues_mat[i,j,k]=pvalues_mat[i, k,j]
     if saveExtreme:
         f=open(os.path.join(folder, 'targetExperiments_{}.pkl'.format(percentile)), 'w')
@@ -279,7 +283,7 @@ class cellExtractor():
         self.bin_size = bin_size
         self.lambda_=lambda_        
         self.verbose=verbose
-        self.currInterestFeatures = featuresNumeriques
+        self.currInterestFeatures = ['diffusion adequation', 'mean persistence']
         if self.settings.histDataAsWell:
             raise AttributeError
     
@@ -306,7 +310,7 @@ class cellExtractor():
                     
         for i in range(len(length)):
             for k,feature in enumerate(self.currInterestFeatures):
-                histDict[feature].append(r[np.sum(length[:i]):np.sum(length[:i+1]),k])
+                histDict[feature].append(r[np.sum(length[:i]):np.sum(length[:i+1]),featuresSaved.index(feature)])
         
         f=open(os.path.join(self.settings.result_folder, 'distExp_123etctrl_{}_{}.pkl'.format(self.bins_type, self.bin_size)))
         bins = pickle.load(f); f.close()
@@ -335,7 +339,7 @@ class cellExtractor():
                 length.append(np.sum(curr_length))
                 assert(np.sum(curr_length)==curr_r.shape[0])                        
                 for k, feature in enumerate(self.currInterestFeatures):
-                    histDict[feature].append(curr_r[:,k])
+                    histDict[feature].append(curr_r[:,featuresSaved.index(feature)])
         assert(len(length)==len(plates))
         assert(len(histDict["entropy1"])==len(plates))
                     

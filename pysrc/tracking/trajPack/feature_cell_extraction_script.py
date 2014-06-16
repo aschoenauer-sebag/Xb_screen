@@ -84,7 +84,7 @@ if __name__ == '__main__':
     #possible values: transportation (for Sinkhorn divergence), etransportation (for exact transportation distances in 1D), total_variation or hellinger
     parser.add_option('--div_name', type=str, dest='div_name', default='etransportation')
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
-    parser.add_option('--bin_size', type=int, dest="bin_size", default=50)    
+    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)    
     
 
     siRNAFile = '../data/siRNA_Simpson.pkl'

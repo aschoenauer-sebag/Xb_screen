@@ -139,8 +139,10 @@ class hitFinder():
                     pass
                 else:
                     histogrammeMatrix, bins = computingBins(hist_features, nb_bins_list = mat_hist_sizes[0], bin_type=curr_parameters["bins_type"], previous_binning = bins)
-                    
-                norm_r=(r-mean)/std
+                if curr_parameters['PCA']==0:
+                    norm_r=(r-mean)/std
+                else:
+                    norm_r = _ctrlPca(r, curr_parameters['whiten'], self.settings.nb_feat_num, self.settings.nb_composantes, self.settings.result_folder)
                 data=np.hstack((norm_r, histogrammeMatrix))
                 if curr_parameters['ddimensional']:
                     pass
@@ -596,7 +598,7 @@ class hitFinder():
 class clusteringExperiments():
     def __init__(self, settings_file, experimentList,n_cluster, div_name, bins_type, cost_type, bin_size, 
                  init='k-means++',lambda_=10, M=None, dist_weights=None, batch_size=100, init_size=1000,
-                 n_init=5, verbose=0, ddim = 0, iter_=0):
+                 n_init=10, verbose=0, ddim = 0, iter_=0):
         
         assert(div_name in DIVERGENCES)
             
@@ -702,13 +704,13 @@ class clusteringExperiments():
             
             if pcaParameter[0]==0:
     #no PCA at all
-                self.mean = np.mean(num_features,0)
-                self.std = np.std(num_features,0)
+                self.mean = np.mean(num_features[i],0)
+                self.std = np.std(num_features[i],0)
                 nnum_features=(num_features[i]-self.mean)/self.std
             
             else:
     #PCA
-                nnum_features=_ctrlPca(num_features[i], pcaParameter[1], self.settings.nb_composantes, self.settings.result_folder)
+                nnum_features=_ctrlPca(num_features[i], pcaParameter[1], self.settings.nb_feat_num, self.settings.nb_composantes, self.settings.result_folder)
             dataL.append(np.hstack((nnum_features, histogrammeMatrix)))
         
         return dataL, bins     
@@ -966,7 +968,7 @@ if __name__ == '__main__':
     parser.add_option("-l",type=int, dest="lambda_", default=10)
     parser.add_option("--batch_size", dest="batch_size", type=int,default=1000)
     parser.add_option("--init", dest="init", type=str,default='k-means++')
-    parser.add_option("--n_init", dest="n_init", type=int,default=5)
+    parser.add_option("--n_init", dest="n_init", type=int,default=10)
     parser.add_option("--verbose", dest="verbose", type=int,default=0)
     (options, args) = parser.parse_args()
     if getpass.getuser()=='lalil0u':

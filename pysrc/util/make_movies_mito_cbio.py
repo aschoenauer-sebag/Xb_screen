@@ -234,12 +234,12 @@ class MovieMaker(object):
             # find the feature_files
             labteks_found = filter(lambda x: x[:len(ltId)]==ltId, os.listdir(trajectory_dir))
             if len(labteks_found) == 0:
-                raise ValueError('%s not found in %s' % (ltId, base_dir))
+                raise ValueError('%s not found in %s' % (ltId, self.base_dir))
             if len(labteks_found) > 1:
                 raise ValueError('multiple labteks found')
             labtek_dir = os.path.join(trajectory_dir, labteks_found[0])
-                        
-            feature_files = filter(lambda x: x[0:6]=='Thomas' and x[-len(ending):]==ending, 
+            
+            feature_files = filter(lambda x: 'hist_tabFeatures' in x and x[-len(ending):]==ending, 
                                    os.listdir(labtek_dir))
             if len(feature_files)==0:
                 print 'file not found ... skipping feature projection'
@@ -412,17 +412,27 @@ if __name__ ==  "__main__":
     fp.close()
 
     mm = MovieMaker(in_path)
+    l=['signed turning angle',
+ 'movement type',
+ 'corrected straightness index',
+ 'ball number2',
+ 'norm convex hull area',
+ 'effective space length',
+ 'effective speed',
+ 'diffusion coefficient',
+ 'largest move',
+ 'ball number1']
+    for category in l:
+        if category !='mean squared displacement':
+            ids = movies[category]
     
-    for category in movies:
-        ids = movies[category]
-
-        cat_out_path = os.path.join(out_path, category.replace(' ', '_'))
-        if not os.path.exists(cat_out_path):
-            os.makedirs(cat_out_path)
-
-        for id in ids:
-            print 'making movie %s' % id
-            mm.make_movie(id, cat_out_path, 
-                          feature_movie_dir=options.feature_target_dir,
-                          feature=category)
+            cat_out_path = os.path.join(out_path, category.replace(' ', '_'))
+            if not os.path.exists(cat_out_path):
+                os.makedirs(cat_out_path)
+    
+            for i,id in enumerate(ids[:20]):
+                print 'making movie number %i %s' %(i, id)
+                mm.make_movie(id, cat_out_path, 
+                              feature_movie_dir=options.feature_target_dir,
+                              feature=category)
         

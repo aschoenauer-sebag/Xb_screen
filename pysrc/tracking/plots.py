@@ -654,7 +654,7 @@ def featureFeatureCorrelation(data, feature_names = featuresNumeriques, sh=True,
             correlation_mat[i,j]=pearsonr(data[:,i], data[:,j])[0]
             correlation_mat[j,i]=correlation_mat[i,j]
     if sh:
-        heatmap(correlation_mat, feature_names, feature_names, normalization =False, row_method=method,
+        heatmap(np.absolute(correlation_mat), feature_names, feature_names, normalization =False, row_method=method,
             column_method=method, row_metric=metric, column_metric=metric, color_gradient = 'red_black_sky', filename = 'correlation_features')
     else:
         return correlation_mat

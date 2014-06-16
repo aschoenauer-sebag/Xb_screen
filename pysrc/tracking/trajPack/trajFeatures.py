@@ -423,7 +423,8 @@ def computingHisto(traj, m_length, average, movie_start, verbose, a,d, training)
             else:
                 if len(vecX)==timeWindow:
                     temps, localStr= localStraightness(vecX, vecY)
-                    histN["straight"].append(localStr/sq_norm(vecX, vecY))
+                    if not np.isnan(localStr):
+                        histN["straight"].append(localStr/sq_norm(vecX, vecY))
                     if verbose>1:
                         print 'TIME', temps, localStr
         try:

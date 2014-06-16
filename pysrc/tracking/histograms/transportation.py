@@ -683,7 +683,7 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
             for i, feature in enumerate(featuresHisto):
                 lCour=[]; print feature
                 for ll in histogramme[feature]:
-                    lCour.extend(np.array(ll)[np.where(np.isinf(np.array(ll))==False)])
+                    lCour.extend(np.array(ll)[np.where(np.isfinite(ll))])
                 lCour=np.array(lCour)
                 minMax[i,0]=np.min(lCour)
                 minMax[i,1]=np.max(lCour)
@@ -692,6 +692,7 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
                     f=open('../resultData/features_on_films/minmax_{}_{}_{}.pkl'.format(feature, len(histogramme[feature]), iter_), 'w')
                     pickle.dump(lCour, f)
                     f.close()
+            print minMax
         else:
             minMax = previous_binning
             feature = histogramme.keys()[0]
@@ -704,7 +705,7 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
         for traj_num in range(nb_traj):
             up_to=0
             for i,feature in enumerate(featuresHisto):
-                ll=np.array(histogramme[feature][traj_num])[np.where(np.isinf(histogramme[feature][traj_num])==False)]
+                ll=np.array(histogramme[feature][traj_num])[np.where(np.isfinite(histogramme[feature][traj_num]))]
                 if len(ll)==0:
                     toAverage[feature].append(traj_num)
                 else:
@@ -739,7 +740,7 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
             for i, feature in enumerate(featuresHisto):
                 lCour=[]; print feature
                 for ll in histogramme[feature]:
-                    lCour.extend(np.array(ll)[np.where(np.isinf(np.array(ll))==False)])
+                    lCour.extend(np.array(ll)[np.where(np.isfinite(ll))])
                 lCour=np.array(lCour)
                 quantiles[i] = [scoreatpercentile(lCour, per) for per in [k*100/float(nb_bins_list[i]) for k in range(nb_bins_list[i]+1)]]
                 if iter_ is not None:
@@ -760,7 +761,7 @@ def computingBins(histogramme, nb_bins_list, bin_type='minmax', previous_binning
         for traj_num in range(nb_traj):
             up_to=0
             for i,feature in enumerate(featuresHisto):
-                ll=np.array(histogramme[feature][traj_num])[np.where(np.isinf(histogramme[feature][traj_num])==False)]
+                ll=np.array(histogramme[feature][traj_num])[np.where(np.isfinite(histogramme[feature][traj_num]))]
                 if len(ll)==0:
                     toAverage[feature].append(traj_num)
                 else:
