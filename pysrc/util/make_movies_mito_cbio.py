@@ -342,12 +342,12 @@ class MovieMaker(object):
             
             if not feature_movie_dir is None and not feature is None:
                 encode_command = 'mencoder "mf://%s/*.png" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
-                target_dir = os.path.join(feature_movie_dir, feature.replace(' ', '_'))
+                target_dir = feature_movie_dir
                 if not os.path.exists(target_dir):
                     os.makedirs(target_dir)
-                encode_command %= (f_temp_dir, os.path.join(target_dir, 'feature_projection_%s' % movieName))
+                encode_command %= (f_temp_dir, os.path.join(target_dir, '%s_%s' % (feature, movieName)))
                 print encode_command
-                print 'movie generated: %s' % os.path.join(target_dir, 'feature_projection_%s' % movieName)
+                print 'movie generated: %s' % os.path.join(target_dir, '%s_%s' % (feature, movieName))
                 os.system(encode_command)
                 
         except:
@@ -421,7 +421,7 @@ if __name__ ==  "__main__":
  'effective speed',
  'diffusion coefficient',
  'largest move',
- 'ball number1']
+ 'ball number1', 'entropy1', 'entropy2']
     for category in l:
         if category !='mean squared displacement':
             ids = movies[category]

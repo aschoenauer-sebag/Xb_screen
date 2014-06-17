@@ -113,7 +113,7 @@ def Spearman(folder = '../resultData/features_on_films',feature=None, outputFile
             
         f=open(os.path.join(folder, file_))
         distances = pickle.load(f); f.close()
-        siRNAL.extend([siRNA for k in range(len(distances[distances.keys()[0]]))])
+        
         if parameters == None:
             parameters = distances.keys()
         elif len(distances.keys())!=set_number:
@@ -123,11 +123,13 @@ def Spearman(folder = '../resultData/features_on_films',feature=None, outputFile
             print file_
             pdb.set_trace()
         elif np.any([len(distances[parameters[0]][:,featuresNumeriques.index(feature)])!=len(distances[parameter][:,featuresNumeriques.index(feature)]) for parameter in parameters]):
-            print file_
+            print 'z', file_
             continue
         else:
             for param in filter(lambda x: x not in parameters, distances.keys()):
                 parameters.append(param)
+                
+        siRNAL.extend([siRNA for k in range(len(distances[distances.keys()[0]]))])
         parameters = sorted(parameters, key=itemgetter(3, 1, 0))
         for i,feature in enumerate(featureL):
             for k,param in enumerate(parameters):
@@ -142,19 +144,20 @@ def Spearman(folder = '../resultData/features_on_films',feature=None, outputFile
     for i, feature in enumerate(featureL):
         for k, param in enumerate(parameters):
             if i==0:
-                print param
+                print k, param
             pvalues_mat[i,k,k]=1
             result[i][k]=np.array(result[i][k])
             ext1 = np.where(result[i][k]>scoreatpercentile(result[i][k], percentile))[0]
             
             if saveExtreme and k==2:
+                pdb.set_trace()
                 subExtreme1 = np.where(result[i][k]<scoreatpercentile(result[i][k], 100))[0]
                 commonIndices = filter(lambda x: x in ext1, subExtreme1)
                 orderedIndices = np.array(sorted(zip(commonIndices, result[i][k][commonIndices]), key=itemgetter(1), reverse=True))[:,0]
 
                 targetExp[feature]=[]
                 #np.random.shuffle(commonIndices)
-                for el in np.array(orderedIndices, dtype=int)[:20]:
+                for el in np.array(orderedIndices, dtype=int):
                     L = np.where(np.array(siRNAL)==siRNAL[el])
                     currExp=yeSiExp[siRNAL[el]]
                     targetExp[feature].append(currExp[np.where(L[0]==el)[0]])
@@ -305,7 +308,7 @@ class cellExtractor():
         '''
         histDict = defaultdict(list)
 
-        r, _, _,_, length, _, _, _ = histConcatenation(self.settings.data_folder, self.expList, self.settings.mitocheck_file,
+        _,r, _, _,_, length, _, _, _ = histConcatenation(self.settings.data_folder, self.expList, self.settings.mitocheck_file,
                                         self.settings.quality_control_file, verbose=self.verbose)
                     
         for i in range(len(length)):
@@ -331,7 +334,7 @@ class cellExtractor():
         for plate in plates:
             ctrlExpList = appendingControl([plate])
             try:
-                curr_r, _, _,_, curr_length, _, _, _ = histConcatenation(self.settings.data_folder, ctrlExpList, self.settings.mitocheck_file,
+                _,curr_r, _, _,_, curr_length, _, _, _ = histConcatenation(self.settings.data_folder, ctrlExpList, self.settings.mitocheck_file,
                                             self.settings.quality_control_file, verbose=self.verbose)
             except:
                 print "Problem with controls from plate {}".format(plate)
@@ -341,7 +344,7 @@ class cellExtractor():
                 for k, feature in enumerate(self.currInterestFeatures):
                     histDict[feature].append(curr_r[:,featuresSaved.index(feature)])
         assert(len(length)==len(plates))
-        assert(len(histDict["entropy1"])==len(plates))
+        assert(len(histDict[feature])==len(plates))
                     
         histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
         
