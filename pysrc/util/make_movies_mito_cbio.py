@@ -1,5 +1,5 @@
 import os
-
+import cPickle as pickle
 import shutil, pickle
 from optparse import OptionParser
 
@@ -26,20 +26,25 @@ FEATURES = [
 
 RADIUS = 11
 
-FEATURE_RANGE =  {'entropy1': (0.15, 0.75), 
-                  'mean squared displacement': (0.0, 50.0), 
-                  'entropy2': (0.0, 0.4), 
-                  'corrected straightness index': (0.0, 4.0), 
-                  'effective space length': (0.0, 60.0), 
-                  'norm convex hull area': (0.0, 30.0), 
-                  'movement type': (0.0, 0.8), 
-                  'ball number2': (0.1, 0.6), 
-                  'signed turning angle': (-3.141592653589793, 3.141592653589793), 
-                  'ball number1': (0.0, 2.5), 
-                  'largest move': (0.0, 15.0), 
-                  'effective speed': (0.0, 9.0), 
-                  'diffusion coefficient': (0.0, 10.0)
-                 }
+f=open('/cbio/donnees/aschoenauer/workspace2/Xb_screen/resultData/features_on_films/distExp_123etctrl_minmax_50.pkl', 'r')
+minMax = pickle.load(f); f.close()
+
+FEATURE_RANGE = dict(zip(FEATURES, minMax))
+
+#FEATURE_RANGE =  {'entropy1': (0.15, 0.75), 
+#                  'mean squared displacement': (0.0, 50.0), 
+#                  'entropy2': (0.0, 0.4), 
+#                  'corrected straightness index': (0.0, 4.0), 
+#                  'effective space length': (0.0, 60.0), 
+#                  'norm convex hull area': (0.0, 30.0), 
+#                  'movement type': (0.0, 0.8), 
+#                  'ball number2': (0.1, 0.6), 
+#                  'signed turning angle': (-3.141592653589793, 3.141592653589793), 
+#                  'ball number1': (0.09, 2.5), 
+#                  'largest move': (0.0, 15.0), 
+#                  'effective speed': (0.0, 9.0), 
+#                  'diffusion coefficient': (0.0, 10.0)
+#                 }
 
 
 # colors 
@@ -345,9 +350,9 @@ class MovieMaker(object):
                 target_dir = feature_movie_dir
                 if not os.path.exists(target_dir):
                     os.makedirs(target_dir)
-                encode_command %= (f_temp_dir, os.path.join(target_dir, '%s_%s' % (feature, movieName)))
+                encode_command %= (f_temp_dir, os.path.join(target_dir, '%s_%s' % (feature.replace(" ", ""), movieName)))
                 print encode_command
-                print 'movie generated: %s' % os.path.join(target_dir, '%s_%s' % (feature, movieName))
+                print 'movie generated: %s' % os.path.join(target_dir, '%s_%s' % (feature.replace(" ", ""), movieName))
                 os.system(encode_command)
                 
         except:

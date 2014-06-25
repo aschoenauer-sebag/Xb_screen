@@ -107,7 +107,7 @@ def checkingAllHDF5(folder="/share/data20T/mitocheck/Alice/results",
     + saves a file hdf5ToDel.pkl with both outputs
     '''    
     
-    result_arr=np.zeros(shape=(1,2)); debut =True
+    result_arr=[]
     if liste == None:
         liste=os.listdir(folderRaw)
     liste.sort()
@@ -124,14 +124,9 @@ def checkingAllHDF5(folder="/share/data20T/mitocheck/Alice/results",
             filename = os.path.join(folder, plate, 'hdf5', '00{}_01.hdf5'.format(well))
             number = countingHDF5(filename, plate, '00{}_01'.format(well))
                         
-            if debut and (nbImages<90 or number<90):
+            if (nbImages<90 or number<90):
                 print well,
-                result_arr[0,0]=nbImages
-                result_arr[0,1]=number
-                debut =False
-            elif (nbImages<90 or number<90):
-                print well,
-                result_arr=np.hstack((result_arr, np.array([nbImages, number])[np.newaxis, :]))
+                result_arr.append((plate, well, nbImages, number))
     f=open('nb_Images_raw_hdf5.pkl', 'w'); pickle.dump(result_arr, f); f.close()
     return 
 

@@ -150,7 +150,6 @@ def Spearman(folder = '../resultData/features_on_films',feature=None, outputFile
             ext1 = np.where(result[i][k]>scoreatpercentile(result[i][k], percentile))[0]
             
             if saveExtreme and k==2:
-                pdb.set_trace()
                 subExtreme1 = np.where(result[i][k]<scoreatpercentile(result[i][k], 100))[0]
                 commonIndices = filter(lambda x: x in ext1, subExtreme1)
                 orderedIndices = np.array(sorted(zip(commonIndices, result[i][k][commonIndices]), key=itemgetter(1), reverse=True))[:,0]
@@ -160,6 +159,10 @@ def Spearman(folder = '../resultData/features_on_films',feature=None, outputFile
                 for el in np.array(orderedIndices, dtype=int):
                     L = np.where(np.array(siRNAL)==siRNAL[el])
                     currExp=yeSiExp[siRNAL[el]]
+                    try:
+                        assert len(currExp)==len(L[0])
+                    except AssertionError:
+                        pdb.set_trace()
                     targetExp[feature].append(currExp[np.where(L[0]==el)[0]])
                     
             for j in range(k+1, len(parameters)):
