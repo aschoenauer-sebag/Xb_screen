@@ -88,7 +88,8 @@ def countingHDF5(filename, plate, well):
         print 'No file'
         return 1000
     else:
-        return tabObjects[-1][0]+1#otherwise we forget the last frame
+        #changed to take into account that for some movies frames are not in the chronological order in the hdf5 file
+        return np.max(np.array(tabObjects, dtype=int))+1#otherwise we forget the last frame
 
 def checkingAllHDF5(folder="/share/data20T/mitocheck/Alice/results",
     folderRaw='/share/data20T/mitocheck/compressed_data', liste=None):

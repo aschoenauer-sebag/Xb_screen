@@ -1,7 +1,11 @@
 import os, pdb, datetime
 from warnings import warn
 from collections import defaultdict
-    
+
+#ATTENTION ICI ON A UN PROBLEME D'IMPORT SI ON REGARDE CA DEPUIS FIJI POUR FAIRE L'EXTRACTION DES IMAGES. MAIS BON CA TOMBE BIEN ON VEUT PLUS TROP L'UTILISER
+from django.core.exceptions import ObjectDoesNotExist
+from plates.models import Plate,Cond, Treatment, Well
+from analyzer import CONTROLS
 WELL_PARAMETERS = ['Medium', 'Serum', 'Xenobiotic', 'Dose']
 
 def readPlateSetting(plateL, confDir, nb_row=None, nb_col=None, countEmpty=False, startAtZero = False,
@@ -13,10 +17,6 @@ def readPlateSetting(plateL, confDir, nb_row=None, nb_col=None, countEmpty=False
     The csv file should not contain spaces in the cells
     '''
     
-    if addPlateWellsToDB:
-        from django.core.exceptions import ObjectDoesNotExist
-        from plates.models import Plate,Cond, Treatment, Well
-        from analyzer import CONTROLS
     
     result = {}
     idL = {}

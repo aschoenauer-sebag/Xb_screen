@@ -78,10 +78,12 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False):
             raise
         tabSecondaryFeatures = vi.readHDF5(filename, pathSecondaryFeatures)
     
-    frameNumber =tabObjects[-1][0]+1#otherwise we forget the last frame
+    frameList = np.array(tabObjects, dtype=int)
+#this to deal with hdf5 files where the frames are not in the chronological order
+    frameNumber =np.max(frameList)+1#otherwise we forget the last frame
     frameLot = frameLots()
     for i in range(frameNumber):
-        frameList = np.array(tabObjects, dtype=int)
+        
         try:
             cellsF = cells(i, frameList, tabObjects)
         except IndexError:
@@ -128,11 +130,11 @@ def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False):
     
     if int(tabFeatures.shape[1])!=FEATURE_NUMBER:
         raise FeatureException('There is a problem with the size of features array')
-    
-    frameNumber =tabObjects[-1][0]+1#otherwise we forget the last frame
+#this to deal with hdf5 files where the frames are not in the chronological order
+    frameList = np.array(tabObjects, dtype=int)
+    frameNumber = np.max(frameList)+1#otherwise we forget the last frame
     frameLot = frameLots()
     for i in range(frameNumber):
-        frameList = np.array(tabObjects, dtype=int)
         try:
             cellsF = cells(i, frameList, tabObjects)
         except IndexError:
