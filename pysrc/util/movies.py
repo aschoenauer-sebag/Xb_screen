@@ -32,6 +32,7 @@ def makeMovie(imgDir, outDir,gene, plate, well, tempDir=None):
         img = Image.open(os.path.join(imgDir, imageName))#vi.readImage(os.path.join(imgDir, imageName), dtype='DOUBLE')
         suffix = imageName.split('.')[-1]
 #pour une image en deux couleurs il faut enregistrer un canal sur une couleur, un autre sur une autre et avoir une image RGB que l'on sauve
+        pdb.set_trace()
         if np.max(img)<256:
             img.save(os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')))#vi.writeImage(img, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')))
         else:
@@ -84,8 +85,10 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
         tempDir = os.path.join(outDir, 'temp')
     if not os.path.isdir(tempDir):
         os.makedirs(tempDir)
-        
-    lstImage={ch:filter(lambda x: 'tif' in x and int(x.split('_')[-1][1:6])==ch, os.listdir(imgDir)) for ch in channels}#os.listdir(imgDir)
+    if len(channels)>1:
+        lstImage={ch:filter(lambda x: 'tif' in x and int(x.split('_')[-1][1:6])==ch, os.listdir(imgDir)) for ch in channels}#os.listdir(imgDir)
+    else:
+        lstImage={channels[0]:os.listdir(imgDir)}
     
 #first I look at the min pixel values on all channels for subsequent background substraction
     min_={ch : 500 for ch in channels}

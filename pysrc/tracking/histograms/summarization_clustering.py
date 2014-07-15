@@ -538,6 +538,9 @@ class hitFinder():
                                         result[k,j,i].append(d[parameter_set][0])
                                     except AttributeError:
                                         result[k,j,i]=d[parameter_set]
+                                elif d[parameter_set]==[]:
+                                    print siRNA, 'liste vide de pvalues'
+                                    result[k,j,i].append(np.nan)
                                 else:
                                     try:
                                         result[k,j,i].append(d[parameter_set])

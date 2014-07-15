@@ -21,23 +21,21 @@ def is_ctrl(experiment):
     return False
 
 
-def renameFromZeiss(inputFolder, clone, dose, well, outputFolder=None):        
+def renameFromZeiss(inputFolder, plate, outputFolder=None):        
 #ici c'est pour renommer des images dans le cas ou pour une raison connue de Dieu seul
 #le puits n'est pas passe dans le nom du fichier
 #inputfolder doit etre le nom du dossier avec la plaque
-    for well in os.listdir(inputFolder):
-        for file_ in os.listdir(os.path.join(inputFolder,well)):
-            os.rename(os.path.join(inputFolder,well, file_), os.path.join(inputFolder,well, file_[:-18]+'_--'+well+'--P00001'+file_[-18:]))
+#    for well in os.listdir(inputFolder):
+#        for file_ in os.listdir(os.path.join(inputFolder,well)):
+#            os.rename(os.path.join(inputFolder,well, file_), os.path.join(inputFolder,well, file_[:-18]+'_--'+well+'--P00001'+file_[-18:]))
 
-    #SI ON A DES IMAGES ZEISS PUREMENT ET SIMPLEMENT
-#    images = os.listdir(inputFolder)
-#    for image in images:
-#        l=image.split('_')
-#        new_name = 'Clone{}-Dose{}--W{:>05}--P00001_t{:>05}_c{:>05}.tif'.format(clone, dose, well, l[1][1:4], l[1][-1])
-#        if outputFolder is None:
-#            os.rename(os.path.join(inputFolder, image), os.path.join(inputFolder, new_name))
-#        else:
-#            shutil.copy(os.path.join(inputFolder, image), os.path.join(outputFolder, new_name))
+    #SI ON A DES IMAGES ZEISS PUREMENT ET SIMPLEMENT, noms des dossiers deja changes
+     for well in range(1,97):
+        w = "W%05i"%well
+        for el in os.listdir(os.path.join(inputFolder, w)):
+            timep = int(el.split('_')[2][1:4])
+            ch = int(el.split('_')[2][-1])
+            os.rename(os.path.join(inputFolder, w, el), os.path.join(inputFolder,w, '%s--%s--P0001_t%05i_c%05i.tif'%(plate, w, timep, ch)))
 
 
 '''
@@ -125,10 +123,8 @@ def checkingAllHDF5(folder="/share/data20T/mitocheck/Alice/results",
             filename = os.path.join(folder, plate, 'hdf5', '00{}_01.hdf5'.format(well))
             number = countingHDF5(filename, plate, '00{}_01'.format(well))
                         
-            if (nbImages<90 or number<90):
-                print well,
-                result_arr.append((plate, well, nbImages, number))
-    f=open('nb_Images_raw_hdf5.pkl', 'w'); pickle.dump(result_arr, f); f.close()
+            result_arr.append((plate, well, nbImages, number))
+    f=open('nb_Images2_raw_hdf5.pkl', 'w'); pickle.dump(result_arr, f); f.close()
     return 
 
 def countingImages(folder='/share/data20T/mitocheck/compressed_data'):

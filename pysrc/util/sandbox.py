@@ -5,6 +5,8 @@ import cPickle as pickle
 import numpy as np
 from PIL import Image
 from scipy.stats import ks_2samp
+import vigra.impex as vi
+
 
 from tracking.trajPack import sdFeatures1, logTrsf, featuresSaved, histLogTrsf,\
     histLogTrsf_meanHistFeat
@@ -12,6 +14,23 @@ from tracking.plots import plotTraj3d
 from tracking.histograms import *
 from util.listFileManagement import expSi
 #from histograms.k_means_transportation import WEIGHTS
+
+def countingFluoAlamar(rawFolder="/media/lalil0u/FREECOM HDD/Alice/270614/images_fromZeiss", filename= "Fluo_DIC_%i_s%02i_ORG.tif"):
+    arr = np.zeros(shape = (178, 48))
+    for tour in range(1,179):
+        for well in range(1,49):
+            real_tour = tour*2+1
+            file_= filename %(real_tour, well)
+            
+            print file_, tour, well
+            image = vi.readImage(os.path.join(rawFolder, file_))
+            fluo = np.mean(image)
+            arr[tour-1, well-1] = fluo - 448.6 #on soustrait le blanc = milieu + Alamar sans cellules
+            
+        f=open('%s/fluoValues.pkl'%rawFolder, 'w')
+        pickle.dump(arr, f); f.close()
+
+
 
 def dependentJobs(debut, filename):
     f=open(filename, 'r')
