@@ -158,9 +158,6 @@ def distributionLongueurs(folder, exp_list, qc):
             if arr==None:
                 print "Array {} is None".format(os.path.join(pl, 'hist_tabFeatures_{}.pkl'.format(w)))
                 pdb.set_trace()
-            elif np.any(arr[:,-1]>=5) or np.any(np.isnan(arr)):
-                pdb.set_trace()
-                continue
             elif pl[:9]+'--'+w[2:5] not in yqualDict:
                 print "Quality control not passed", pl[:9], w[2:5]   
     
