@@ -30,14 +30,11 @@ def makeMovie(imgDir, outDir,gene, plate, well, tempDir=None):
     lstImageNames=os.listdir(imgDir)
     
     for imageName in lstImageNames:
-        img = Image.open(os.path.join(imgDir, imageName))#vi.readImage(os.path.join(imgDir, imageName), dtype='DOUBLE')
+        img = vi.readImage(os.path.join(imgDir, imageName))
+        normImage = vigra.VigraArray(img.shape, dtype=np.dtype('uint8'))
+#WARNING if you only do normImage = (img - etc then we have a flickering effect. Apparently vigra decides to do its normalization on every image as it pleases
         suffix = imageName.split('.')[-1]
-#pour une image en deux couleurs il faut enregistrer un canal sur une couleur, un autre sur une autre et avoir une image RGB que l'on sauve
-        if np.max(img)<256:
-            img.save(os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')))#vi.writeImage(img, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')))
-        else:
-            print "normalization"
-            normWrite(img, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')))
+        vi.writeImage(normImage, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')), dtype = np.dtype('uint8'))
     
     # movie filename
     movieName = '{}_P{}_W{}.avi'.format(gene, plate[:9], well)
