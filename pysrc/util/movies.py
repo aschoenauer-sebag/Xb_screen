@@ -11,7 +11,7 @@ def makeMovieFromExpDict(idDict, tempDir=None, inDir='/media/lalil0u/New/workspa
     
     for gene in idDict:
         for exp in idDict[gene]:
-            imgInDir = os.path.join(inDir, gene, exp[0]+'_'+exp[1][2:5])
+            imgInDir = filter(lambda x: x[:3] == exp[1][2:5], os.listdir(os.path.join(inDir, exp[0])))
             makeMovie(imgInDir, outDir, gene, exp[0], exp[1], tempDir)
     return
 
@@ -32,7 +32,6 @@ def makeMovie(imgDir, outDir,gene, plate, well, tempDir=None):
         img = Image.open(os.path.join(imgDir, imageName))#vi.readImage(os.path.join(imgDir, imageName), dtype='DOUBLE')
         suffix = imageName.split('.')[-1]
 #pour une image en deux couleurs il faut enregistrer un canal sur une couleur, un autre sur une autre et avoir une image RGB que l'on sauve
-        pdb.set_trace()
         if np.max(img)<256:
             img.save(os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')))#vi.writeImage(img, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')))
         else:
