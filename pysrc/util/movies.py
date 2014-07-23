@@ -30,7 +30,9 @@ def makeMovie(imgDir, outDir,gene, plate, well, tempDir=None):
     lstImageNames=os.listdir(imgDir)
     
     for imageName in lstImageNames:
+        print imageName
         img = vi.readImage(os.path.join(imgDir, imageName))
+        pdb.set_trace()
         normImage = vigra.VigraArray(img.shape, dtype=np.dtype('uint8'))
 #WARNING if you only do normImage = (img - etc then we have a flickering effect. Apparently vigra decides to do its normalization on every image as it pleases
         suffix = imageName.split('.')[-1]
