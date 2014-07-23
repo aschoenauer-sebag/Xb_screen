@@ -636,4 +636,4 @@ class ArffReader(object):
 
     
 if __name__ == '__main__':
-    checkingAllHDF5()
+    countingPNG()
