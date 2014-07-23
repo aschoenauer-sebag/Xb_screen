@@ -299,7 +299,7 @@ class HTMLGenerator():
         
         ###printing plate setup
         print "working on plate setup"
-        filename = '%s--%s.png' % ('plate', plate)
+        filename = '%s--%s.png' % ('plate', plate.split('_')[0])
         well_setup, texts = self.ap.plotPlate(resCour,self.params, filename, plotDir,missing_col = missing_col, title='{} {}'.format(plate, 'plate'))
         
         for pheno, setting in zip(['initCellCount', 'endCellCount', 'proliferation', 
@@ -307,7 +307,7 @@ class HTMLGenerator():
                                    "initNucleusOnly", "endNucleusOnly",
                                    'initCircMNucleus', 'endCircMNucleus'], settingL):
             print "working on ", pheno
-            filename = '%s--%s.png' % (pheno, plate)
+            filename = '%s--%s.png' % (pheno, plate.split('_')[0])
             
             data = self.ap.prepareData(resCour, self.ap.getPhenoVal(pheno), missing_col)
             absent = np.where(data==-1)
@@ -342,7 +342,7 @@ class HTMLGenerator():
             final_well_num = np.where(well_setup==well)[0][0]+1
             for pheno in self.settings.well_features:
                 print "working on ", pheno
-                filename = '{}_{}--W{:>05}.png'.format(pheno,plate, final_well_num)
+                filename = '{}_{}--W{:>05}.png'.format(pheno,plate.split('_')[0], final_well_num)
                 try:
                     data = self.wp.prepareData(resCour[well][pheno])
                 except KeyError:

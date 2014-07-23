@@ -178,7 +178,7 @@ def readNewPlateSetting(plateL, confDir, nb_row=None, nb_col=None, countEmpty=Fa
             nb_row = len(lines)-1 #dire le nb de lignes dans le fichier - mais en fait on a toujours huit colonnes
         
         if addPlateWellsToDB:
-            p = Plate(name = plateName, date = datetime.datetime.strptime(plate, dateFormat), nb_col=nb_col, nb_row=nb_row)
+            p = Plate(name = plateName, date = datetime.datetime.strptime(plate.split('_')[0], dateFormat), nb_col=nb_col, nb_row=nb_row)
             p.save()
         
         params=WELL_PARAMETERS

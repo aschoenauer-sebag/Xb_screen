@@ -135,7 +135,7 @@ def modifInertia(filename, div_name = 'transportation_exact', iteration = 5,
     return
 
 def distributionLongueurs(folder, exp_list, qc):
-    result=[]
+    R=[]
     yqualDict=expSi(qc)
 
     print "loading from experiments list"
@@ -143,9 +143,10 @@ def distributionLongueurs(folder, exp_list, qc):
     for pl, w in exp_list:
         print i,
         i+=1
+        result = []
         try:
             f=open(os.path.join(folder, pl, 'hist_tabFeatures_{}.pkl'.format(w)), 'r')
-            arr, coord, _, _, _, _= pickle.load(f)
+            arr, _, _, _, _, _= pickle.load(f)
             f.close()
         except IOError:
             print "Pas de fichier {}".format(os.path.join(pl, 'hist_tabFeatures_{}.pkl'.format(w)))
@@ -165,12 +166,24 @@ def distributionLongueurs(folder, exp_list, qc):
     
             else:
                 try:
-                    result.extend([len(coord[k][0]) for k in range(len(coord))])
+                    #result.extend([len(coord[k][0]) for k in range(len(coord))])
+                    result.append(arr.shape[0])
                 except (TypeError, EOFError, ValueError, AttributeError):
                     print "Probleme avec le fichier {}".format(os.path.join(pl, 'hist_tabFeatures_{}.pkl'.format(w)))
                     pdb.set_trace()
+        try:
+            f=open(os.path.join(folder, pl, 'traj_noF_densities_w{}.hdf5.pkl'.format(w)))
+            d=pickle.load(f); f.close()
+        except:
+            print 'Pbl trajectory file'
+            pdb.set_trace()
+        else:
+            result.append(d['movie_length'])
+            result.append(len(d["tracklets dictionary"][pl][w].lstTraj))
+            result.append(np.mean([len(el.lstPoints) for el in d['tracklets dictionary'][pl][w].lstTraj]))
+        R.append(result)
                     
-    return result
+    return R
 
 
 def findMovieForFeature(nr, ctrlStatus, length, who,features1):
