@@ -146,7 +146,7 @@ def distributionLongueurs(folder, exp_list, qc):
         result = []
         try:
             f=open(os.path.join(folder, pl, 'hist_tabFeatures_{}.pkl'.format(w)), 'r')
-            arr, _, _, _, _, _= pickle.load(f)
+            arr, _, _= pickle.load(f)
             f.close()
         except IOError:
             print "Pas de fichier {}".format(os.path.join(pl, 'hist_tabFeatures_{}.pkl'.format(w)))
