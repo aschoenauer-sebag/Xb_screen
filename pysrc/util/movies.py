@@ -29,14 +29,14 @@ def makeMovie(imgDir, outDir,gene, plate, well, tempDir=None):
         
     lstImageNames=os.listdir(imgDir)
     
-    for imageName in lstImageNames:
-        print imageName
-        img = vi.readImage(os.path.join(imgDir, imageName))
-        pdb.set_trace()
-        normImage = vigra.VigraArray(img.shape, dtype=np.dtype('uint8'))
-#WARNING if you only do normImage = (img - etc then we have a flickering effect. Apparently vigra decides to do its normalization on every image as it pleases
-        suffix = imageName.split('.')[-1]
-        vi.writeImage(normImage, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')), dtype = np.dtype('uint8'))
+#    for imageName in lstImageNames:
+#        print imageName
+#        img = vi.readImage(os.path.join(imgDir, imageName))
+#        pdb.set_trace()
+#        normImage = vigra.VigraArray(img.shape, dtype=np.dtype('uint8'))
+##WARNING if you only do normImage = (img - etc then we have a flickering effect. Apparently vigra decides to do its normalization on every image as it pleases
+#        suffix = imageName.split('.')[-1]
+#        vi.writeImage(normImage, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')), dtype = np.dtype('uint8'))
     
     # movie filename
     movieName = '{}_P{}_W{}.avi'.format(gene, plate[:9], well)
@@ -46,8 +46,9 @@ def makeMovie(imgDir, outDir,gene, plate, well, tempDir=None):
         os.makedirs(outDir)
     
     # encode command
-    encode_command = 'mencoder "mf://%s/*.jpg" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
-    encode_command %= (tempDir, os.path.join(outDir, movieName))
+    encode_command = #'mencoder "mf://%s/*.jpg" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
+    encode_command = "mencoder mf://%s/*.png -mf w=800:h=600:fps=25:type=png -ovc copy -oac copy -o %s"
+    encode_command %= (imgDir, os.path.join(outDir, movieName))
     print encode_command
     os.system(encode_command)
     
