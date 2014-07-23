@@ -1,6 +1,6 @@
 import vigra.impex as vi
 import vigra
-import os, pdb
+import os, pdb, shutil
 import numpy as np
 from PIL import Image
 
@@ -24,10 +24,13 @@ def makeMovie(imgDir, outDir,gene, plate, well, tempDir=None):
     # temp directory
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
+    
+    lstImageNames=os.listdir(imgDir)
     if not os.path.isdir(tempDir):
         os.makedirs(tempDir)
-        
-    lstImageNames=os.listdir(imgDir)
+    for el in lstImageNames:
+        shutil.copy(os.path.join(imgDir, el), tempDir)   
+    
     
 #    for imageName in lstImageNames:
 #        print imageName
@@ -48,12 +51,12 @@ def makeMovie(imgDir, outDir,gene, plate, well, tempDir=None):
     # encode command
     #encode_command = 'mencoder "mf://%s/*.jpg" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
     encode_command = "mencoder mf://%s/*.png -mf w=800:h=600:fps=25:type=png -ovc copy -oac copy -o %s"
-    encode_command %= (imgDir, os.path.join(outDir, movieName))
+    encode_command %= (tempDir, os.path.join(outDir, movieName))
     print encode_command
     os.system(encode_command)
     
     # cleaning up temporary directory
-    shell_command = 'rm %s/*.jpg' % tempDir
+    shell_command = 'rm %s/*.png' % tempDir
     print shell_command
     os.system(shell_command)
 
