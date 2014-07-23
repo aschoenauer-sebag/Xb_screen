@@ -46,7 +46,7 @@ def makeMovie(imgDir, outDir,gene, plate, well, tempDir=None):
         os.makedirs(outDir)
     
     # encode command
-    encode_command = #'mencoder "mf://%s/*.jpg" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
+    #encode_command = 'mencoder "mf://%s/*.jpg" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
     encode_command = "mencoder mf://%s/*.png -mf w=800:h=600:fps=25:type=png -ovc copy -oac copy -o %s"
     encode_command %= (imgDir, os.path.join(outDir, movieName))
     print encode_command
