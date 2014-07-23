@@ -127,15 +127,15 @@ def checkingAllHDF5(folder="/share/data20T/mitocheck/Alice/results",
     f=open('nb_Images2_raw_hdf5.pkl', 'w'); pickle.dump(result_arr, f); f.close()
     return 
 
-def countingImages(folder='/share/data20T/mitocheck/compressed_data'):
+def countingPNG(folder='/share/data20T/mitocheck/compressed_data'):
     '''
-    Counts the number of images of the raw data in the given folder
+    Counts the number of PNG images of the raw data in the given folder
     
     Input:
     -folder: where the raw data is located
     
     Output:
-    saves a file small.pkl with the experiments with nbImages<90 in the raw data
+    saves a file PNG.pkl with the experiments with png images as opposed to tiff, in the raw data
     '''
     liste=os.listdir(folder); liste.sort()
     print len(liste)
@@ -144,12 +144,13 @@ def countingImages(folder='/share/data20T/mitocheck/compressed_data'):
         print "'",plate, "',"
         ll=os.listdir(os.path.join(folder, plate))
         for well in ll:
-            nbImages = len(os.listdir(os.path.join(folder, plate, well)))
-            if nbImages<90:
-                print nbImages, '******************',plate, well
+            images = os.listdir(os.path.join(folder, plate, well))
+            zou = np.any(np.array([image[-3:]=="png" for image in images]))
+            if zou:
+                print '******************',plate, well
                 small.append(os.path.join(folder, plate, well))
                 
-    f=open('small.pkl', 'w'); pickle.dump(small, f); f.close()
+    f=open('PNG.pkl', 'w'); pickle.dump(small, f); f.close()
     return
                     
 
