@@ -11,7 +11,8 @@ def makeMovieFromExpDict(idDict, tempDir=None, inDir='/media/lalil0u/New/workspa
     
     for gene in idDict:
         for exp in idDict[gene]:
-            imgInDir = filter(lambda x: x[:3] == exp[1][2:5], os.listdir(os.path.join(inDir, exp[0])))
+            imgInDir = filter(lambda x: x[:3] == exp[1][2:5], os.listdir(os.path.join(inDir, exp[0])))[0]
+            imgInDir = os.path.join(inDir, exp[0], imgInDir)
             makeMovie(imgInDir, outDir, gene, exp[0], exp[1], tempDir)
     return
 
