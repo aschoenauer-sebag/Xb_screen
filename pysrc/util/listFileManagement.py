@@ -72,7 +72,7 @@ def deletingAllForPlateWell(todel, folder='/share/data20T/mitocheck/tracking_res
 
 def orderHDF5(filename, plate, well):
     '''
-    Counting the number of images contained in an hdf5 file as a proxy for the number of images of the original experiment
+    Returning the number of the frame following the frame number 0 in the hdf5 File
     
     Input:
     - filename: complete path to the hdf5 file as produced by CellCognition when extracting features from the raw data
@@ -91,18 +91,13 @@ def orderHDF5(filename, plate, well):
 
 def checkingHDF5(folder="/share/data20T/mitocheck/Alice/results", liste=None):
     '''
-    Checking the number of images for all experiments in a certain folder.
-    The function checks the number of images in the raw data folder as well as the number of images
-    in the hdf5 file. If any of those is under 90, it is recorded. A table summing up the results is saved
+    Checking if the images are in the right order in the hdf5 file, for all experiments in a certain folder.
     
     Input:
     - folder: location of hdf5 files 
-    - folderRaw: location of the raw data
     
     Output:
-    BAD: experiments where nbImages<90 in hdf5 file but not in raw data
-    veryBAD: experiments where nbImages<90 in both hdf5 file and raw data
-    + saves a file hdf5ToDel.pkl with both outputs
+    name (plate, well) when the images are not in the chronological order in the hdf5 file
     '''    
     
     result_arr=[]
@@ -691,4 +686,4 @@ class ArffReader(object):
 
     
 if __name__ == '__main__':
-    countingPNG()
+    checkingHDF5()
