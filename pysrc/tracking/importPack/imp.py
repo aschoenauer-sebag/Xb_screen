@@ -218,16 +218,6 @@ class cells():
         beginFrame = where_[0][0]
         endFrame = where_[0][-1]
         self.cellLines={tabObjects[k][1]:k for k in range(beginFrame, endFrame+1)}
-        
-###ANCIENNE METHODE PLUS LENTE
-#        for j in range(tabObjects.shape[0]):
-#            if (tabObjects[j][0])==frame: 
-#                self.cellLines[tabObjects[j][1]] = j
-#                print j
-#                break
-#        while (int(j)<int(tabObjects.shape[0]) and (tabObjects[j][0])==frame):
-#            self.cellLines[tabObjects[j][1]] = j
-#            j+=1
 
 ###PLUS ELEGANT MAIS PLUS LENT
 ##        dict_={el[1]:np.where(tabObjects==el)[0][0] for el in filter(lambda x: x[0]==frame, tabObjects)}    

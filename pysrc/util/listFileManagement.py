@@ -70,6 +70,61 @@ def deletingAllForPlateWell(todel, folder='/share/data20T/mitocheck/tracking_res
         
     return
 
+def orderHDF5(filename, plate, well):
+    '''
+    Counting the number of images contained in an hdf5 file as a proxy for the number of images of the original experiment
+    
+    Input:
+    - filename: complete path to the hdf5 file as produced by CellCognition when extracting features from the raw data
+    - 
+    '''
+
+    pathObjects = "/sample/0/plate/"+plate+"/experiment/"+well[:-3]+"/position/"+well[-1]+"/object/primary__primary"
+    try:
+        tabObjects = vi.readHDF5(filename, pathObjects)
+    except:
+        print 'No file'
+        return 1000
+    else:
+        arr = np.array(tabObjects, dtype=int)
+        return arr[np.where(arr>0)][0]#otherwise we forget the last frame
+
+def checkingHDF5(folder="/share/data20T/mitocheck/Alice/results", liste=None):
+    '''
+    Checking the number of images for all experiments in a certain folder.
+    The function checks the number of images in the raw data folder as well as the number of images
+    in the hdf5 file. If any of those is under 90, it is recorded. A table summing up the results is saved
+    
+    Input:
+    - folder: location of hdf5 files 
+    - folderRaw: location of the raw data
+    
+    Output:
+    BAD: experiments where nbImages<90 in hdf5 file but not in raw data
+    veryBAD: experiments where nbImages<90 in both hdf5 file and raw data
+    + saves a file hdf5ToDel.pkl with both outputs
+    '''    
+    
+    result_arr=[]
+    if liste == None:
+        liste=os.listdir(folder)
+    liste.sort()
+
+    for plate in liste:
+        print plate
+        fileList = os.listdir(os.path.join(folder, plate,'hdf5'))
+        fileList.sort()
+        for fichier in fileList:
+            well=fichier[2:5]
+
+            filename = os.path.join(folder, plate, 'hdf5', '00{}_01.hdf5'.format(well))
+            number = orderHDF5(filename, plate, '00{}_01'.format(well))
+                        
+            result_arr.append((plate, well, number))
+    f=open('orderImages_hdf5.pkl', 'w'); pickle.dump(result_arr, f); f.close()
+    return 
+
+
 def countingHDF5(filename, plate, well):
     '''
     Counting the number of images contained in an hdf5 file as a proxy for the number of images of the original experiment
