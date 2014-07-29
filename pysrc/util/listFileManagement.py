@@ -37,8 +37,8 @@ def renameFromZeiss(inputFolder, plate, outputFolder=None):
             ch = int(el.split('_')[2][-1])
             os.rename(os.path.join(inputFolder, w, el), os.path.join(inputFolder,w, '%s--%s--P0001_t%05i_c%05i.tif'%(plate, w, timep, ch)))
 
-def renameFromZeissExpDesigner(folderList, inputFolder, outputFolder):
-    for folder in folderList:
+def renameFromZeissExpDesigner(inputFolder, outputFolder):
+    for folder in os.listdir(inputFolder):
         number = int(folder.split("_")[-1][:-1])
         ligne = number%5
         tour = number/5+1
@@ -125,16 +125,19 @@ def checkingHDF5(folder="/share/data20T/mitocheck/Alice/results", liste=None):
     liste.sort()
 
     for plate in liste:
-        print plate
-        fileList = os.listdir(os.path.join(folder, plate,'hdf5'))
-        fileList.sort()
-        for fichier in fileList:
-            well=fichier[2:5]
-
-            filename = os.path.join(folder, plate, 'hdf5', '00{}_01.hdf5'.format(well))
-            number = orderHDF5(filename, plate, '00{}_01'.format(well))
-                        
-            result_arr.append((plate, well, number))
+        try:
+            fileList = os.listdir(os.path.join(folder, plate,'hdf5'))
+        except OSError:
+            continue
+        else:         
+            fileList.sort()
+            for fichier in fileList:
+                well=fichier[2:5]
+    
+                filename = os.path.join(folder, plate, 'hdf5', '00{}_01.hdf5'.format(well))
+                number = orderHDF5(filename, plate, '00{}_01'.format(well))
+                            
+                result_arr.append((plate, well, number))
     f=open('orderImages_hdf5.pkl', 'w'); pickle.dump(result_arr, f); f.close()
     return 
 
