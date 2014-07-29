@@ -37,6 +37,25 @@ def renameFromZeiss(inputFolder, plate, outputFolder=None):
             ch = int(el.split('_')[2][-1])
             os.rename(os.path.join(inputFolder, w, el), os.path.join(inputFolder,w, '%s--%s--P0001_t%05i_c%05i.tif'%(plate, w, timep, ch)))
 
+def renameFromZeissExpDesigner(folderList, inputFolder, outputFolder):
+    for folder in folderList:
+        number = int(folder.split("_")[-1][:-1])
+        ligne = number%5
+        tour = number/5+1
+        images = os.listdir(os.path.join(inputFolder, folder))
+        if ligne>0 and ligne <4:
+            for image in images:
+                puits = (ligne-1)*8+int(image.split('_')[-2].split('s')[-1].split('c')[0])
+                channel = int(image.split('_')[-2].split('s')[-1].split('c')[1])
+                shutil.copy(os.path.join(inputFolder, folder, image), 
+                            os.path.join(outputFolder, "W%05i"%puits, '%s--W%05i--P0001_t%05i_c%05i.tif'%("230714", puits, tour, channel)))
+        if ligne ==4:
+            for image in images:
+                puits = (ligne-1)*8+int(image.split('_')[-2].split('s')[-1])
+                channel = 1
+                shutil.copy(os.path.join(inputFolder, folder, image), 
+                            os.path.join(outputFolder, "W%05i"%puits, '%s--W%05i--P0001_t%05i_c%05i.tif'%("230714", puits, tour, channel)))
+
 
 '''
 File containing scripts to deal with files: copying from a place to another, counting how many there are of each type etc.
