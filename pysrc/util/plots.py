@@ -14,10 +14,23 @@ couleurs.append("#66c2a5")
 
 couleurs.append("#fdae61")
 couleurs.append("#abdda4")
+
 couleurs.append("#fee08b")
 couleurs.append("#e6f598")
 
+couleurs.append('#a50026')
+couleurs.append('#d73027')
+#f46d43
+#fdae61
+#fee08b
+#ffffbf
+#d9ef8b
+#a6d96a
+#66bd63
+#1a9850
+#006837
 
+#couleurs.extend(basic_colors)
 
 
 #couleurs.append("#A50026")

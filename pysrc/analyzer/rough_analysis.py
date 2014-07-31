@@ -4,6 +4,7 @@ import os, sys, pdb, string
 import brewer2mpl
 import matplotlib.pyplot as p
 import numpy as np
+import vigra.impex as vi
 
 from itertools import repeat
 
@@ -15,6 +16,47 @@ from tracking.plots import markers
 from tracking.trajPack.clustering import couleurs
 
 from plateSetting import readPlateSetting
+
+def compaSegmentation(hdf5Folder, plate, sh=False, number=False): 
+    '''
+    Outputs the average number of well-segmented objects per frame and the percentage of well-segmented objects per frame
+    
+    '''
+    result={}
+    
+    for well in filter(lambda x: 'hdf5' in x, os.listdir(hdf5Folder)):
+        print well
+        path = "/sample/0/plate/"+plate+"/experiment/"+well[:5]+"/position/1/feature/primary__primary/object_classification/prediction"
+        classification = np.array(vi.readHDF5(os.path.join(hdf5Folder, well), path), dtype=int)
+        #num_objects = len(classification)
+        
+        pathObjects= "/sample/0/plate/"+plate+"/experiment/"+well[:5]+"/position/1/object/primary__primary"
+        objects = vi.readHDF5(os.path.join(hdf5Folder, well), pathObjects)
+        frameList = np.array(objects, dtype=int)
+        num_frames = np.max(frameList)    
+        classif_globale = np.sum(classification)/float(num_frames)    
+#        for k in range(1, num_frames+1):
+#            if len(np.where(frameList==k)[0])==0:
+#                print k
+#                pdb.set_trace()
+        classif_perFrame = [np.sum(classification[np.where(frameList==k)])/float(len(np.where(frameList==k)[0])) for k in range(1, num_frames+1)] if not number else [np.sum(classification[np.where(frameList==k)]) for k in range(1, num_frames+1)]
+
+        result[well]=(classif_globale, classif_perFrame)
+        
+    if sh:
+        from util.plots import couleurs
+        import matplotlib.pyplot as p
+        f=p.figure(); ax=f.add_subplot(111)
+        for k,w in enumerate(sorted(result.keys())):
+            ax.scatter(range(174), result[w][1], color=couleurs[k], label=int(w[:5]))
+            ax.text(180, result[w][1][-1], w[:5])
+            ax.legend(); ax.grid(True); ax.set_xlim(0,200)
+            if not number:
+                ax.set_ylim(0.3, 1)
+            else:
+                ax.set_ylim(80, 350)
+        p.show()
+    return result
 
 def allDataExtraction(dataFolder):
     newFrameLot = None

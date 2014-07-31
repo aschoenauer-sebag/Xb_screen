@@ -195,7 +195,7 @@ class hitFinder():
                     continue
                 if self.settings.Fisher:
                     p_vals[param_tuple].append(np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
-                                                                         simulate_p_value=True, B=2000000)[0][0]))
+                                                                         simulate_p_value=True, B=20000000)[0][0]))
                 else:    
                     raise ValueError
                 #
@@ -415,7 +415,7 @@ class hitFinder():
                     f=open(os.path.join(self.settings.result_folder, '{}_mean_itercorr.pkl'.format(test.func_name)), 'w')
                     pickle.dump(mean_corr, f); f.close()
         #plotting this correlation
-        cmap = brewer2mpl.get_map('Blues', 'sequential', 3).mpl_colormap
+        cmap = brewer2mpl.get_map('RdBu', 'diverging', 3).mpl_colormap
         for k, comparison in enumerate(comparisons):
             f, ax = p.subplots(1, sharex=True, sharey=True)
             zou=ax.pcolormesh(parameter_corr[k],
@@ -488,19 +488,17 @@ class hitFinder():
         except IndexError:
             f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename.format(1)), 'r')
             d=pickle.load(f); f.close()
-            parameters = sorted(d.keys(), key=itemgetter(4))
         except IOError:
             raise
-        else:
-            parameters = sorted(d.keys(), key=itemgetter(4, 1, 7))
+        parameters = sorted(d.keys(), key=itemgetter(0, 9,5, 2, 7, 8))
     #getting list of all siRNAs for which p-values have been calculated in at least one case
     
         if not testCtrl:
-            pvalL = filter(lambda x: 'pval' in x and 'CTRL' not in x, os.listdir(self.settings.result_folder))
+            pvalL = filter(lambda x: 'pval' in x and 'CTRL' not in x and 'png' not in x, os.listdir(self.settings.result_folder))
             siRNAL=[el.split('_')[-1][:-4] for el in pvalL]
         else:
             #in this case we're working with ctrl experiments so siRNAL will contain plate names
-            pvalL = filter(lambda x: 'pval' in x and 'CTRL' in x, os.listdir(self.settings.result_folder))
+            pvalL = filter(lambda x: 'pval' in x and 'CTRL' in x and 'png' not in x, os.listdir(self.settings.result_folder))
             siRNAL=['{}_{}'.format(el.split('_')[-2],el.split('_')[-1][:-4]) for el in pvalL]
         
         siRNAL = Counter(siRNAL).keys()
@@ -528,7 +526,7 @@ class hitFinder():
                             f=open(os.path.join(self.settings.result_folder, 'pval_{}_{}{}_{}.pkl'.format(comparison, iter_, ctrl_iter, siRNA)))
                             d=pickle.load(f); f.close()
                         except IOError:
-                            print siRNA, iter_
+                            print "zou", siRNA, iter_
                             d={}
                         for j,parameter_set in enumerate(parameters):
                             
