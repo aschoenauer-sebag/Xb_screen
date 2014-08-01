@@ -32,6 +32,14 @@ from tracking.histograms.k_means_transportation import _labels_inertia_precomput
 from util.listFileManagement import strToTuple, expSi, appendingControl, is_ctrl, siEntrez
 from util import settings
 
+#code pour plotter la dist des p-val ctrl
+#import pylab as pl
+#for k in range(result.shape[1]):
+#    pl.hist(result[0,k, :], bins=np.logspace(-12, 0,num=100)); pl.ylim(0,100)
+#    pl.gca().set_xscale("log")
+#    pl.savefig('dist_pvalCtrl_{}.png'.format(k))
+#    pl.close()
+
 
 def _ctrlPca(r, whiten,nb_features_num,nb_composantes, folder, filename='pca_ctrlSimpson_whiten{}.pkl'):
     print "PCA, whiten ", whiten
@@ -195,7 +203,7 @@ class hitFinder():
                     continue
                 if self.settings.Fisher:
                     p_vals[param_tuple].append(np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
-                                                                         simulate_p_value=True, B=20000000)[0][0]))
+                                                                         simulate_p_value=True, B=2000000)[0][0]))
                 else:    
                     raise ValueError
                 #
@@ -386,7 +394,7 @@ class hitFinder():
             for j in range(result.shape[1]):
                 parameter_corr[k,j,j]=1    
                 try:
-                    thresholds.append(scoreatpercentile(result[k,j], 5))
+                    thresholds.append(scoreatpercentile(result[k,j], 10))
                 except:
                     pdb.set_trace()
                 msg+='{} {} \n'.format(j, thresholds[-1])
