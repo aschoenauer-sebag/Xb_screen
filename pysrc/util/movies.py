@@ -111,9 +111,10 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
     # movie filename
     movieName = 'P{}_W{}'.format(plate, well)
     
-    if not redo:
-        if os.path.isdir(outDir) and movieName+'_1.avi' in os.listdir(outDir):
-            return
+    
+    if os.path.isdir(outDir) and movieName+'_1.avi' in os.listdir(outDir):
+        print "Done already"
+        return
     
     # make output directory
     if not os.path.isdir(outDir):
