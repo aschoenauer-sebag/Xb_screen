@@ -40,7 +40,6 @@ def makeMovieFromPNG(imgDir, outDir,gene, plate, well, tempDir=None):
         os.makedirs(outDir)
     
     # encode command
-    #encode_command = 'mencoder "mf://%s/*.jpg" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
     encode_command = "mencoder mf://%s/*.png -mf w=800:h=600:fps=3:type=png -ovc copy -oac copy -o %s"
     encode_command %= (tempDir, os.path.join(outDir, movieName))
     print encode_command
@@ -53,7 +52,7 @@ def makeMovieFromPNG(imgDir, outDir,gene, plate, well, tempDir=None):
 
     return
 
-def makeMovie(imgDir, outDir, plate, well, tempDir=None):
+def makeMovie(imgDir, outDir, plate, well,clef = lambda x:int(x.split('_')[2]), tempDir=None):
     def normWrite(img, filename):
         img=(img-2**15)*(2**8-1)/(2**12-1)
         vi.writeImage(img, filename)
@@ -61,12 +60,24 @@ def makeMovie(imgDir, outDir, plate, well, tempDir=None):
     # temp directory
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
+    # make output directory
+    if not os.path.isdir(outDir):
+        os.makedirs(outDir)
+    # movie filename
+    movieName = 'P{}_W{}.avi'.format(plate, well)
+    
+    #checking for existence
+    if movieName in os.listdir(outDir):
+        print 'Done already'
+        return
     
     lstImageNames=os.listdir(imgDir)
     if not os.path.isdir(tempDir):
         os.makedirs(tempDir)
     f=open(os.path.join(tempDir, 'list.txt'), 'w')
-    lstImageNames.sort(key=lambda x:int(x.split('_')[2]))
+    
+    lstImageNames.sort(key=clef)
+    
     for imageName in lstImageNames:
         print imageName
         img = vi.readImage(os.path.join(imgDir, imageName))
@@ -77,20 +88,13 @@ def makeMovie(imgDir, outDir, plate, well, tempDir=None):
         vi.writeImage(normImage, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')), dtype = np.dtype('uint8'))
         f.write(os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg'))+'\n')    
 
-    # movie filename
-    movieName = 'P{}_W{}.avi'.format(plate, well)
     f.close()
-    
-    # make output directory
-    if not os.path.isdir(outDir):
-        os.makedirs(outDir)
     # encode command
     encode_command = "mencoder mf://@%s/list.txt -mf fps=5:type=jpg -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5"
     #encode_command = "mencoder mf://@list.txt -mf w=800:h=600:fps=3:type=png -ovc copy -oac copy -o %s"
     encode_command %= (tempDir, os.path.join(outDir, movieName))
     print encode_command
     os.system(encode_command)
-    pdb.set_trace()
     # cleaning up temporary directory
     shell_command = 'rm %s/*' % tempDir
     print shell_command
@@ -98,7 +102,7 @@ def makeMovie(imgDir, outDir, plate, well, tempDir=None):
 
     return
 
-def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=None, redo=True, doChannel1Only=True):
+def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=None, doChannel1Only=True):
     '''
     From a list of images containing information for two channels in different images, make 
     a movie. It is assumed that the name of a file is something like

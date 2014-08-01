@@ -44,8 +44,6 @@ startAtZero = False
 secondaryChannel =True
 ### do you want to count empty wells according to the plate setup ?
 countEmpty = False
-### do you want to redo videos that have already been extracted ?
-redoMovies = False
 
 density_plot_settings = {
     'min_count': 20,

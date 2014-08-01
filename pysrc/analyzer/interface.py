@@ -379,7 +379,7 @@ class HTMLGenerator():
                     continue
                 else:
                     makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=plate, well=np.where(well_setup==well)[0][0]+1, 
-                                           redo=self.settings.redoMovies)
+                                           )
         return    
     
     def changeDBWellNumbers(self,plate, well_setup, idL):
