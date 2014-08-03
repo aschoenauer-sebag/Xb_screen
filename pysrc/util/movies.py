@@ -151,7 +151,7 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
             if secondary:
                 try:
                     im = vi.readImage(os.path.join(imgDir, imageName2))
-                except OSError:
+                except RuntimeError:
                     secondary = False
                     print "No images on the {} channel for this well {}".format(ch, well)
                 else:

@@ -167,9 +167,9 @@ def readNewPlateSetting(plateL, confDir, startAtZero = False,
                 except:
                     raise AttributeError("Can't find the number of rows")
                 else:
-                    nb_col=a
+                    nb_col=8
             else:
-                nb_col=a
+                nb_col=12
             nb_row = len(well_lines) #dire le nb de lignes dans le fichier - mais en fait on a toujours huit colonnes
 
         #opening file with well names (clone name usually)
