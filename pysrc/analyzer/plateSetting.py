@@ -1,6 +1,7 @@
 import os, pdb, datetime
 from warnings import warn
 from collections import defaultdict
+import numpy as np
 
 #ATTENTION ICI ON A UN PROBLEME D'IMPORT SI ON REGARDE CA DEPUIS FIJI POUR FAIRE L'EXTRACTION DES IMAGES. MAIS BON CA TOMBE BIEN ON VEUT PLUS TROP L'UTILISER
 from django.core.exceptions import ObjectDoesNotExist
@@ -8,7 +9,7 @@ from plates.models import Plate,Cond, Treatment, Well
 from analyzer import CONTROLS
 WELL_PARAMETERS = ['Medium', 'Serum', 'Xenobiotic', 'Dose']
 
-def readPlateSetting(plateL, confDir, nb_row=None, nb_col=None, countEmpty=False, startAtZero = False,
+def readPlateSetting(plateL, confDir, startAtZero = False,
                      plateName=None, dateFormat='%d%m%y', defaultMedium = "Complet",
                      addPlateWellsToDB=False):
     '''
@@ -28,7 +29,7 @@ def readPlateSetting(plateL, confDir, nb_row=None, nb_col=None, countEmpty=False
             f=open(filename)
             lines=f.readlines(); f.close()
         except IOError:
-            r, iL= readNewPlateSetting([plate], confDir, nb_row, nb_col, countEmpty, startAtZero,
+            r, well_lines, iL= readNewPlateSetting([plate], confDir, startAtZero,
                      plateName, dateFormat, defaultMedium,
                      addPlateWellsToDB)
             result.update(r)
@@ -37,20 +38,20 @@ def readPlateSetting(plateL, confDir, nb_row=None, nb_col=None, countEmpty=False
             lines=[line.strip("\n").split("\\") for line in lines]
             
             #loading experiment parameters
-            if nb_col is None:
+
+            try:
+                a=int(lines[0][11])
+            except:
                 try:
-                    a=int(lines[0][11])
+                    a = int(lines[0][7])
                 except:
-                    try:
-                        a = int(lines[0][7])
-                    except:
-                        raise AttributeError("Can't find the number of rows")
-                    else:
-                        nb_col=8
+                    raise AttributeError("Can't find the number of rows")
                 else:
-                    nb_col=12
-    
-                nb_row = len(lines)-1 #dire le nb de lignes dans le fichier - mais en fait on a toujours huit colonnes
+                    nb_col=8
+            else:
+                nb_col=12
+
+            nb_row = len(lines)-1 #dire le nb de lignes dans le fichier - mais en fait on a toujours huit colonnes
             
             if addPlateWellsToDB:
                 p = Plate(name = plateName, date = datetime.datetime.strptime(plate, dateFormat), nb_col=nb_col, nb_row=nb_row)
@@ -61,14 +62,6 @@ def readPlateSetting(plateL, confDir, nb_row=None, nb_col=None, countEmpty=False
     
             for line in lines[1:nb_row+1]:
                 for el in line[:nb_col]:
-                    if el=='':
-                        #if countEmpty on indique aussi que les puits vides sont vides. Sinon le numero des puits fait comme si les puits vides
-                        #n'avaient jamais existe
-                        
-                        if countEmpty:
-                            result[plate][k]={'Name': 'empty'}
-                            k+=1
-                        continue
                     
                     result[plate][k]={'Name': el}
                     for i,param in enumerate(params):
@@ -135,12 +128,12 @@ def readPlateSetting(plateL, confDir, nb_row=None, nb_col=None, countEmpty=False
                         idL[plate][k]=w.id
                     k+=1
     if addPlateWellsToDB:
-        return result, WELL_PARAMETERS, idL
+        return result, WELL_PARAMETERS, well_lines, idL
     else:
         return result, WELL_PARAMETERS
     
     
-def readNewPlateSetting(plateL, confDir, nb_row=None, nb_col=None, countEmpty=False, startAtZero = False,
+def readNewPlateSetting(plateL, confDir, startAtZero = False,
                      plateName=None, dateFormat='%d%m%y', defaultMedium = "Complet",
                      addPlateWellsToDB=False):
     '''
@@ -150,32 +143,43 @@ def readNewPlateSetting(plateL, confDir, nb_row=None, nb_col=None, countEmpty=Fa
     '''
     result = {}
     idL = {}
+    well_lines_dict = {}
     for plate in plateL:
         result[plate]={}         
         idL[plate]={}
+        #getting where the existing wells are
+        try:
+            file_ =open(os.path.join(confDir,  "%s_Wells.csv" % plate))
+            well_lines = file_.readlines(); file_.close()
+        except OSError:
+            nb_col = 12; nb_row=8
+            well_lines = np.reshape(range(1,97),(8,12))
+        else:
+            well_lines=np.array([line.strip("\n").split(",") for line in well_lines[1:]], dtype=int)
+            print well_lines
+            well_lines_dict[plate]=well_lines
+            
+            try:
+                a=int(well_lines[0][11])
+            except:
+                try:
+                    a = int(well_lines[0][7])
+                except:
+                    raise AttributeError("Can't find the number of rows")
+                else:
+                    nb_col=a
+            else:
+                nb_col=a
+            nb_row = len(well_lines) #dire le nb de lignes dans le fichier - mais en fait on a toujours huit colonnes
+
         #opening file with well names (clone name usually)
         filename = os.path.join(confDir, "%s_Name.csv" % plate)
         
         f=open(filename)
         lines=f.readlines(); f.close()
         
-        lines=[line.strip("\n").split("\\") for line in lines]
+        lines=np.array([line.strip("\n").split(",") for line in lines][1:]).ravel()
         
-        #loading experiment parameters
-        if nb_col is None:
-            try:
-                a=int(lines[0][11])
-            except:
-                try:
-                    a = int(lines[0][7])
-                except:
-                    raise AttributeError("Can't find the number of rows")
-                else:
-                    nb_col=8
-            else:
-                nb_col=12
-
-            nb_row = len(lines)-1 #dire le nb de lignes dans le fichier - mais en fait on a toujours huit colonnes
         
         if addPlateWellsToDB:
             p = Plate(name = plateName, date = datetime.datetime.strptime(plate.split('_')[0], dateFormat), nb_col=nb_col, nb_row=nb_row)
@@ -188,88 +192,76 @@ def readNewPlateSetting(plateL, confDir, nb_row=None, nb_col=None, countEmpty=Fa
             print 'Loading %s parameter'%parameter
             f=open(os.path.join(confDir, "%s_%s.csv" % (plate, parameter)))
             current_lines=f.readlines()[1:]; f.close()
-            for line in current_lines:
-                current_parameters[parameter].extend(line.strip("\n").split("\\"))
-
-        k=0 if startAtZero else 1
-
-        for line in lines[1:nb_row+1]:
-            for el in line[:nb_col]:
-                if el=='':
-                    #if countEmpty on indique aussi que les puits vides sont vides. Sinon le numero des puits fait comme si les puits vides
-                    #n'avaient jamais existe
-                    
-                    if countEmpty:
-                        result[plate][k]={'Name': 'empty'}
-                        k+=1
-                    continue
+            current_parameters[parameter]=np.array([line.strip("\n").split(",") for line in current_lines]).ravel()
+        
+        k=1
+        for el in lines:
+            result[plate][k]={'Name': el}
+            for i,param in enumerate(params):
+                result[plate][k][param]=current_parameters[param][k-1]
                 
-                result[plate][k]={'Name': el}
-                for i,param in enumerate(params):
-                    result[plate][k][param]=current_parameters[param][k-1]
-                    
-                    
-                if addPlateWellsToDB:
-                    try:
-                        medium = result[plate][k]['Medium']
-                    except KeyError:
-                        medium=defaultMedium
-                    try:
-                        serum = int(result[plate][k]['Serum'])
-                    except KeyError:
-                        serum = None
-                    
-                    conds = Cond.objects.filter(medium = medium)
-                    if len(conds)==0:
-                        cond = addConds(medium, serum) 
-                    elif len(conds)==1:
-                        if conds[0].serum!=serum:
-                            cond =addConds(medium, serum)
-                        else:
-                            cond = conds[0]
+            if addPlateWellsToDB:
+                try:
+                    medium = result[plate][k]['Medium']
+                except KeyError:
+                    medium=defaultMedium
+                try:
+                    serum = int(result[plate][k]['Serum'])
+                except KeyError:
+                    serum = None
+                
+                conds = Cond.objects.filter(medium = medium)
+                if len(conds)==0:
+                    cond = addConds(medium, serum) 
+                elif len(conds)==1:
+                    if conds[0].serum!=serum:
+                        cond =addConds(medium, serum)
                     else:
-                        conds = conds.filter(serum =serum)
-                        if len(conds)==0:
-                            cond =addConds(medium, serum)
-                        elif len(conds)>1:
-                            raise
-                        else:
-                            cond = conds[0]
+                        cond = conds[0]
+                else:
+                    conds = conds.filter(serum =serum)
+                    if len(conds)==0:
+                        cond =addConds(medium, serum)
+                    elif len(conds)>1:
+                        raise
+                    else:
+                        cond = conds[0]
 
-                if addPlateWellsToDB and 'Xenobiotic' in params:
-                    xb = result[plate][k]['Xenobiotic']
-                    dose = int(result[plate][k]['Dose'])
-                    
-                    treatments = Treatment.objects.filter(xb = xb)
+            if addPlateWellsToDB and 'Xenobiotic' in params:
+                xb = result[plate][k]['Xenobiotic']
+                dose = int(result[plate][k]['Dose'])
+                
+                treatments = Treatment.objects.filter(xb = xb)
+                if len(treatments)==0:
+                    treatment = addTreatment(xb, dose)
+                elif len(treatments)==1:
+                    if treatments[0].dose != dose:
+                        treatment = addTreatment(xb, dose)
+                    else:
+                        treatment =treatments[0]
+                else:
+                    treatments = treatments.filter(dose =dose)
                     if len(treatments)==0:
                         treatment = addTreatment(xb, dose)
-                    elif len(treatments)==1:
-                        if treatments[0].dose != dose:
-                            treatment = addTreatment(xb, dose)
-                        else:
-                            treatment =treatments[0]
+                    elif len(treatments)>1:
+                        raise
                     else:
-                        treatments = treatments.filter(dose =dose)
-                        if len(treatments)==0:
-                            treatment = addTreatment(xb, dose)
-                        elif len(treatments)>1:
-                            raise
-                        else:
-                            treatment =treatments[0]
-                        
-                if addPlateWellsToDB:
-                    try:
-                        clone = result[plate][k]['Name'].split("_")[0]
-                    except:
-                        clone = None
-                    w=Well(num=k, plate=p, treatment = treatment, clone = clone)
-                    w.save()
-            #this is how to add many to many relations
-                    w.cond.add(cond); w.save()
-                    idL[plate][k]=w.id
-                k+=1
+                        treatment =treatments[0]
+                    
+            if addPlateWellsToDB:
+                try:
+                    clone = result[plate][k]['Name'].split("_")[0]
+                except:
+                    clone = None
+                w=Well(num=k, plate=p, treatment = treatment, clone = clone)
+                w.save()
+        #this is how to add many to many relations
+                w.cond.add(cond); w.save()
+                idL[plate][k]=w.id
+                
+            k+=1
     if addPlateWellsToDB:
-        return result, idL
+        return result, well_lines_dict, idL
     else:
         return result, {}
 

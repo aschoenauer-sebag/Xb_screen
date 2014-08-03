@@ -27,16 +27,12 @@ from plates.models import Well
 
 
 class HTMLGenerator():
-    def __init__(self, settings_file, nb_row = 8, nb_col =12):
+    def __init__(self, settings_file):
         self.settings = settings.Settings(settings_file, globals())
         
         self.plate = self.settings.plate
-        self.nb_row = nb_row
-        self.nb_col = nb_col
         self.ap = ArrayPlotter(plotDir=self.settings.plot_dir, 
-                               legendDir=self.settings.plot_dir, 
-                               nb_row=self.nb_row, 
-                               nb_col=self.nb_col)
+                               legendDir=self.settings.plot_dir) 
         self.wp = WellPlotter(plotDir=self.settings.plot_dir)
         
         
@@ -54,9 +50,7 @@ class HTMLGenerator():
                 try:
                     featureL, frameLotC= importTargetedFromHDF5(filename, plate, well,featureL, secondary=self.settings.secondaryChannel)
                 except ValueError:
-                    sys.stderr.write(sys.exc_info())
-                    sys.stderr.write("File {} containing data for plate {}, well {} does not contain all necessary data".format(filename, plate, well))
-
+                    continue
                 if newFrameLot == None:
                     newFrameLot = frameLotC 
                 else: newFrameLot.addFrameLot(frameLotC)
@@ -72,17 +66,22 @@ class HTMLGenerator():
         
     def formatData(self, frameLot, resD, featureL, featureChannels):
         featureL = list(featureL)
+        
         for plate in frameLot.lstFrames:
             if plate not in resD:
                 print plate, resD.keys()#just checkin
                 warn("Plate {} not in result dictionary from CSV file extraction".format(plate))
                 continue
             for well in frameLot.lstFrames[plate]:
+                #setting secondary=True for the well: by default we assume there's data for both channels (Cy3 and GFP)
+                secondary = True
                 if int(well[:-3]) not in resD[plate]:
                     warn("Well {} not in result dictionary from CSV file extraction".format(well))
                     continue
+                if frameLot.lstFrames[plate][well][0].features.shape[1]==self.FEATURE_NUMBER:
+                    print "No secondary channel for plate ", plate, "well ", well
+                    secondary=False
                 
-                #well2=well[:-3]
                 result={'cell_count':[], 'red_only':[], 'circularity':[]}
                 argL = zip(filter(lambda x: x != 'roisize', featureL), featureChannels)
                 result.update({'{}_ch{}'.format(arg[0], arg[1]+1):[] for arg in argL})
@@ -90,17 +89,32 @@ class HTMLGenerator():
                 for frame_nb in frameLot.lstFrames[plate][well]:
                     frame = frameLot.lstFrames[plate][well][frame_nb]
                     result["cell_count"].append(frame.centers.shape[0])
-                    red_only_dist =self.featureComparison(frame.features, featureL.index("roisize"))
-                    result["red_only"].append(self.featureHist(red_only_dist, bins = [0, 0.95, 1], binOfInterest = 1))
-
+                    try:
+                        red_only_dist =self.featureComparison(frame.features, featureL.index("roisize"))
+                        result["red_only"].append(self.featureHist(red_only_dist, bins = [0, 0.95, 1], binOfInterest = 1))
+                    except:
+                        if not secondary:
+                            result["red_only"].append(np.nan)
+                        else:
+                            raise
+                        
                     for arg in argL:
                         if arg[0]=='irregularity':
                             result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])]+1)
                             continue
-                        result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])])
+                        try:
+                            result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])])
+                        except:
+                            if not secondary and arg[1]+1==2:
+                                result['{}_ch{}'.format(arg[0], arg[1]+1)].append(np.nan)
+                            else:
+                                raise
                     if "circularity_ch2" in result:
                     #circularity at well level
-                        result['circularity'].append(self.featureHist(result["circularity_ch2"][-1], bins = [1, 1.5, 5], binOfInterest = 0))
+                        if secondary:
+                            result['circularity'].append(self.featureHist(result["circularity_ch2"][-1], bins = [1, 1.5, 5], binOfInterest = 0))
+                        else:
+                            result['circularity'].append(np.nan)
 
                         
                 result["initCellCount"]=result["cell_count"][0]
@@ -120,23 +134,6 @@ class HTMLGenerator():
                 resD[plate][int(well[:-3])].update(result)
                         
         return 1
-    
-    def addDummyExperiments(self, labtekId, resD):
-        '''
-        For experiments for which we don't have results, add them with values to zero
-        '''
-        nb_exp = self.nb_row * self.nb_col
-        idL = range(nb_exp) if self.settings.startAtZero else range(1, nb_exp+1)#['%s--%03i' % (labtekId, (i+1)) for i in range(nb_exp)]
-        for id in idL:
-            if not resD.has_key(id):
-                resD[id] = {'drug': 'XXX',
-                            'concentration': '0um',
-                            'initCellCount': np.nan,
-                            'endCellCount': np.nan,
-                            'proliferation': np.nan                            
-                            }
-            
-        return  
     
     def saveResults(self, plate, resD):
         try:
@@ -292,15 +289,15 @@ class HTMLGenerator():
         plotDir = os.path.join(self.settings.plot_dir, plate)
         if not os.path.isdir(plotDir):
             os.makedirs(plotDir)
-        try:
-            missing_col = self.settings.missing_cols[plate]
-        except KeyError:
-            missing_col = []
+#        try:
+#            missing_col = self.settings.missing_cols[plate]
+#        except KeyError:
+#            missing_col = []
         
         ###printing plate setup
         print "working on plate setup"
         filename = '%s--%s.png' % ('plate', plate.split('_')[0])
-        well_setup, texts = self.ap.plotPlate(resCour,self.params, filename, plotDir,missing_col = missing_col, title='{} {}'.format(plate, 'plate'))
+        texts = self.ap.plotPlate(resCour,self.params, filename, where_wells = self.well_lines_dict[plate],plotDir=plotDir, title='{} {}'.format(plate, 'plate'))
         
         for pheno, setting in zip(['initCellCount', 'endCellCount', 'proliferation', 
                                    'initCircularity', 'endCircularity',  
@@ -309,9 +306,11 @@ class HTMLGenerator():
             print "working on ", pheno
             filename = '%s--%s.png' % (pheno, plate.split('_')[0])
             
-            data = self.ap.prepareData(resCour, self.ap.getPhenoVal(pheno), missing_col)
+            data = self.ap.prepareData(resCour, self.ap.getPhenoVal(pheno), self.well_lines_dict[plate])
+            #absent ce sont les puits ou on n'a pas de data mais on a des images, ie on devrait avoir des infos
             absent = np.where(data==-1)
             data[absent]=0
+            
             self.ap.plotArray(data, filename, plotDir=plotDir,
                 title='{} {}'.format(plate, pheno),
                 absent= absent,
@@ -322,15 +321,15 @@ class HTMLGenerator():
                 legend_plot = True, legend_filename='legend_%s' % filename,
                 texts=texts)
 #TODO investigate this normalization story
-        return well_setup
+        return 
     
-    def generateWellPlots(self, plate, resD, well_setup):
+    def generateWellPlots(self, plate, resD):
         try:
             resCour = resD[plate]
         except KeyError:
             print plate, ' not in result dictionary.'
             return
-        well_setup=well_setup.flatten()
+        well_setup=self.well_lines_dict[plate].ravel()
         plotDir = os.path.join(self.settings.plot_dir, plate)
         if not os.path.isdir(plotDir):
             os.makedirs(plotDir)
@@ -424,9 +423,8 @@ class HTMLGenerator():
         #idL is a dictionary {plate:{well_Zeiss_num:well_id in db}} to renumber the wells in case
         #some wells were on the plate were not taken into account while doing plate setup on Zeiss software.
         #in resD, wells are numbered according to Zeiss numbering
-        resD, self.params, idL = readPlateSetting(plateL, self.settings.confDir, self.nb_row, self.nb_col, 
+        resD, self.params, self.well_lines_dict, idL= readPlateSetting(plateL, self.settings.confDir, 
                                              addPlateWellsToDB=saveDB,
-                                             countEmpty = self.settings.countEmpty,
                                              startAtZero = self.settings.startAtZero,
                                              plateName = self.settings.name,
                                              dateFormat= self.settings.date_format,
@@ -444,20 +442,20 @@ class HTMLGenerator():
                     #final well_number there is either a zero either the Zeiss well number.
                     
                     #This function is used to generate all 
-                    well_setup = self.generatePlatePlots(plate, resD)
+                    self.generatePlatePlots(plate, resD)
                     
                     print ' *** generate well plots ***'
-                    self.generateWellPlots(plate, resD, well_setup)
+                    self.generateWellPlots(plate, resD)
     
                     print ' *** saving result dictionary ***'
                     self.saveResults(plate, resD)
     
-                    if len(np.where(well_setup>0)[0])>1:
+                    if len(np.where(self.well_lines_dict[plate]==-1)[0])>1:
                         print ' *** changing well numbers in db, plate ', plate
-                        self.changeDBWellNumbers(plate, well_setup, idL)
+                        self.changeDBWellNumbers(plate, self.well_lines_dict[plate], idL)
     
                     print ' *** generate movies ***'
-                    self.generateMovies(plate, well_setup)
+                    self.generateMovies(plate, self.well_lines_dict[plate])
          
                 else: 
                     print ' ERROR while working for %s' % plate
@@ -467,14 +465,12 @@ class HTMLGenerator():
     
     
 class ArrayPlotter():
-    def __init__(self, plotDir, legendDir, nb_row, nb_col):
+    def __init__(self, plotDir, legendDir):
         self.plotDir = plotDir
         if not os.path.isdir(self.plotDir):
             os.makedirs(self.plotDir)
             
         self.legendDir = legendDir
-        self.nb_row = nb_row
-        self.nb_col = nb_col
         return
     
     class getPhenoVal(object):
@@ -489,56 +485,44 @@ class ArrayPlotter():
                 return -1
 
 
-    def prepareData(self, resD, getLabel,missing_col, expL=None):
-        if expL ==None:
-            expL = resD.keys()
-#TODO faire une correspondance entre les numeros des puits suivant si countEmpty ou pas
-
-        nb_exp = len(expL)
-        hitValueL = [0 for x in range(nb_exp)]
+    def prepareData(self, resD, getLabel,where_wells):
+        '''
+        Here we are preparing the data for plotting. 
+        
+        In the array there's the data from the hdf5 file. Where_wells says where physically on the plate we recorded images.
+        I put -2 for those wells, -1 for where I miss data.
+        '''
+        
+        expL = where_wells[np.where(where_wells>-1)]
+        hitData=np.empty(shape = where_wells.shape); hitData.fill(-2)
     
-        for i in range(len(expL)):
-            id = expL[i]
+        for exp in expL:
+            id = exp
             if resD.has_key(id):
                 label = getLabel(resD[id])
             else:
                 label = -1
-            hitValueL[i] = label
-            
-        try:
-            hitData=np.reshape(hitValueL, (self.nb_row, self.nb_col))
-        except ValueError:
-            warn("Missing columns in Zeiss plate setup. We put zeros as columns "+str(missing_col))
-            if missing_col !=[]:
-                hitData=np.reshape(hitValueL, (self.nb_row, self.nb_col-len(missing_col)))
-                miss = np.zeros(shape=(self.nb_row, len(missing_col)))
-                miss.fill(-1)
-                exp = np.hstack((miss, hitData))
-                print np.min(exp[np.where(exp>-1)]), np.max(exp)
-                return exp
-            else:
-                raise ValueError
-        else:   
-            print np.min(hitData[np.where(hitData>-1)]), np.max(hitData)
-            print hitData
-            return hitData    
+            hitData[np.where(where_wells==exp)]=label
+        
+        print np.min(hitData[np.where(hitData>-1)]), np.max(hitData)
+        return hitData    
   
-    def plotPlate(self, res,params, filename, plotDir=None,missing_col=[], title='', show=False):
+    def plotPlate(self, res,params, filename, where_wells, plotDir=None, title='', show=False):
         
         if plotDir is None:
             plotDir = self.plotDir
         full_filename = os.path.join(plotDir, filename)
         texts = []
-        nrow = self.nb_row
-        ncol = self.nb_col
         fig = p.figure(figsize=(12,7))
         ax=fig.add_subplot(111)
         cmap = brewer2mpl.get_map('RdPu', 'Sequential', 9).mpl_colormap
-
+        
+        nrow = where_wells.shape[0]
+        ncol = where_wells.shape[1]
+        
         ax.pcolormesh(np.ones(shape = (nrow, ncol)),
                       cmap=cmap,
                       edgecolors = 'black')
-            
 
         xticks = np.array(range(ncol))
         yticks = np.array(range(nrow))
@@ -553,30 +537,31 @@ class ArrayPlotter():
         ax.set_yticklabels(yticklabels)
         
         ax.set_title(title)
-
-        if len(res.keys())<nrow*ncol:
-            if missing_col !=[]:
-                exp=np.reshape(range(1, (ncol-len(missing_col))*nrow+1), (nrow, ncol-len(missing_col)))
-                exp=(np.hstack((np.zeros(shape=(self.nb_row, len(missing_col))), exp))).astype(int)
-            else:
-                raise ValueError
-        else:
-            exp = range(1, nrow*ncol+1)
-            exp=np.reshape(exp, (nrow, ncol))
+#
+#        if len(res.keys())<nrow*ncol:
+#            if missing_col !=[]:
+#                exp=np.reshape(range(1, (ncol-len(missing_col))*nrow+1), (nrow, ncol-len(missing_col)))
+#                exp=(np.hstack((np.zeros(shape=(self.nb_row, len(missing_col))), exp))).astype(int)
+#            else:
+#                raise ValueError
+#        else:
+#            exp = range(1, nrow*ncol+1)
+#            exp=np.reshape(exp, (nrow, ncol))
         #exp=np.flipud(exp)
         for well in res.keys():
-            a,b=np.where(exp==well)
-            txt = res[well]['Name']
-            txt+='\n'+res[well]['Xenobiotic']+' '+res[well]['Dose']
-            txt+='\n'+res[well]['Medium']+' '+res[well]['Serum']
+            a,b=np.where(where_wells==well)
+            #restricting the name to max 6 char otherwise it's not lisible
+            txt = res[well]['Name'][:6]
+            txt+='\n'+res[well]['Xenobiotic'][:6]+' '+res[well]['Dose']
+            txt+='\n'+res[well]['Medium'][:6]+' '+res[well]['Serum']
             ax.text(b+0.1, nrow-a-1+0.1, txt, fontsize=10)
             texts.append((b, nrow-a-1, txt))
         if show:
             p.show()
         else:
             p.savefig(full_filename)
-        print exp
-        return exp, texts
+        print where_wells
+        return texts
         
         
     def plotArray(self, data, filename, plotDir=None, labeledPosD=None,
@@ -590,8 +575,8 @@ class ArrayPlotter():
             plotDir = self.plotDir
         full_filename = os.path.join(plotDir, filename)
         #print title, np.min(data), np.max(data)
-        nrow = self.nb_row
-        ncol = self.nb_col
+        nrow = data.shape[0]
+        ncol = data.shape[1]
         fig = p.figure(figsize=(12,7))
         ax=fig.add_subplot(111)
         
@@ -637,7 +622,12 @@ class ArrayPlotter():
         abs[absent] = 1
         absent=np.where(np.flipud(abs)==1)
         for el in zip(absent[0], absent[1]):
-            ax.text(el[1]+0.5, el[0]+0.5, 'n', fontweight = 'bold', fontsize=20)
+            ax.text(el[1]+0.5, el[0]+0.5, 'm', fontweight = 'bold', fontsize=20)
+            
+        no_images = np.where(np.flipud(data)==-2)
+        for el in zip(no_images[0], no_images[1]):
+            ax.text(el[1]+0.5, el[0]+0.5, 'no images',fontsize=10)
+
         if grid: ax.grid(True)
         if texts is not None:
             for el in filter(lambda x: (x[0], x[1]) not in zip(absent[1], absent[0]), texts):

@@ -6,7 +6,7 @@ raw_data_dir = "/media/lalil0u/New/data/Xb_screen/Screen_trials"
 base_result_dir = '/media/lalil0u/New/projects/Xb_screen'
 
 #where hdf5 files are
-raw_result_dir = os.path.join(base_result_dir, 'plates')
+raw_result_dir ="/media/lalil0u/FREECOM HDD/Alice/temp_hdf5/"#os.path.join(base_result_dir, 'plates')
 
 #Where to save processed results
 result_dir = os.path.join(base_result_dir, 'results')
@@ -19,7 +19,7 @@ movie_dir = os.path.join('/media/lalil0u/New/workspace2/interface_screen/plates/
 confDir = os.path.join(base_result_dir, 'plate_setups')
 
 ###DEFAULT PLATE
-plate = '21314'
+plate = '230714'
 # if Zeiss plate setup did not include some columns, indicate it here
 missing_cols = {'11414':(1,2)}
 

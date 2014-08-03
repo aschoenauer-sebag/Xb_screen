@@ -51,8 +51,11 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False):
     pathCenters = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/primary__primary/center"
     pathOrientation = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/primary__primary/orientation"
     #not loading segmentation nor raw data since we only use the features that are computed by Cell Cognition
-
-    presentFeatures = importFeaturesNames(filename, featureNumberTotal=False)
+    try:
+        presentFeatures = importFeaturesNames(filename, featureNumberTotal=False)
+    except IOError:
+        print "Access pbl to the file ", filename
+        raise ValueError
     whereToLookAt = []
     for i,feature in enumerate(featureL):
         try:
@@ -72,11 +75,16 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False):
     if secondary:
         pathSecondaryObjects = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/object/secondary__propagate"
         pathSecondaryFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/secondary__propagate/object_features"
-        
-        tabSecondaryObjects =vi.readHDF5(filename, pathSecondaryObjects)
-        if len(tabSecondaryObjects)!=len(tabObjects):
-            raise
-        tabSecondaryFeatures = vi.readHDF5(filename, pathSecondaryFeatures)
+        try:
+            tabSecondaryObjects =vi.readHDF5(filename, pathSecondaryObjects)
+            if len(tabSecondaryObjects)!=len(tabObjects):
+                raise
+            tabSecondaryFeatures = vi.readHDF5(filename, pathSecondaryFeatures)
+        except:
+            print "No second channel for this well ", puits
+            secondary_success=False
+        else:
+            secondary_success=True
     
     frameList = np.array(tabObjects, dtype=int)
 #this to deal with hdf5 files where the frames are not in the chronological order
@@ -87,13 +95,13 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False):
         try:
             cellsF = cells(i, frameList, tabObjects)
         except IndexError:
-            sys.stderr.write('Attention attention apparently there exists no frame {} in file for plate {}, well {}'.format(i, plaque, puits))
+            sys.stderr.write('Attention attention apparently there exists no frame {} in file for plate {}, well {}\n'.format(i, plaque, puits))
             continue
         featuresF=tabFeatures[cellsF.firstLine():cellsF.lastLine()+1, whereToLookAt]
         centersF = tabCenters[cellsF.firstLine():cellsF.lastLine()+1]
         orientationF = tabOrientation[cellsF.firstLine():cellsF.lastLine()+1]
         
-        if secondary:
+        if secondary and secondary_success:
             secondaryFeaturesF = tabSecondaryFeatures[cellsF.firstLine():cellsF.lastLine()+1, whereToLookAt]
             featuresF = np.hstack((featuresF, secondaryFeaturesF))
         
