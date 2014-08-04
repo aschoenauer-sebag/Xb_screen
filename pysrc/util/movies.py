@@ -52,11 +52,11 @@ def makeMovieFromPNG(imgDir, outDir,gene, plate, well, tempDir=None):
 
     return
 
-def makeMovie(imgDir, outDir, plate, well,clef = lambda x:int(x.split('_')[2]), tempDir=None):
-    def normWrite(img, filename):
-        img=(img-2**15)*(2**8-1)/(2**12-1)
-        vi.writeImage(img, filename)
-        return 1
+def makeMovie(imgDir, outDir, plate, well,clef = lambda x:int(x.split('_')[2]), filtre=None, tempDir=None):
+#    def normWrite(img, filename):
+#        img=(img-2**15)*(2**8-1)/(2**12-1)
+#        vi.writeImage(img, filename)
+#        return 1
     # temp directory
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
@@ -70,8 +70,10 @@ def makeMovie(imgDir, outDir, plate, well,clef = lambda x:int(x.split('_')[2]), 
     if movieName in os.listdir(outDir):
         print 'Done already'
         return
-    
-    lstImageNames=os.listdir(imgDir)
+    if filtre == None:
+        lstImageNames=os.listdir(imgDir)
+    else:
+        lstImageNames = filter(filtre, os.listdir(imgDir))
     if not os.path.isdir(tempDir):
         os.makedirs(tempDir)
     f=open(os.path.join(tempDir, 'list.txt'), 'w')

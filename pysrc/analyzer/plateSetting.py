@@ -140,6 +140,9 @@ def readNewPlateSetting(plateL, confDir, startAtZero = False,
     Function to go from as many csv files as there are parameters describing plate setup, to a dictionary
     
     The csv file should not contain spaces in the cells
+    
+    The file 'wells' should contain the information on where physically on the plate the wells with the numbers
+    are located. The numbers are the numbers as the images are saved.
     '''
     result = {}
     idL = {}
@@ -179,7 +182,7 @@ def readNewPlateSetting(plateL, confDir, startAtZero = False,
         lines=f.readlines(); f.close()
         
         lines=np.array([line.strip("\n").split(",") for line in lines][1:]).ravel()
-        
+        lines = np.delete(lines, np.where(lines==''))
         
         if addPlateWellsToDB:
             p = Plate(name = plateName, date = datetime.datetime.strptime(plate.split('_')[0], dateFormat), nb_col=nb_col, nb_row=nb_row)
@@ -193,7 +196,8 @@ def readNewPlateSetting(plateL, confDir, startAtZero = False,
             f=open(os.path.join(confDir, "%s_%s.csv" % (plate, parameter)))
             current_lines=f.readlines()[1:]; f.close()
             current_parameters[parameter]=np.array([line.strip("\n").split(",") for line in current_lines]).ravel()
-        
+            current_parameters[parameter] = np.delete(current_parameters[parameter], 
+                                    np.where(current_parameters[parameter]==''))
         k=1
         for el in lines:
             result[plate][k]={'Name': el}
