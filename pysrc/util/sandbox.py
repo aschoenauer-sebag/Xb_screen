@@ -15,21 +15,31 @@ from tracking.histograms import *
 from util.listFileManagement import expSi
 #from histograms.k_means_transportation import WEIGHTS
 
-def countingFluoAlamar(rawFolder="/media/lalil0u/FREECOM HDD/Alice/270614/images_fromZeiss", filename= "Fluo_DIC_%i_s%02i_ORG.tif"):
-    arr = np.zeros(shape = (178, 48))
-    for tour in range(1,179):
-        for well in range(1,49):
-            real_tour = tour*2+1
-            file_= filename %(real_tour, well)
+def countingFluoAlamar(rawFolder="/media/lalil0u/FREECOM HDD/Alice/300714_wells", 
+                        filename= "P300714--W%05i--P0001_t%05i_c00002.tif"):
+    nb_wells = 47; blanc=None
+    arr = np.zeros(shape = (95, nb_wells))
+    for tour in range(1,96):
+        for well in range(1,nb_wells+1):
+            file_= os.path.join("W%05i"%well, filename %(well, tour))
             
             print file_, tour, well
-            image = vi.readImage(os.path.join(rawFolder, file_))
-            fluo = np.mean(image)
-            arr[tour-1, well-1] = fluo - 448.6 #on soustrait le blanc = milieu + Alamar sans cellules
+            try:
+                image = vi.readImage(os.path.join(rawFolder, file_))
+            except:
+                print "Pas d'images ", os.path.join(rawFolder, file_)
+                continue
+            if well==1:
+                blanc = np.mean(image)
+                print "Blanc, tour ", tour, blanc
+                arr[tour-1, well-1]=blanc
+            else:
+                fluo = np.mean(image)
+                arr[tour-1, well-1] = fluo - blanc #on soustrait le blanc = milieu + Alamar sans cellules
             
-        f=open('%s/fluoValues.pkl'%rawFolder, 'w')
-        pickle.dump(arr, f); f.close()
-
+    f=open('%s/fluoValues.pkl'%rawFolder, 'w')
+    pickle.dump(arr, f); f.close()
+    return arr
 
 
 def dependentJobs(debut, filename):

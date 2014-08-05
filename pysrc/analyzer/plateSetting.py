@@ -264,6 +264,7 @@ def readNewPlateSetting(plateL, confDir, startAtZero = False,
                 idL[plate][k]=w.id
                 
             k+=1
+    pdb.set_trace()
     if addPlateWellsToDB:
         return result, well_lines_dict, idL
     else:

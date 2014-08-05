@@ -626,7 +626,7 @@ class ArrayPlotter():
             
         no_images = np.where(np.flipud(data)==-2)
         for el in zip(no_images[0], no_images[1]):
-            ax.text(el[1]+0.5, el[0]+0.5, 'no images',fontsize=10)
+            ax.text(el[1]+0.5, el[0]+0.5, 'no im.',fontsize=10)
 
         if grid: ax.grid(True)
         if texts is not None:

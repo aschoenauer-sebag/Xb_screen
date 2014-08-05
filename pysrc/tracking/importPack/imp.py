@@ -44,13 +44,14 @@ def moyMultipleCenters(centers):
         
     return (np.mean(x), np.mean(y))
 
-def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False):
+def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False, secondary_outside=False):
 
     pathObjects = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/object/primary__primary"
     pathFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/primary__primary/object_features"
     pathCenters = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/primary__primary/center"
     pathOrientation = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/primary__primary/orientation"
     #not loading segmentation nor raw data since we only use the features that are computed by Cell Cognition
+
     try:
         presentFeatures = importFeaturesNames(filename, featureNumberTotal=False)
     except IOError:
@@ -85,6 +86,19 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False):
             secondary_success=False
         else:
             secondary_success=True
+    elif secondary_outside:
+        pathSecondaryObjects = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/object/secondary__outside"
+        pathSecondaryFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/secondary__outside/object_features"
+        try:
+            tabSecondaryObjects =vi.readHDF5(filename, pathSecondaryObjects)
+            if len(tabSecondaryObjects)!=len(tabObjects):
+                raise
+            tabSecondaryFeatures = vi.readHDF5(filename, pathSecondaryFeatures)
+        except:
+            print "No second channel for this well ", puits
+            secondary_success=False
+        else:
+            secondary_success=True
     
     frameList = np.array(tabObjects, dtype=int)
 #this to deal with hdf5 files where the frames are not in the chronological order
@@ -101,7 +115,7 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False):
         centersF = tabCenters[cellsF.firstLine():cellsF.lastLine()+1]
         orientationF = tabOrientation[cellsF.firstLine():cellsF.lastLine()+1]
         
-        if secondary and secondary_success:
+        if (secondary and secondary_success) or (secondary_outside and secondary_success):
             secondaryFeaturesF = tabSecondaryFeatures[cellsF.firstLine():cellsF.lastLine()+1, whereToLookAt]
             featuresF = np.hstack((featuresF, secondaryFeaturesF))
         

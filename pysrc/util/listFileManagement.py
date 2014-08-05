@@ -38,7 +38,7 @@ def renameFromZeiss(inputFolder, plate, outputFolder=None):
             os.rename(os.path.join(inputFolder, w, el), os.path.join(inputFolder,w, '%s--%s--P0001_t%05i_c%05i.tif'%(plate, w, timep, ch)))
 
 def renameFromZeissExpDesigner(inputFolder, outputFolder):
-    corres=[61,62,51,52,59,60,57,58,53]
+    corres=[48,49,53,54,55,56,57,58,62]
     l=sorted(os.listdir(inputFolder))
     for folder in l:
         print folder
@@ -50,15 +50,17 @@ def renameFromZeissExpDesigner(inputFolder, outputFolder):
         if exp_block==1 or exp_block ==2:
             tour+=1
             for image in images:
-                puits = (exp_block-1)*47+int(image.split('_')[-2].split('s')[-1].split('c')[0])
+                puits = (exp_block-1)*49+int(image.split('_')[-2].split('s')[-1].split('c')[0])
                 channel = int(image.split('_')[-2].split('s')[-1].split('c')[1])
-                shutil.copy(os.path.join(inputFolder, folder, image), 
+                if '%s--W%05i--P0001_t%05i_c%05i.tif'%("P300714", puits, tour, channel) not in os.listdir(os.path.join(outputFolder, "W%05i"%puits)):
+                    shutil.copy(os.path.join(inputFolder, folder, image), 
                             os.path.join(outputFolder, "W%05i"%puits, '%s--W%05i--P0001_t%05i_c%05i.tif'%("P300714", puits, tour, channel)))
         if exp_block ==0:
             for image in images:
-                puits = 53+int(image.split('_')[-2].split('s')[-1].split('c')[0])
+                puits = 58+int(image.split('_')[-2].split('s')[-1].split('c')[0])
                 channel = int(image.split('_')[-2].split('s')[-1].split('c')[1])
-                shutil.copy(os.path.join(inputFolder, folder, image), 
+                if '%s--W%05i--P0001_t%05i_c%05i.tif'%("P300714", puits, tour, channel) not in os.listdir(os.path.join(outputFolder, "W%05i"%puits)):
+                    shutil.copy(os.path.join(inputFolder, folder, image), 
                            os.path.join(outputFolder, "W%05i"%puits, '%s--W%05i--P0001_t%05i_c%05i.tif'%("P300714", puits, tour, channel)))
         
         if exp_block ==3:
@@ -66,7 +68,8 @@ def renameFromZeissExpDesigner(inputFolder, outputFolder):
             for image in images:
                 puits = corres[int(image.split('_')[-2].split('s')[-1].split('c')[0]) -1]
                 channel = int(image.split('_')[-2].split('s')[-1].split('c')[1])
-                shutil.copy(os.path.join(inputFolder, folder, image), 
+                if '%s--W%05i--P0001_t%05i_c%05i.tif'%("P300714", puits, tour, channel) not in os.listdir(os.path.join(outputFolder, "W%05i"%puits)):
+                    shutil.copy(os.path.join(inputFolder, folder, image), 
                             os.path.join(outputFolder, "W%05i"%puits, '%s--W%05i--P0001_t%05i_c%05i.tif'%("P300714", puits, tour, channel)))
         
 
