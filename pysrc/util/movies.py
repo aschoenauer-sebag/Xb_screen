@@ -64,7 +64,7 @@ def makeMovie(imgDir, outDir, plate, well,clef = lambda x:int(x.split('_')[2]), 
     if not os.path.isdir(outDir):
         os.makedirs(outDir)
     # movie filename
-    movieName = 'P{}_W{}.avi'.format(plate, well)
+    movieName = 'P{}_W{}_1.avi'.format(plate, well)
     
     #checking for existence
     if movieName in os.listdir(outDir):

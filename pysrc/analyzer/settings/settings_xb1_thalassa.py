@@ -50,7 +50,7 @@ countEmpty = False
 
 density_plot_settings = {
     'min_count': 0,
-    'max_count': 1100,
+    'max_count': 300,
     'min_circularity': 0,
     'max_circularity': 0.8,
     'min_proliferation': 0.5, 
