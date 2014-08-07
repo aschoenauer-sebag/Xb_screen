@@ -1,4 +1,5 @@
 import cplex as c
+import getpass
 
 compteur=0
 
@@ -7,6 +8,11 @@ def solve(objective, constraints, t1):
     
     msg=""
     my_prob = c.Cplex()
+    if getpass.getuser()!='lalil0u':
+        #If i'm not here on my computer, I want that there is only one CPU that is used. 
+        #This is to prevent Cplex from trying to use all CPUs available because it causes the cluster to crash when used on the cluster
+        my_prob.parameters.threads.set(1)
+    
     my_prob.set_log_stream(None); my_prob.set_results_stream(None)
     my_prob.objective.set_sense(my_prob.objective.sense.maximize)
 #    print my_prob.get_problem_type() bien LP
