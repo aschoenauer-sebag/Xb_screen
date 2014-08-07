@@ -129,17 +129,17 @@ cd %s""" %progFolder
         jobCount += 1
         cmd = ''
         for plate, w in lstJobPositions:
-    #NO #FIRST if trajectories do not exist we do them
-#            temp_cmd = """
-#    python tracking/trajPack/parallel_trajFeatures.py -p %s -w %s -c %i -d %s"""
-#            temp_cmd %= (
-#                    plate,
-#                    w+'.hdf5',
-#                    0,
-#                    dataFolder
-#                    )
-#    #        print temp_cmd
-#            cmd += temp_cmd
+#FIRST if trajectories do not exist we do them
+            temp_cmd = """
+    python tracking/trajPack/parallel_trajFeatures.py -p %s -w %s -c %i -d %s"""
+            temp_cmd %= (
+                    plate,
+                    w+'.hdf5',
+                    0,
+                    dataFolder
+                    )
+    #        print temp_cmd
+            cmd += temp_cmd
     #THEN we compute trajectories features anyway
             temp_cmd = """
     python tracking/trajPack/parallel_trajFeatures.py -p %s -w %s -c %i """
