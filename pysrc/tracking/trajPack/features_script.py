@@ -129,15 +129,15 @@ cd %s""" %progFolder
         jobCount += 1
         cmd = ''
         for plate, w in lstJobPositions:
-    #FIRST if trajectories do not exist we do them
-            temp_cmd = """
-    python tracking/trajPack/parallel_trajFeatures.py -p %s -w %s -c %i -d %s"""
-            temp_cmd %= (
-                    plate,
-                    w+'.hdf5',
-                    0,
-                    dataFolder
-                    )
+    #NO #FIRST if trajectories do not exist we do them
+#            temp_cmd = """
+#    python tracking/trajPack/parallel_trajFeatures.py -p %s -w %s -c %i -d %s"""
+#            temp_cmd %= (
+#                    plate,
+#                    w+'.hdf5',
+#                    0,
+#                    dataFolder
+#                    )
 #    #        print temp_cmd
 #            cmd += temp_cmd
     #THEN we compute trajectories features anyway
@@ -187,72 +187,6 @@ cd %s""" %progFolder
     print 'array containing %i jobs' % jobCount
     print sub_cmd
     return 1
-
-#def generationScript(platesList, dataFolder, baseName):
-#    jobCount = 0
-#    nb_jobs = int(len(platesList)/float(jobSize))
-#    
-#    head = """#!/bin/sh
-#cd %s""" %progFolder
-#    for i in range(nb_jobs):
-#            jobCount += 1
-#            cmd = ''
-#            lstJobPositions = [platesList[k] for k in range(i*jobSize, min(len(platesList), (i+1)*jobSize))]
-#
-#            for plate in lstJobPositions:
-##                #check if plate has already been computed
-##                dataFolder =self.oBatchSettings.baseOutDir#"/cbio/donnees/aschoenauer/data/mitocheck/results/"
-##                if 'hdf5' in os.listdir(os.path.join(dataFolder, plate)) and pos+'.hdf5' in os.listdir(os.path.join(dataFolder, plate, 'hdf5')):
-##                    continue
-#
-#                # command to be executed on the cluster
-#                temp_cmd = """
-#python trajPack/parallel_trajFeatures.py -p %s -w %s -d %s -c %i """
-#
-#                temp_cmd %= (
-#                        plate,
-##                        dataFolder, pas besoin pour le moment
-#                        1
-#                        )
-#
-#                cmd += temp_cmd
-#
-#            # this is now written to a script file (simple text file)
-#            # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
-#            script_name = os.path.join(scriptFolder, '%s%i.sh' % (baseName, jobCount))
-#            script_file = file(script_name, "w")
-#            script_file.write(head + cmd)
-#            script_file.close()
-#
-#            # make the script executable (without this, the cluster node cannot call it)
-#            os.system('chmod a+x %s' % script_name)
-#
-#        # write the main script
-#    array_script_name = '%s.sh' % os.path.join(scriptFolder, baseName)
-#    main_script_file = file(array_script_name, 'w')
-#    main_content = """#!/bin/sh
-#%s
-##$ -o %s
-##$ -e %s
-#%s$%s.sh
-#""" % (path_command,
-#       pbsOutDir,  
-#       pbsErrDir, 
-#       os.path.join(scriptFolder, baseName),
-#       pbsArrayEnvVar)
-#
-#    main_script_file.write(main_content)
-#    os.system('chmod a+x %s' % array_script_name)
-#
-#    # the submission commando is:
-#    #sub_cmd = 'qsub -o %s -e %s -t 1-%i %s' % (self.oBatchSettings.pbsOutDir,  
-#    #                                           self.oBatchSettings.pbsErrDir, 
-#    #                                           jobCount, array_script_name)
-#    sub_cmd = 'qsub -t 1-%i %s' % (jobCount, array_script_name)
-#
-#    print 'array containing %i jobs' % jobCount
-#    print sub_cmd
-#    return 1
 
 if __name__ == '__main__':
     description =\
