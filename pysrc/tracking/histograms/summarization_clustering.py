@@ -176,16 +176,19 @@ class hitFinder():
         
     def _computePValues(self, labelDict, ctrlList, who, ctrlStatus, length):
         info = np.array( zip((who, ctrlStatus, length)))[:,0]
-        p_vals = defaultdict(list); labelsTot = defaultdict(list)
+        p_vals = defaultdict(list); labelsTot = {}
 #        r=[]
         for param_tuple in labelDict:
             labels = labelDict[param_tuple]
             d=dict(param_tuple)
+            labelsTot[param_tuple]={}
+            
             for experiment in info[0,np.where(info[1]==1)[0]]:
                 i=who.index(experiment)
                 pLabelsCour = labels[np.sum(length[:i]):np.sum(length[:i+1])]
                 ctrlPl = filter(lambda x: x[0]==experiment[0], ctrlList)
                 cLabelsCour =[]
+                
                 for ctrlel in ctrlPl:
                     try:
                         index = who.index(ctrlel)
@@ -193,10 +196,23 @@ class hitFinder():
                         continue
                     else:
                         cLabelsCour.extend(labels[np.sum(length[:index]):np.sum(length[:index+1])])
-                
-                llength = len(cLabelsCour)
-                vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
-                cLabelsCour.extend(pLabelsCour)
+                min_ = d['n_cluster']
+                if self.verbose:
+                    print np.bincount(cLabelsCour, minlength=min_)
+                    print np.bincount(pLabelsCour, minlength=min_)
+                    
+                dist_ = np.sum( np.absolute(
+                                            np.array(np.bincount(cLabelsCour, minlength=min_)/float(len(cLabelsCour)), dtype=float) 
+                                                     -
+                                            np.array(np.bincount(pLabelsCour,minlength=min_)/float(len(pLabelsCour)), dtype=float)
+                                            ))
+                if self.verbose:
+                    print dist_
+                labelsTot[param_tuple][experiment] = [cLabelsCour, pLabelsCour, dist_]
+#
+#                llength = len(cLabelsCour)
+#                vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
+#                cLabelsCour.extend(pLabelsCour)
                 #r.append([cLabelsCour, vecLongueurs])
 #                if np.all(np.array(cLabelsCour)==np.zeros(len(cLabelsCour))):
 #                    p_vals[param_tuple].append(1.0)
@@ -204,21 +220,17 @@ class hitFinder():
 #                
 #                p_vals[param_tuple].append(np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
 #                                                                         simulate_p_value=True, B=2000000)[0][0]))
-                labelsTot[param_tuple].append([cLabelsCour, vecLongueurs])
                 #
-                if self.verbose:
-                    print '---------------weights', d['dist_weights'], 'k', d['n_cluster'], 'bins_type', d['bins_type']
-                    print len(pLabelsCour), np.bincount(pLabelsCour)/float(len(pLabelsCour))
-                    print llength, np.bincount(cLabelsCour[:llength])/float(llength)
-                    print p_vals[param_tuple][-1]
-            
+#                if self.verbose:
+#                    print '---------------weights', d['dist_weights'], 'k', d['n_cluster'], 'bins_type', d['bins_type']
+#                    print len(pLabelsCour), np.bincount(pLabelsCour)/float(len(pLabelsCour))
+#                    print llength, np.bincount(cLabelsCour[:llength])/float(llength)
+#                    print p_vals[param_tuple][-1]
         #statistical test according to Fisher's method http://en.wikipedia.org/wiki/Fisher%27s_method
 #            if len(p_vals[param_tuple])>1:
 #                stat = -2*np.sum(np.log(p_vals[param_tuple]))
 #                p_vals[param_tuple] = chi2.sf(stat, 2*len(p_vals[param_tuple]))
 #
-        for el in labelsTot:
-            labelsTot[el]=[0, labelsTot[el][0], labelsTot[el][1]]  
         return labelsTot
     
     def _cleanParameterSetsFromDoneWork(self, parameter_set_list, ctrlIter):
