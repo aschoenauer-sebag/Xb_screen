@@ -176,7 +176,7 @@ class hitFinder():
         
     def _computePValues(self, labelDict, ctrlList, who, ctrlStatus, length):
         info = np.array( zip((who, ctrlStatus, length)))[:,0]
-        p_vals = defaultdict(list)
+        p_vals = defaultdict(list); labelsTot = defaultdict(list)
 #        r=[]
         for param_tuple in labelDict:
             labels = labelDict[param_tuple]
@@ -201,11 +201,10 @@ class hitFinder():
                 if np.all(np.array(cLabelsCour)==np.zeros(len(cLabelsCour))):
                     p_vals[param_tuple].append(1.0)
                     continue
-                if self.settings.Fisher:
-                    p_vals[param_tuple].append([np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
-                                                                         simulate_p_value=True, B=2000000)[0][0]), cLabelsCour, vecLongueurs])
-                else:    
-                    raise ValueError
+                
+                p_vals[param_tuple].append(np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
+                                                                         simulate_p_value=True, B=2000000)[0][0]))
+                labelsTot[param_tuple].append([cLabelsCour, vecLongueurs])
                 #
                 if self.verbose:
                     print '---------------weights', d['dist_weights'], 'k', d['n_cluster'], 'bins_type', d['bins_type']
@@ -222,7 +221,7 @@ class hitFinder():
                 #right-tail p-values
 #        f=open('p_val_{}.pkl'.format(self.siRNA), 'w')
 #        pickle.dump(r, f); f.close()
-        return p_vals
+        return [p_vals, labelsTot]
     
     def _cleanParameterSetsFromDoneWork(self, parameter_set_list, ctrlIter):
         '''
@@ -371,10 +370,10 @@ class hitFinder():
         labelDict = self._attribute_labels(r, histNtot, ctrlIter)
         
         #v. compute p-values: are experiment trajectories significantly differently clustered than control trajectories
-        pvalues = self._computePValues(labelDict, ctrlList, who, ctrlStatus, length)
+        result = self._computePValues(labelDict, ctrlList, who, ctrlStatus, length)
         
         #vi. save results
-        self._saveResults(pvalues, ctrlIter)
+        self._saveResults(result, ctrlIter)
         if self.plate is not None and ctrlIter==0:
             print 'going for another round'
             self.__call__(ctrlIter=1)
