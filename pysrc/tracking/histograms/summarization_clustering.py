@@ -118,7 +118,7 @@ class hitFinder():
             assert(np.all(np.array(sirna)[np.where(np.array(ctrlStatus)==1)]==self.siRNA))
         else:
             assert np.all(np.array(ctrlStatus)==0)
-            ctrlStatus[:2]=[1,1] 
+            ctrlStatus[0]=1
         
         return r[:,:self.settings.nb_feat_num], histNtot, who, ctrlStatus, length
     
@@ -357,8 +357,8 @@ class hitFinder():
         ctrlList = self._findControls(expList)
         if self.plate is not None:
             np.random.shuffle(ctrlList)
-            expList = ctrlList[:2]
-            ctrlList = ctrlList[2:]
+            expList = ctrlList[:1]
+            ctrlList = ctrlList[1:]
             print 'Picked ctrl experiments', expList
         
         #iii. get data
