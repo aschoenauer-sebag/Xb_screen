@@ -198,12 +198,12 @@ class hitFinder():
                 vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
                 cLabelsCour.extend(pLabelsCour)
                 #r.append([cLabelsCour, vecLongueurs])
-                if np.all(np.array(cLabelsCour)==np.zeros(len(cLabelsCour))):
-                    p_vals[param_tuple].append(1.0)
-                    continue
-                
-                p_vals[param_tuple].append(np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
-                                                                         simulate_p_value=True, B=2000000)[0][0]))
+#                if np.all(np.array(cLabelsCour)==np.zeros(len(cLabelsCour))):
+#                    p_vals[param_tuple].append(1.0)
+#                    continue
+#                
+#                p_vals[param_tuple].append(np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
+#                                                                         simulate_p_value=True, B=2000000)[0][0]))
                 labelsTot[param_tuple].append([cLabelsCour, vecLongueurs])
                 #
                 if self.verbose:
@@ -213,13 +213,13 @@ class hitFinder():
                     print p_vals[param_tuple][-1]
             
         #statistical test according to Fisher's method http://en.wikipedia.org/wiki/Fisher%27s_method
-            if len(p_vals[param_tuple])>1:
-                stat = -2*np.sum(np.log(p_vals[param_tuple]))
-                p_vals[param_tuple] = chi2.sf(stat, 2*len(p_vals[param_tuple]))
-
-        for el in p_vals:
-            p_vals[el]=[p_vals[el], labelsTot[el][0], labelsTot[el][1]]  
-        return p_vals
+#            if len(p_vals[param_tuple])>1:
+#                stat = -2*np.sum(np.log(p_vals[param_tuple]))
+#                p_vals[param_tuple] = chi2.sf(stat, 2*len(p_vals[param_tuple]))
+#
+        for el in labelsTot:
+            labelsTot[el]=[0, labelsTot[el][0], labelsTot[el][1]]  
+        return labelsTot
     
     def _cleanParameterSetsFromDoneWork(self, parameter_set_list, ctrlIter):
         '''
