@@ -213,9 +213,9 @@ class hitFinder():
                     print p_vals[param_tuple][-1]
             
         #statistical test according to Fisher's method http://en.wikipedia.org/wiki/Fisher%27s_method
-            if len(p_vals[param_tuple][0])>1:
-                stat = -2*np.sum(np.log(p_vals[param_tuple][0]))
-                p_vals[param_tuple][0] = chi2.sf(stat, 2*len(p_vals[param_tuple][0]))
+            if len(p_vals[param_tuple])>1:
+                stat = -2*np.sum(np.log(p_vals[param_tuple]))
+                p_vals[param_tuple] = chi2.sf(stat, 2*len(p_vals[param_tuple]))
   
             #Given that what we're checking for is small p-values = big stat values, we can limit ourselves to computing
                 #right-tail p-values
