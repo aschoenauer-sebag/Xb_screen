@@ -216,12 +216,10 @@ class hitFinder():
             if len(p_vals[param_tuple])>1:
                 stat = -2*np.sum(np.log(p_vals[param_tuple]))
                 p_vals[param_tuple] = chi2.sf(stat, 2*len(p_vals[param_tuple]))
-  
-            #Given that what we're checking for is small p-values = big stat values, we can limit ourselves to computing
-                #right-tail p-values
-#        f=open('p_val_{}.pkl'.format(self.siRNA), 'w')
-#        pickle.dump(r, f); f.close()
-        return [p_vals, labelsTot]
+
+        for el in p_vals:
+            p_vals[el]=[p_vals[el], labelsTot[el][0], labelsTot[el][1]]  
+        return p_vals
     
     def _cleanParameterSetsFromDoneWork(self, parameter_set_list, ctrlIter):
         '''
