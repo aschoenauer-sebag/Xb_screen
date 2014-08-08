@@ -202,8 +202,8 @@ class hitFinder():
                     p_vals[param_tuple].append(1.0)
                     continue
                 if self.settings.Fisher:
-                    p_vals[param_tuple].append(np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
-                                                                         simulate_p_value=True, B=2000000)[0][0]))
+                    p_vals[param_tuple].append([np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
+                                                                         simulate_p_value=True, B=2000000)[0][0]), cLabelsCour, vecLongueurs])
                 else:    
                     raise ValueError
                 #
@@ -214,9 +214,9 @@ class hitFinder():
                     print p_vals[param_tuple][-1]
             
         #statistical test according to Fisher's method http://en.wikipedia.org/wiki/Fisher%27s_method
-            if len(p_vals[param_tuple])>1:
-                stat = -2*np.sum(np.log(p_vals[param_tuple]))
-                p_vals[param_tuple] = chi2.sf(stat, 2*len(p_vals[param_tuple]))
+            if len(p_vals[param_tuple][0])>1:
+                stat = -2*np.sum(np.log(p_vals[param_tuple][0]))
+                p_vals[param_tuple][0] = chi2.sf(stat, 2*len(p_vals[param_tuple][0]))
   
             #Given that what we're checking for is small p-values = big stat values, we can limit ourselves to computing
                 #right-tail p-values
@@ -407,12 +407,12 @@ class hitFinder():
                 for iter_ in range(len(iterations)):
                     dict_thresholds = dict(zip(parameters, thresholds[iter_::len(iterations)]))    
                     f=open(os.path.join(self.settings.result_folder, self.settings.threshold_filename.format(comparison, iter_)), 'w')
-                    pickle.dump(dict_thresholds, f); f.close()
+                    pickle.dump((dict_thresholds, result[k,:]), f); f.close()
             elif not testCtrl:
                 thresholds=np.zeros(shape=(len(parameters)*len(iterations)))
                 for iter_ in range(len(iterations)):
                     f=open(os.path.join(self.settings.result_folder, self.settings.threshold_filename.format(comparison, iter_)), 'r')
-                    dict_thresholds=pickle.load(f); f.close()
+                    dict_thresholds=pickle.load(f)[0]; f.close()
                     thresholds[iter_::len(iterations)]=np.array([dict_thresholds[el] for el in parameters])
                 for j in range(result.shape[1]):
                     print '{} {}'.format(j, thresholds[j])
@@ -489,18 +489,30 @@ class hitFinder():
     def plot_heatmaps(self, testCtrl=False, iterations=[0,1,2], sh=None):
         if sh==None:
             sh=show
-    #getting list of all parameter sets, from iterations[1], 31 parameter sets
-        try:
-            f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename.format(iterations[1])), 'r')
-            d=pickle.load(f); f.close()
-        except IndexError:
-            f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename.format(1)), 'r')
-            d=pickle.load(f); f.close()
-        except IOError:
-            raise
-        parameters = sorted(d.keys(), key=itemgetter(0, 9,5, 2, 7, 8))
+        parameters = None
+    #getting list of all parameter sets, from all iterations and taking parameter sets that are in all iterations
+        for iter_ in iterations:            
+            try:
+                f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename.format(iter_)), 'r')
+                d=pickle.load(f); f.close()
+            except IOError:
+                raise
+            if parameters == None:
+                parameters = sorted(d.keys(), key=itemgetter(0, 9,5, 2, 7, 8))
+            else:
+                paramCourants = sorted(d.keys(), key=itemgetter(0, 9,5, 2, 7, 8))
+                parameters = filter(lambda x: x in paramCourants, parameters)
     #getting list of all siRNAs for which p-values have been calculated in at least one case
-    
+        parameters = [(('PCA', 0),
+ ('bin_size', 10),
+ ('bins_type', 'minmax'),
+ ('cost_type', 'number'),
+ ('ddimensional', 0),
+ ('dist_weights', 0),
+ ('div_name', 'total_variation'),
+ ('lambda', 10),
+ ('n_cluster', 7),
+ ('whiten', 0))]
         if not testCtrl:
             pvalL = filter(lambda x: 'pval' in x and 'CTRL' not in x and 'png' not in x, os.listdir(self.settings.result_folder))
             siRNAL=[el.split('_')[-1][:-4] for el in pvalL]
@@ -509,7 +521,7 @@ class hitFinder():
             pvalL = filter(lambda x: 'pval' in x and 'CTRL' in x and 'png' not in x, os.listdir(self.settings.result_folder))
             siRNAL=['{}_{}'.format(el.split('_')[-2],el.split('_')[-1][:-4]) for el in pvalL]
         
-        siRNAL = Counter(siRNAL).keys()
+        siRNAL = sorted(Counter(siRNAL).keys())
         platesL=[]
         comparisons = [el.split('_')[1] for el in pvalL] 
         comparisons = Counter(comparisons).keys()
@@ -560,8 +572,8 @@ class hitFinder():
         new=None
         for k in range(result.shape[0]):
             N=None
-            for j in range(result.shape[1]):
-                for i in range(result.shape[2]):
+            for i in range(result.shape[2]):
+                for j in range(result.shape[1]):
                     try:
                         N=np.vstack((N, np.array(result[k,j,i]) )) if N is not None else np.array(result[k,j,i])
                     except:

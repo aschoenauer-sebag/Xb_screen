@@ -104,7 +104,7 @@ def makeMovie(imgDir, outDir, plate, well,clef = lambda x:int(x.split('_')[2]), 
 
     return
 
-def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=None, doChannel1Only=True):
+def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=None, doChannel1Only=True, ranges=None):
     '''
     From a list of images containing information for two channels in different images, make 
     a movie. It is assumed that the name of a file is something like
@@ -112,6 +112,10 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
     
     It is not possible I think that there are more than three channels ? However
     it is possible to have 2 or three channels
+    
+    Ranges indicate how to do the normalization for the images. It should be [(min_CH1, max_CH1), (min_CH2, max_CH2)]
+    300714 90% [(50,750),(200,800)]
+    230714 90% [(150,400),(300,1100)]
     '''
 
     # movie filename
@@ -136,37 +140,45 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
     else:
         lstImage={channels[0]:os.listdir(imgDir)}
     
-#first I look at the min pixel values on all channels for subsequent background substraction
-    min_={ch : 500 for ch in channels}
-    max_ = {ch : 0 for ch in channels}
+#If ranges is not provided I look at the min pixel values on all channels for subsequent background substraction
+    
     #I assume that the images for the second channel exist
     secondary = True
-    
-    for imageName in lstImage[channels[0]]:
-        img = vi.readImage(os.path.join(imgDir, imageName))
-        min_[channels[0]]=min(np.min(img), min_[channels[0]])
-        max_[channels[0]]=max(np.max(img), max_[channels[0]])
-        
-        suffix = imageName.split('_')[-1]
-        for ch in channels[1:]:
-            imageName2 = os.path.basename(imageName).replace(suffix, 'c{:>05}.tif'.format(ch))
-            if secondary:
-                try:
-                    im = vi.readImage(os.path.join(imgDir, imageName2))
-                except RuntimeError:
-                    secondary = False
-                    print "No images on the {} channel for this well {}".format(ch, well)
-                else:
-                    min_[ch]=min(np.min(im), min_[ch])
-                    max_[ch]=max(np.max(im), max_[ch])
+    if ranges == None:
+        min_={ch : 500 for ch in channels}
+        max_ = {ch : 0 for ch in channels}
+        for imageName in lstImage[channels[0]]:
+            img = vi.readImage(os.path.join(imgDir, imageName))
+            min_[channels[0]]=min(np.min(img), min_[channels[0]])
+            max_[channels[0]]=max(np.max(img), max_[channels[0]])
             
+            suffix = imageName.split('_')[-1]
+            for ch in channels[1:]:
+                imageName2 = os.path.basename(imageName).replace(suffix, 'c{:>05}.tif'.format(ch))
+                if secondary:
+                    try:
+                        im = vi.readImage(os.path.join(imgDir, imageName2))
+                    except RuntimeError:
+                        secondary = False
+                        print "No images on the {} channel for this well {}".format(ch, well)
+                    else:
+                        min_[ch]=min(np.min(im), min_[ch])
+                        max_[ch]=max(np.max(im), max_[ch])
+    else:
+        min_={ch:ranges[channels.index(ch)][0] for ch in channels}
+        max_={ch:ranges[channels.index(ch)][1] for ch in channels}
+    print min_, max_
     if doChannel1Only:
         #making movie for channel 1 only (nucleus)
         for imageName in lstImage[channels[0]]:
             img = vi.readImage(os.path.join(imgDir, imageName))
             normImage = vigra.VigraArray(img.shape, dtype=np.dtype('uint8'))
 #WARNING if you only do normImage = (img - etc then we have a flickering effect. Apparently vigra decides to do its normalization on every image as it pleases
-            normImage[:,:,0] = (img[:,:,0]-min_[channels[0]])*(2**8-1)/(max_[channels[0]]-min_[channels[0]])
+            im = np.array(img[:,:,0])
+            im[np.where(im<min_[channels[0]])]=min_[channels[0]]
+            im[np.where(im>max_[channels[0]])]=max_[channels[0]]
+            normImage[:,:,0] = (im-min_[channels[0]])*(2**8-1)/(max_[channels[0]]-min_[channels[0]])
+            #normImage[np.where(normImage>1)]=1
             suffix = imageName.split('.')[-1]
             vi.writeImage(normImage, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')), dtype = np.dtype('uint8'))
     
@@ -187,15 +199,20 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
             img = vi.readImage(os.path.join(imgDir, imageName))
             shape = img.shape
             colorImage = vigra.VigraArray((shape[0],shape[1], 3), dtype=np.dtype('uint8'))
-    
-            colorImage[:,:,0] = (img[:,:,0]-min_[channels[0]])*(2**8-1)/(max_[channels[0]]-min_[channels[0]])
+            im = np.array(img[:,:,0])
+            im[np.where(im<min_[channels[0]])]=min_[channels[0]]
+            im[np.where(im>max_[channels[0]])]=max_[channels[0]]
+            colorImage[:,:,0] = (im-min_[channels[0]])*(2**8-1)/(max_[channels[0]]-min_[channels[0]])
+
             
             suffix = imageName.split('_')[-1]
             for i,ch in enumerate(channels[1:]):
                 imageName2 = os.path.basename(imageName).replace(suffix, 'c{:>05}.tif'.format(ch))
                 im = vi.readImage(os.path.join(imgDir, imageName2))
-    
-                colorImage[:,:,i+1] = (im[:,:,0]-min_[ch])*(2**8-1)/(max_[ch]-min_[ch])
+                im = np.array(im[:,:,0])
+                im[np.where(im<min_[channels[ch]])]=min_[channels[ch]]
+                im[np.where(im>max_[channels[ch]])]=max_[channels[ch]]
+                colorImage[:,:,i+1] = (im-min_[ch])*(2**8-1)/(max_[ch]-min_[ch])
                 
             suffix = imageName.split('.')[-1]
             vi.writeImage(colorImage, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')), dtype = np.dtype('uint8'))
