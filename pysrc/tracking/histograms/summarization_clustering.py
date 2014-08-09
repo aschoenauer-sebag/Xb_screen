@@ -543,6 +543,7 @@ class hitFinder():
                 for i, iter_ in enumerate(iterations):
                     for ctrl_iter in ctrl_iterations:
                         for siRNA in siRNAL:
+                            print '---', siRNA
                             platesL.append(siRNA)
                             try:
                                 f=open(os.path.join(self.settings.result_folder, 'pval_{}_{}{}_{}.pkl'.format(comparison, iter_, ctrl_iter, siRNA)))
