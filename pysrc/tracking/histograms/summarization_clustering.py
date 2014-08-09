@@ -582,11 +582,11 @@ class hitFinder():
 #                f.savefig( 'histParam{}.png'.format(j) )
 #
         else:
-            f=open(os.path.join(self.settings.result_folder, 'pickledPval.pkl'))
+            f=open(os.path.join(self.settings.result_folder, 'pickledPval_{}.pkl'.format(testCtrl)))
             result, siRNAL, platesL = pickle.load(f); f.close()
                     
         if saveOnly:
-            f=open(os.path.join(self.settings.result_folder, 'pickledPval.pkl'), 'w')
+            f=open(os.path.join(self.settings.result_folder, 'pickledPval{}.pkl'.format(testCtrl)), 'w')
             pickle.dump((result, siRNAL, platesL), f); f.close()
             return
             
@@ -1043,11 +1043,11 @@ if __name__ == '__main__':
         model()
     
     elif options.action =='hitFinder':
-        from rpy2.robjects import IntVector
-        from rpy2.robjects.packages import importr
-        rStats=importr("stats")
         model = hitFinder(settings_file, options.siRNA, options.verbose, testCtrl = options.testCtrl, iter_=options.iter_)
         model()
+    elif options.action == 'hitCollection':
+        model = hitFinder(settings_file, '')
+        model.plot_heatmaps(options.testCtrl, iterations=[1,2,3], sh=False, saveOnly=True)
         
     
                  
