@@ -586,7 +586,7 @@ class hitFinder():
             result, siRNAL, platesL = pickle.load(f); f.close()
                     
         if saveOnly:
-            f=open(os.path.join(self.settings.result_folder, 'pickledPval{}.pkl'.format(testCtrl)), 'w')
+            f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_{}.pkl'.format(testCtrl, iterations[0])), 'w')
             pickle.dump((result, siRNAL, platesL), f); f.close()
             return
             
@@ -1047,7 +1047,7 @@ if __name__ == '__main__':
         model()
     elif options.action == 'hitCollection':
         model = hitFinder(settings_file, '')
-        model.plot_heatmaps(options.testCtrl, iterations=[1,2,3], sh=False, saveOnly=True)
+        model.plot_heatmaps(testCtrl = int(options.testCtrl), iterations=[options.iter_], sh=False, saveOnly=True)
         
     
                  
