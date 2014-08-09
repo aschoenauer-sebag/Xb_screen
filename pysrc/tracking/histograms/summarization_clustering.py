@@ -587,6 +587,7 @@ class hitFinder():
         if saveOnly:
             f=open(os.path.join(self.settings.result_folder, 'pickledPval.pkl'), 'w')
             pickle.dump((result, siRNAL, platesL), f); f.close()
+            return
             
         new=None
         for k in range(result.shape[0]):
