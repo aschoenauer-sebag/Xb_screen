@@ -114,7 +114,7 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
     it is possible to have 2 or three channels
     
     Ranges indicate how to do the normalization for the images. It should be [(min_CH1, max_CH1), (min_CH2, max_CH2)]
-    300714 90% [(50,750),(200,800)]
+    300714 90% [(50,750),(300,1000)]
     230714 90% [(150,400),(300,1100)]
     '''
 
@@ -171,14 +171,18 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
     if doChannel1Only:
         #making movie for channel 1 only (nucleus)
         for imageName in lstImage[channels[0]]:
-            img = vi.readImage(os.path.join(imgDir, imageName))
-            normImage = vigra.VigraArray(img.shape, dtype=np.dtype('uint8'))
-#WARNING if you only do normImage = (img - etc then we have a flickering effect. Apparently vigra decides to do its normalization on every image as it pleases
-            im = np.array(img[:,:,0])
-            im[np.where(im<min_[channels[0]])]=min_[channels[0]]
-            im[np.where(im>max_[channels[0]])]=max_[channels[0]]
-            normImage[:,:,0] = (im-min_[channels[0]])*(2**8-1)/(max_[channels[0]]-min_[channels[0]])
-            #normImage[np.where(normImage>1)]=1
+            try:
+                img = vi.readImage(os.path.join(imgDir, imageName))
+            except OSError:
+                normImage = vigra.VigraArray(img.shape, dtype=np.dtype('uint8'))
+            else:
+                normImage = vigra.VigraArray(img.shape, dtype=np.dtype('uint8'))
+    #WARNING if you only do normImage = (img - etc then we have a flickering effect. Apparently vigra decides to do its normalization on every image as it pleases
+                im = np.array(img[:,:,0])
+                im[np.where(im<min_[channels[0]])]=min_[channels[0]]
+                im[np.where(im>max_[channels[0]])]=max_[channels[0]]
+                normImage[:,:,0] = (im-min_[channels[0]])*(2**8-1)/(max_[channels[0]]-min_[channels[0]])
+                #normImage[np.where(normImage>1)]=1
             suffix = imageName.split('.')[-1]
             vi.writeImage(normImage, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')), dtype = np.dtype('uint8'))
     
@@ -196,28 +200,30 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
     #making movie for both channels if the images exist
     if secondary:    
         for imageName in lstImage[channels[0]]:        
-            img = vi.readImage(os.path.join(imgDir, imageName))
-            shape = img.shape
-            colorImage = vigra.VigraArray((shape[0],shape[1], 3), dtype=np.dtype('uint8'))
-            im = np.array(img[:,:,0])
-            im[np.where(im<min_[channels[0]])]=min_[channels[0]]
-            im[np.where(im>max_[channels[0]])]=max_[channels[0]]
-            colorImage[:,:,0] = (im-min_[channels[0]])*(2**8-1)/(max_[channels[0]]-min_[channels[0]])
+            try:
+                img = vi.readImage(os.path.join(imgDir, imageName))
+            except OSError:
+                colorImage = vigra.VigraArray((shape[0],shape[1], 3), dtype=np.dtype('uint8'))
+            else:
+                shape = img.shape
+                colorImage = vigra.VigraArray((shape[0],shape[1], 3), dtype=np.dtype('uint8'))
+                im = np.array(img[:,:,0])
+                im[np.where(im<min_[channels[0]])]=min_[channels[0]]
+                im[np.where(im>max_[channels[0]])]=max_[channels[0]]
+                colorImage[:,:,0] = (im-min_[channels[0]])*(2**8-1)/(max_[channels[0]]-min_[channels[0]])
 
-            
-            suffix = imageName.split('_')[-1]
-            for i,ch in enumerate(channels[1:]):
-                imageName2 = os.path.basename(imageName).replace(suffix, 'c{:>05}.tif'.format(ch))
-                im = vi.readImage(os.path.join(imgDir, imageName2))
-                im = np.array(im[:,:,0])
-                im[np.where(im<min_[channels[ch]])]=min_[channels[ch]]
-                im[np.where(im>max_[channels[ch]])]=max_[channels[ch]]
-                colorImage[:,:,i+1] = (im-min_[ch])*(2**8-1)/(max_[ch]-min_[ch])
-                
+                suffix = imageName.split('_')[-1]
+                for i,ch in enumerate(channels[1:]):
+                    imageName2 = os.path.basename(imageName).replace(suffix, 'c{:>05}.tif'.format(ch))
+                    im = vi.readImage(os.path.join(imgDir, imageName2))
+                    im = np.array(im[:,:,0])
+                    im[np.where(im<min_[channels[ch]])]=min_[channels[ch]]
+                    im[np.where(im>max_[channels[ch]])]=max_[channels[ch]]
+                    colorImage[:,:,i+1] = (im-min_[ch])*(2**8-1)/(max_[ch]-min_[ch])
+                    
             suffix = imageName.split('.')[-1]
             vi.writeImage(colorImage, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')), dtype = np.dtype('uint8'))
     
-        
         # encode command
         encode_command = 'mencoder "mf://%s/*.jpg" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
         encode_command %= (tempDir, os.path.join(outDir, '{}_2.avi'.format(movieName)))

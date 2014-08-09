@@ -31,6 +31,7 @@ from tracking.histograms import *
 from tracking.histograms.k_means_transportation import _labels_inertia_precompute_dense
 from util.listFileManagement import strToTuple, expSi, appendingControl, is_ctrl, siEntrez
 from util import settings
+from util.plots import couleurs
 
 #code pour plotter la dist des p-val ctrl
 #import pylab as pl
@@ -495,89 +496,98 @@ class hitFinder():
             p.savefig(os.path.join(self.settings.result_folder, self.settings.figure_name.format(title, testCtrl)))
         return result
     
-    def plot_heatmaps(self, testCtrl=False, iterations=[0,1,2], sh=None):
+    def plot_heatmaps(self, testCtrl=False, iterations=[0,1,2], sh=None, saveOnly=False, loadOnly=False):
         if sh==None:
             sh=show
         parameters = None
-    #getting list of all parameter sets, from all iterations and taking parameter sets that are in all iterations
-        for iter_ in iterations:            
-            try:
-                f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename.format(iter_)), 'r')
-                d=pickle.load(f); f.close()
-            except IOError:
-                raise
-            if parameters == None:
-                parameters = sorted(d.keys(), key=itemgetter(0, 9,5, 2, 7, 8))
+        if not loadOnly:
+        #getting list of all parameter sets, from all iterations and taking parameter sets that are in all iterations
+            for iter_ in iterations:            
+                try:
+                    f=open(os.path.join(self.settings.result_folder, self.settings.clustering_filename.format(iter_)), 'r')
+                    d=pickle.load(f); f.close()
+                except IOError:
+                    raise
+                if parameters == None:
+                    parameters = sorted(d.keys(), key=itemgetter(0, 9,5, 2, 7, 8))
+                else:
+                    paramCourants = sorted(d.keys(), key=itemgetter(0, 9,5, 2, 7, 8))
+                    parameters = filter(lambda x: x in paramCourants, parameters)
+        #getting list of all siRNAs for which p-values have been calculated in at least one case
+    
+            if not testCtrl:
+                pvalL = filter(lambda x: 'pval' in x and 'CTRL' not in x and 'png' not in x, os.listdir(self.settings.result_folder))
+                siRNAL=[el.split('_')[-1][:-4] for el in pvalL]
             else:
-                paramCourants = sorted(d.keys(), key=itemgetter(0, 9,5, 2, 7, 8))
-                parameters = filter(lambda x: x in paramCourants, parameters)
-    #getting list of all siRNAs for which p-values have been calculated in at least one case
-        parameters = [(('PCA', 0),
- ('bin_size', 10),
- ('bins_type', 'minmax'),
- ('cost_type', 'number'),
- ('ddimensional', 0),
- ('dist_weights', 0),
- ('div_name', 'total_variation'),
- ('lambda', 10),
- ('n_cluster', 7),
- ('whiten', 0))]
-        if not testCtrl:
-            pvalL = filter(lambda x: 'pval' in x and 'CTRL' not in x and 'png' not in x, os.listdir(self.settings.result_folder))
-            siRNAL=[el.split('_')[-1][:-4] for el in pvalL]
-        else:
-            #in this case we're working with ctrl experiments so siRNAL will contain plate names
-            pvalL = filter(lambda x: 'pval' in x and 'CTRL' in x and 'png' not in x, os.listdir(self.settings.result_folder))
-            siRNAL=['{}_{}'.format(el.split('_')[-2],el.split('_')[-1][:-4]) for el in pvalL]
-        
-        siRNAL = sorted(Counter(siRNAL).keys())
-        platesL=[]
-        comparisons = [el.split('_')[1] for el in pvalL] 
-        comparisons = Counter(comparisons).keys()
-        print comparisons
-
-
-#idea: get iterations of same parameter set next to one another
-        result = np.empty(shape=(len(comparisons), len(parameters),len(iterations)), dtype=object)
-        result.fill(None)
-        
-        for k, comparison in enumerate(comparisons):
-            iterations=['iter{}'.format(m) for m in iterations]
-            if testCtrl:
-                ctrl_iterations=['_0CTRL', '_1CTRL']#[comparison+'_0CTRL', comparison+'_1CTRL']
-            else:
-                ctrl_iterations=['']
-            for i, iter_ in enumerate(iterations):
-                for ctrl_iter in ctrl_iterations:
-                    for siRNA in siRNAL:
-                        platesL.append(siRNA)
-                        try:
-                            f=open(os.path.join(self.settings.result_folder, 'pval_{}_{}{}_{}.pkl'.format(comparison, iter_, ctrl_iter, siRNA)))
-                            d=pickle.load(f); f.close()
-                        except IOError:
-                            print "zou", siRNA, iter_
-                            d={}
-                        for j,parameter_set in enumerate(parameters):
-                            
-                            if parameter_set in d:
-                                if type(d[parameter_set])==list and d[parameter_set]!=[]:
-                                    try:
-                                        result[k,j,i].append(d[parameter_set][0])
-                                    except AttributeError:
-                                        result[k,j,i]=d[parameter_set]
-                                elif d[parameter_set]==[]:
-                                    print siRNA, 'liste vide de pvalues'
-                                    result[k,j,i].append(np.nan)
+                #in this case we're working with ctrl experiments so siRNAL will contain plate names
+                pvalL = filter(lambda x: 'pval' in x and 'CTRL' in x and 'png' not in x, os.listdir(self.settings.result_folder))
+                siRNAL=['{}_{}'.format(el.split('_')[-2],el.split('_')[-1][:-4]) for el in pvalL]
+            
+            siRNAL = sorted(Counter(siRNAL).keys())
+            platesL=[]
+            comparisons = [el.split('_')[1] for el in pvalL] 
+            comparisons = Counter(comparisons).keys()
+            print comparisons
+    
+    
+    #idea: get iterations of same parameter set next to one another
+            result = np.empty(shape=(len(comparisons), len(parameters),len(iterations)), dtype=object)
+            result.fill(None)
+            
+            for k, comparison in enumerate(comparisons):
+                iterations=['iter{}'.format(m) for m in iterations]
+                if testCtrl:
+                    ctrl_iterations=['_0CTRL', '_1CTRL']#[comparison+'_0CTRL', comparison+'_1CTRL']
+                else:
+                    ctrl_iterations=['']
+                for i, iter_ in enumerate(iterations):
+                    for ctrl_iter in ctrl_iterations:
+                        for siRNA in siRNAL:
+                            platesL.append(siRNA)
+                            try:
+                                f=open(os.path.join(self.settings.result_folder, 'pval_{}_{}{}_{}.pkl'.format(comparison, iter_, ctrl_iter, siRNA)))
+                                d=pickle.load(f); f.close()
+                            except IOError:
+                                print "zou", siRNA, iter_
+                                d={}
+                            for j,parameter_set in enumerate(parameters):
+                                
+                                if parameter_set in d:
+                                    if type(d[parameter_set])==list and d[parameter_set]!=[]:
+                                        try:
+                                            result[k,j,i].append(d[parameter_set][0])
+                                        except AttributeError:
+                                            result[k,j,i]=d[parameter_set]
+                                    elif d[parameter_set]==[]:
+                                        print siRNA, 'liste vide de pvalues'
+                                        result[k,j,i].append(np.nan)
+                                    else:
+                                        try:
+                                            result[k,j,i].append(d[parameter_set])
+                                        except AttributeError:
+                                            result[k,j,i]=[d[parameter_set]]
                                 else:
                                     try:
-                                        result[k,j,i].append(d[parameter_set])
+                                        result[k,j,i].append(np.nan)
                                     except AttributeError:
-                                        result[k,j,i]=[d[parameter_set]]
-                            else:
-                                try:
-                                    result[k,j,i].append(np.nan)
-                                except AttributeError:
-                                    result[k,j,i] = [np.nan]
+                                        result[k,j,i] = [np.nan]
+        
+#        if testCtrl == True:
+#            for j in range(result.shape[1]):
+#                f=p.figure()
+#                ax=f.add_subplot(111)
+#                for i in range(result.shape[2]):
+#                    nb,bins,patches=ax.hist(result[0,j,i], bins=100, range=(0,0.001), color = couleurs[i],alpha=0.2)
+#                f.savefig( 'histParam{}.png'.format(j) )
+#
+        else:
+            f=open(os.path.join(self.settings.result_folder, 'pickledPval.pkl'))
+            result, siRNAL, platesL = pickle.load(f); f.close()
+                    
+        if saveOnly:
+            f=open(os.path.join(self.settings.result_folder, 'pickledPval.pkl'), 'w')
+            pickle.dump((result, siRNAL, platesL), f); f.close()
+            
         new=None
         for k in range(result.shape[0]):
             N=None
