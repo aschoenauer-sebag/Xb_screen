@@ -586,7 +586,21 @@ class hitFinder():
 #                for i in range(result.shape[2]):
 #                    nb,bins,patches=ax.hist(result[0,j,i], bins=100, range=(0,0.001), color = couleurs[i],alpha=0.2)
 #                f.savefig( 'histParam{}.png'.format(j) )
-#
+
+            new=None
+            for k in range(result.shape[0]):
+                N=None
+                for i in range(result.shape[2]):
+                    for j in range(result.shape[1]):
+                        try:
+                            N=np.vstack((N, np.array(result[k,j,i]) )) if N is not None else np.array(result[k,j,i])
+                        except:
+                            pdb.set_trace()
+                if new is None:
+                    new = N[np.newaxis, :]
+                else:
+                    new=np.vstack((new, N[np.newaxis, :]))
+            result=new
         else:
             for iter_ in iterations:
                 f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_{}.pkl'.format(iterations[0])))
@@ -598,20 +612,7 @@ class hitFinder():
             pickle.dump((result, siRNAL, platesL), f); f.close()
             return
             
-        new=None
-        for k in range(result.shape[0]):
-            N=None
-            for i in range(result.shape[2]):
-                for j in range(result.shape[1]):
-                    try:
-                        N=np.vstack((N, np.array(result[k,j,i]) )) if N is not None else np.array(result[k,j,i])
-                    except:
-                        pdb.set_trace()
-            if new is None:
-                new = N[np.newaxis, :]
-            else:
-                new=np.vstack((new, N[np.newaxis, :]))
-        result=new
+        
         print result.shape
         if len(np.where(np.isnan(result))[2])>0:
             pdb.set_trace()
