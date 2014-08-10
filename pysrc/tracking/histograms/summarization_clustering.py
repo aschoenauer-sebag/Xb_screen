@@ -544,29 +544,31 @@ class hitFinder():
                     for ctrl_iter in ctrl_iterations:
                         for siRNA in siRNAL:
                             print '---', siRNA
-                            platesL.append(siRNA)
                             try:
                                 f=open(os.path.join(self.settings.result_folder, 'pval_{}_{}{}_{}.pkl'.format(comparison, iter_, ctrl_iter, siRNA)))
                                 d=pickle.load(f); f.close()
                             except IOError:
-                                print "zou", siRNA, iter_
+                                print "No files ", siRNA, iter_
                                 d={}
                             for j,parameter_set in enumerate(parameters):
-                                
                                 if parameter_set in d:
-                                    if type(d[parameter_set])==list and d[parameter_set]!=[]:
-                                        try:
-                                            result[k,j,i].append(d[parameter_set][0])
-                                        except AttributeError:
-                                            result[k,j,i]=d[parameter_set]
-                                    elif d[parameter_set]==[]:
-                                        print siRNA, 'liste vide de pvalues'
-                                        result[k,j,i].append(np.nan)
-                                    else:
-                                        try:
-                                            result[k,j,i].append(d[parameter_set])
-                                        except AttributeError:
-                                            result[k,j,i]=[d[parameter_set]]
+                                    for exp in d[parameter_set]:
+                                        platesL.append(exp)
+                                        result[k,j,i].append(d[parameter_set][exp][-1])
+#                                    if type(d[parameter_set])==list and d[parameter_set]!=[]:
+#                                        pdb.set_trace()
+##                                        try:
+##                                            result[k,j,i].append(d[parameter_set][0])
+##                                        except AttributeError:
+##                                            result[k,j,i]=d[parameter_set]
+#                                    elif d[parameter_set]==[]:
+#                                        print siRNA, 'liste vide de pvalues'
+#                                        result[k,j,i].append(np.nan)
+#                                    else:
+#                                        try:
+#                                            result[k,j,i].append(d[parameter_set])
+#                                        except AttributeError:
+#                                            result[k,j,i]=[d[parameter_set]]
                                 else:
                                     try:
                                         result[k,j,i].append(np.nan)
@@ -582,8 +584,10 @@ class hitFinder():
 #                f.savefig( 'histParam{}.png'.format(j) )
 #
         else:
-            f=open(os.path.join(self.settings.result_folder, 'pickledPval_{}.pkl'.format(testCtrl)))
-            result, siRNAL, platesL = pickle.load(f); f.close()
+            for iter_ in iterations:
+                f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_{}.pkl'.format(iterations[0])))
+                result, siRNAL, platesL = pickle.load(f); f.close()
+                pdb.set_trace()
                     
         if saveOnly:
             f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_{}.pkl'.format(testCtrl, iterations[0])), 'w')
