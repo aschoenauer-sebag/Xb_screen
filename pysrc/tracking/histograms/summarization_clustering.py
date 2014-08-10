@@ -553,7 +553,8 @@ class hitFinder():
                             for j,parameter_set in enumerate(parameters):
                                 if parameter_set in d:
                                     for exp in d[parameter_set]:
-                                        platesL.append(exp)
+                                        if exp not in platesL:
+                                            platesL.append(exp)
                                         try:
                                             result[k,j,i].append(d[parameter_set][exp][-1])
                                         except AttributeError:
