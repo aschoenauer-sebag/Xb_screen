@@ -554,7 +554,10 @@ class hitFinder():
                                 if parameter_set in d:
                                     for exp in d[parameter_set]:
                                         platesL.append(exp)
-                                        result[k,j,i].append(d[parameter_set][exp][-1])
+                                        try:
+                                            result[k,j,i].append(d[parameter_set][exp][-1])
+                                        except AttributeError:
+                                            result[k,j,i]=[d[parameter_set][exp][-1]]
 #                                    if type(d[parameter_set])==list and d[parameter_set]!=[]:
 #                                        pdb.set_trace()
 ##                                        try:
