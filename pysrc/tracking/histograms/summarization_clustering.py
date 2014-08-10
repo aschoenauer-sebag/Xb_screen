@@ -609,7 +609,7 @@ class hitFinder():
                     
         if saveOnly:
             f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_{}.pkl'.format(testCtrl, iterations[0])), 'w')
-            pickle.dump((result, siRNAL, platesL), f); f.close()
+            pickle.dump((result, siRNAL, platesL, parameters), f); f.close()
             return
             
         
