@@ -514,7 +514,7 @@ class hitFinder():
                     paramCourants = sorted(d.keys(), key=itemgetter(0, 9,5, 2, 7, 8))
                     parameters = filter(lambda x: x in paramCourants, parameters)
         #getting list of all siRNAs for which p-values have been calculated in at least one case
-            print parameters, iterations
+            print len(parameters), iterations
             pdb.set_trace()
             if not testCtrl:
                 pvalL = filter(lambda x: 'pval' in x and 'CTRL' not in x and 'png' not in x, os.listdir(self.settings.result_folder))
