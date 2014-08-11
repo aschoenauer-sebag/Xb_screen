@@ -404,7 +404,7 @@ class hitFinder():
             for j in range(result.shape[1]):
                 parameter_corr[k,j,j]=1    
                 try:
-                    thresholds.append(scoreatpercentile(result[k,j], 10))
+                    thresholds.append(scoreatpercentile(result[k,j], 5))
                 except:
                     pdb.set_trace()
                 msg+='{} {} \n'.format(j, thresholds[-1])
@@ -415,7 +415,7 @@ class hitFinder():
             if testCtrl and save:
                 print msg
                 for iter_ in range(len(iterations)):
-                    dict_thresholds = dict(zip(parameters, thresholds[iter_::len(iterations)]))    
+                    dict_thresholds = dict(zip(parameters, thresholds[iter_*len(parameters):(iter_+1)*len(parameters)]))    
                     f=open(os.path.join(self.settings.result_folder, self.settings.threshold_filename.format(comparison, iter_)), 'w')
                     pickle.dump((dict_thresholds, result[k,:]), f); f.close()
             elif not testCtrl:
@@ -423,13 +423,14 @@ class hitFinder():
                 for iter_ in range(len(iterations)):
                     f=open(os.path.join(self.settings.result_folder, self.settings.threshold_filename.format(comparison, iter_)), 'r')
                     dict_thresholds=pickle.load(f)[0]; f.close()
-                    thresholds[iter_::len(iterations)]=np.array([dict_thresholds[el] for el in parameters])
+                    thresholds[iter_*len(parameters):(iter_+1)*len(parameters)]=np.array([dict_thresholds[el] for el in parameters])
                 for j in range(result.shape[1]):
                     print '{} {}'.format(j, thresholds[j])
                 if k==0:
                     mean_corr=[]
+                    ll=len(iterations)
                     for z, param in enumerate(parameters):
-                        mean_corr.append(np.mean(parameter_corr[k, 3*z:3*z+3, 3*z:3*z+3]))
+                        mean_corr.append(np.mean(parameter_corr[k, z::ll, z::ll]))
                     f=open(os.path.join(self.settings.result_folder, '{}_mean_itercorr.pkl'.format(test.func_name)), 'w')
                     pickle.dump(mean_corr, f); f.close()
         #plotting this correlation
@@ -515,7 +516,6 @@ class hitFinder():
                     parameters = filter(lambda x: x in paramCourants, parameters)
         #getting list of all siRNAs for which p-values have been calculated in at least one case
             print len(parameters), iterations
-            pdb.set_trace()
             if not testCtrl:
                 pvalL = filter(lambda x: 'pval' in x and 'CTRL' not in x and 'png' not in x, os.listdir(self.settings.result_folder))
                 siRNAL=[el.split('_')[-1][:-4] for el in pvalL]
@@ -603,26 +603,25 @@ class hitFinder():
                     new=np.vstack((new, N[np.newaxis, :]))
             result=new
         else:
-            param = None; siRNAL = None; platesL = None
+            comparisons = ['L']
+            parameters = None; siRNAL = None; platesL = None
             for iter_ in iterations:
-                f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_iter{}.pkl'.format(int(testCtrl),iterations[0])))
+                f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_iter{}.pkl'.format(int(testCtrl),iter_)))
                 result, siRNALC, platesLC, paramC = pickle.load(f); f.close()
                 print iter_, result.shape , len(siRNALC), len(platesLC), len(paramC)
-                pdb.set_trace()
-                r=np.array(result)
-                param = paramC if param is None else filter(lambda x: x in paramC, param)
+                parameters = paramC if parameters is None else filter(lambda x: x in paramC, parameters)
                 siRNAL = siRNALC if siRNAL is None else filter(lambda x: x in siRNAL, siRNAL)
                 platesL = platesLC if platesL is None else filter(lambda x: x in platesL, platesL)
-                
+            
             r = None
             for iter_ in iterations:
-                f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_iter{}.pkl'.format(int(testCtrl),iterations[0])))
+                f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_iter{}.pkl'.format(int(testCtrl),iter_)))
                 result, siRNALC, platesLC, paramC = pickle.load(f); f.close()
-                r = result[:,np.where(np.array(paramC) == np.array(param)),np.array()]
-                
+                r = result[0,np.where([el in parameters for el in paramC]),:] if r is None else np.hstack((r, result[0,np.where([el in parameters for el in paramC]),:]))
+            result = r
                 
         if saveOnly:
-            f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_{}.pkl'.format(testCtrl, iterations[0])), 'w')
+            f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_{}.pkl'.format(testCtrl, iter_)), 'w')
             pickle.dump((result, siRNAL, platesL, parameters), f); f.close()
             return
             
@@ -646,8 +645,9 @@ class hitFinder():
         #plotting correlations for different iterations and parameters between the hit lists
         _ = self._correlationParamParam(comparisons, parameters, hit_matrix, testCtrl,iterations, sh, test=pearsonr, save=False)
         #giving gene list
-        genes=platesL
-        if not testCtrl:
+        if testCtrl:
+            genes=platesL
+        else:
             genes=[]
             dictSiEntrez=siEntrez(self.settings.mitocheck_file)
             for siRNA in siRNAL:
@@ -657,7 +657,7 @@ class hitFinder():
                     pdb.set_trace()
         genes = np.delete(np.array(genes), genesToDel)
         siRNAL = np.delete(np.array(siRNAL), genesToDel)
-        return hit_matrix, result, parameters, genes, siRNAL
+        return hit_matrix, result, parameters, genes, siRNAL, platesL
 
 
 class clusteringExperiments():
