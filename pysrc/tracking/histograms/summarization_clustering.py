@@ -514,7 +514,8 @@ class hitFinder():
                     paramCourants = sorted(d.keys(), key=itemgetter(0, 9,5, 2, 7, 8))
                     parameters = filter(lambda x: x in paramCourants, parameters)
         #getting list of all siRNAs for which p-values have been calculated in at least one case
-    
+            print parameters, iterations
+            pdb.set_trace()
             if not testCtrl:
                 pvalL = filter(lambda x: 'pval' in x and 'CTRL' not in x and 'png' not in x, os.listdir(self.settings.result_folder))
                 siRNAL=[el.split('_')[-1][:-4] for el in pvalL]
@@ -602,11 +603,24 @@ class hitFinder():
                     new=np.vstack((new, N[np.newaxis, :]))
             result=new
         else:
+            param = None; siRNAL = None; platesL = None
             for iter_ in iterations:
-                f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_{}.pkl'.format(iterations[0])))
-                result, siRNAL, platesL = pickle.load(f); f.close()
+                f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_iter{}.pkl'.format(int(testCtrl),iterations[0])))
+                result, siRNALC, platesLC, paramC = pickle.load(f); f.close()
+                print iter_, result.shape , len(siRNALC), len(platesLC), len(paramC)
                 pdb.set_trace()
-                    
+                r=np.array(result)
+                param = paramC if param is None else filter(lambda x: x in paramC, param)
+                siRNAL = siRNALC if siRNAL is None else filter(lambda x: x in siRNAL, siRNAL)
+                platesL = platesLC if platesL is None else filter(lambda x: x in platesL, platesL)
+                
+            r = None
+            for iter_ in iterations:
+                f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_iter{}.pkl'.format(int(testCtrl),iterations[0])))
+                result, siRNALC, platesLC, paramC = pickle.load(f); f.close()
+                r = result[:,np.where(np.array(paramC) == np.array(param)),np.array()]
+                
+                
         if saveOnly:
             f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_{}.pkl'.format(testCtrl, iterations[0])), 'w')
             pickle.dump((result, siRNAL, platesL, parameters), f); f.close()
