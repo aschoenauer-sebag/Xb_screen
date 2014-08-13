@@ -136,13 +136,11 @@ if __name__ == '__main__':
     parser.add_option('--experimentFile', type=str, dest='experimentFile', default = None)
     parser.add_option('--first_exp', type=int, dest='first_exp', default =0)
     parser.add_option('--iter', type=int, default =0, dest='iter_')
-    parser.add_option('--div_name', type=str, dest='div_name', default='transportation')
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
     parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
     parser.add_option('--bin_size', type=int, dest="bin_size", default=50)
     parser.add_option('--nb_exp', type=int, dest='size', default=10000)
     
-    parser.add_option("-l",type=int, dest="lambda_", default=10)
     parser.add_option("--verbose", dest="verbose", type=int,default=0)
     (options, args) = parser.parse_args()
     
@@ -159,4 +157,4 @@ if __name__ == '__main__':
     
     extractor=distributionExtractor(expList[options.first_exp:options.first_exp+options.size], settings_file,options.first_exp, options.iter_,options.bins_type,
                  bin_size=options.bin_size,verbose=options.verbose)
-    extractor(distribution_only)
+    extractor()
