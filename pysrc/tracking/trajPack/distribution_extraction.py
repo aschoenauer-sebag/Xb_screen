@@ -98,6 +98,7 @@ class distributionExtractor():
         self.bin_size = bin_size        
         self.verbose=verbose
         self.currInterestFeatures = featuresNumeriques
+        self.currInterestFeatures.extend(['mean persistence',  'mean straight'])
         if self.settings.histDataAsWell:
             raise AttributeError
     
@@ -106,22 +107,20 @@ class distributionExtractor():
         Ici sur toutes les experiences dans self.expList on construit l'histogramme de toutes les features numeriques
         '''
         histDict = defaultdict(list)
-        r, _, _,_, length, _, _, _ = histConcatenation(self.settings.data_folder, self.expList, self.settings.mitocheck_file,
+        _,r, _, _,_, length, _, _, _ = histConcatenation(self.settings.data_folder, self.expList, self.settings.mitocheck_file,
                                         self.settings.quality_control_file, verbose=self.verbose)
-        for k, feature in enumerate(self.currInterestFeatures):
+        for feature in self.currInterestFeatures:
             for i in range(len(length)):
-                histDict[feature].append(r[np.sum(length[:i]):np.sum(length[:i+1]),k])
+                histDict[feature].append(r[np.sum(length[:i]):np.sum(length[:i+1]),featuresSaved.index(feature)])
                     
         histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bin_type, iter_=self.iter_ )
                     
         return histogrammes, bins
     
     
-    def __call__(self, distribution_only):
+    def __call__(self):
         #i.calculate the histograms and binnings of experiments, 20% of controls
         histogrammes, bins = self.getData(self.settings.histDataAsWell)
-        if distribution_only:
-            return
         
         return
 
@@ -141,7 +140,7 @@ if __name__ == '__main__':
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
     parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
     parser.add_option('--bin_size', type=int, dest="bin_size", default=50)
-    parser.add_option('--nb_exp', type=int, dest='size', default=1000)
+    parser.add_option('--nb_exp', type=int, dest='size', default=10000)
     
     parser.add_option("-l",type=int, dest="lambda_", default=10)
     parser.add_option("--verbose", dest="verbose", type=int,default=0)

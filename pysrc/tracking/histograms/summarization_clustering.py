@@ -1,6 +1,6 @@
 import warnings, pdb, time, sys, os
 import getpass
-from scipy.stats.stats import ks_2samp, pearsonr, scoreatpercentile, spearmanr
+from scipy.stats.stats import ks_2samp, pearsonr, scoreatpercentile, spearmanr, percentileofscore
 
 if getpass.getuser()=='aschoenauer':
     import matplotlib as mpl
@@ -390,6 +390,68 @@ class hitFinder():
             self.__call__(ctrlIter=1)
         return
     
+    def _thresholds(self, comparisons, percentile, parameters, result,iterations, save=True):
+        '''
+        This function computes the threshold for all parameter sets at percentile, saves it or loads it
+        '''
+        if save:
+            for k, comparison in enumerate(comparisons):
+                msg=''; thresholds=[]
+                msg+='Value of ctrl p-values\n'
+                for j in range(result.shape[1]):
+                    try:
+                        thresholds.append(scoreatpercentile(result[k,j], percentile))
+                    except:
+                        pdb.set_trace()
+                    msg+='{} {} \n'.format(j, thresholds[-1])
+                
+                for iter_ in range(len(iterations)):
+                    dict_thresholds = dict(zip(parameters, thresholds[iter_*len(parameters):(iter_+1)*len(parameters)]))    
+                    f=open(os.path.join(self.settings.result_folder, self.settings.threshold_filename.format(comparison, iter_)), 'w')
+                    pickle.dump((dict_thresholds, result[k,:]), f); f.close()
+            return thresholds, None
+        else:
+            print 'Loading thresholds at percentile ', percentile
+            for k, comparison in enumerate(comparisons):
+                thresholds=np.zeros(shape=(len(parameters)*len(iterations)))
+                for iter_ in range(len(iterations)):
+                    f=open(os.path.join(self.settings.result_folder, self.settings.threshold_filename.format(comparison, iter_)), 'r')
+                    dict_thresholds, dist_controls =pickle.load(f); f.close()
+                    thresholds[iter_*len(parameters):(iter_+1)*len(parameters)]=np.array([dict_thresholds[el] for el in parameters])
+                
+            return thresholds, dist_controls
+        
+    def _empiricalDistributions(self, dist_controls, result, iterations):
+        '''
+        This function computes empirical p-value distributions
+        '''
+        assert dist_controls.shape[0]==result.shape[1]
+        empirical_pval = np.zeros(shape = (result.shape[1], result.shape[2]), dtype=float)
+        empirical_qval = np.zeros(shape = (result.shape[1], result.shape[2]), dtype=float)
+        if 'empirical_p_qval.pkl' not in os.listdir(self.settings.result_folder):
+            for z in range(result.shape[1]):
+                #for all parameter sets
+                empirical_pval[z] = np.array([percentileofscore(dist_controls[z,:], result[0,z,exp]) for exp in range(result.shape[2])])
+                empirical_qval[z] = empirical_pval[z]*empirical_pval.shape[1]/(np.argsort(empirical_pval[z])+1)
+    
+                #plotting empirical p-value distribution
+                f=p.figure()
+                ax=f.add_subplot(111)
+                nb,bins,patches=ax.hist(empirical_pval[z], bins=50, alpha=0.2)
+                p.savefig('pvalParam{}.png'.format(z))
+                p.close('all')
+                
+            empirical_pval=empirical_pval/100
+            empirical_qval=empirical_qval/100
+            f = open(os.path.join(self.settings.result_folder, 'empirical_p_qval.pkl'), 'w')
+            pickle.dump((empirical_pval, empirical_qval),f); f.close()
+        else:
+            f=open(os.path.join(self.settings.result_folder, 'empirical_p_qval.pkl'))
+            empirical_pval, _ = pickle.load(f); f.close()
+        return empirical_pval
+
+            
+    
     def _correlationParamParam(self, comparisons, parameters, result, testCtrl,iterations, sh,test=spearmanr, save=True):
         '''
         One should be aware that scoreatpercentile is influenced by nan values. 
@@ -403,36 +465,18 @@ class hitFinder():
             msg+='Value of ctrl p-values\n'
             for j in range(result.shape[1]):
                 parameter_corr[k,j,j]=1    
-                try:
-                    thresholds.append(scoreatpercentile(result[k,j], 5))
-                except:
-                    pdb.set_trace()
-                msg+='{} {} \n'.format(j, thresholds[-1])
-
                 for l in range(j+1, result.shape[1]):
                     parameter_corr[k,j,l]=test(result[k,j], result[k,l])[0]
                     parameter_corr[k,l,j]=parameter_corr[k,j,l]
-            if testCtrl and save:
-                print msg
-                for iter_ in range(len(iterations)):
-                    dict_thresholds = dict(zip(parameters, thresholds[iter_*len(parameters):(iter_+1)*len(parameters)]))    
-                    f=open(os.path.join(self.settings.result_folder, self.settings.threshold_filename.format(comparison, iter_)), 'w')
-                    pickle.dump((dict_thresholds, result[k,:]), f); f.close()
-            elif not testCtrl:
-                thresholds=np.zeros(shape=(len(parameters)*len(iterations)))
-                for iter_ in range(len(iterations)):
-                    f=open(os.path.join(self.settings.result_folder, self.settings.threshold_filename.format(comparison, iter_)), 'r')
-                    dict_thresholds=pickle.load(f)[0]; f.close()
-                    thresholds[iter_*len(parameters):(iter_+1)*len(parameters)]=np.array([dict_thresholds[el] for el in parameters])
-                for j in range(result.shape[1]):
-                    print '{} {}'.format(j, thresholds[j])
-                if k==0:
-                    mean_corr=[]
-                    ll=len(iterations)
-                    for z, param in enumerate(parameters):
-                        mean_corr.append(np.mean(parameter_corr[k, z::ll, z::ll]))
-                    f=open(os.path.join(self.settings.result_folder, '{}_mean_itercorr.pkl'.format(test.func_name)), 'w')
-                    pickle.dump(mean_corr, f); f.close()
+            if not testCtrl:
+                mean_corr=[]
+                ll=len(iterations)
+                for z, param in enumerate(parameters):
+                    mean_corr.append(np.mean(parameter_corr[k, z::ll, z::ll]))
+                f=open(os.path.join(self.settings.result_folder, '{}_{}_mean_itercorr.pkl'.format(test.func_name, result.shape[2])), 'w')
+                pickle.dump(mean_corr, f); f.close()
+
+                
         #plotting this correlation
         cmap = brewer2mpl.get_map('RdBu', 'diverging', 3).mpl_colormap
         for k, comparison in enumerate(comparisons):
@@ -443,13 +487,12 @@ class hitFinder():
                           edgecolors = 'None')
             ax.set_xlim(0,result.shape[1])
             ax.set_ylim(0,result.shape[1])
-            ax.set_title("P-values, {}'s correlation for {}".format(test.func_name, comparison))
+            ax.set_title("P-values, {}'s correlation for {}, {} var".format(test.func_name, comparison, result.shape[2]))
             f.colorbar(zou)
             if sh:
                 p.show()
             else:
-                p.savefig(os.path.join(self.settings.result_folder, 'Pvalues{}_CTRL{}.png'.format(comparison, testCtrl)))
-                
+                p.savefig(os.path.join(self.settings.result_folder, '{}{}_CTRL{}.png'.format(test.func_name, comparison, testCtrl)))
         return np.array(thresholds)
     
     def _correlationExpParam(self, comparisons, parameters, result, testCtrl, sh,thresholds=None):
@@ -497,7 +540,7 @@ class hitFinder():
             p.savefig(os.path.join(self.settings.result_folder, self.settings.figure_name.format(title, testCtrl)))
         return result
     
-    def plot_heatmaps(self, testCtrl=False, iterations=[0,1,2], sh=None, saveOnly=False, loadOnly=False):
+    def plot_heatmaps(self,percentile = 5, testCtrl=False, iterations=[0,1,2], sh=None, saveOnly=False, loadOnly=False):
         if sh==None:
             sh=show
         parameters = None
@@ -560,20 +603,6 @@ class hitFinder():
                                             result[k,j,i].append(d[parameter_set][exp][-1])
                                         except AttributeError:
                                             result[k,j,i]=[d[parameter_set][exp][-1]]
-#                                    if type(d[parameter_set])==list and d[parameter_set]!=[]:
-#                                        pdb.set_trace()
-##                                        try:
-##                                            result[k,j,i].append(d[parameter_set][0])
-##                                        except AttributeError:
-##                                            result[k,j,i]=d[parameter_set]
-#                                    elif d[parameter_set]==[]:
-#                                        print siRNA, 'liste vide de pvalues'
-#                                        result[k,j,i].append(np.nan)
-#                                    else:
-#                                        try:
-#                                            result[k,j,i].append(d[parameter_set])
-#                                        except AttributeError:
-#                                            result[k,j,i]=[d[parameter_set]]
                                 else:
                                     try:
                                         result[k,j,i].append(np.nan)
@@ -633,17 +662,36 @@ class hitFinder():
         result = np.delete(result, genesToDel, 2)
         print "And after deleting lines with NaN", result.shape           
      
-        #calculating correlations between differents parameter sets and computing p-values thresholds for different parameters
-        thresholds = self._correlationParamParam(comparisons, parameters, result, testCtrl,iterations, sh)
+        #calculating percentile thresholds or loading it
+        thresholds, dist_controls = self._thresholds(comparisons, percentile, parameters, result, iterations, save=testCtrl)
+        
+        #determining empirical pval per siRNA and plotting correlations
+        if not testCtrl:
+            empirical_pval = self._empiricalDistributions(dist_controls, result, iterations)
+            si_empirical_pval = self.combiningPval(siRNAL, platesL, empirical_pval)
+            print "empirical p-values", si_empirical_pval.shape
+            self._correlationExpParam(comparisons, parameters, si_empirical_pval, testCtrl, sh)
+            self._correlationParamParam(comparisons, parameters, si_empirical_pval, testCtrl, iterations, sh, test=spearmanr)
+            si_hit_matrix = np.array(si_empirical_pval<0.05, dtype=int)
+            self._correlationExpParam(comparisons, parameters, si_hit_matrix, testCtrl, sh)
+
+            self._correlationParamParam(comparisons, parameters, si_hit_matrix, testCtrl, iterations, sh, test=pearsonr)
+        
+        print "Distance ranking correlation"
+        self._correlationParamParam(comparisons, parameters, result, testCtrl,iterations, sh)
         
         #plotting results: experiments vs parameters. Just another way to see the correlations between different parameters
+        print "Distances"
         _ = self._correlationExpParam(comparisons,parameters, result, testCtrl, sh)
         
         #plotting results in terms of hits, and returning the matrix with 1 where the hits were found
+        print 'Hit matrix'
         hit_matrix = self._correlationExpParam(comparisons, parameters, result, testCtrl, sh, thresholds=thresholds)
         
         #plotting correlations for different iterations and parameters between the hit lists
-        _ = self._correlationParamParam(comparisons, parameters, hit_matrix, testCtrl,iterations, sh, test=pearsonr, save=False)
+        print "Hit list correlation"
+        self._correlationParamParam(comparisons, parameters, hit_matrix, testCtrl,iterations, sh, test=pearsonr, save=False)
+        
         #giving gene list
         if testCtrl:
             genes=platesL
@@ -657,7 +705,27 @@ class hitFinder():
                     pdb.set_trace()
         genes = np.delete(np.array(genes), genesToDel)
         siRNAL = np.delete(np.array(siRNAL), genesToDel)
-        return hit_matrix, result, parameters, genes, siRNAL, platesL
+        if testCtrl:
+            return hit_matrix, result, parameters, genes, siRNAL, platesL
+        else:
+            return si_hit_matrix, result, parameters, genes, siRNAL, platesL
+    
+    def combiningPval(self, siRNAL, platesL, empirical_pval):
+        siExpDict = expSi(qc = self.settings.quality_control_file, sens=1)
+        repeated_siRNAL = np.array([siExpDict[el[0][:9]+'--'+el[1][2:5]] for el in platesL])
+        
+        si_empirical_pval = np.zeros(shape=(empirical_pval.shape[0], len(siRNAL)), dtype=float)
+        for i, siRNA in enumerate(siRNAL):
+            where_ = np.where(repeated_siRNAL==siRNA)
+        #ici on calcule la stat pour tous les parametres a la fois
+            stat = -2*np.sum(np.log(empirical_pval[:,where_[0]]), 1)
+            assert stat.shape[0]==si_empirical_pval.shape[0] #stat doit etre de la forme empirical_pval.shape[0]
+            si_empirical_pval[:,i]= chi2.sf(stat, 2*len(where_[0]))
+            
+        f = open(os.path.join(self.settings.result_folder, 'si_empirical_pval.pkl'), 'w')
+        pickle.dump(si_empirical_pval,f); f.close()
+        return si_empirical_pval[np.newaxis, :]
+            
 
 
 class clusteringExperiments():
