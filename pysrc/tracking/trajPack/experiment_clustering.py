@@ -58,9 +58,6 @@ class clusteringExperiments():
            'lambda':self.lambda_,
            'cost_type':self.cost_type,
            'dist_weights':self.dist_weights,
-           'ddimensional':self.ddimensional,
-           'PCA': pcaParameter[0],
-           'whiten': pcaParameter[1]
            }
         if with_n_cluster:
             r.update({'n_cluster':self.n_cluster})
