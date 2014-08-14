@@ -185,9 +185,9 @@ class clusteringExperiments():
             if filename in os.listdir(self.settings.result_folder):
                 f=open(os.path.join(self.settings.result_folder, filename), 'r')
                 d = pickle.load(f); f.close()
-                d.update({self.parameters(pcaParameter):(np.array(self.expList), stab_array, representatives)})
+                d.append([self.parameters(pcaParameter),np.array(self.expList), stab_array, representatives])
             else:
-                d={self.parameters(pcaParameter):(np.array(self.expList),  stab_array, representatives)}
+                d=[(self.parameters(pcaParameter),np.array(self.expList),  stab_array, representatives)]
                 
     #So in the file summary_experiment.pkl, we have a list of indices in the original feature array, of representatives
     #from the experiment
