@@ -12,7 +12,7 @@ init = 'k-means++'
 data_folder = '/share/data20T/mitocheck/tracking_results'
 
 #folder for output data
-result_folder = '/share/data20T/mitocheck/Alice/experiment_clustering'
+result_folder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/resultData/experiment_clustering'
 filename = "expClus_iter{}.pkl"
 
 mitocheck_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens72.txt'
