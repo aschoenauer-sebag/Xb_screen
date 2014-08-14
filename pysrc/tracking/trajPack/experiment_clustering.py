@@ -159,11 +159,11 @@ class clusteringExperiments():
                         
                         stability[n_clusters].append(stabilityCalculation(np.array(model1.labels_), np.array(model2.labels_), set1, set2))
                         if self.verbose>0:print 'stability calculation over'
-            print np.array([stability[n_clusters] for n_clusters in range(self.settings.k_min, self.settings.k_max)])
+            stab_array = np.array([stability[n_clusters] for n_clusters in range(self.settings.k_min, self.settings.k_max)])
+            print stab_array
             print np.array([(np.mean(stability[n_clusters]), np.std(stability[n_clusters])) for n_clusters in range(self.settings.k_min, self.settings.k_max)])
             
             arr=np.array([np.mean(stability[n_clusters])+np.std(stability[n_clusters]) for n_clusters in range(self.settings.k_min, self.settings.k_max)])
-            pdb.set_trace()
             try:
                 k = self.settings.k_min+np.where(arr>0.6)[0][-1]
             except IndexError:
@@ -185,9 +185,9 @@ class clusteringExperiments():
             if filename in os.listdir(self.settings.result_folder):
                 f=open(os.path.join(self.settings.result_folder, filename), 'r')
                 d = pickle.load(f); f.close()
-                d.update({self.parameters(pcaParameter):(np.array(self.expList), np.array(stability), representatives)})
+                d.update({self.parameters(pcaParameter):(np.array(self.expList), stab_array, representatives)})
             else:
-                d={self.parameters(pcaParameter):(np.array(self.expList), np.array(stability), representatives)}
+                d={self.parameters(pcaParameter):(np.array(self.expList),  stab_array, representatives)}
                 
     #So in the file summary_experiment.pkl, we have a list of indices in the original feature array, of representatives
     #from the experiment
