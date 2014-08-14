@@ -125,7 +125,7 @@ class clusteringExperiments():
                 if self.verbose:
                     print 'Launching minibatch k-means, n_clusters {}, divergence {}, bin_type {}, bin_size {}, cost_type {}, init size {}, batch size {}'\
                             .format(n_clusters, self.div_name, self.bins_type, self.bin_size, self.cost_type,\
-                                                    self.init_size, self.batch_size) 
+                                                    self.settings.init_size, self.settings.batch_size) 
                 else:
                     print n_clusters   
                 
