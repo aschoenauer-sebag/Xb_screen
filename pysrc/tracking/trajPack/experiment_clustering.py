@@ -104,7 +104,7 @@ class clusteringExperiments():
         return
         
     def __call__(self):
-        filename=self.settings.filename.format(self.iter_, self.experiment[0], self.experiment[1])
+        filename=self.settings.filename.format(self.iter_)
         fraction = self.settings.fraction
         num_iterations_stability = self.settings.num_iterations_stability
         self.random_state = check_random_state(self.random_state)
