@@ -318,7 +318,7 @@ class cellExtractor():
             for k,feature in enumerate(self.currInterestFeatures):
                 histDict[feature].append(r[np.sum(length[:i]):np.sum(length[:i+1]),featuresSaved.index(feature)])
         
-        f=open(os.path.join(self.settings.result_folder, 'distExp_123etctrl_{}_{}.pkl'.format(self.bins_type, self.bin_size)))
+        f=open(os.path.join(self.settings.result_folder, 'distExp_ctrl_{}_{}.pkl'.format(self.bins_type, self.bin_size)))
         bins = pickle.load(f); f.close()
         
         histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
@@ -555,8 +555,7 @@ if __name__ == '__main__':
     parser.add_option('--div_name', type=str, dest='div_name', default='total_variation')
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
     parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
-    parser.add_option('--bin_size', type=int, dest="bin_size", default=50)
-    parser.add_option('--nb_exp', type=int, dest='size', default=1000)
+    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
     
     parser.add_option("-l",type=int, dest="lambda_", default=10)
     parser.add_option("--verbose", dest="verbose", type=int,default=0)

@@ -421,7 +421,7 @@ class hitFinder():
                 
             return thresholds, dist_controls
         
-    def _empiricalDistributions(self, dist_controls, result, iterations):
+    def _empiricalDistributions(self, dist_controls, result, iterations, sup=False):
         '''
         This function computes empirical p-value distributions
         '''
@@ -431,7 +431,13 @@ class hitFinder():
         if 'empirical_p_qval.pkl' not in os.listdir(self.settings.result_folder):
             for z in range(result.shape[1]):
                 #for all parameter sets
-                empirical_pval[z] = np.array([percentileofscore(dist_controls[z,:], result[0,z,exp]) for exp in range(result.shape[2])])
+                if sup:
+    #if we are dealing with distances to calculate empirical distributions,
+    #we're looking for distances that are big, so a small p-value should be for big distances.
+    #Hence our empirical p-values are 100 - the percentage of distances that are lower
+                    empirical_pval[z] = 100 - np.array([percentileofscore(dist_controls[z,:], result[0,z,exp]) for exp in range(result.shape[2])])
+                else:
+                    empirical_pval[z] = np.array([percentileofscore(dist_controls[z,:], result[0,z,exp]) for exp in range(result.shape[2])])
                 empirical_qval[z] = empirical_pval[z]*empirical_pval.shape[1]/(np.argsort(empirical_pval[z])+1)
     
                 #plotting empirical p-value distribution
@@ -495,7 +501,7 @@ class hitFinder():
                 p.savefig(os.path.join(self.settings.result_folder, '{}{}_CTRL{}.png'.format(test.func_name, comparison, testCtrl)))
         return np.array(thresholds)
     
-    def _correlationExpParam(self, comparisons, parameters, result, testCtrl, sh,thresholds=None):
+    def _correlationExpParam(self, comparisons, parameters, result, testCtrl, sh,thresholds=None, sup=False):
         cmap = brewer2mpl.get_map('RdBu', 'diverging', 11).mpl_colormap
         
         if thresholds is not None:
@@ -505,7 +511,10 @@ class hitFinder():
             for k in range(result.shape[0]):
                 for j in range(result.shape[1]):
                     threshold = thresholds[j]
-                    result[k,j]=result[k,j]<threshold
+                    if not sup:
+                        result[k,j]=result[k,j]<threshold
+                    else:
+                        result[k,j]=result[k,j]>threshold
         else:
             title = 'P-values'
             min_=10**(-5)
@@ -667,12 +676,12 @@ class hitFinder():
         
         #determining empirical pval per siRNA and plotting correlations
         if not testCtrl:
-            empirical_pval = self._empiricalDistributions(dist_controls, result, iterations)
+            empirical_pval = self._empiricalDistributions(dist_controls, result, iterations, sup=True)
             si_empirical_pval = self.combiningPval(siRNAL, platesL, empirical_pval)
             print "empirical p-values", si_empirical_pval.shape
             self._correlationExpParam(comparisons, parameters, si_empirical_pval, testCtrl, sh)
             self._correlationParamParam(comparisons, parameters, si_empirical_pval, testCtrl, iterations, sh, test=spearmanr)
-            si_hit_matrix = np.array(si_empirical_pval<0.05, dtype=int)
+            si_hit_matrix = np.array(si_empirical_pval<0.001, dtype=int)
             self._correlationExpParam(comparisons, parameters, si_hit_matrix, testCtrl, sh)
 
             self._correlationParamParam(comparisons, parameters, si_hit_matrix, testCtrl, iterations, sh, test=pearsonr)
@@ -686,7 +695,7 @@ class hitFinder():
         
         #plotting results in terms of hits, and returning the matrix with 1 where the hits were found
         print 'Hit matrix'
-        hit_matrix = self._correlationExpParam(comparisons, parameters, result, testCtrl, sh, thresholds=thresholds)
+        hit_matrix = self._correlationExpParam(comparisons, parameters, result, testCtrl, sh, thresholds=thresholds, sup=True)
         
         #plotting correlations for different iterations and parameters between the hit lists
         print "Hit list correlation"
