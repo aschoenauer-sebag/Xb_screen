@@ -1,4 +1,4 @@
-import os
+import os, pdb
 import cPickle as pickle
 
 import numpy as np
@@ -75,6 +75,8 @@ class clusteringExperiments():
         ctrlExp = countingDone(ctrlExp)
         np.random.shuffle(ctrlExp)
         ctrlExp=ctrlExp[:int(0.2*len(self.expList))]
+        if self.verbose:
+            print ctrlExp
         self.expList.extend(ctrlExp)
         
         _,r, _, _,_, length, _, _, _ = histConcatenation(self.settings.data_folder, self.expList, self.settings.mitocheck_file,
@@ -87,7 +89,8 @@ class clusteringExperiments():
         bins = pickle.load(f); f.close()
         
         histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
-                   
+        print histogrammes.shape
+        pdb.set_trace()
         return histogrammes, bins
     
     def _saveResults(self, centers, bins, pcaParameter):
