@@ -5,7 +5,10 @@ from tracking.trajPack import featuresNumeriques
 
 batch_size = 15000
 init_size = 15000
+#number of histogram features
 num_features = 16
+#number of numerical features
+nb_feat_num = 0
 n_init = 10
 init = 'k-means++'
 #folder for trajectory features data

@@ -206,7 +206,7 @@ if __name__ == '__main__':
     parser.add_option('--experimentFile', type=str, dest='experimentFile', default = None)
     parser.add_option('--iter', type=int, dest='iter_', default=0)
     
-    parser.add_option('--div_name', type=str, dest='div_name', default='transportation')
+    parser.add_option('--div_name', type=str, dest='div_name', default='etransportation')
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
     parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
     parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
