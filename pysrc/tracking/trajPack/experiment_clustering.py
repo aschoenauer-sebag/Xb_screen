@@ -41,7 +41,7 @@ class clusteringExperiments():
 #if cost_type==values, the cost matrix will contain the distance between bin centers (since it's not uniform).
         self.cost_type = cost_type
         self.cost_matrix = M 
-        self.dist_weights=[1 for k in range(self.settings.num_features)]
+        self.dist_weights=[1 for k in range(self.settings.num_features+1)]; self.dist_weights[0]=0
         self.verbose=verbose
         self.random_state=None
         
