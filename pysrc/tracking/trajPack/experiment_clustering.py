@@ -88,7 +88,7 @@ class clusteringExperiments():
         
         histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
                    
-        return length, histogrammes, bins
+        return histogrammes, bins
     
     def _saveResults(self, centers, bins, pcaParameter):
         
