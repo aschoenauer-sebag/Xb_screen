@@ -565,7 +565,11 @@ class hitFinder():
                     parameters = sorted(d.keys(), key=itemgetter(0, 9,5, 2, 7, 8))
                 else:
                     paramCourants = sorted(d.keys(), key=itemgetter(0, 9,5, 2, 7, 8))
-                    parameters = filter(lambda x: x in paramCourants, parameters)
+                    parameters.extend(paramCourants)
+            parameters = Counter(parameters)
+            pdb.set_trace()
+            parameters = filter(lambda x: parameters[x]==len(iterations), parameters)
+            pdb.set_trace()
         #getting list of all siRNAs for which p-values have been calculated in at least one case
             print len(parameters), iterations
             if not testCtrl:
@@ -647,10 +651,16 @@ class hitFinder():
                 f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_iter{}.pkl'.format(int(testCtrl),iter_)))
                 result, siRNALC, platesLC, paramC = pickle.load(f); f.close()
                 print iter_, result.shape , len(siRNALC), len(platesLC), len(paramC)
-                parameters = paramC if parameters is None else filter(lambda x: x in paramC, parameters)
-                siRNAL = siRNALC if siRNAL is None else filter(lambda x: x in siRNAL, siRNAL)
-                platesL = platesLC if platesL is None else filter(lambda x: x in platesL, platesL)
-            
+                if parameters is None:
+                    parameters = paramC 
+                else:
+                    parameters.extend(paramC)
+                siRNAL = siRNALC if siRNAL is None else filter(lambda x: x in siRNALC, siRNAL)
+                platesL = platesLC if platesL is None else filter(lambda x: x in platesLC, platesL)
+                
+            parameters = Counter(parameters)
+            parameters = filter(lambda x: parameters[x]==len(iterations), parameters)
+
             r = None
             for iter_ in iterations:
                 f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_iter{}.pkl'.format(int(testCtrl),iter_)))
@@ -681,7 +691,7 @@ class hitFinder():
             print "empirical p-values", si_empirical_pval.shape
             self._correlationExpParam(comparisons, parameters, si_empirical_pval, testCtrl, sh)
             self._correlationParamParam(comparisons, parameters, si_empirical_pval, testCtrl, iterations, sh, test=spearmanr)
-            si_hit_matrix = np.array(si_empirical_pval<0.001, dtype=int)
+            si_hit_matrix = np.array(si_empirical_pval<0.05, dtype=int)
             self._correlationExpParam(comparisons, parameters, si_hit_matrix, testCtrl, sh)
 
             self._correlationParamParam(comparisons, parameters, si_hit_matrix, testCtrl, iterations, sh, test=pearsonr)
