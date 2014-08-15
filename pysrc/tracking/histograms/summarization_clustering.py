@@ -660,7 +660,7 @@ class hitFinder():
                 
             parameters = Counter(parameters)
             parameters = filter(lambda x: parameters[x]==len(iterations), parameters)
-
+            parameters = sorted(parameters, key=itemgetter(0, 9,5, 2, 7, 8))
             r = None
             for iter_ in iterations:
                 f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_iter{}.pkl'.format(int(testCtrl),iter_)))

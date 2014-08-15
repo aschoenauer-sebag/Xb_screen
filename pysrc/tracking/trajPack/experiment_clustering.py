@@ -28,7 +28,7 @@ def collectingData(iter_, expList, debut, fin):
     
     histDict=defaultdict(list)
     
-    _,r, _, _,_, length, _, _, _ = histConcatenation('/share/data20T/mitocheck/tracking_results', expList[debut:fin], 
+    _,r, _, who,_, length, _, _, _ = histConcatenation('/share/data20T/mitocheck/tracking_results', expList[debut:fin], 
                     '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens72.txt', '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt')
     
     for i in range(len(length)):
@@ -40,7 +40,7 @@ def collectingData(iter_, expList, debut, fin):
     
     histogrammes, bins = computingBins(histDict, [10 for k in range(16)], 'quantile', previous_binning=bins)
     f=open(os.path.join(folder, 'data_{}.pkl'.format(iter_)), 'w')
-    pickle.dump(histogrammes,f)
+    pickle.dump((histogrammes, who),f)
     f.close()
 
 
@@ -229,25 +229,34 @@ if __name__ == '__main__':
     parser.add_option('--experimentFile', type=str, dest='experimentFile', default = None)
     parser.add_option('--iter', type=int, dest='iter_', default=0)
     
-    parser.add_option('--div_name', type=str, dest='div_name', default='etransportation')
-    parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
-    parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
-    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
-    parser.add_option("--init", dest="init", type=str,default='k-means++')
-    parser.add_option("--n_init", dest="n_init", type=int,default=10)
-    parser.add_option("--verbose", dest="verbose", type=int,default=0)
+    parser.add_option('-d', type=int, dest='debut')
+    parser.add_option('-f', type=int, dest='fin')
+    
     (options, args) = parser.parse_args()
-    settings_file = 'tracking/settings/settings_exp_clustering.py'
-    
     file_ = open(options.experimentFile, 'r')
-    experimentList = pickle.load(file_); file_.close()
+    experimentList, _ = pickle.load(file_); file_.close()
     
-    model = clusteringExperiments(settings_file, experimentList, 
-            options.div_name, options.bins_type, options.cost_type, options.bin_size, 
-                 init=options.init,
-                 n_init=options.n_init, 
-                 verbose=options.verbose, 
-                 iter_=options.iter_)
-        
-    model()
+    collectingData(options.iter_, experimentList, options.debut, options.fin)
+    
+#    parser.add_option('--div_name', type=str, dest='div_name', default='etransportation')
+#    parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
+#    parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
+#    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
+#    parser.add_option("--init", dest="init", type=str,default='k-means++')
+#    parser.add_option("--n_init", dest="n_init", type=int,default=10)
+#    parser.add_option("--verbose", dest="verbose", type=int,default=0)
+#    (options, args) = parser.parse_args()
+#    settings_file = 'tracking/settings/settings_exp_clustering.py'
+#    
+#    file_ = open(options.experimentFile, 'r')
+#    experimentList = pickle.load(file_); file_.close()
+#    
+#    model = clusteringExperiments(settings_file, experimentList, 
+#            options.div_name, options.bins_type, options.cost_type, options.bin_size, 
+#                 init=options.init,
+#                 n_init=options.n_init, 
+#                 verbose=options.verbose, 
+#                 iter_=options.iter_)
+#        
+#    model()
     
