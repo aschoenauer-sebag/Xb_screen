@@ -28,7 +28,7 @@ def collectingData(iter_, expList, debut, fin):
     
     histDict=defaultdict(list)
     
-    _,r, _, who,_, length, _, _, _ = histConcatenation('/share/data20T/mitocheck/tracking_results', expList[debut:fin], 
+    _,r, _, who,ctrlStatus, length, genes, siRNAs, _ = histConcatenation('/share/data20T/mitocheck/tracking_results', expList[debut:fin], 
                     '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens72.txt', '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt')
     
     for i in range(len(length)):
@@ -40,7 +40,7 @@ def collectingData(iter_, expList, debut, fin):
     
     histogrammes, bins = computingBins(histDict, [10 for k in range(16)], 'quantile', previous_binning=bins)
     f=open(os.path.join(folder, 'data_{}.pkl'.format(iter_)), 'w')
-    pickle.dump((histogrammes, who),f)
+    pickle.dump((histogrammes, who, ctrlStatus, genes, siRNAs),f)
     f.close()
 
 
