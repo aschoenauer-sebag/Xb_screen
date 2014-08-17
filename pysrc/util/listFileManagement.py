@@ -21,21 +21,17 @@ def is_ctrl(experiment):
     return False
 
 
-def renameFromZeiss(inputFolder, plate, outputFolder=None):        
-#ici c'est pour renommer des images dans le cas ou pour une raison connue de Dieu seul
-#le puits n'est pas passe dans le nom du fichier
-#inputfolder doit etre le nom du dossier avec la plaque
-#    for well in os.listdir(inputFolder):
-#        for file_ in os.listdir(os.path.join(inputFolder,well)):
-#            os.rename(os.path.join(inputFolder,well, file_), os.path.join(inputFolder,well, file_[:-18]+'_--'+well+'--P00001'+file_[-18:]))
-
+def renameFromZeiss(inputFolder, plate, nb_wells):        
     #SI ON A DES IMAGES ZEISS PUREMENT ET SIMPLEMENT, noms des dossiers deja changes
-     for well in range(1,97):
+    for well in range(1,nb_wells+1):
         w = "W%05i"%well
+        print w
         for el in os.listdir(os.path.join(inputFolder, w)):
-            timep = int(el.split('_')[2][1:4])
-            ch = int(el.split('_')[2][-1])
+            timep = int(el.split('_')[1][1:4])
+            ch = int(el.split('_')[1][-1])
+#            print el, '%s--%s--P0001_t%05i_c%05i.tif'%(plate, w, timep, ch)
             os.rename(os.path.join(inputFolder, w, el), os.path.join(inputFolder,w, '%s--%s--P0001_t%05i_c%05i.tif'%(plate, w, timep, ch)))
+    return
 
 def renameFromZeissExpDesigner(inputFolder, outputFolder):
     corres=[48,49,53,54,55,56,57,58,62]

@@ -46,14 +46,13 @@ def collectingData(iter_, expList, debut, fin):
 
 
 class clusteringExperiments():
-    def __init__(self, settings_file, experimentList, div_name, bins_type, cost_type, bin_size,
+    def __init__(self, settings_file,div_name, bins_type, cost_type, bin_size,
                  init='k-means++',lambda_=10, M=None, dist_weights=None,
                  n_init=10, verbose=0, iter_=0):
         
         assert(div_name in DIVERGENCES)
             
         self.settings = settings.Settings(settings_file, globals())
-        self.expList = experimentList
         
         self.bins_type=bins_type
         self.mat_hist_sizes=np.array([[bin_size for k in range(self.settings.num_features)]]) 
@@ -125,7 +124,7 @@ class clusteringExperiments():
 
         return
         
-    def __call__(self):
+    def __call__(self, histogrammes=None):
         filename=self.settings.filename.format(self.iter_)
         fraction = self.settings.fraction
         num_iterations_stability = self.settings.num_iterations_stability
@@ -134,7 +133,10 @@ class clusteringExperiments():
 #no PCA, PCA no whitening, PCA and whitening.
 
         for pcaParameter in self.settings.pcaParameters:
-            data, bins=self._dataPrep(pcaParameter)
+            if histogrammes == None:
+                data, bins=self._dataPrep(pcaParameter)
+            else:
+                data=histogrammes
             if self.cost_type=='value':
                 raise ValueError
 #                print 'cost type value'
@@ -229,34 +231,40 @@ if __name__ == '__main__':
     parser.add_option('--experimentFile', type=str, dest='experimentFile', default = None)
     parser.add_option('--iter', type=int, dest='iter_', default=0)
     
-    parser.add_option('-d', type=int, dest='debut')
-    parser.add_option('-f', type=int, dest='fin')
-    
+    parser.add_option('--div_name', type=str, dest='div_name', default='etransportation')
+    parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
+    parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
+    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
+    parser.add_option("--init", dest="init", type=str,default='k-means++')
+    parser.add_option("--n_init", dest="n_init", type=int,default=10)
+    parser.add_option("--verbose", dest="verbose", type=int,default=0)
     (options, args) = parser.parse_args()
+    settings_file = 'tracking/settings/settings_exp_clustering.py'
+    
     file_ = open(options.experimentFile, 'r')
-    experimentList, _ = pickle.load(file_); file_.close()
+    histogrammes, who, ctrlStatus, genes, siRNAs = pickle.load(file_); file_.close()
     
-    collectingData(options.iter_, experimentList, options.debut, options.fin)
-    
-#    parser.add_option('--div_name', type=str, dest='div_name', default='etransportation')
-#    parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
-#    parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
-#    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
-#    parser.add_option("--init", dest="init", type=str,default='k-means++')
-#    parser.add_option("--n_init", dest="n_init", type=int,default=10)
-#    parser.add_option("--verbose", dest="verbose", type=int,default=0)
+    model = clusteringExperiments(settings_file, 
+            options.div_name, options.bins_type, options.cost_type, options.bin_size, 
+                 init=options.init,
+                 n_init=options.n_init, 
+                 verbose=options.verbose, 
+                 iter_=options.iter_)
+        
+    model(histogrammes)
+
+
+
+
+#TO COLLECT DATA
+#
+#
+#    parser.add_option('-d', type=int, dest='debut')
+#    parser.add_option('-f', type=int, dest='fin')#all_Simpson_data.pkl
+#    
 #    (options, args) = parser.parse_args()
-#    settings_file = 'tracking/settings/settings_exp_clustering.py'
-#    
 #    file_ = open(options.experimentFile, 'r')
-#    experimentList = pickle.load(file_); file_.close()
+#    experimentList, _ = pickle.load(file_); file_.close()
 #    
-#    model = clusteringExperiments(settings_file, experimentList, 
-#            options.div_name, options.bins_type, options.cost_type, options.bin_size, 
-#                 init=options.init,
-#                 n_init=options.n_init, 
-#                 verbose=options.verbose, 
-#                 iter_=options.iter_)
-#        
-#    model()
+#    collectingData(options.iter_, experimentList, options.debut, options.fin)
     
