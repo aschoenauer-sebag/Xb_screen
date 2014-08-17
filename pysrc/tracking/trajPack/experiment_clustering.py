@@ -212,7 +212,7 @@ class clusteringExperiments():
                 d = pickle.load(f); f.close()
                 d.append([self.parameters(pcaParameter),np.array(self.expList), stab_array, representatives])
             else:
-                d=[(self.parameters(pcaParameter),np.array(self.expList),  stab_array, representatives)]
+                d=[(self.parameters(pcaParameter),stab_array, representatives)]
                 
     #So in the file summary_experiment.pkl, we have a list of indices in the original feature array, of representatives
     #from the experiment
