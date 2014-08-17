@@ -210,7 +210,7 @@ class clusteringExperiments():
             if filename in os.listdir(self.settings.result_folder):
                 f=open(os.path.join(self.settings.result_folder, filename), 'r')
                 d = pickle.load(f); f.close()
-                d.append([self.parameters(pcaParameter),np.array(self.expList), stab_array, representatives])
+                d.append([self.parameters(pcaParameter),stab_array, representatives])
             else:
                 d=[(self.parameters(pcaParameter),stab_array, representatives)]
                 
