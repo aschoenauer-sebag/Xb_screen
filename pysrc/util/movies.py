@@ -5,7 +5,7 @@ import numpy as np
 from PIL import Image
 
 def makeMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitocheck/compressed_data', \
-                         outDir='/cbio/donnees/aschoenauer/cluster'):
+                         outDir='/cbio/donnees/aschoenauer/cluster', clef=lambda x:int(x.split('_')[2])):
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
     
@@ -15,10 +15,10 @@ def makeMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitocheck/c
             folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))[0]
             imgInDir = filter(lambda x: x[:3] == exp[11:], os.listdir(os.path.join(inDir, folder)))[0]
             imgInDir = os.path.join(inDir, folder, imgInDir)
-            makeMovieFromPNG(imgInDir, outDir, gene, exp[:9], exp[11:], tempDir)
+            makeMovieFromPNG(imgInDir, outDir, gene, exp[:9], exp[11:], clef, tempDir)
     return
 
-def makeMovieFromPNG(imgDir, outDir,gene, plate, well, tempDir=None):
+def makeMovieFromPNG(imgDir, outDir,gene, plate, well, clef, tempDir=None):
 #    def normWrite(img, filename):
 #        img=(img-2**15)*(2**8-1)/(2**12-1)
 #        vi.writeImage(img, filename)
@@ -31,7 +31,7 @@ def makeMovieFromPNG(imgDir, outDir,gene, plate, well, tempDir=None):
     if not os.path.isdir(tempDir):
         os.makedirs(tempDir)
     
-    for el in lstImageNames.sort(key=lambda x:int(x.split('_')[2])):
+    for el in lstImageNames.sort(key=clef):
         shutil.copy(os.path.join(imgDir, el), tempDir)   
         
     # movie filename
