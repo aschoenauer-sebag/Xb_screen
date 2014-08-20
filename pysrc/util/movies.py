@@ -4,23 +4,25 @@ import os, pdb, shutil
 import numpy as np
 from PIL import Image
 
-def makeMovieFromExpDict(idDict, tempDir=None, inDir='/media/lalil0u/New/workspace2/Tracking/cluster', \
-                         outDir='/media/lalil0u/New/workspace2/Tracking/cluster'):
+def makeMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitocheck/compressed_data', \
+                         outDir='/cbio/donnees/aschoenauer/cluster'):
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
     
     for gene in idDict:
         for exp in idDict[gene]:
-            imgInDir = filter(lambda x: x[:3] == exp[1][2:5], os.listdir(os.path.join(inDir, exp[0])))[0]
-            imgInDir = os.path.join(inDir, exp[0], imgInDir)
-            makeMovie(imgInDir, outDir, gene, exp[0], exp[1], tempDir)
+            print exp[:9], exp[11:]
+            folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))
+            imgInDir = filter(lambda x: x[:3] == exp[11:], os.listdir(os.path.join(inDir, folder)))[0]
+            imgInDir = os.path.join(inDir, folder, imgInDir)
+            makeMovieFromPNG(imgInDir, outDir, gene, exp[:9], exp[11:], tempDir)
     return
 
 def makeMovieFromPNG(imgDir, outDir,gene, plate, well, tempDir=None):
-    def normWrite(img, filename):
-        img=(img-2**15)*(2**8-1)/(2**12-1)
-        vi.writeImage(img, filename)
-        return 1
+#    def normWrite(img, filename):
+#        img=(img-2**15)*(2**8-1)/(2**12-1)
+#        vi.writeImage(img, filename)
+#        return 1
     # temp directory
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
