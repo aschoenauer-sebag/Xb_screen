@@ -30,8 +30,8 @@ def makeMovieFromPNG(imgDir, outDir,gene, plate, well, clef, tempDir=None):
     lstImageNames=os.listdir(imgDir)
     if not os.path.isdir(tempDir):
         os.makedirs(tempDir)
-    
-    for el in lstImageNames.sort(key=clef):
+    lstImageNames.sort(key=clef)
+    for el in lstImageNames:
         shutil.copy(os.path.join(imgDir, el), tempDir)   
         
     # movie filename
