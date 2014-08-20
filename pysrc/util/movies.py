@@ -12,7 +12,7 @@ def makeMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitocheck/c
     for gene in idDict:
         for exp in idDict[gene]:
             print exp[:9], exp[11:]
-            folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))
+            folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))[0]
             imgInDir = filter(lambda x: x[:3] == exp[11:], os.listdir(os.path.join(inDir, folder)))[0]
             imgInDir = os.path.join(inDir, folder, imgInDir)
             makeMovieFromPNG(imgInDir, outDir, gene, exp[:9], exp[11:], tempDir)
