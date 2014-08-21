@@ -264,37 +264,38 @@ class hitFinder():
         
     
     def _giveFilename(self, ctrlIter):
-        if ctrlIter==0:
-            return '{}{}'.format(ctrlIter, self.siRNA)
-        else:
-            return '{}{}'.format(ctrlIter, self.siRNA[1:])
+        return '{}{}'.format(ctrlIter, self.siRNA)
     
     def _saveResults(self, p_values, ctrlIter):
         if self.plate is not None:
-            self.siRNA = self._giveFilename(ctrlIter)
-        if self.settings.pval_filename.format(self.iter_, self.siRNA) in os.listdir(self.settings.result_folder):
-            f=open(os.path.join(self.settings.result_folder, self.settings.pval_filename.format(self.iter_, self.siRNA)), 'r')
+            siRNA = self._giveFilename(ctrlIter)
+        else:
+            siRNA = self.siRNA
+        if self.settings.pval_filename.format(self.iter_, siRNA) in os.listdir(self.settings.result_folder):
+            f=open(os.path.join(self.settings.result_folder, self.settings.pval_filename.format(self.iter_, siRNA)), 'r')
             hits = pickle.load(f); f.close()
         else:
             hits={}
             
         hits.update(p_values)
             
-        f=open(os.path.join(self.settings.result_folder, self.settings.pval_filename.format(self.iter_, self.siRNA)), 'w')
+        f=open(os.path.join(self.settings.result_folder, self.settings.pval_filename.format(self.iter_, siRNA)), 'w')
         pickle.dump(hits, f); f.close()
         
     def _saveLabels(self, labelDict, ctrlIter):
         if self.plate is not None:
-            self.siRNA = self._giveFilename(ctrlIter)
-        if self.settings.label_filename.format(self.iter_, self.siRNA) in os.listdir(self.settings.result_folder):
-            f=open(os.path.join(self.settings.result_folder, self.settings.label_filename.format(self.iter_, self.siRNA)), 'r')
+            siRNA = self._giveFilename(ctrlIter)
+        else:
+            siRNA = self.siRNA
+        if self.settings.label_filename.format(self.iter_, siRNA) in os.listdir(self.settings.result_folder):
+            f=open(os.path.join(self.settings.result_folder, self.settings.label_filename.format(self.iter_, siRNA)), 'r')
             labels = pickle.load(f); f.close()
         else:
             labels={}
             
         labels.update(labelDict)
             
-        f=open(os.path.join(self.settings.result_folder, self.settings.label_filename.format(self.iter_, self.siRNA)), 'w')
+        f=open(os.path.join(self.settings.result_folder, self.settings.label_filename.format(self.iter_, siRNA)), 'w')
         pickle.dump(labels, f); f.close()
         
     def _loadLabels(self, ctrlIter):
@@ -302,9 +303,11 @@ class hitFinder():
         Loading labels from the previous time when we had p-values based on L1 distances between histograms of trajectory distribution
         '''
         if self.plate is not None:
-            self.siRNA = self._giveFilename(ctrlIter)
-        if self.settings.label_filename.format(self.iter_, self.siRNA) in os.listdir(self.settings.result_folder):
-            f=open(os.path.join(self.settings.result_folder, self.settings.label_filename.format(self.iter_, self.siRNA)), 'r')
+            siRNA = self._giveFilename(ctrlIter)
+        else:
+            siRNA = self.siRNA
+        if self.settings.label_filename.format(self.iter_, siRNA) in os.listdir(self.settings.result_folder):
+            f=open(os.path.join(self.settings.result_folder, self.settings.label_filename.format(self.iter_, siRNA)), 'r')
             labels = pickle.load(f); f.close()
         else:
             raise
