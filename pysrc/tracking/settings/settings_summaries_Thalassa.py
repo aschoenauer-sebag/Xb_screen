@@ -10,8 +10,10 @@ result_folder = '/share/data20T/mitocheck/Alice/summaries'
 summary_filename = "summary_iter{}_{}_{}.pkl"
 clustering_filename = 'centers_iter{}.pkl'
 hit_filename = 'hits_KS.pkl'
-pval_filename = 'pval_L_iter{}_{}.pkl'
-label_filename = 'labels_iter{}_{}.pkl'
+compute_labels = False
+label_filename = 'pval_L_iter{}_{}.pkl'
+pval_filename = 'pval_F2_iter{}_{}.pkl'
+#label_filename = 'labels_iter{}_{}.pkl'
 figure_name = "comparaison_{}_{}.png" 
 threshold_filename = 'thresholds_significancy_5_{}.pkl' 
 

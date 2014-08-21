@@ -159,6 +159,8 @@ class clusteringExperiments():
                 elif num_iterations_stability>0:
             #IMPLEMENTATION DU TEST POUR LA STABILITE DU CLUSTERING TEL QU'IL FIGURE DANS BEN-HUR ET AL 2002
                     for it_ in range(num_iterations_stability):
+                        result=[]
+                        
                         if self.verbose>0:
                             print 'stability iteration ', it_
                         
@@ -183,25 +185,28 @@ class clusteringExperiments():
                         model2.fit(data[set2])
                         
                         stability[n_clusters].append(stabilityCalculation(np.array(model1.labels_), np.array(model2.labels_), set1, set2))
+                        if stability[n_clusters][-1]>0.8:
+                            print 'Selected!'
+                            result.append((model1.cluster_centers_, model2.cluster_centers_))
                         if self.verbose>0:print 'stability calculation over'
             stab_array = np.array([stability[n_clusters] for n_clusters in range(self.settings.k_min, self.settings.k_max)])
             print stab_array
             print np.array([(np.mean(stability[n_clusters]), np.std(stability[n_clusters])) for n_clusters in range(self.settings.k_min, self.settings.k_max)])
             
             arr=np.array([np.mean(stability[n_clusters])+np.std(stability[n_clusters]) for n_clusters in range(self.settings.k_min, self.settings.k_max)])
-            try:
-                k = self.settings.k_min+np.where(arr>0.6)[0][-1]
-            except IndexError:
-                k=self.settings.k_min+np.argmax(arr)
-            print 'Chosen k', k
-            model = histogramMiniKMeans(k,self.lambda_, self.mat_hist_sizes,
-                             div_name=self.div_name, M=self.cost_matrix, 
-                             dist_weights=self.dist_weights, nb_feat_num = self.settings.nb_feat_num,
-                             init=self.settings.init,
-                             batch_size=self.settings.batch_size,
-                             init_size =self.settings.init_size, verbose=self.verbose,n_init=self.settings.n_init)
-            model.fit(data)
-            representatives = model.find_representatives(N=self.settings.n_representatives) 
+#            try:
+#                k = self.settings.k_min+np.where(arr>0.6)[0][-1]
+#            except IndexError:
+#                k=self.settings.k_min+np.argmax(arr)
+#            print 'Chosen k', k
+#            model = histogramMiniKMeans(k,self.lambda_, self.mat_hist_sizes,
+#                             div_name=self.div_name, M=self.cost_matrix, 
+#                             dist_weights=self.dist_weights, nb_feat_num = self.settings.nb_feat_num,
+#                             init=self.settings.init,
+#                             batch_size=self.settings.batch_size,
+#                             init_size =self.settings.init_size, verbose=self.verbose,n_init=self.settings.n_init)
+#            model.fit(data)
+#            representatives = model.find_representatives(N=self.settings.n_representatives) 
             
         #saving results
             if not os.path.isdir(self.settings.result_folder):
@@ -210,9 +215,9 @@ class clusteringExperiments():
             if filename in os.listdir(self.settings.result_folder):
                 f=open(os.path.join(self.settings.result_folder, filename), 'r')
                 d = pickle.load(f); f.close()
-                d.append([self.parameters(pcaParameter),stab_array, representatives])
+                d.append([self.parameters(pcaParameter),stab_array, result])
             else:
-                d=[(self.parameters(pcaParameter),stab_array, representatives)]
+                d=[(self.parameters(pcaParameter),stab_array, result)]
                 
     #So in the file summary_experiment.pkl, we have a list of indices in the original feature array, of representatives
     #from the experiment

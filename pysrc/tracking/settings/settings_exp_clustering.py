@@ -15,20 +15,20 @@ init = 'k-means++'
 data_folder = '/share/data20T/mitocheck/tracking_results'
 
 #folder for output data
-result_folder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/resultData/experiment_clustering'
+result_folder = '../resultData/experiment_clustering'
 filename = "expClus_iter{}.pkl"
 
-mitocheck_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens72.txt'
+mitocheck_file = '../data/mitocheck_siRNAs_target_genes_Ens72.txt'
 
-quality_control_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt'
+quality_control_file = '../data/qc_export.txt'
 
 #fraction on which to check clustering stability
 fraction = 0.8
-num_iterations_stability = 10
+num_iterations_stability = 20
 
 #number of clusters to try
-k_min = 3
-k_max = 12 
+k_min = 4
+k_max = 5
 
 #number of trajectories to represent a cluster
 n_representatives = 10

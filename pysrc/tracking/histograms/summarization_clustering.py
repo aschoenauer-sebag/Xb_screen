@@ -32,6 +32,9 @@ from tracking.histograms.k_means_transportation import _labels_inertia_precomput
 from util.listFileManagement import strToTuple, expSi, appendingControl, is_ctrl, siEntrez
 from util import settings
 from util.plots import couleurs
+from rpy2.robjects import IntVector
+from rpy2.robjects.packages import importr
+rStats = importr('stats')
 
 #code pour plotter la dist des p-val ctrl
 #import pylab as pl
@@ -175,64 +178,69 @@ class hitFinder():
 
             return result
         
-    def _computePValues(self, labelDict, ctrlList, who, ctrlStatus, length):
+    def _computePValues(self, labelDict, ctrlList=None, who=None, ctrlStatus=None, length=None):
         info = np.array( zip((who, ctrlStatus, length)))[:,0]
         p_vals = defaultdict(list); labelsTot = {}
 #        r=[]
         for param_tuple in labelDict:
-            labels = labelDict[param_tuple]
-            d=dict(param_tuple)
-            labelsTot[param_tuple]={}
             
-            for experiment in info[0,np.where(info[1]==1)[0]]:
-                i=who.index(experiment)
-                pLabelsCour = labels[np.sum(length[:i]):np.sum(length[:i+1])]
-                ctrlPl = filter(lambda x: x[0]==experiment[0], ctrlList)
-                cLabelsCour =[]
+            if ctrlList is not None:
+                labels = labelDict[param_tuple]
+                d=dict(param_tuple)
+                labelsTot[param_tuple]={}
                 
-                for ctrlel in ctrlPl:
-                    try:
-                        index = who.index(ctrlel)
-                    except ValueError:
-                        continue
-                    else:
-                        cLabelsCour.extend(labels[np.sum(length[:index]):np.sum(length[:index+1])])
-                min_ = d['n_cluster']
-                if self.verbose:
-                    print np.bincount(cLabelsCour, minlength=min_)
-                    print np.bincount(pLabelsCour, minlength=min_)
+                for experiment in info[0,np.where(info[1]==1)[0]]:
+                    i=who.index(experiment)
+                    pLabelsCour = labels[np.sum(length[:i]):np.sum(length[:i+1])]
+                    ctrlPl = filter(lambda x: x[0]==experiment[0], ctrlList)
+                    cLabelsCour =[]
                     
-                dist_ = np.sum( np.absolute(
-                                            np.array(np.bincount(cLabelsCour, minlength=min_)/float(len(cLabelsCour)), dtype=float) 
-                                                     -
-                                            np.array(np.bincount(pLabelsCour,minlength=min_)/float(len(pLabelsCour)), dtype=float)
-                                            ))
+                    for ctrlel in ctrlPl:
+                        try:
+                            index = who.index(ctrlel)
+                        except ValueError:
+                            continue
+                        else:
+                            cLabelsCour.extend(labels[np.sum(length[:index]):np.sum(length[:index+1])])
+                    min_ = d['n_cluster']
+                    if self.verbose:
+                        print np.bincount(cLabelsCour, minlength=min_)
+                        print np.bincount(pLabelsCour, minlength=min_)
+                        
+                    dist_ = np.sum( np.absolute(
+                                                np.array(np.bincount(cLabelsCour, minlength=min_)/float(len(cLabelsCour)), dtype=float) 
+                                                         -
+                                                np.array(np.bincount(pLabelsCour,minlength=min_)/float(len(pLabelsCour)), dtype=float)
+                                                ))
+                    if self.verbose:
+                        print dist_
+                    labelsTot[param_tuple][experiment] = [cLabelsCour, pLabelsCour, dist_]
+                return labelsTot
+            else:
+                for experiment in labelDict[param_tuple]:
+                    cLabelsCour, pLabelsCour, _ = labelDict[param_tuple][experiment]
+                    llength = len(cLabelsCour)
+                    vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
+                    cLabelsCour.extend(pLabelsCour)
+                    #r.append([cLabelsCour, vecLongueurs])
+                    if np.all(np.array(cLabelsCour)==np.zeros(len(cLabelsCour))):
+                        p_vals[param_tuple].append(1.0)
+                        continue
+                    
+                    p_vals[param_tuple].append(np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
+                                                                             simulate_p_value=True, B=2000000000)[0][0]))
+                
                 if self.verbose:
-                    print dist_
-                labelsTot[param_tuple][experiment] = [cLabelsCour, pLabelsCour, dist_]
-#
-#                llength = len(cLabelsCour)
-#                vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
-#                cLabelsCour.extend(pLabelsCour)
-                #r.append([cLabelsCour, vecLongueurs])
-#                if np.all(np.array(cLabelsCour)==np.zeros(len(cLabelsCour))):
-#                    p_vals[param_tuple].append(1.0)
-#                    continue
-#                
-#                p_vals[param_tuple].append(np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
-#                                                                         simulate_p_value=True, B=2000000)[0][0]))
-                #
-#                if self.verbose:
-#                    print '---------------weights', d['dist_weights'], 'k', d['n_cluster'], 'bins_type', d['bins_type']
-#                    print len(pLabelsCour), np.bincount(pLabelsCour)/float(len(pLabelsCour))
-#                    print llength, np.bincount(cLabelsCour[:llength])/float(llength)
-#                    print p_vals[param_tuple][-1]
-        #statistical test according to Fisher's method http://en.wikipedia.org/wiki/Fisher%27s_method
+                    print '---------------weights', d['dist_weights'], 'k', d['n_cluster'], 'bins_type', d['bins_type']
+                    print len(pLabelsCour), np.bincount(pLabelsCour)/float(len(pLabelsCour))
+                    print llength, np.bincount(cLabelsCour[:llength])/float(llength)
+                    print p_vals[param_tuple][-1]
+# statistical test according to Fisher's method http://en.wikipedia.org/wiki/Fisher%27s_method
 #            if len(p_vals[param_tuple])>1:
 #                stat = -2*np.sum(np.log(p_vals[param_tuple]))
 #                p_vals[param_tuple] = chi2.sf(stat, 2*len(p_vals[param_tuple]))
 #
-        return labelsTot
+                return p_vals
     
     def _cleanParameterSetsFromDoneWork(self, parameter_set_list, ctrlIter):
         '''
@@ -288,6 +296,20 @@ class hitFinder():
         f=open(os.path.join(self.settings.result_folder, self.settings.label_filename.format(self.iter_, self.siRNA)), 'w')
         pickle.dump(labels, f); f.close()
         
+    def _loadLabels(self, ctrlIter):
+        '''
+        Loading labels from the previous time when we had p-values based on L1 distances between histograms of trajectory distribution
+        '''
+        if self.plate is not None:
+            self.siRNA = self._giveFilename(ctrlIter)
+        if self.settings.label_filename.format(self.iter_, self.siRNA) in os.listdir(self.settings.result_folder):
+            f=open(os.path.join(self.settings.result_folder, self.settings.label_filename.format(self.iter_, self.siRNA)), 'r')
+            labels = pickle.load(f); f.close()
+        else:
+            raise
+            
+        return labels
+    
     def plotTrajectories(self, expList, labels):
         resultCour=[]
         clusters = Counter(labels).keys()
@@ -353,36 +375,43 @@ class hitFinder():
         return labelDict[param_tuple]
     
     def __call__(self, ctrlIter=0):
-        
-        #i. getting experiments corresponding to siRNA if we're not looking for control experiments only
-        if self.plate is None:
-            expList=self._findExperiment()
-            if expList==[]:
-                sys.stderr.write("No experiments for siRNA {}".format(self.siRNA))
-                return
+        if self.settings.computeLabels:
+            '''
+            Then we are going to calculate the labels according to the centers computed in the previous step.
+            If this option is false it means the labels have been stored and are going to be loaded for computing pvalues only
+            '''
+            #i. getting experiments corresponding to siRNA if we're not looking for control experiments only
+            if self.plate is None:
+                expList=self._findExperiment()
+                if expList==[]:
+                    sys.stderr.write("No experiments for siRNA {}".format(self.siRNA))
+                    return
+            else:
+                expList = [(self.plate, '00001_01')]
+                if self.verbose:
+                    print "ctrl", expList
+            
+            #ii.getting controls corresponding to experiments if not looking for ctrl experiments only,
+                #else getting all controls on self.plate
+            ctrlList = self._findControls(expList)
+            if self.plate is not None:
+                np.random.shuffle(ctrlList)
+                expList = ctrlList[:1]
+                ctrlList = ctrlList[1:]
+                print 'Picked ctrl experiments', expList
+            
+            #iii. get data
+            r, histNtot, who, ctrlStatus, length = self._dataPrep(expList, ctrlList)
+            
+            #iv. find labels for data
+            labelDict = self._attribute_labels(r, histNtot, ctrlIter)
+            
+            #v. compute p-values: are experiment trajectories significantly differently clustered than control trajectories
+            result = self._computePValues(labelDict, ctrlList, who, ctrlStatus, length)
         else:
-            expList = [(self.plate, '00001_01')]
-            if self.verbose:
-                print "ctrl", expList
-        
-        #ii.getting controls corresponding to experiments if not looking for ctrl experiments only,
-            #else getting all controls on self.plate
-        ctrlList = self._findControls(expList)
-        if self.plate is not None:
-            np.random.shuffle(ctrlList)
-            expList = ctrlList[:1]
-            ctrlList = ctrlList[1:]
-            print 'Picked ctrl experiments', expList
-        
-        #iii. get data
-        r, histNtot, who, ctrlStatus, length = self._dataPrep(expList, ctrlList)
-        
-        #iv. find labels for data
-        labelDict = self._attribute_labels(r, histNtot, ctrlIter)
-        
-        #v. compute p-values: are experiment trajectories significantly differently clustered than control trajectories
-        result = self._computePValues(labelDict, ctrlList, who, ctrlStatus, length)
-        
+            labelDict = self._loadLabels(ctrlIter)
+            result = self._computePValues(labelDict)
+            ##                labelsTot[param_tuple][experiment] = [cLabelsCour, pLabelsCour, dist_]
         #vi. save results
         self._saveResults(result, ctrlIter)
         if self.plate is not None and ctrlIter==0:
