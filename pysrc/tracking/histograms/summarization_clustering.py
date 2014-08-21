@@ -217,8 +217,8 @@ class hitFinder():
                     labelsTot[param_tuple][experiment] = [cLabelsCour, pLabelsCour, dist_]
                 return labelsTot
             else:
-                print "Loading labels"
                 for experiment in labelDict[param_tuple]:
+                    print experiment
                     cLabelsCour, pLabelsCour, _ = labelDict[param_tuple][experiment]
                     llength = len(cLabelsCour)
                     vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
@@ -241,7 +241,7 @@ class hitFinder():
 #                stat = -2*np.sum(np.log(p_vals[param_tuple]))
 #                p_vals[param_tuple] = chi2.sf(stat, 2*len(p_vals[param_tuple]))
 #
-                return p_vals
+        return p_vals
     
     def _cleanParameterSetsFromDoneWork(self, parameter_set_list, ctrlIter):
         '''
