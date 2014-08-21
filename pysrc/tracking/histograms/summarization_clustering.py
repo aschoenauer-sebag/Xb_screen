@@ -217,6 +217,7 @@ class hitFinder():
                     labelsTot[param_tuple][experiment] = [cLabelsCour, pLabelsCour, dist_]
                 return labelsTot
             else:
+                print "Loading labels"
                 for experiment in labelDict[param_tuple]:
                     cLabelsCour, pLabelsCour, _ = labelDict[param_tuple][experiment]
                     llength = len(cLabelsCour)
@@ -409,6 +410,7 @@ class hitFinder():
             #v. compute p-values: are experiment trajectories significantly differently clustered than control trajectories
             result = self._computePValues(labelDict, ctrlList, who, ctrlStatus, length)
         else:
+            print "Loading labels"
             labelDict = self._loadLabels(ctrlIter)
             result = self._computePValues(labelDict)
             ##                labelsTot[param_tuple][experiment] = [cLabelsCour, pLabelsCour, dist_]
