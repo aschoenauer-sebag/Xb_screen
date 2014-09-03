@@ -335,7 +335,7 @@ class cellExtractor():
         
         histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
                     
-        return length, histogrammes, bins
+        return histogrammes, bins
     
     def ctrlHistograms(self, bins):
         '''
@@ -363,7 +363,7 @@ class cellExtractor():
                     
         histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
         
-        return plates, length, histogrammes
+        return plates, histogrammes
     
     def parameters(self):
         r={
@@ -375,7 +375,7 @@ class cellExtractor():
            }
         return tuple(sorted(zip(r.keys(), r.values()), key=itemgetter(0)))
     
-    def calculateDistances(self, plates, histogrammes, ctrl_histogrammes, length, ctrl_length):
+    def calculateDistances(self, plates, histogrammes, ctrl_histogrammes):
         distances = np.zeros(shape=(len(self.expList),len(self.currInterestFeatures)))
         for i,experiment in enumerate(self.expList):
             corresponding_ctrl = plates.index(experiment[0])
@@ -422,10 +422,10 @@ class cellExtractor():
                 sys.stderr.write("No experiments for siRNA {}".format(self.siRNA))
                 return
             #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON THE EXPERIMENTS ONLY
-            length, histogrammes, bins = self.getData(self.settings.histDataAsWell)
+            histogrammes, bins = self.getData(self.settings.histDataAsWell)
         
             #iii. calculate the histograms of corresponding controls. Should be per plate then, a dictionary
-            plates, ctrl_length, ctrl_histogrammes = self.ctrlHistograms(bins)
+            plates, ctrl_histogrammes = self.ctrlHistograms(bins)
             
         else:
             
@@ -435,23 +435,24 @@ class cellExtractor():
                 
             #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON all control experiments 
             #for the plate
-            length, histogrammes, bins = self.getData(self.settings.histDataAsWell)
+            histogrammes, bins = self.getData(self.settings.histDataAsWell)
             
             plates = [self.plate]
             #randomly selecting two wells of the plate that will be used to be compared to the others
-            false_exp = np.random.randint(len(length), size=2)
-            true_ctrl = filter(lambda x: x not in false_exp, range(len(length)))
-            print false_exp, true_ctrl
-            pdb.set_trace()
+            false_exp = np.random.randint(histogrammes.shape[0], size=2)
+            while false_exp[0]==false_exp[1]:
+                false_exp = np.random.randint(histogrammes.shape[0], size=2)
+            assert(histogrammes.shape[0]==self.bin_size*len(self.currInterestFeatures))
+            true_ctrl = filter(lambda x: x not in false_exp, range(histogrammes.shape[0]))
             
             ctrl_histogrammes = histogrammes[true_ctrl]
             histogrammes = histogrammes[false_exp]
-        
-            ctrl_length = length[true_ctrl]
-            length = length[false_exp]
+            
+            if self.verbose:
+                print false_exp, true_ctrl, histogrammes.shape[0], ctrl_histogrammes.shape[0]
         
         #iv. calculate the distance from each experiment to its control
-        distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes, length, ctrl_length)
+        distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes)
         print distances
         #v. save results
         self.saveResults(distances)
