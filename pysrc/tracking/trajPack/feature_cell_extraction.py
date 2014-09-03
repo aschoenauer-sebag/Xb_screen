@@ -284,7 +284,7 @@ class cellExtractor():
 
         self.siRNA = siRNA
         self.settings = settings.Settings(settings_file, globals())
-        
+        self.verbose=verbose
         if not testCtrl:
             self.plate = None
         else:
@@ -299,7 +299,7 @@ class cellExtractor():
         self.bins_type = bin_type
         self.bin_size = bin_size
         self.lambda_=lambda_        
-        self.verbose=verbose
+        
         self.currInterestFeatures = featuresNumeriques
         self.currInterestFeatures.extend(['mean persistence',  'mean straight'])
         if self.settings.histDataAsWell:
