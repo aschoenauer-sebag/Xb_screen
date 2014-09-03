@@ -402,12 +402,11 @@ class cellExtractor():
                 l=d[self.parameters()]
                 sys.stderr.write("Bizarre, on dirait que cela a deja ete calcule")
             except KeyError:
-                l=None
+                pass
         else:
             d={}
-            l=None
-        l=distances if l is None else np.vstack((l, distances))
-        d.update({self.parameters():l})
+
+        d.update({self.parameters():distances})
         f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)), 'w')
         pickle.dump(d, f)
         f.close()
