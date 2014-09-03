@@ -16,24 +16,34 @@ pbsOutDir = '/cbio/donnees/aschoenauer/PBS/OUT'
 pbsErrDir = '/cbio/donnees/aschoenauer/PBS/ERR'
 pbsArrayEnvVar = 'SGE_TASK_ID'
 
-def globalSummaryScript(baseName, siRNAFile,div_name, bins_type, bin_size):
+def globalSummaryScript(baseName, siRNAFile,div_name, bins_type, bin_size, testCtrl=False):
     
     jobCount = 0
     i=0
-    
-    f=open(siRNAFile, 'r')
-    siRNAList = pickle.load(f); f.close()
+    if not testCtrl:
+        #A. DEALING WITH EXPERIMENTS
+        f=open(siRNAFile, 'r')
+        siRNAList = pickle.load(f); f.close()
+        cmd ="""
+python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --bins_type %s --bin_size %s
+"""
+
+    else:
+        #A. DEALING WITH CONTROLS
+        baseName+='CTRL_'
+        siRNAList = os.listdir('/share/data20T/mitocheck/compressed_data/')
+        cmd ="""
+python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s --bins_type %s --bin_size %s
+"""
     
     head = """#!/bin/sh
 cd %s""" %progFolder
     baseName = baseName+'{}{}{}'.format(div_name, bins_type, bin_size)
-#A. DEALING WITH EXPERIMENTS
+
     for siRNA in siRNAList:
         i+=1; jobCount +=1
-        cmd ="""
-python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --bins_type %s --bin_size %s
-"""
-        cmd%=(
+        
+        cour_cmd= cmd%(
               siRNA, div_name, bins_type, bin_size
               )
         
@@ -41,7 +51,7 @@ python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --b
         # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
         script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
         script_file = file(script_name, "w")
-        script_file.write(head + cmd)
+        script_file.write(head + cour_cmd)
         script_file.close()
 
         # make the script executable (without this, the cluster node cannot call it)
@@ -85,13 +95,13 @@ if __name__ == '__main__':
     parser.add_option('--div_name', type=str, dest='div_name', default='etransportation')
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
     parser.add_option('--bin_size', type=int, dest="bin_size", default=10)    
-    
+    parser.add_option('--testCtrl', type=str, dest='testCtrl', default=0)
 
     siRNAFile = '../data/siRNA_Simpson.pkl'
 
     (options, args) = parser.parse_args()
     
     globalSummaryScript(options.baseName,siRNAFile, options.div_name,
-                        options.bins_type, options.bin_size
+                        options.bins_type, options.bin_size, options.testCtrl
                       )
     
