@@ -447,9 +447,10 @@ class cellExtractor():
             
             ctrl_histogrammes = histogrammes[true_ctrl]
             histogrammes = histogrammes[false_exp]
+            self.expList = self.expList[false_exp]
             
             if self.verbose:
-                print false_exp, true_ctrl, histogrammes.shape[0], ctrl_histogrammes.shape[0]
+                print self.expList, true_ctrl, histogrammes.shape[0], ctrl_histogrammes.shape[0]
         
         #iv. calculate the distance from each experiment to its control
         distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes)
