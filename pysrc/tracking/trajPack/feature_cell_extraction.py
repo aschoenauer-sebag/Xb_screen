@@ -447,7 +447,7 @@ class cellExtractor():
             
             ctrl_histogrammes = histogrammes[true_ctrl]
             histogrammes = histogrammes[false_exp]
-            self.expList = self.expList[false_exp]
+            self.expList = list(np.array(self.expList)[false_exp])
             
             if self.verbose:
                 print self.expList, true_ctrl, histogrammes.shape[0], ctrl_histogrammes.shape[0]
