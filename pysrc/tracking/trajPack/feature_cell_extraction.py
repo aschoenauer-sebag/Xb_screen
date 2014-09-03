@@ -587,6 +587,7 @@ if __name__ == '__main__':
     parser = OptionParser(usage="usage: %prog [options]")    
     
     parser.add_option('--siRNA', type=str, dest='siRNA', default=None)
+    parser.add_option('--testCtrl', type=str, dest='testCtrl', default=0)
 
     parser.add_option('--div_name', type=str, dest='div_name', default='total_variation')
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
@@ -599,6 +600,6 @@ if __name__ == '__main__':
     
     settings_file = 'tracking/settings/settings_feature_extraction.py'
 
-    extractor=cellExtractor(options.siRNA, settings_file,options.div_name, options.bins_type,
+    extractor=cellExtractor(options.siRNA, settings_file,options.testCtrl, options.div_name, options.bins_type,
                  bin_size=options.bin_size,lambda_=options.lambda_, verbose=options.verbose)
     extractor()
