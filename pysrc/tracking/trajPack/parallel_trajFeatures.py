@@ -19,7 +19,7 @@ from tracking.trackingF import sousProcessClassify
 '''
 
     
-def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = False, first=True):
+def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = False, first=True, new_cecog_files=False):
     global FEATURE_NUMBER
     
     tabF = None
@@ -36,7 +36,10 @@ def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = Fa
     for well in listP:
         well=well[:-5]
         #print well
-        filename = os.path.join(dataFolder, well+".hdf5")
+        if not new_cecog_files:
+            filename = os.path.join(dataFolder, well+".hdf5")
+        else:
+            filename = os.path.join(dataFolder, well+".ch5")
         if training:
             filenameT = '/media/lalil0u/New/workspace2/Tracking/data/trainingset/PL'+plate+"___P"+well+"___T00000.xml"
         else:

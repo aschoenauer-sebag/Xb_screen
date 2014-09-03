@@ -9,12 +9,14 @@ import datetime
 import matplotlib as mpl
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as p
+
+from trajPack.trajFeatures import trackletBuilder, featureEvolOverTime, ordonnancement
 #import PyPack
 
 count = 0
 monOutput = ""
 
-def gettingSolu(loadingFolder, training = False, first=True):
+def gettingSolu(loadingFolder, hdf5Folder = '/media/lalil0u/New/workspace2/Tracking/data/predict/', plate=None, wellL=None, training = False, first=True, xb_screen=False):
     global monOutput
     global FEATURE_NUMBER
     
@@ -27,26 +29,33 @@ def gettingSolu(loadingFolder, training = False, first=True):
     fichier.close()
 
     newFrameLot = None
-    if training :
-        listD = '/media/lalil0u/New/workspace2/Tracking/data/predict/'
-    else:
-        listD = '/media/lalil0u/New/workspace2/Tracking/data/predict/'
         
-    listP = os.listdir(listD)
+    listP = os.listdir(hdf5Folder)
+    if plate is not None:
+        listP=[plate]
+        
     for plate in listP:
         print plate
-        listW = os.listdir(listD+plate)
-        for well in listW:
-            well=well[:-5]
+        listW = sorted(os.listdir(os.path.join(hdf5Folder, plate, 'hdf5')))
+        if wellL is not None:
+            listW = wellL
+        for well in listW[:18]:
+            well=well.split('_')[0]+'_'+well.split('_')[1][:2]
+            if not xb_screen:
+                filename = os.path.join(hdf5Folder, plate, 'hdf5', well+".hdf5")
+            else:
+                filename = os.path.join(hdf5Folder, plate, 'hdf5', well+".ch5")
             print well
-            filename = listD+plate+"/"+well+".hdf5"
+
+                                
             if training:
                 filenameT = '/media/lalil0u/New/workspace2/Tracking/data/trainingset/PL'+plate+"___P"+well+"___T00000.xml"
             else:
                 filenameT = None
+                
             monOutput+="plate = "+plate+",well = "+well+"\n"
             #ajout du frameLot et du tabF
-            frameLotC, tabFC = gettingRaw(filename, filenameT, plate, well)
+            frameLotC, tabFC = gettingRaw(filename, filenameT, plate, well, name_primary_channel='primary__primary3')
             if newFrameLot == None:
                 newFrameLot = frameLotC 
             else: newFrameLot.addFrameLot(frameLotC)
@@ -142,17 +151,6 @@ def sousProcessClassify(sol, loadingFolder, loadingFile= None, i =None, n_f =Non
      
     return new_sol
 
-def ordonnancement(new_sol):
-    stories = {}
-    for sol, d in new_sol:#attention new_sol est une liste de solutions pas forcement dans l'ordre de leurs plates wells etc
-        if sol.plate not in stories:
-            stories[sol.plate]= {}
-        if sol.well not in stories[sol.plate]:
-            stories[sol.plate][sol.well]= {}
-        if sol.index not in stories[sol.plate][sol.well]:
-            stories[sol.plate][sol.well].update({sol.index:sol});
-    return stories
-
 def trajBuilder(new_sol):
     stories = ordonnancement(new_sol); res = {}
 
@@ -166,6 +164,7 @@ def trajBuilder(new_sol):
 #            print ensembleTraj.lstTraj
 
             num = 0; l=[0]
+            beginningFrames=[0,128,129,75]
             for index in stories[plate][well]:
                 print "INDEX ", index
                 solC = stories[plate][well][index]
@@ -258,7 +257,7 @@ def trajBuilder(new_sol):
                                 except IndexError:
                                     if not mit: 
                                         #ici on n'y arrive a t=0 quand aucune trajectoire n'est initialise
-                                        if index>0: pdb.set_trace()
+                                        if index not in beginningFrames: pdb.set_trace()
                                         num+=1
                                         newTraj = fHacktrack2.trajectoire(num, c.center[0], c.center[1], index, c.label)
                                         newTraj.ajoutPoint(t.center[0], t.center[1], index+1, t.label)
@@ -284,7 +283,7 @@ def trajBuilder(new_sol):
                             raise
 #                        print "FROM MORE THAN ONE"
                         t = target[0]; tt=None
-                        if index>0:
+                        if index not in beginningFrames:
                             tt=[]; ll=[]; lf=[]
                             for c in source:
                                 incomingTraj = ensembleTraj.findLabelFrame(c.label, index)
@@ -304,7 +303,7 @@ def trajBuilder(new_sol):
 #                                pdb.set_trace()
                             except:
                                 #on tombe ici a t=0 mais est-ce qu'on y tombe apres ?
-                                if index>0: pdb.set_trace()
+                                if index not in beginningFrames: pdb.set_trace()
                                 num+=1
                                 trajC = fHacktrack2.trajectoire(num, c.center[0], c.center[1], index, c.label)
                                 trajC.longueurs=[index for bb in range(incoming)]; trajC.fractions = [1/float(incoming) for bb in range(incoming)]
@@ -320,7 +319,7 @@ def outputTrajXml(dicTraj, savingFolder):
     for plate in dicTraj:
         for well in dicTraj[plate]:
             ensTraj = dicTraj[plate][well]
-            nomFichier = "PL"+plate+"___P"+well+"___T00000.xml"
+            nomFichier = "PL"+plate+"___P"+well+"___T00001.xml"
             nomFichier = savingFolder+"/"+nomFichier
 
             coord = fHacktrack2.sortiesAll(nomFichier, ensTraj)
@@ -332,35 +331,55 @@ def outputTrajXml(dicTraj, savingFolder):
 if __name__ == '__main__':
 
     now = datetime.datetime.now()
-    savingFolder = "/media/lalil0u/New/projects/groundtruth/results/tracks_annotations_pred/annotations"
+    
+    savingFolder = "/media/lalil0u/New/projects/Xb_screen/track_predictions"
+    hdf5Folder = "/media/lalil0u/New/projects/Xb_screen/plates_new_seg"
+    plate = '130814'
+    
+    well_groups=[['{:>05}_01'.format(k) for k in [1,2,3,5,7,8,9,10,11,12]], #endosulfan
+                 ['{:>05}_01'.format(k) for k in [4,15,26]],                  #tgf beta
+                 ['{:>05}_01'.format(k) for k in [13,14,16,17,19,20,21,22,23]], #tcdd
+                 ['{:>05}_01'.format(k) for k in [6,29,48,52,55]], #dmso 
+                 ['{:>05}_01'.format(k) for k in [18,24,41,60,61]], #nonane
+                 ['{:>05}_01'.format(k) for k in [25,27,28,30,31,32,33,34,35,36]], #bpa
+                 ['{:>05}_01'.format(k) for k in [37,38,39,40,42,43,44,45,46,47]], #pcb
+                 ['{:>05}_01'.format(k) for k in [49,50,51,53, 54,56, 57,58,59]], #mehg
+                 ]
+    well_groups=zip(well_groups, ['alpha-Endosulfan', 'TGF beta 1', 'TCDD', 'DMSO', 'Nonane', 'Bisphenol A', 'PCB 153', 'MeHg'])
+    if not os.path.isdir(savingFolder):
+        os.mkdir(savingFolder)
     loadingFolder = "../prediction/"
     
     print "TIME TIME TIME", time.clock()
 #    try:
-    sol = gettingSolu(loadingFolder)
+    first=True
+    for wellL in well_groups[5:7]:
+        sol = gettingSolu(loadingFolder, hdf5Folder, plate,wellL[0], xb_screen=True, first=first)
+        first=False
         
-    print "TIME TIME TIME", time.clock()
-    print "classifying data from :", loadingFolder
-    loadingFile = loadingFolder+"normalized_data_ALL.pkl"
-    
-    try:
-        new_sol = sousProcessClassify(sol, loadingFolder, integers=True)
-    except:
-        pdb.set_trace()
-
-    print "TIME TIME TIME", time.clock()
-    print "traj building"
-    try:    
-        dicTraj =trajBuilder(new_sol)
-    except IOError:
-        pdb.set_trace()
-    else:
-        f = open(loadingFolder+"dicTraj_"+str(now.minute)+".pkl", "w")
-        pickle.dump(dicTraj, f); f.close()
-#    f = open(loadingFolder+"dicTraj_41_35.pkl", "r")
-#    dicTraj = pickle.load(f); f.close()
-#    
-    print "TIME TIME TIME", time.clock()
-    print "saving as xml in", loadingFolder
-    outputTrajXml(dicTraj, loadingFolder)
-    print "TIME TIME TIME", time.clock()
+        print "TIME TIME TIME", time.clock()
+        print "classifying data from :", loadingFolder
+        
+        new_sol = sousProcessClassify(sol, loadingFolder)
+        
+        print "TIME TIME TIME", time.clock()
+        print "traj building"
+        print "Building trajectories for predicted data"
+        if True:
+            dicTraj, conn, movie_length =trackletBuilder(new_sol, loadingFolder, training=True)
+            featureEvolOverTime(dicTraj, conn, savingFolder, verbose=True, movie_length=movie_length, name = wellL[-1])
+        else:
+            try:    
+                dicTraj =trajBuilder(new_sol)
+            except:
+                pass
+            else:
+                f = open(os.path.join(savingFolder, "dicTraj_{}_{}.pkl".format(plate, wellL[-1])), "w")
+                pickle.dump(dicTraj, f); f.close()
+        #    f = open(loadingFolder+"dicTraj_41_35.pkl", "r")
+        #    dicTraj = pickle.load(f); f.close()
+        #    
+            print "TIME TIME TIME", time.clock()
+            print "saving as xml in", loadingFolder
+            outputTrajXml(dicTraj, savingFolder)
+            print "TIME TIME TIME", time.clock()

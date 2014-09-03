@@ -277,12 +277,23 @@ def plotDistanceDist(folder = '../resultData/features_on_films',siRNA_folder = '
     return
     
 class cellExtractor():
-    def __init__(self, siRNA, settings_file,div_name='total_variation', bin_type = 'quantile', cost_type = 'number',
+    def __init__(self, siRNA, settings_file,
+                 testCtrl = False,
+                 div_name='total_variation', bin_type = 'quantile', cost_type = 'number',
                  bin_size=50,lambda_=10,M=None, verbose=0):
 
         self.siRNA = siRNA
         self.settings = settings.Settings(settings_file, globals())
         
+        if not testCtrl:
+            self.plate = None
+        else:
+            if self.verbose:
+                print "Testing controls for plate {}".format(testCtrl)
+            assert (testCtrl in os.listdir(self.settings.data_folder))
+            self.plate = testCtrl
+            self.siRNA = 'CTRL_{}'.format(self.plate[:9])
+            
         self.div_name =div_name
         self.cost_type=cost_type
         self.bins_type = bin_type
@@ -403,22 +414,46 @@ class cellExtractor():
         return
     
     def __call__(self):
-        #i. getting experiments corresponding to siRNA
-        self.expList=self._findExperiment()
-        if self.expList==[]:
-            sys.stderr.write("No experiments for siRNA {}".format(self.siRNA))
-            return
         
-        #iii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON THE EXPERIMENTS ONLY
-        length, histogrammes, bins = self.getData(self.settings.histDataAsWell)
+    #i. getting experiments corresponding to siRNA if we're not looking for control experiments only
+        if self.plate is None:
+            self.expList=self._findExperiment()
+            if self.expList==[]:
+                sys.stderr.write("No experiments for siRNA {}".format(self.siRNA))
+                return
+            #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON THE EXPERIMENTS ONLY
+            length, histogrammes, bins = self.getData(self.settings.histDataAsWell)
         
-        #iv. calculate the histograms of corresponding controls. Should be per plate then, a dictionary
-        plates, ctrl_length, ctrl_histogrammes = self.ctrlHistograms(bins)
+            #iii. calculate the histograms of corresponding controls. Should be per plate then, a dictionary
+            plates, ctrl_length, ctrl_histogrammes = self.ctrlHistograms(bins)
+            
+        else:
+            
+            self.expList = appendingControl([self.plate])
+            if self.verbose:
+                print "all ctrl", self.expList
+                
+            #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON all control experiments 
+            #for the plate
+            length, histogrammes, bins = self.getData(self.settings.histDataAsWell)
+            
+            plates = [self.plate]
+            #randomly selecting two wells of the plate that will be used to be compared to the others
+            false_exp = np.random.randint(len(length), size=2)
+            true_ctrl = filter(lambda x: x not in false_exp, range(len(length)))
+            print false_exp, true_ctrl
+            pdb.set_trace()
+            
+            ctrl_histogrammes = histogrammes[true_ctrl]
+            histogrammes = histogrammes[false_exp]
         
-        #iii. calculate the distance from each experiment to its control
+            ctrl_length = length[true_ctrl]
+            length = length[false_exp]
+        
+        #iv. calculate the distance from each experiment to its control
         distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes, length, ctrl_length)
         print distances
-        #iv. save results
+        #v. save results
         self.saveResults(distances)
         
         return

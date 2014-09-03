@@ -345,7 +345,9 @@ class Solution():
                 try:
                     l=len(e.hypotheses)
                 except TypeError:
+                    print plate, well, index
                     print "Event: {}. type(e.hypotheses)=NoneType hence likely that there is an error in hdf5 file. ".format(EVENTS[x])
+                    l=0
                 if l != 0:
                     self.constraints = e.constraints if self.constraints.shape ==(0,) else np.hstack((self.constraints, e.constraints))
                     self.hypotheses = e.hypotheses if self.hypotheses is None else self.hypotheses + e.hypotheses

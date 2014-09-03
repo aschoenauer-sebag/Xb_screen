@@ -126,14 +126,14 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False, se
         frameLot.append(newFrame)
     return featureL, frameLot
 
-def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False):
+def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, name_primary_channel='primary__primary3'):
 
-    pathObjects = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/object/primary__primary"
-    pathFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/primary__primary/object_features"
-    pathCenters = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/primary__primary/center"
-    pathOrientation = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/primary__primary/orientation"
+    pathObjects = "/sample/0/plate/{}/experiment/{}/position/{}/object/{}".format(plaque, puits[:-3], puits[-1], name_primary_channel)
+    pathFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/{}/object_features".format(name_primary_channel)
+    pathCenters = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/{}/center".format(name_primary_channel)
+    pathOrientation = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/{}/orientation".format(name_primary_channel)
     #not loading segmentation nor raw data since we only use the features that are computed by Cell Cognition
-
+    print pathObjects, filename
     tabObjects = vi.readHDF5(filename, pathObjects)
     tabFeatures = vi.readHDF5(filename, pathFeatures)
     tabCenters = vi.readHDF5(filename, pathCenters)
@@ -160,7 +160,7 @@ def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False):
         try:
             cellsF = cells(i, frameList, tabObjects)
         except IndexError:
-            sys.stderr.write('Attention attention apparently there exists no frame {} in file for plate {}, well {}'.format(i, plaque, puits))
+            sys.stderr.write('WARNING no frame {}, p {}, w {} \n'.format(i, plaque, puits))
             continue
         featuresF=tabFeatures[cellsF.firstLine():cellsF.lastLine()+1]
         centersF = tabCenters[cellsF.firstLine():cellsF.lastLine()+1]
@@ -841,6 +841,8 @@ class frameLots():
                     treeC = ssp.cKDTree(lCenters, leafsize = 10)
                     centersDict[index]=np.array(lCenters)
                     
+#                    singletsL.sort(key=(lambda x:x.label))
+#                    print [sing.label for sing in singletsL]
                     j = 0
                     for sing in filter(lambda x: x.label !=-1,singletsL):
                         d, i = treeC.query(sing.center, k+1, distance_upper_bound = dmax)
@@ -870,7 +872,6 @@ class frameLots():
                                         if sing1 not in trips:
                                             trips[sing1]=[]
                                         trips[sing1].append((sing2, sing3))    
-
                     for cellule in filter(lambda x: x.label !=-1,singletsL):
                         #print "premiere cellule", cellule.label, cellule.center
         #DOUBLETS
@@ -881,7 +882,8 @@ class frameLots():
                             if autre.label != doub:
                                 raise DoubletsException
                             
-                            if cellule.label>autre.label:
+                            if singletsL.index(cellule)>singletsL.index(autre):
+                                pdb.set_trace()
                                 raise DoubletsException
                             
                             #print "seconde cellule", doub, autre.center
@@ -903,7 +905,7 @@ class frameLots():
                             
                             if autre.label != trip[0] or autre2.label != trip[1]:
                                 raise DoubletsException
-                            if not cellule.label<autre.label<autre2.label:
+                            if not singletsL.index(cellule)<singletsL.index(autre)<singletsL.index(autre2):
                                 raise DoubletsException
                             #print "seconde cellule", doub, autre.center
 #                            print autre.label, autre.center

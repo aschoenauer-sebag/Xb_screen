@@ -29,7 +29,7 @@ from tracking.trajPack.clustering import histConcatenation
 from tracking.plots import plotAlignedTraj
 from tracking.histograms import *
 from tracking.histograms.k_means_transportation import _labels_inertia_precompute_dense
-from util.listFileManagement import strToTuple, expSi, appendingControl, is_ctrl, siEntrez
+from util.listFileManagement import strToTuple, expSi, appendingControl, is_ctrl, siEntrez, EnsemblEntrezTrad, geneListToFile
 from util import settings
 from util.plots import couleurs
 from rpy2.robjects import IntVector
@@ -44,6 +44,33 @@ rStats = importr('stats')
 #    pl.savefig('dist_pvalCtrl_{}.png'.format(k))
 #    pl.close()
 
+def hits(pval, qval, genesL, siRNAL, threshold):
+    siRNA_hits=[]
+    gene_hits=[]
+    gene_count=Counter(genesL)
+    for k in range(pval.shape[0]):
+        if pval[k]<threshold and qval[k]<threshold:
+            siRNA_hits.append(siRNAL[k])
+            gene_hits.append(genesL[k])
+    
+    gene_hits = Counter(gene_hits)
+    gene_hits={el: gene_hits[el]/float(gene_count[el]) for el in gene_hits}
+    gene_highconf = filter(lambda x: gene_hits[x]>0.5, gene_hits)
+    
+    trad = EnsemblEntrezTrad('../data/mapping/mitocheck_siRNAs_target_genes_Ens72.txt')
+    gene_hits_Ensembl=[trad[el] for el in gene_hits]
+    gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
+    gene_Ensembl = [trad[el] for el in gene_count]
+    
+    print 'Hits ', len(gene_hits)
+    print 'High conf', len(gene_highconf)
+    geneListToFile(gene_hits_Ensembl, 'gene_hits_pW2.txt')
+    geneListToFile(gene_highconf_Ensembl, 'gene_high_conf_pW2.txt')
+    geneListToFile(gene_Ensembl, 'gene_list.txt')
+    
+    return gene_hits, gene_highconf
+    
+    
 
 def _ctrlPca(r, whiten,nb_features_num,nb_composantes, folder, filename='pca_ctrlSimpson_whiten{}.pkl'):
     print "PCA, whiten ", whiten
@@ -516,6 +543,8 @@ class hitFinder():
                 f=open(os.path.join(self.settings.result_folder, '{}_{}_mean_itercorr.pkl'.format(test.func_name, result.shape[2])), 'w')
                 pickle.dump(mean_corr, f); f.close()
 
+                f=open(os.path.join(self.settings.result_folder, '{}_{}_itercorr.pkl'.format(test.func_name, result.shape[2])), 'w')
+                pickle.dump(parameter_corr,f); f.close()
                 
         #plotting this correlation
         cmap = brewer2mpl.get_map('RdBu', 'diverging', 3).mpl_colormap
@@ -601,9 +630,8 @@ class hitFinder():
                     paramCourants = sorted(d.keys(), key=itemgetter(0, 9,5, 2, 7, 8))
                     parameters.extend(paramCourants)
             parameters = Counter(parameters)
-            pdb.set_trace()
             parameters = filter(lambda x: parameters[x]==len(iterations), parameters)
-            pdb.set_trace()
+            parameters = sorted(parameters, key=itemgetter(0, 9,5, 2, 7, 8))
         #getting list of all siRNAs for which p-values have been calculated in at least one case
             print len(parameters), iterations
             if not testCtrl:
@@ -634,7 +662,6 @@ class hitFinder():
                 for i, iter_ in enumerate(iterations):
                     for ctrl_iter in ctrl_iterations:
                         for siRNA in siRNAL:
-                            print '---', siRNA
                             try:
                                 f=open(os.path.join(self.settings.result_folder, 'pval_{}_{}{}_{}.pkl'.format(comparison, iter_, ctrl_iter, siRNA)))
                                 d=pickle.load(f); f.close()
@@ -643,13 +670,20 @@ class hitFinder():
                                 d={}
                             for j,parameter_set in enumerate(parameters):
                                 if parameter_set in d:
-                                    for exp in d[parameter_set]:
-                                        if exp not in platesL:
-                                            platesL.append(exp)
-                                        try:
-                                            result[k,j,i].append(d[parameter_set][exp][-1])
-                                        except AttributeError:
-                                            result[k,j,i]=[d[parameter_set][exp][-1]]
+                    #if results are per experiment
+                                    #for exp in d[parameter_set]:
+#                                        if exp not in platesL:
+#                                            platesL.append(exp)
+#                                        try:
+#                                            result[k,j,i].append(d[parameter_set][exp][-1])
+#                                        except AttributeError:
+#                                            result[k,j,i]=[d[parameter_set][exp][-1]]
+                                    if type(d[parameter_set])==list:
+                                        d[parameter_set]=d[parameter_set][0]
+                                    try:
+                                        result[k,j,i].append(d[parameter_set])
+                                    except AttributeError:
+                                        result[k,j,i]=[d[parameter_set]]
                                 else:
                                     try:
                                         result[k,j,i].append(np.nan)
@@ -704,9 +738,7 @@ class hitFinder():
                 
         if saveOnly:
             f=open(os.path.join(self.settings.result_folder, 'pickledPval{}_{}.pkl'.format(testCtrl, iter_)), 'w')
-            pickle.dump((result, siRNAL, platesL, parameters), f); f.close()
-            return
-            
+            pickle.dump((result, siRNAL, platesL, parameters), f); f.close()            
         
         print result.shape
         if len(np.where(np.isnan(result))[2])>0:
@@ -720,15 +752,15 @@ class hitFinder():
         
         #determining empirical pval per siRNA and plotting correlations
         if not testCtrl:
-            empirical_pval = self._empiricalDistributions(dist_controls, result, iterations, sup=True)
-            si_empirical_pval = self.combiningPval(siRNAL, platesL, empirical_pval)
-            print "empirical p-values", si_empirical_pval.shape
-            self._correlationExpParam(comparisons, parameters, si_empirical_pval, testCtrl, sh)
-            self._correlationParamParam(comparisons, parameters, si_empirical_pval, testCtrl, iterations, sh, test=spearmanr)
-            si_hit_matrix = np.array(si_empirical_pval<0.05, dtype=int)
-            self._correlationExpParam(comparisons, parameters, si_hit_matrix, testCtrl, sh)
-
-            self._correlationParamParam(comparisons, parameters, si_hit_matrix, testCtrl, iterations, sh, test=pearsonr)
+            si_empirical_pval = self._empiricalDistributions(dist_controls, result, iterations, sup=False)
+#            si_empirical_pval = self.combiningPval(siRNAL, platesL, empirical_pval)
+#            print "empirical p-values", si_empirical_pval.shape
+#            self._correlationExpParam(comparisons, parameters, si_empirical_pval, testCtrl, sh)
+#            self._correlationParamParam(comparisons, parameters, si_empirical_pval, testCtrl, iterations, sh, test=spearmanr)
+#            si_hit_matrix = np.array(si_empirical_pval<0.05, dtype=int)
+#            self._correlationExpParam(comparisons, parameters, si_hit_matrix, testCtrl, sh)
+#
+#            self._correlationParamParam(comparisons, parameters, si_hit_matrix, testCtrl, iterations, sh, test=pearsonr)
         
         print "Distance ranking correlation"
         self._correlationParamParam(comparisons, parameters, result, testCtrl,iterations, sh)
@@ -739,7 +771,7 @@ class hitFinder():
         
         #plotting results in terms of hits, and returning the matrix with 1 where the hits were found
         print 'Hit matrix'
-        hit_matrix = self._correlationExpParam(comparisons, parameters, result, testCtrl, sh, thresholds=thresholds, sup=True)
+        hit_matrix = self._correlationExpParam(comparisons, parameters, result, testCtrl, sh, thresholds=thresholds, sup=False)
         
         #plotting correlations for different iterations and parameters between the hit lists
         print "Hit list correlation"
@@ -761,7 +793,7 @@ class hitFinder():
         if testCtrl:
             return hit_matrix, result, parameters, genes, siRNAL, platesL
         else:
-            return si_hit_matrix, result, parameters, genes, siRNAL, platesL
+            return hit_matrix, result, parameters, genes, siRNAL, platesL
     
     def combiningPval(self, siRNAL, platesL, empirical_pval):
         siExpDict = expSi(qc = self.settings.quality_control_file, sens=1)
@@ -779,8 +811,6 @@ class hitFinder():
         pickle.dump(si_empirical_pval,f); f.close()
         return si_empirical_pval[np.newaxis, :]
             
-
-
 class clusteringExperiments():
     def __init__(self, settings_file, experimentList,n_cluster, div_name, bins_type, cost_type, bin_size, 
                  init='k-means++',lambda_=10, M=None, dist_weights=None, batch_size=100, init_size=1000,

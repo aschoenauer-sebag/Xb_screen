@@ -6,7 +6,7 @@ from tracking.trajPack import featuresNumeriques
 data_folder = '/media/lalil0u/New/data/test'
 
 #folder for output data
-result_folder = '/media/lalil0u/New/workspace2/Xb_screen/resultData/summaries'
+result_folder = '/media/lalil0u/New/workspace2/Xb_screen/resultData/summaries/step3'
 summary_filename = "summary_iter{}_{}_{}.pkl"
 clustering_filename = 'centers_iter{}.pkl'
 hit_filename = 'hits_KS.pkl'

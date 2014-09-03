@@ -9,13 +9,12 @@ from scipy import odr
 from scipy.stats import linregress
 from scipy.spatial import cKDTree, ConvexHull
 
-from tracking import trackingF
 from tracking.plots import plot, plotComparison, plotBoth, plotFeaturesTraj
 from tracking.PyPack import fHacktrack2
 from tracking.trajPack import moments, rayon, densities, windows,\
     TIMEDEPTH, features1, featuresHisto, featuresSaved
     
-from util.plots import basic_colors, makeColorRamp
+from util.plots import couleurs, makeColorRamp
 
 count = 0
 monOutput = ""
@@ -30,10 +29,22 @@ movie_length={}
         #1 for disappearing cells
         #2 for dividing cells
         #3 for merging cells
+        
+def ordonnancement(new_sol):
+    stories = {}
+    for sol, d in new_sol:#attention new_sol est une liste de solutions pas forcement dans l'ordre de leurs plates wells etc
+        if sol.plate not in stories:
+            stories[sol.plate]= {}
+        if sol.well not in stories[sol.plate]:
+            stories[sol.plate][sol.well]= {}
+        if sol.index not in stories[sol.plate][sol.well]:
+            stories[sol.plate][sol.well].update({sol.index:sol});
+    return stories
+
 def trackletBuilder(new_sol, centresFolder, training=False):
     nb_voisins_max=10
     #distance_densi=40
-    stories = trackingF.ordonnancement(new_sol); res = {}
+    stories = ordonnancement(new_sol); res = {}
     global movie_length
     connexions = {}
     for plate in stories:
@@ -558,7 +569,7 @@ def computingHisto(traj, m_length, average, movie_start, verbose, a,d, training)
 
     return r, [t, X, Y],[raw_t, raw_X, raw_Y],histN
 
-def driftCorrection(m_length, outputFolder, plate, well, totalTracklets):
+def driftCorrection(m_length, outputFolder, plate, well, totalTracklets, just_average_speed=False):
     #TO CORRECT for drift we take into account all displacements, even those in tracks with length smaller than 10
     filename = "avcum_P{}_{}.pkl".format(plate, well)
     movie_start = min([min(sorted(traj.lstPoints.keys())) for traj in totalTracklets])[0]
@@ -583,6 +594,9 @@ def driftCorrection(m_length, outputFolder, plate, well, totalTracklets):
     trajPerFrame[trajPerFrame==0]=0.00001
     
     #pdb.set_trace()
+    if just_average_speed:
+        return allDisp, trajPerFrame
+    
     average = np.sum(allDisp, 1)/trajPerFrame
     avcum = np.cumsum(average, 0)
     
@@ -726,6 +740,145 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
             tabF[plate][well]=tabFeatures
             
     return tabF, coord
+
+
+def plotSpeedHistogramEvolution(plate, well, speed, name, outputFolder):
+    if not os.path.isdir(os.path.join(outputFolder, name)):
+        os.mkdir(os.path.join(outputFolder,name))
+    import matplotlib.pyplot as p
+    for frame in range(speed.shape[0]-6):
+        f=p.figure()
+        ax=f.add_subplot(111)
+        arr = speed[frame:frame+6].flatten()
+        n,bins,patches = ax.hist(arr, bins=50,normed=False, range=(0.5,30))
+        ax.set_xlim(0,30)
+        ax.set_ylim(0,75)
+        f.savefig(os.path.join(outputFolder, name, 'hist_speed_{}_{:>05}.png'.format(well,frame)))
+
+    return
+
+def featureEvolOverTime(dicT, connexions, outputFolder, verbose, movie_length, name, plot=False, load=False, averagingOverWells=False):
+    tabF={}
+    filename='speedOverTime{}.pkl'.format(name)
+
+    if load:
+        f=open(os.path.join(outputFolder, filename), 'r')
+        tabF = pickle.load(f)
+        f.close()  
+        
+        platesL = tabF.keys()
+    else:
+        platesL = dicT.keys()
+        
+    for plate in platesL:
+        average = None
+        proliferation = None
+        
+        if plate =='150814':
+            frames=[41,129,185]
+            
+        elif plate=='130814':
+            frames=[2,75,149]
+            
+        if plate not in tabF:
+            tabF[plate]={}
+            wells = sorted(dicT[plate].keys())
+        else:
+            wells = sorted(tabF[plate].keys())
+
+        if plot:
+            import matplotlib.pyplot as p
+            fig=p.figure(figsize=(24,13))
+            ax1=fig.add_subplot(121)
+            ax2 = fig.add_subplot(122)
+            
+            
+        for k,well in enumerate(wells):
+            if well not in tabF[plate]:
+                tabF[plate][well]=None
+            print plate, well
+            
+            if not load:
+                dicC = dicT[plate][well]
+                allDisp, trajPerFrame = driftCorrection(movie_length[plate][well]-1, outputFolder, plate, well, dicC.lstTraj, just_average_speed=True)
+                X = allDisp[:,:,0]; Y=allDisp[:,:,1]
+                speed = np.sqrt(X**2+Y**2)
+                
+                tabF[plate][well]=(speed, trajPerFrame)
+            else:
+                speed, trajPerFrame = tabF[plate][well]
+                
+            if plot and not averagingOverWells:
+                average = np.sum(speed,1)/trajPerFrame[:,0]
+                average = np.array([np.mean(average[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
+                
+                ax1.plot(range(frames[0]), average[:frames[0]], color=couleurs[k], label='D {}'.format(wells.index( well)))
+                ax1.plot(range(frames[1],frames[1]+average[frames[1]:].shape[0]), average[frames[1]:], color=couleurs[k])
+                
+                proliferation = np.array([np.mean(trajPerFrame[frame:frame+6,0]) for frame in range(trajPerFrame.shape[0]-6)])
+                proliferation/=float(np.mean(trajPerFrame[:6,0]))
+                
+                ax2.plot(range(frames[0]), proliferation[:frames[0]],color=couleurs[k], label='D {}'.format(wells.index( well)))
+                ax2.plot(range(frames[1], frames[1]+average[frames[1]:].shape[0]), proliferation[frames[1]:],color=couleurs[k])
+                
+                ax1.text(frames[2]+2, average[-1], 'D {}'.format(wells.index( well)))
+                ax2.text(frames[2]+2, proliferation[-1], 'D {}'.format(wells.index( well)))
+                
+            if averagingOverWells:
+                averageCour = np.sum(speed,1)/trajPerFrame[:,0]
+                if plate=='130814':
+                    averageCour = np.array([np.mean(averageCour[frame:frame+6]) for frame in range(149)], dtype=float)
+                else:
+                    averageCour = np.array([np.mean(averageCour[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
+                average = averageCour if average is None else np.vstack((average, averageCour))
+
+                if plate=='130814':
+                    proliferationCour = np.array([np.mean(trajPerFrame[frame:frame+6,0]) for frame in range(149)])
+                else:
+                    proliferationCour = np.array([np.mean(trajPerFrame[frame:frame+6,0]) for frame in range(trajPerFrame.shape[0]-6)])                
+
+                proliferationCour/=float(np.mean(trajPerFrame[:6,0]))
+                proliferation = proliferationCour if proliferation is None else np.vstack((proliferation, proliferationCour))
+                
+            #plotSpeedHistogramEvolution(plate, well, speed,name,outputFolder)
+        
+        if plot and averagingOverWells:
+            average=average.T; proliferation=proliferation.T
+            ax1.plot(range(frames[0]), np.mean(average[:frames[0]],1), label=name)
+            ax1.errorbar(range(frames[0]), np.mean(average[:frames[0]],1), np.std(average[:frames[0]],1))
+            
+            ax2.plot(range(frames[0]), np.mean(proliferation[:frames[0]],1), label=name)
+            ax2.errorbar(range(frames[0]), np.mean(proliferation[:frames[0]],1), np.std(proliferation[:frames[0]],1))
+            
+            ax1.plot(range(frames[1], frames[1]+average[frames[1]:].shape[0]), np.mean(average[frames[1]:],1))
+            ax1.errorbar(range(frames[1], frames[1]+average[frames[1]:].shape[0]),np.mean(average[frames[1]:],1), np.std(average[frames[1]:],1))
+            
+            ax2.plot(range(frames[1], frames[1]+average[frames[1]:].shape[0]), np.mean(proliferation[frames[1]:],1))
+            ax2.errorbar(range(frames[1], frames[1]+average[frames[1]:].shape[0]), np.mean(proliferation[frames[1]:],1), np.std(proliferation[frames[1]:],1))
+            
+            
+        if not load:
+            filename='speedOverTime{}.pkl'.format(name)
+            f=open(os.path.join(outputFolder, filename), 'w')
+            pickle.dump(tabF, f)
+            f.close()  
+        if plot:
+            ax1.grid(True)
+            ax2.grid(True)
+            ax1.set_ylim(1.5,6.5)
+            ax2.set_ylim(0.7, 1.7)
+            ax1.set_xlim(-5, 200)
+            ax2.set_xlim(-5, 200)
+            ax1.legend(loc=2); ax1.set_title('Speed average over time {}'.format(name))
+            #ax1.set_xticklabels(['24', '36.5', '49', '61.5', '74'])
+            #ax2.set_xticklabels(['24', '36.5', '49', '61.5', '74'])
+            ax2.set_title("Proliferation over time")
+            if averagingOverWells:
+                p.savefig(os.path.join(outputFolder, 'speed_{}.png'.format(name+'_average')))
+            else:
+                p.savefig(os.path.join(outputFolder, 'speed_{}.png'.format(name)))
+        return average, proliferation
+            
 
 def WhoIsWhen(features, plate, well):
     

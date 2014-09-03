@@ -310,6 +310,20 @@ def txtToList(fichier):
     lines=np.array(lines[1:])
     return lines
 
+def EnsemblEntrezTrad(fichier):
+    try:
+        ensemblList=txtToList(fichier); l=[]
+    except:
+        print 'problem'
+    else:
+        for k in range(len(ensemblList)):
+            try:
+                l.append([ensemblList[k][3], ensemblList[k][2]])
+            except:
+                pass
+        l=np.array(l); l=dict(zip(l[:,0], l[:,1]))
+    return l
+
 def geneListToFile(genes, name):
     '''
     Writing a gene list into a text file

@@ -87,12 +87,12 @@ def gettingSolu(loadingFolder,allDataFolder):
 
     return j(singlets, doublets, FEATURE_NUMBER)
 
-def gettingRaw(filename, filenameT, plate, well, secondary=False):
+def gettingRaw(filename, filenameT, plate, well, secondary=False,name_primary_channel='primary__primary3'):
     global FEATURE_NUMBER
     print "images loading : plate = "+plate+",well = "+well    
     tabF = None
     try:
-        frameLotC, tabF = imp.importRawSegFromHDF5(filename, plate, well, secondary=secondary)
+        frameLotC, tabF = imp.importRawSegFromHDF5(filename, plate, well, secondary=secondary, name_primary_channel=name_primary_channel)
     except ValueError:
         sys.stderr.write( sys.exc_info()[1])
         sys.stderr.write("File {} containing data for plate {}, well {} does not contain all necessary data".format(filename, plate, well))
