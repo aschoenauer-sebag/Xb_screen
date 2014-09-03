@@ -442,7 +442,7 @@ class cellExtractor():
             false_exp = np.random.randint(histogrammes.shape[0], size=2)
             while false_exp[0]==false_exp[1]:
                 false_exp = np.random.randint(histogrammes.shape[0], size=2)
-            assert(histogrammes.shape[0]==self.bin_size*len(self.currInterestFeatures))
+            assert(histogrammes.shape[1]==self.bin_size*len(self.currInterestFeatures))
             true_ctrl = filter(lambda x: x not in false_exp, range(histogrammes.shape[0]))
             
             ctrl_histogrammes = histogrammes[true_ctrl]
