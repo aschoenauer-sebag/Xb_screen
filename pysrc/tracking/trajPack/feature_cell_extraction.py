@@ -27,10 +27,94 @@ from util.sandbox import concatCtrl
 from tracking.plots import plotAlignedTraj
 
 from util import settings
-from scipy.stats.stats import ks_2samp, spearmanr, scoreatpercentile
-
+from scipy.stats.stats import ks_2samp, spearmanr, scoreatpercentile, percentileofscore
+from scipy.stats import chi2
 
 nb_exp_list=[100, 500, 1000, 2000]
+parameters=[(('bin_size', 10),
+  ('bins_type', 'quantile'),
+  ('cost_type', 'number'),
+  ('div_name', 'etransportation'),
+  ('lambda', 10)),
+ (('bin_size', 10),
+  ('bins_type', 'quantile'),
+  ('cost_type', 'number'),
+  ('div_name', 'total_variation'),
+  ('lambda', 10))]
+    
+def collectingDistances(folder, testCtrl =False):
+    if not testCtrl:
+        files = filter(lambda x: 'distances2' in x and 'CTRL' not in x, os.listdir(folder))
+    else:
+        files = filter(lambda x: 'distances2_CTRL' in x, os.listdir(folder))
+    print len(files)
+
+    result={param:[[], None] for param in parameters}
+    
+    for file_ in files:
+        f=open(os.path.join(folder, file_))
+        d=pickle.load(f)
+        f.close()
+        for param in parameters:
+            if param not in d:
+                print "NO parameter sets ", file_
+            else:
+                result[param][1]=np.vstack((result[param][1], d[param])) if result[param][1] is not None else d[param]
+                result[param][0].extend([file_ for k in range(d[param].shape[0])])
+            
+    return result
+
+def empiricalDistributions(dist_controls, dist_exp, folder, sup=False):
+    '''
+    This function computes empirical p-value distributions
+    dist_controls et dist_exp are dictionaries with keys=parameter sets
+    dist_controls[param] array of size nb experiments x nb of features
+    '''
+
+    empirical_pval = {param : np.zeros(shape = (dist_exp[param].shape[0], dist_exp[param].shape[1]), dtype=float) for param in parameters}
+    empirical_qval = {param : np.zeros(shape = (dist_exp[param].shape[0], dist_exp[param].shape[1]), dtype=float) for param in parameters}
+
+    if 'empirical_p_qval.pkl' not in os.listdir(folder):
+        for param in parameters:
+            #for all parameter sets
+            for k in range(dist_exp[param].shape[1]):
+                #for all features
+                for j in range(dist_exp[param].shape[0]):
+                    #for all experiments
+                    if sup:
+        #if we are dealing with distances to calculate empirical distributions,
+        #we're looking for distances that are big, so a small p-value should be for big distances.
+        #Hence our empirical p-values are 100 - the percentage of distances that are lower
+                        empirical_pval[param][j,k] = (100 - percentileofscore(dist_controls[param][:,k], dist_exp[param][j,k]))/100.0
+                    else:
+                        empirical_pval[param][j,k] = percentileofscore(dist_controls[param][:,k], dist_exp[param][j,k])/100.0
+            
+                empirical_qval[param][:,k] = empirical_pval[param][:,k]*empirical_pval[param].shape[0]/(np.argsort(empirical_pval[param][:,k])+1)
+    
+            #plotting empirical p-value distribution
+            f=p.figure()
+            ax=f.add_subplot(111)
+            nb,bins,patches=ax.hist(empirical_pval[param], bins=50, alpha=0.2)
+            p.savefig(os.path.join(folder, 'pvalParam{}.png'.format(parameters.index(param))))
+            p.close('all')
+            
+        f = open(os.path.join(folder, 'empirical_p_qval.pkl'), 'w')
+        pickle.dump((empirical_pval, empirical_qval),f); f.close()
+    else:
+        f=open(os.path.join(folder, 'empirical_p_qval.pkl'))
+        empirical_pval, _ = pickle.load(f); f.close()
+        
+    
+    # statistical test according to Fisher's method http://en.wikipedia.org/wiki/Fisher%27s_method
+    combined_pval = {param : np.zeros(shape = (empirical_pval[param].shape[0],), dtype=float) for param in parameters}
+    combined_qval = {param : np.zeros(shape = (empirical_pval[param].shape[0],), dtype=float) for param in parameters}
+    for param in parameters:
+        stat = -2*np.sum(np.log(empirical_pval[param]),1)
+        combined_pval[param] = chi2.sf(stat, 2*empirical_pval[param].shape[1])
+        combined_qval[param]= combined_pval[param]*combined_pval[param].shape[0]/(1+np.argsort(combined_pval[param]))
+    
+    return combined_pval, combined_qval
+
 
 def _writeXml(plate, well, resultCour, num=1):
     tmp=''
@@ -458,126 +542,6 @@ class cellExtractor():
         self.saveResults(distances)
         
         return
-        
-#    def trajToWells(self, length, who, trajectories):
-#        cum=np.cumsum(length)
-#        cum=np.insert(cum, 0, 0)
-#        #l=[0]; l.extend(cum); cum=np.array(l)
-#        result=defaultdict(list)
-#        for traj_index in trajectories:
-#            indexCour = np.where(cum<=traj_index)[0][-1]
-#            result[who[indexCour]].append(traj_index-cum[indexCour])
-#        return result
-#        
-#    def wellToPlot(self, length,who, all_, result_folder, median=False):
-#        assert getpass.getuser()!='lalil0u', 'You are not running this on the right computer'
-#        index=featuresSaved.index(self.feature_name)
-#        folder='/share/data20T/mitocheck/tracking_results'
-#        basename = 'traj'
-#        resultCour=[]; sizes=[0]
-#        valCour=[]
-#        #if median: basename+='_median'
-#        for el in all_:
-#            trajectories=all_[el]
-#            print el
-#            for plate, well in trajectories:
-#                print plate, well
-#                if self.verbose:
-#                    print "Taking care of plate {}, well {}".format(plate, well)
-#        
-#                f=open(os.path.join(folder,plate, 'hist_tabFeatures_{}.pkl'.format(well)))
-#                tab, coord, _=pickle.load(f); f.close()
-#                resultCour.extend(np.array(coord)[trajectories[(plate, well)]])
-#                valCour.extend(tab[trajectories[(plate, well)], index])
-#            sizes.append(len(resultCour))
-#
-#        XX=[]; YY=[]
-#        for k in range(len(resultCour)):
-#            X=np.array(resultCour[k][1]); X-=X[0]; XX.append(X)
-#            Y=np.array( resultCour[k][2]); Y-=Y[0]; YY.append(Y)
-#        minx,maxx = min([min(X) for X in XX]), max([max(X) for X in XX])
-#        miny,maxy = min([min(Y) for Y in YY]), max([max(Y) for Y in YY])
-#        
-#        #saving trajectories 
-#        f=open('trajectories_{}.pkl'.format(self.feature_name), 'w')
-#        pickle.dump([all_, resultCour, valCour, sizes],f)
-#        f.close()
-#        
-#        i=0
-#        for el in all_:
-#            for k in range(sizes[i], min(sizes[i]+50,sizes[i+1])):
-#                plotAlignedTraj(XX[k], YY[k], minx, maxx, miny, maxy, show=False, 
-#                                name=os.path.join(result_folder, '{}_{}_{}_{}.png'.format(basename,el, self.feature_name, k)), val=valCour[k])
-#            i+=1
-#        return 1#_writeXml(plate, well, resultCour)
-#    
-#    def wellToXml(self, length,who, plate, well, trajectories, result_folder, num):
-#
-#        assert getpass.getuser()!='lalil0u', 'You are not running this on the right computer'
-#        folder='/share/data/mitocheck/tracking_results'
-#
-#        if self.verbose:
-#            print "Taking care of plate {}, well {}".format(plate, well)
-#
-#        f=open(os.path.join(folder,plate, 'hist_tabFeatures_{}.pkl'.format(well)))
-#        _, coord, _, _, _, _=pickle.load(f); f.close()
-#        resultCour=np.array(coord)[trajectories]
-#        return _writeXml(plate, well, resultCour, num)
-#        
-#    def find(self, data,ctrlStatus,length, percentile, how_many=5, div_name='total_variation', nb_feat_num=12, sample_size=20,
-#                lambda_=10,M=None):
-#        if self.numerical:
-#            return self._findNumerical(data, percentile, how_many)
-#        return self._findHistogram(data,ctrlStatus,length, percentile, how_many, div_name,nb_feat_num, sample_size,lambda_, M)
-#    
-#    def _findNumerical(self, data, percentile, how_many):
-#        index=featuresSaved.index(self.feature_name)
-#        scoreD = scoreatpercentile(data[:,index], percentile)
-#        down=np.where(data[:,index]<=scoreD)
-#        scoreU = scoreatpercentile(data[:,index], 100-percentile)
-#        up=np.where(data[:,index]>=scoreU)
-#            
-#        med0, med1=scoreatpercentile(data[:,index], 48), scoreatpercentile(data[:,index], 52)
-#        ctrl0 = np.where(data[:,index]>=med0)
-#        ctrl1=np.where(data[:, index]<=med1)
-#        ctrl=filter(lambda x: x in ctrl1[0], ctrl0[0])
-#        
-#        if self.verbose:
-#            print "Feature {}".format(self.feature_name)
-#            print "{} retrieved, percentile {}, value {}".format(up[0], 100-percentile, scoreU)
-#            print "{} retrieved, percentile {}, value {}".format(down[0],percentile, scoreD)
-#            print "{} retrieved, percentile {}, value {}".format(np.array(ctrl), percentile, med0)
-#        return down[0], up[0], ctrl
-#    
-#    def _findHistogram(self, data,ctrlStatus,length, percentile, how_many, div_name,nb_feat_num, sample_size, lambda_, M):
-#        #not implemented yet
-#        assert(div_name in DIVERGENCES)
-#        if div_name=='transportation' and M is None:
-#            M={}
-#            for m in range(self.mat_hist_sizes.shape[1]):
-#                for n in range(self.mat_hist_sizes.shape[0]):
-#                    M[(n,m)]=costMatrix(self.mat_hist_sizes[n,m], 1)
-#        
-#        print "CURRENT WEIGHTS", self.dist_weights
-#        
-#        random_state= np.random.mtrand._rand
-#        ctrlData=concatCtrl(data, ctrlStatus, length, len(ctrlStatus)-np.sum(ctrlStatus))
-#        seeds = random_state.permutation(ctrlData.shape[0])[:sample_size]
-#        sample=ctrlData[seeds]
-#        
-#        #taille sample_size, data.shape[0]
-#        distances = _distances(data, sample,div_name, lambda_, M, self.mat_hist_sizes, nb_feat_num, self.dist_weights)
-#        distances=np.argmin(distances, 0)#donc doit etre de taille data.shape[0]
-#        
-#        #then we have a numerical feature so we can get the percentile the same way
-#        score = scoreatpercentile(distances, percentile)
-#        if percentile>50:
-#            r=np.where(distances>=score)[0]
-#        else:
-#            r=np.where(distances<=score)[0]
-#        if self.verbose:
-#            print "{} examples retrieved for feature {}, percentile {}".format(len(r), self.feature_name, percentile)
-#        return r
     
 if __name__ == '__main__':
     '''
