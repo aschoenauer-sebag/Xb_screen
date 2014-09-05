@@ -565,7 +565,7 @@ class cellExtractor():
                     distances[i, k]=_distances(histogrammes[np.newaxis, i], ctrl_hist[np.newaxis,:],div_name=self.div_name, lambda_=self.lambda_, M=None,
                                          mat_hist_sizes=mat_hist_sizes, nb_feat_num=0, dist_weights=dist_weights)[0][0]
                 else:
-                    distances[i,k]=ks_2samp(histogrammes[feature][i], ctrl_hist[feature][corresponding_ctrl])
+                    distances[i,k]=ks_2samp(histogrammes[feature][i], ctrl_histogrammes[feature][corresponding_ctrl])
         return distances
     
     def saveResults(self, distances):
