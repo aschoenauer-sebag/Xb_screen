@@ -41,6 +41,16 @@ parameters=[(('bin_size', 10),
   ('cost_type', 'number'),
   ('div_name', 'total_variation'),
   ('lambda', 10))]
+
+def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_distances2_CTRL.pkl"):
+    f=open(os.path.join(folder, filename))
+    exp=pickle.load(f); f.close()
+    
+    for param in exp:
+        siRNAL = [el.split('_')[1][:-4] for el in exp[param][0]]
+        
+         
+
     
 def collectingDistances(folder, testCtrl =False):
     if not testCtrl:
