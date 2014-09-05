@@ -212,6 +212,7 @@ class hitFinder():
         for param_tuple in labelDict:
             
             if ctrlList is not None:
+                #ie if we're not loading previous labels
                 labels = labelDict[param_tuple]
                 d=dict(param_tuple)
                 labelsTot[param_tuple]={}
@@ -229,25 +230,29 @@ class hitFinder():
                             continue
                         else:
                             cLabelsCour.extend(labels[np.sum(length[:index]):np.sum(length[:index+1])])
+                    
                     min_ = d['n_cluster']
+                    vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
+                    cLabelsCour.extend(pLabelsCour)
+                    
                     if self.verbose:
                         print np.bincount(cLabelsCour, minlength=min_)
                         print np.bincount(pLabelsCour, minlength=min_)
                         
-                    dist_ = np.sum( np.absolute(
-                                                np.array(np.bincount(cLabelsCour, minlength=min_)/float(len(cLabelsCour)), dtype=float) 
-                                                         -
-                                                np.array(np.bincount(pLabelsCour,minlength=min_)/float(len(pLabelsCour)), dtype=float)
-                                                ))
-                    if self.verbose:
-                        print dist_
-                    labelsTot[param_tuple][experiment] = [cLabelsCour, pLabelsCour, dist_]
+#                    dist_ = np.sum( np.absolute(
+#                                                np.array(np.bincount(cLabelsCour, minlength=min_)/float(len(cLabelsCour)), dtype=float) 
+#                                                         -
+#                                                np.array(np.bincount(pLabelsCour,minlength=min_)/float(len(pLabelsCour)), dtype=float)
+#                                                ))
+                    pval = np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
+                                                         hybrid=True,
+                                                         simulate_p_value=True, B=2000000)[0][0])
+                    labelsTot[param_tuple][experiment] = [cLabelsCour, pLabelsCour, pval]
                 return labelsTot
             else:
                 for experiment in labelDict[param_tuple]:
                     print experiment
                     cLabelsCour, pLabelsCour, _ = labelDict[param_tuple][experiment]
-                    llength = len(cLabelsCour)
                     vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
                     cLabelsCour.extend(pLabelsCour)
                     #r.append([cLabelsCour, vecLongueurs])
@@ -256,12 +261,12 @@ class hitFinder():
                         continue
                     
                     p_vals[param_tuple].append(np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
-                                                                             simulate_p_value=True, B=2000000000)[0][0]))
+                                                                             hybrid=True,
+                                                                             simulate_p_value=True, B=2000000)[0][0]))
                 
                 if self.verbose:
                     print '---------------weights', d['dist_weights'], 'k', d['n_cluster'], 'bins_type', d['bins_type']
                     print len(pLabelsCour), np.bincount(pLabelsCour)/float(len(pLabelsCour))
-                    print llength, np.bincount(cLabelsCour[:llength])/float(llength)
                     print p_vals[param_tuple][-1]
 # statistical test according to Fisher's method http://en.wikipedia.org/wiki/Fisher%27s_method
 #            if len(p_vals[param_tuple])>1:
