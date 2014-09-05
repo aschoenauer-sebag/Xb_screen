@@ -614,14 +614,12 @@ class cellExtractor():
             plates, ctrl_histogrammes = self.ctrlHistograms(bins, toDel=false_exp)
             
             if self.verbose:
-                print "all ctrl", self.expList
+                print "all ctrl", ctrl
+                print 'false exp', self.expList
                 
             #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON all control experiments 
             #for the plate
-            
-            if self.verbose:
-                print self.expList, false_exp
-        
+    
         #iv. calculate the distance from each experiment to its control
         distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes)
         print distances
