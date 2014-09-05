@@ -22,7 +22,7 @@ from tracking.trajPack.clustering import histConcatenation
 from tracking.PyPack.fHacktrack2 import initXml, finirXml
 from tracking.histograms.k_means_transportation import DIVERGENCES, _distances
 from tracking.histograms.transportation import costMatrix, computingBins
-from util.listFileManagement import expSi, strToTuple
+from util.listFileManagement import expSi, strToTuple, siEntrez, EnsemblEntrezTrad, geneListToFile
 from util.sandbox import concatCtrl
 from tracking.plots import plotAlignedTraj
 
@@ -42,24 +42,73 @@ parameters=[(('bin_size', 10),
   ('div_name', 'total_variation'),
   ('lambda', 10))]
 
-def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_distances2_CTRL.pkl"):
-    f=open(os.path.join(folder, filename))
-    exp=pickle.load(f); f.close()
+def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_distances2_CTRL.pkl", threshold=0.05):
+    if filename not in os.listdir(folder):
+        exp = collectingDistances(folder, testCtrl=False)
+        ctrl = collectingDistances(folder, testCtrl=True)
+        f=open(os.path.join(folder, filename), 'w')
+        pickle.dump(exp, f); f.close()
+        
+        f=open(os.path.join(folder, ctrl_filename), 'w')
+        pickle.dump(ctrl,f); f.close()
+        
+    else:
+        f=open(os.path.join(folder, filename))
+        exp=pickle.load(f); f.close()
+        f=open(os.path.join(folder, ctrl_filename), 'r')
+        ctrl =pickle.load(f); f.close()
+    r=[]
+    combined_pval, combined_qval = empiricalDistributions({param:ctrl[param][-1] for param in parameters},
+                                                           {param:exp[param][-1] for param in parameters}, folder, sup=True)
     
     for param in exp:
-        siRNAL = [el.split('_')[1][:-4] for el in exp[param][0]]
+        siRNAL, expL, geneL, _ = exp[param]
+        curr_pval=combined_pval[param]; curr_qval=combined_qval[param]
         
-         
+        siRNA_count=Counter(siRNAL)
+        gene_count=Counter(geneL)
+    
+        exp_hit=[]
+        siRNA_hit=[]
+        gene_hit=[]
+        for k in range(len(siRNAL)):
+            if curr_pval[k]<threshold and curr_qval[k]<threshold:
+                exp_hit.append(expL[k])
+                siRNA_hit.append(siRNAL[k])
+                gene_hit.append(geneL[k])
+                
+        siRNA_hit=Counter(siRNA_hit)
+        siRNA_hit={siRNA:siRNA_hit[siRNA]/float(siRNA_count[siRNA]) for siRNA in siRNA_hit}
+        
+        siRNA_highconf = filter(lambda x: siRNA_hit[x]>0.5, siRNA_hit)
+        gene_highconf = Counter([geneL[siRNAL.index(siRNA)] for siRNA in siRNA_highconf])
+        
+        trad = EnsemblEntrezTrad('../data/mapping/mitocheck_siRNAs_target_genes_Ens72.txt')
+        gene_hits_Ensembl=[trad[el] for el in gene_hit]
+        gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
+        gene_Ensembl = [trad[el] for el in gene_count]
+        
+        print 'Hits ', len(gene_hit)
+        print 'High conf', len(gene_highconf)
+        print 'Background', len(gene_count)
+        geneListToFile(gene_hits_Ensembl, 'gene_hits_p{}.txt'.format(parameters.index(param)))
+        geneListToFile(gene_highconf_Ensembl, 'gene_high_conf_p{}.txt'.format(parameters.index(param)))
+        geneListToFile(gene_Ensembl, 'gene_list_p{}.txt'.format(parameters.index(param)))
+        
+        r.append([exp_hit, gene_hit, gene_highconf])
+    return r
 
     
 def collectingDistances(folder, testCtrl =False):
     if not testCtrl:
         files = filter(lambda x: 'distances2' in x and 'CTRL' not in x, os.listdir(folder))
+        yqualDict=expSi('../data/mapping/qc_export.txt', sens=0)
+        dictSiEntrez=siEntrez('../data/mapping/mitocheck_siRNAs_target_genes_Ens72.txt')
     else:
         files = filter(lambda x: 'distances2_CTRL' in x, os.listdir(folder))
     print len(files)
 
-    result={param:[[], None] for param in parameters}
+    result={param:[[], [], [], None] for param in parameters}
     
     for file_ in files:
         f=open(os.path.join(folder, file_))
@@ -67,10 +116,19 @@ def collectingDistances(folder, testCtrl =False):
         f.close()
         for param in parameters:
             if param not in d:
-                print "NO parameter sets ", file_
+                print "NO parameter sets ", file_, 'param ', parameters.index(param)
             else:
-                result[param][1]=np.vstack((result[param][1], d[param])) if result[param][1] is not None else d[param]
-                result[param][0].extend([file_ for k in range(d[param].shape[0])])
+                siRNA = file_.split('_')[1][:-4]
+                result[param][0].extend([siRNA for k in range(d[param].shape[0])])
+                if not testCtrl:
+                    try:
+                        gene = dictSiEntrez[siRNA]
+                    except:
+                        pdb.set_trace()
+                    result[param][1].extend(yqualDict[siRNA])
+                    result[param][2].extend([gene for k in range(d[param].shape[0])])
+                
+                result[param][3]=np.vstack((result[param][3], d[param])) if result[param][3] is not None else d[param]
             
     return result
 
