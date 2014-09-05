@@ -42,7 +42,7 @@ parameters=[(('bin_size', 10),
   ('div_name', 'total_variation'),
   ('lambda', 10))]
 
-def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_distances2_CTRL.pkl", threshold=0.05):
+def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_distances2_CTRL.pkl", threshold=0.05, union=False):
     if filename not in os.listdir(folder):
         exp = collectingDistances(folder, testCtrl=False)
         ctrl = collectingDistances(folder, testCtrl=True)
@@ -59,7 +59,8 @@ def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_dist
         ctrl =pickle.load(f); f.close()
     r=[]
     combined_pval, combined_qval = empiricalDistributions({param:ctrl[param][-1] for param in parameters},
-                                                           {param:exp[param][-1] for param in parameters}, folder, sup=True)
+                                                           {param:exp[param][-1] for param in parameters}, folder, sup=True,
+                                                           union=union)
     
     for param in exp:
         siRNAL, expL, geneL, _ = exp[param]
@@ -83,13 +84,16 @@ def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_dist
         siRNA_highconf = filter(lambda x: siRNA_hit[x]>0.5, siRNA_hit)
         gene_highconf = Counter([geneL[siRNAL.index(siRNA)] for siRNA in siRNA_highconf])
         
+        #gene_highconf={gene:gene_highconf[gene]/float(gene_count[gene]) for gene in gene_highconf}
+        gene_highconf=filter(lambda x: gene_highconf[x]>1, gene_highconf)
+        
         trad = EnsemblEntrezTrad('../data/mapping/mitocheck_siRNAs_target_genes_Ens72.txt')
         gene_hits_Ensembl=[trad[el] for el in gene_hit]
         gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
         gene_Ensembl = [trad[el] for el in gene_count]
         
-        print 'Hits ', len(gene_hit)
-        print 'High conf', len(gene_highconf)
+        print 'siRNA high conf ', len(siRNA_highconf)
+        print 'Genes high conf', len(gene_highconf)
         print 'Background', len(gene_count)
         geneListToFile(gene_hits_Ensembl, 'gene_hits_p{}.txt'.format(parameters.index(param)))
         geneListToFile(gene_highconf_Ensembl, 'gene_high_conf_p{}.txt'.format(parameters.index(param)))
@@ -132,7 +136,7 @@ def collectingDistances(folder, testCtrl =False):
             
     return result
 
-def empiricalDistributions(dist_controls, dist_exp, folder, sup=False):
+def empiricalDistributions(dist_controls, dist_exp, folder, sup=False, union=False):
     '''
     This function computes empirical p-value distributions
     dist_controls et dist_exp are dictionaries with keys=parameter sets
@@ -170,15 +174,18 @@ def empiricalDistributions(dist_controls, dist_exp, folder, sup=False):
         pickle.dump((empirical_pval, empirical_qval),f); f.close()
     else:
         f=open(os.path.join(folder, 'empirical_p_qval.pkl'))
-        empirical_pval, _ = pickle.load(f); f.close()
+        empirical_pval, empirical_qval = pickle.load(f); f.close()
         
     
     # statistical test according to Fisher's method http://en.wikipedia.org/wiki/Fisher%27s_method
     combined_pval = {param : np.zeros(shape = (empirical_pval[param].shape[0],), dtype=float) for param in parameters}
     combined_qval = {param : np.zeros(shape = (empirical_pval[param].shape[0],), dtype=float) for param in parameters}
     for param in parameters:
-        stat = -2*np.sum(np.log(empirical_pval[param]),1)
-        combined_pval[param] = chi2.sf(stat, 2*empirical_pval[param].shape[1])
+        if not union:
+            stat = -2*np.sum(np.log(empirical_pval[param]),1)
+            combined_pval[param] = chi2.sf(stat, 2*empirical_pval[param].shape[1])
+        else:
+            combined_pval[param] = np.min(empirical_pval[param],1)
         combined_qval[param]= combined_pval[param]*combined_pval[param].shape[0]/(1+np.argsort(combined_pval[param]))
     
     return combined_pval, combined_qval
@@ -484,22 +491,34 @@ class cellExtractor():
         
         f=open(os.path.join(self.settings.result_folder, 'distExp_ctrl_{}_{}.pkl'.format(self.bins_type, self.bin_size)))
         bins = pickle.load(f); f.close()
-        
-        histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
-                    
-        return histogrammes, bins
+        if self.div_name !='KS':
+            histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
+            return histogrammes, bins
+        else:
+            return histDict, None
     
-    def ctrlHistograms(self, bins):
+    def ctrlHistograms(self, bins, toDel=[]):
         '''
         Since we want to calculate the length of an experiment to its controls, we only need to keep one table per
         plate, and not one table per control experiment
         '''
         plates = Counter(np.array(self.expList)[:,0]).keys()
-
+        if self.plate is not None:
+            assert len(plates)==1
+            assert plates[0]==self.plate
+            
         histDict = defaultdict(list)
         length=[]
         for plate in plates:
             ctrlExpList = appendingControl([plate])
+            if self.verbose:
+                print 'before cleaning', len(ctrlExpList)
+            if toDel!=[]:
+                true_ctrl = filter(lambda x: x not in toDel, range(len(ctrlExpList)))
+                ctrlExpList = list(np.array(ctrlExpList)[true_ctrl])
+            if self.verbose:
+                print 'after cleaning', len(ctrlExpList)
+
             try:
                 _,curr_r, _, _,_, curr_length, _, _, _ = histConcatenation(self.settings.data_folder, ctrlExpList, self.settings.mitocheck_file,
                                             self.settings.quality_control_file, verbose=self.verbose)
@@ -512,10 +531,11 @@ class cellExtractor():
                     histDict[feature].append(curr_r[:,featuresSaved.index(feature)])
         assert(len(length)==len(plates))
         assert(len(histDict[feature])==len(plates))
-                    
-        histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
-        
-        return plates, histogrammes
+        if self.div_name !='KS':
+            histogrammes, _ = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
+            return plates, histogrammes
+        else:
+            return plates, histDict
     
     def parameters(self):
         r={
@@ -531,18 +551,21 @@ class cellExtractor():
         distances = np.zeros(shape=(len(self.expList),len(self.currInterestFeatures)))
         for i,experiment in enumerate(self.expList):
             corresponding_ctrl = plates.index(experiment[0])
-            ctrl_hist = ctrl_histogrammes[corresponding_ctrl]
+            
             if "transportation" in self.div_name:
                 if self.cost_type!='number':
                     print 'Need to set up cost matrix to match with cost_type value'
                     raise
             for k, feature in enumerate(self.currInterestFeatures):
-                dist_weights = np.zeros(shape=(len(self.currInterestFeatures)+1,))
-                dist_weights[k+1]=1
-                mat_hist_sizes = np.array([[self.bin_size for j in range(len(self.currInterestFeatures))]])
-                distances[i, k]=_distances(histogrammes[np.newaxis, i], ctrl_hist[np.newaxis,:],div_name=self.div_name, lambda_=self.lambda_, M=None,
-                                     mat_hist_sizes=mat_hist_sizes, nb_feat_num=0, dist_weights=dist_weights)[0][0]
-                
+                if self.div_name !='KS':
+                    ctrl_hist = ctrl_histogrammes[corresponding_ctrl]
+                    dist_weights = np.zeros(shape=(len(self.currInterestFeatures)+1,))
+                    dist_weights[k+1]=1
+                    mat_hist_sizes = np.array([[self.bin_size for j in range(len(self.currInterestFeatures))]])
+                    distances[i, k]=_distances(histogrammes[np.newaxis, i], ctrl_hist[np.newaxis,:],div_name=self.div_name, lambda_=self.lambda_, M=None,
+                                         mat_hist_sizes=mat_hist_sizes, nb_feat_num=0, dist_weights=dist_weights)[0][0]
+                else:
+                    distances[i,k]=ks_2samp(histogrammes[feature][i], ctrl_hist[feature][corresponding_ctrl])
         return distances
     
     def saveResults(self, distances):
@@ -579,29 +602,25 @@ class cellExtractor():
             plates, ctrl_histogrammes = self.ctrlHistograms(bins)
             
         else:
+            ctrl = appendingControl([self.plate])
+            #randomly selecting two wells of the plate that will be used to be compared to the others
+            false_exp = np.random.randint(len(ctrl), size=2)
+            while false_exp[0]==false_exp[1]:
+                false_exp = np.random.randint(len(ctrl), size=2)
             
-            self.expList = appendingControl([self.plate])
+            self.expList = list(np.array(ctrl)[false_exp])
+            histogrammes, bins = self.getData(self.settings.histDataAsWell)
+            
+            plates, ctrl_histogrammes = self.ctrlHistograms(bins, toDel=false_exp)
+            
             if self.verbose:
                 print "all ctrl", self.expList
                 
             #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON all control experiments 
             #for the plate
-            histogrammes, bins = self.getData(self.settings.histDataAsWell)
-            
-            plates = [self.plate]
-            #randomly selecting two wells of the plate that will be used to be compared to the others
-            false_exp = np.random.randint(histogrammes.shape[0], size=2)
-            while false_exp[0]==false_exp[1]:
-                false_exp = np.random.randint(histogrammes.shape[0], size=2)
-            assert(histogrammes.shape[1]==self.bin_size*len(self.currInterestFeatures))
-            true_ctrl = filter(lambda x: x not in false_exp, range(histogrammes.shape[0]))
-            
-            ctrl_histogrammes = histogrammes[true_ctrl]
-            histogrammes = histogrammes[false_exp]
-            self.expList = list(np.array(self.expList)[false_exp])
             
             if self.verbose:
-                print self.expList, true_ctrl, histogrammes.shape[0], ctrl_histogrammes.shape[0]
+                print self.expList, false_exp
         
         #iv. calculate the distance from each experiment to its control
         distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes)
