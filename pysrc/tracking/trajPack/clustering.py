@@ -111,9 +111,9 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                         #espece de bricolage si movement type a un coeff de correlation inf a 0.7 pour >=2 regressions
                         arr[np.where(arr[:,14]>1),11]=None
                         toDel = []
-                        if np.any(arr[:,-1]>=5) or np.any(np.isnan(arr[:,:len(featuresNumeriques)])):
+                        if np.any(arr[:,-1]>=5) or np.any(np.isnan(arr)):
                             toDel = np.where(arr[:,-1]>=5)[0]
-                            toDel=np.hstack((toDel, np.where(np.isnan(arr[:,:len(featuresNumeriques)]))[0]))
+                            toDel=np.hstack((toDel, np.where(np.isnan(arr))[0]))
                             arr=np.delete(arr, toDel, 0)
 
                         arr=np.hstack((arr[:,:len(featuresNumeriques)+len(featuresHisto)], arr[:,-1, np.newaxis]))
@@ -335,7 +335,7 @@ def Kmeans(data, mini, maxi, N=5, metric='euclidean', return_labels = False):
     cohesion_r=[]
     for k in range(mini, maxi+1):
         print "--------------------------------------Cluster number : ", k
-        model = KMeans(n_clusters=k, init='random',n_init=100,max_iter=1000)#100, 300 puis 500,500
+        model = KMeans(n_clusters=k, init='k-means++',n_init=100,max_iter=1000)#100, 300 puis 500,500
         #n_clusters=8, init='k-means++', n_init=10, max_iter=300, tol=0.0001, precompute_distances=True, verbose=0, random_state=None, copy_x=True, n_jobs=1, k=None)
         zou = model.fit(data)
         print 'Computing silhouette score'

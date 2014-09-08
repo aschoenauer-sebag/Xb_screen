@@ -136,7 +136,7 @@ def heatmap(x, row_header, column_header, row_method,
         ax2 = fig.add_axes([ax2_x, ax2_y, ax2_w, ax2_h], frame_on=True)
         Y2 = sch.linkage(D2, method=column_method, metric=column_metric) ### array-clustering metric - 'average', 'single', 'centroid', 'complete'
         Z2 = sch.dendrogram(Y2)
-        ind2 = sch.fcluster(Y2,0.7*max(Y2[:,2]),'distance') ### This is the default behavior of dendrogram
+        ind2 = sch.fcluster(Y2,0.4*max(Y2[:,2]),'distance') ### This is the default behavior of dendrogram
         ax2.set_xticks([]) ### Hides ticks
         ax2.set_yticks([])
         time_diff = str(round(time.time()-start_time,1))
@@ -152,7 +152,7 @@ def heatmap(x, row_header, column_header, row_method,
         ax1 = fig.add_axes([ax1_x, ax1_y, ax1_w, ax1_h], frame_on=True) # frame_on may be False
         Y1 = sch.linkage(D1, method=row_method, metric=row_metric) ### gene-clustering metric - 'average', 'single', 'centroid', 'complete'
         Z1 = sch.dendrogram(Y1, orientation='right')
-        ind1 = sch.fcluster(Y1,0.7*max(Y1[:,2]),'distance') ### This is the default behavior of dendrogram
+        ind1 = sch.fcluster(Y1,0.4*max(Y1[:,2]),'distance') ### This is the default behavior of dendrogram
         ax1.set_xticks([]) ### Hides ticks
         ax1.set_yticks([])
         time_diff = str(round(time.time()-start_time,1))
@@ -267,9 +267,9 @@ def exportFlatClusterData(filename, new_row_header,new_column_header,xt,ind1,ind
     
     filename = string.replace(filename,'.pdf','.txt')
     export_text = open(filename,'w')
-    column_header = string.join(['UID','row_clusters-flat']+new_column_header,'\t')+'\n' ### format column-names for export
+    column_header = string.join(['UID','row_clusters-flat']+new_column_header,' ')+'\n' ### format column-names for export
     export_text.write(column_header)
-    column_clusters = string.join(['column_clusters-flat','']+ map(str, ind2),'\t')+'\n' ### format column-flat-clusters for export
+    column_clusters = string.join(['column_clusters-flat','']+ map(str, ind2),' ')+'\n' ### format column-flat-clusters for export
     export_text.write(column_clusters)
     
     ### The clusters, dendrogram and flat clusters are drawn bottom-up, so we need to reverse the order to match
@@ -279,7 +279,7 @@ def exportFlatClusterData(filename, new_row_header,new_column_header,xt,ind1,ind
     ### Export each row in the clustered data matrix xt
     i=0
     for row in xt:
-        export_text.write(string.join([new_row_header[i],str(ind1[i])]+map(str, row),'\t')+'\n')
+        export_text.write(string.join([new_row_header[i],str(ind1[i])]+map(str, row),' ')+'\n')
         i+=1
     export_text.close()
     

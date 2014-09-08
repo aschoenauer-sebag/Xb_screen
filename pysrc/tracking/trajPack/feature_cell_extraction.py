@@ -100,7 +100,7 @@ def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_dist
     r=[]
     ctrl_pval, ctrl_qval, combined_pval, combined_qval = empiricalDistributions({param:ctrl[param][-1] for param in parameters},
                                                            {param:exp[param][-1] for param in parameters}, folder, sup=True)
-    for param in exp:
+    for param in parameters:
         siRNAL, expL, geneL, _ = exp[param]
         platesL,_,_,_=ctrl[param]
         curr_pval=combined_pval[param]; curr_qval=combined_qval[param]
@@ -223,10 +223,10 @@ def empiricalDistributions(dist_controls, dist_exp, folder, sup=False, union=Fal
     if 'empirical_p_qval.pkl' not in os.listdir(folder) or redo:
         ctrl_pval, ctrl_qval = empiricalPvalues(dist_controls, dist_controls, folder,name='ctrlPval', sup=sup)
         empirical_pval, empirical_qval = empiricalPvalues(dist_controls, dist_exp, folder,name='expPval', sup=sup)
-        
-        binning=np.array([0,0.80,0.95,1])
-        discretisation = [[np.searchsorted(binning, empirical_pval[param][j,k]) for j in range(empirical_pval[param].shape[0])]
-                          for k in range(empirical_pval[param].shape[1])]
+#        
+#        binning=np.array([0,0.80,0.95,1])
+#        discretisation = [[np.searchsorted(binning, empirical_pval[param][j,k]) for j in range(empirical_pval[param].shape[0])]
+#                          for k in range(empirical_pval[param].shape[1])]
         
         
         f = open(os.path.join(folder, 'empirical_p_qval.pkl'), 'w')
