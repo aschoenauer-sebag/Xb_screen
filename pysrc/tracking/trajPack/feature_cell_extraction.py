@@ -32,16 +32,17 @@ from scipy.stats.stats import ks_2samp, spearmanr, scoreatpercentile, percentile
 from scipy.stats import chi2
 
 nb_exp_list=[100, 500, 1000, 2000]
-parameters=[(('bin_size', 10),
-  ('bins_type', 'quantile'),
-  ('cost_type', 'number'),
-  ('div_name', 'etransportation'),
-  ('lambda', 10)),
- (('bin_size', 10),
-  ('bins_type', 'quantile'),
-  ('cost_type', 'number'),
-  ('div_name', 'total_variation'),
-  ('lambda', 10)),
+parameters=[
+#(('bin_size', 10),
+#  ('bins_type', 'quantile'),
+#  ('cost_type', 'number'),
+#  ('div_name', 'etransportation'),
+#  ('lambda', 10)),
+# (('bin_size', 10),
+#  ('bins_type', 'quantile'),
+#  ('cost_type', 'number'),
+#  ('div_name', 'total_variation'),
+#  ('lambda', 10)),
  (('bin_size', 10),
   ('bins_type', 'quantile'),
   ('cost_type', 'number'),
@@ -99,7 +100,6 @@ def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_dist
     r=[]
     ctrl_pval, ctrl_qval, combined_pval, combined_qval = empiricalDistributions({param:ctrl[param][-1] for param in parameters},
                                                            {param:exp[param][-1] for param in parameters}, folder, sup=True)
-    
     for param in exp:
         siRNAL, expL, geneL, _ = exp[param]
         platesL,_,_,_=ctrl[param]
@@ -116,6 +116,8 @@ def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_dist
         exp_hit=[]
         siRNA_hit=[]
         gene_hit=[]
+
+        
         for k in range(len(siRNAL)):
             if curr_pval[k]<threshold and curr_qval[k]<threshold:
                 exp_hit.append(expL[k])
@@ -217,11 +219,16 @@ def empiricalDistributions(dist_controls, dist_exp, folder, sup=False, union=Fal
     dist_controls et dist_exp are dictionaries with keys=parameter sets
     dist_controls[param] array of size nb experiments x nb of features
     '''
-
+    param=parameters[0]
     if 'empirical_p_qval.pkl' not in os.listdir(folder) or redo:
         ctrl_pval, ctrl_qval = empiricalPvalues(dist_controls, dist_controls, folder,name='ctrlPval', sup=sup)
         empirical_pval, empirical_qval = empiricalPvalues(dist_controls, dist_exp, folder,name='expPval', sup=sup)
-            
+        
+        binning=np.array([0,0.80,0.95,1])
+        discretisation = [[np.searchsorted(binning, empirical_pval[param][j,k]) for j in range(empirical_pval[param].shape[0])]
+                          for k in range(empirical_pval[param].shape[1])]
+        
+        
         f = open(os.path.join(folder, 'empirical_p_qval.pkl'), 'w')
         pickle.dump((ctrl_pval, ctrl_qval, empirical_pval, empirical_qval),f); f.close()
     else:

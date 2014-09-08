@@ -210,7 +210,6 @@ class hitFinder():
         p_vals = defaultdict(list); labelsTot = {}
 #        r=[]
         for param_tuple in labelDict:
-            
             if ctrlList is not None:
                 #ie if we're not loading previous labels
                 labels = labelDict[param_tuple]
@@ -248,7 +247,6 @@ class hitFinder():
                                                          hybrid=True,
                                                          simulate_p_value=True, B=2000000)[0][0])
                     labelsTot[param_tuple][experiment] = [cLabelsCour, pLabelsCour, pval]
-                return labelsTot
             else:
                 for experiment in labelDict[param_tuple]:
                     print experiment
@@ -272,8 +270,11 @@ class hitFinder():
 #            if len(p_vals[param_tuple])>1:
 #                stat = -2*np.sum(np.log(p_vals[param_tuple]))
 #                p_vals[param_tuple] = chi2.sf(stat, 2*len(p_vals[param_tuple]))
-#
-        return p_vals
+#    
+        if ctrlList is not None:
+            return labelsTot
+        else:   
+            return p_vals
     
     def _cleanParameterSetsFromDoneWork(self, parameter_set_list, ctrlIter):
         '''
@@ -676,19 +677,19 @@ class hitFinder():
                             for j,parameter_set in enumerate(parameters):
                                 if parameter_set in d:
                     #if results are per experiment
-                                    #for exp in d[parameter_set]:
-#                                        if exp not in platesL:
-#                                            platesL.append(exp)
-#                                        try:
-#                                            result[k,j,i].append(d[parameter_set][exp][-1])
-#                                        except AttributeError:
-#                                            result[k,j,i]=[d[parameter_set][exp][-1]]
-                                    if type(d[parameter_set])==list:
-                                        d[parameter_set]=d[parameter_set][0]
-                                    try:
-                                        result[k,j,i].append(d[parameter_set])
-                                    except AttributeError:
-                                        result[k,j,i]=[d[parameter_set]]
+                                    for exp in d[parameter_set]:
+                                        if exp not in platesL:
+                                            platesL.append(exp)
+                                        try:
+                                            result[k,j,i].append(d[parameter_set][exp][-1])
+                                        except AttributeError:
+                                            result[k,j,i]=[d[parameter_set][exp][-1]]
+#                                    if type(d[parameter_set])==list:
+#                                        d[parameter_set]=d[parameter_set][0]
+#                                    try:
+#                                        result[k,j,i].append(d[parameter_set])
+#                                    except AttributeError:
+#                                        result[k,j,i]=[d[parameter_set]]
                                 else:
                                     try:
                                         result[k,j,i].append(np.nan)
