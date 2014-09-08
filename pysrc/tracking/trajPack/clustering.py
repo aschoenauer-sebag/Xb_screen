@@ -449,20 +449,20 @@ def isomapping(data, mini, maxi, neighbours):
     #Parallel(n_jobs=3, verbose=5)(delayed(wholeProcess)(2.5, k, -1, args.output, loadingFolder) for k in range(nb_big_folds))
     return corr_r, error_r
 
-def outputBin(data, ctrlSize,nbPheno, lPheno, binSize, sigma, nbDim=2, nbNeighbours=20):
-    m = Isomap(n_neighbors=nbNeighbours, n_components=nbDim, eigen_solver='auto', tol=0, max_iter=None, path_method='auto', neighbors_algorithm='kd_tree')
-    D = m.fit_transform(data)
-    ctrl = D[:ctrlSize]
+def outputBin(data, ctrlSize,nbPheno, lPheno, binSize, sigma):#, nbDim=2, nbNeighbours=20):
+    #m = Isomap(n_neighbors=nbNeighbours, n_components=nbDim, eigen_solver='auto', tol=0, max_iter=None, path_method='auto', neighbors_algorithm='kd_tree')
+    #D = m.fit_transform(data)
+    ctrl = data[:ctrlSize]
     ctrlTree = KDTree(ctrl, leafsize=10)
     length=ctrlSize
     
-    mini = np.amin(D, 0); maxi=np.amax(D, 0); 
+    mini = np.amin(data, 0); maxi=np.amax(data, 0); 
     nbPointsX = int((maxi[0]-mini[0])/float(binSize))+1
     nbPointsY = int((maxi[1]-mini[1])/float(binSize))+1
     
     result = np.zeros(shape=(nbPheno, nbPointsX, nbPointsY))
-    denomCtrl = np.zeros(shape=(nbPointsX, nbPointsY))
-    
+    denomCtrl = np.zeros(shape=(nbPointsX, nbPointsY)); denomCtrl.fill(0.001)
+    print 'Parti'
     for pointX, pointY in product(range(nbPointsX), range(nbPointsY)):
         x=mini[0]+(pointX+0.5)*binSize; y=mini[1]+(pointY+0.5)*binSize
         ctrldou, ctrli = ctrlTree.query((x, y), ctrlSize, distance_upper_bound=binSize/sqrt(2))
@@ -473,7 +473,7 @@ def outputBin(data, ctrlSize,nbPheno, lPheno, binSize, sigma, nbDim=2, nbNeighbo
                 
     for ifilm in range(nbPheno):
         print 'film ', ifilm
-        pheno = D[length:length+lPheno[ifilm]]
+        pheno = data[length:length+lPheno[ifilm]]
         phenoTree = KDTree(pheno, leafsize=10)
         
         for pointX, pointY in product(range(nbPointsX), range(nbPointsY)):
@@ -486,8 +486,8 @@ def outputBin(data, ctrlSize,nbPheno, lPheno, binSize, sigma, nbDim=2, nbNeighbo
                     local = dist((x,y), pheno[pPoint], sigma)
                     result[ifilm, pointX, pointY]+=local; denom+=local
         length+=lPheno[ifilm]        
-        if denom>0:result[ifilm, pointX, pointY]/=denom
-    plotMovies('/media/lalil0u/New/workspace2/Tracking/images', result, 'pattern_b{}_s{}'.format(binSize, sigma))
+        #if denom>0:result[ifilm, pointX, pointY]/=denom
+    plotMovies('/media/lalil0u/New/workspace2/Xb_screen/resultData/features_on_films', result, 'pattern_b{}_s{}'.format(binSize, sigma))
     return result
 
 def homeMadeSpectralClust(data, cluster_nb_min, cluster_nb_max, neighbours_nb, sig, show=False, affinity =None):

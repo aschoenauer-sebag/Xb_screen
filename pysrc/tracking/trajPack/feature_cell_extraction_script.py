@@ -97,11 +97,11 @@ if __name__ == '__main__':
     parser.add_option('--bin_size', type=int, dest="bin_size", default=10)    
     parser.add_option('--testCtrl', type=str, dest='testCtrl', default=0)
 
-    siRNAFile = '../data/siRNA_Simpson.pkl'
+    parser.add_option('--siRNA', type=str, dest='siRNAFile', default='../data/siRNA_Simpson.pkl')
 
     (options, args) = parser.parse_args()
     
-    globalSummaryScript(options.baseName,siRNAFile, options.div_name,
+    globalSummaryScript(options.baseName,options.siRNAFile, options.div_name,
                         options.bins_type, options.bin_size, options.testCtrl
                       )
     

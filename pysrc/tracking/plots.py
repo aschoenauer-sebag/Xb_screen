@@ -16,6 +16,7 @@ from trajPack import featuresListArray, featuresHisto
 from util.plots import makeColorRamp, basic_colors, markers
 
 from hierarchical_clustering import heatmap
+import brewer2mpl
 
 def plotPermutationResults(res):
     f=p.figure(figsize=(24,13))
@@ -638,9 +639,11 @@ def plotMovies(folder, arr, filename = 'patternMovies'):
     print 'plotting movies'
     for k in range(nbPheno):
         p.figure(figsize=(12,12))
-        im = p.pcolormesh(X,Y,arr[k].transpose(), cmap='hot')
+        cmap = brewer2mpl.get_map('RdBu', 'diverging', 3).mpl_colormap
+        im = p.pcolormesh(X,Y,arr[k].transpose(), cmap=cmap)
         p.colorbar(im, orientation='horizontal')
-        p.savefig(os.path.join(folder, '{}_{}.png'.format(filename, k)))
+        p.show()
+        #p.savefig(os.path.join(folder, '{}_{}.png'.format(filename, k)))
     return 1
 
 def featureFeatureCorrelation(data, feature_names = featuresNumeriques, sh=True, method = 'ward', metric='euclidean'):
