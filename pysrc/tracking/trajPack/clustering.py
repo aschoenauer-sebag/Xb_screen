@@ -135,15 +135,15 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                         except KeyError:
                             print "Key Error for experiment {} {}".format(pl, w)
                             continue
-        if r ==[]:
-            raise AttributeError
+    if r ==[]:
+        raise AttributeError
 
 #log trsforming data
-        r2 = histLogTrsforming(r, verbose=verbose)        
+    r2 = histLogTrsforming(r, verbose=verbose)        
 
-        warn('The data was not normalized. Please check that it will be done before applying any algorithm.')
-        
-        return pbl_well, r2[:,:-1], histNtot,  who,ctrlStatus, length, genes, sirna, time_length
+    warn('The data was not normalized. Please check that it will be done before applying any algorithm.')
+    
+    return pbl_well, r2[:,:-1], histNtot,  who,ctrlStatus, length, genes, sirna, time_length
 
 def concatenation(folder, exp_list, mitocheck, qc):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; genes=[]; sirna=[]
