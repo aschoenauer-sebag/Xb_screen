@@ -126,7 +126,7 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False, se
         frameLot.append(newFrame)
     return featureL, frameLot
 
-def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, name_primary_channel='primary__primary3'):
+def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, name_primary_channel='primary__primary'):
 
     pathObjects = "/sample/0/plate/{}/experiment/{}/position/{}/object/{}".format(plaque, puits[:-3], puits[-1], name_primary_channel)
     pathFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/{}/object_features".format(name_primary_channel)
