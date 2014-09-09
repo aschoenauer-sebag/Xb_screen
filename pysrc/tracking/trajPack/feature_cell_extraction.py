@@ -133,7 +133,7 @@ def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_dist
         #gene_highconf={gene:gene_highconf[gene]/float(gene_count[gene]) for gene in gene_highconf}
         gene_highconf=filter(lambda x: gene_highconf[x]>=1, gene_highconf)
         
-        trad = EnsemblEntrezTrad('../data/mapping/mitocheck_siRNAs_target_genes_Ens72.txt')
+        trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
         gene_hits_Ensembl=[trad[el] for el in gene_hit]
         gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
         gene_Ensembl = [trad[el] for el in gene_count]
@@ -154,8 +154,8 @@ def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_dist
 def collectingDistances(folder, testCtrl =False):
     if not testCtrl:
         files = filter(lambda x: 'distances2' in x and 'CTRL' not in x, os.listdir(folder))
-        yqualDict=expSi('../data/mapping/qc_export.txt', sens=0)
-        dictSiEntrez=siEntrez('../data/mapping/mitocheck_siRNAs_target_genes_Ens72.txt')
+        yqualDict=expSi('../data/mapping_2014/qc_export.txt', sens=0)
+        dictSiEntrez=siEntrez('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
     else:
         files = filter(lambda x: 'distances2_CTRL' in x, os.listdir(folder))
     print len(files)
@@ -363,7 +363,7 @@ def Spearman(folder = '../resultData/features_on_films',feature=None, outputFile
                 result[i][k].extend(l)
     pvalues_mat = np.zeros(shape=(len(featureL),set_number,set_number))
     if saveExtreme:
-        targetExp={}; yeSiExp=expSi('../data/mapping/qc_export.txt', 0)
+        targetExp={}; yeSiExp=expSi('../data/mapping_2014/qc_export.txt', 0)
     for i, feature in enumerate(featureL):
         for k, param in enumerate(parameters):
             if i==0:
@@ -546,8 +546,8 @@ class cellExtractor():
         '''
         histDict = defaultdict(list)
 
-        _,r, _, _,_, length, _, _, _ = histConcatenation(self.settings.data_folder, self.expList, self.settings.mitocheck_file,
-                                        self.settings.quality_control_file, verbose=self.verbose)
+        _,r, _, self.expList,_, length, _, _, _ = histConcatenation(self.settings.data_folder, self.expList, self.settings.mitocheck_file,
+                                        self.settings.quality_control_file, verbose=self.verbose, perMovie=True)
                     
         for i in range(len(length)):
             for k,feature in enumerate(self.currInterestFeatures):
@@ -555,9 +555,11 @@ class cellExtractor():
         
         f=open(os.path.join(self.settings.result_folder, 'distExp_ctrl_{}_{}.pkl'.format(self.bins_type, self.bin_size)))
         bins = pickle.load(f); f.close()
+        
         if self.div_name !='KS':
-            histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
-            return histogrammes, bins
+            raise TypeError
+#            histogrammes, bins = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
+#            return histogrammes, bins
         else:
             return histDict, None
     
@@ -596,8 +598,9 @@ class cellExtractor():
         assert(len(length)==len(plates))
         assert(len(histDict[feature])==len(plates))
         if self.div_name !='KS':
-            histogrammes, _ = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
-            return plates, histogrammes
+            raise TypeError
+#            histogrammes, _ = computingBins(histDict, [self.bin_size for k in range(len(self.currInterestFeatures))], self.bins_type, previous_binning=bins)
+#            return plates, histogrammes
         else:
             return plates, histDict
     
@@ -622,14 +625,18 @@ class cellExtractor():
                     raise
             for k, feature in enumerate(self.currInterestFeatures):
                 if self.div_name !='KS':
-                    ctrl_hist = ctrl_histogrammes[corresponding_ctrl]
-                    dist_weights = np.zeros(shape=(len(self.currInterestFeatures)+1,))
-                    dist_weights[k+1]=1
-                    mat_hist_sizes = np.array([[self.bin_size for j in range(len(self.currInterestFeatures))]])
-                    distances[i, k]=_distances(histogrammes[np.newaxis, i], ctrl_hist[np.newaxis,:],div_name=self.div_name, lambda_=self.lambda_, M=None,
-                                         mat_hist_sizes=mat_hist_sizes, nb_feat_num=0, dist_weights=dist_weights)[0][0]
+                    raise TypeError
+#                    ctrl_hist = ctrl_histogrammes[corresponding_ctrl]
+#                    dist_weights = np.zeros(shape=(len(self.currInterestFeatures)+1,))
+#                    dist_weights[k+1]=1
+#                    mat_hist_sizes = np.array([[self.bin_size for j in range(len(self.currInterestFeatures))]])
+#                    distances[i, k]=_distances(histogrammes[np.newaxis, i], ctrl_hist[np.newaxis,:],div_name=self.div_name, lambda_=self.lambda_, M=None,
+#                                         mat_hist_sizes=mat_hist_sizes, nb_feat_num=0, dist_weights=dist_weights)[0][0]
                 else:
-                    distances[i,k]=ks_2samp(histogrammes[feature][i], ctrl_histogrammes[feature][corresponding_ctrl])[0]
+                    h1 = histogrammes[feature][i]
+                    h2 = ctrl_histogrammes[feature][corresponding_ctrl]
+                    
+                    distances[i,k]=ks_2samp(h1[~np.isnan(h1)], h2[~np.isnan(h2)])[0]
         return distances
     
     def saveResults(self, distances):

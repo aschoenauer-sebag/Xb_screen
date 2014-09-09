@@ -38,13 +38,10 @@ from util.kkmeans import KernelKMeans
 #from joblib import Parallel, delayed, Memory
 
 
-def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.pkl', verbose=0, hist=True):
+def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.pkl', verbose=0, hist=True, perMovie = False):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; sirna=[]; genes=[]
     time_length=[]; pbl_well=[]
     histNtot={nom:[] for nom in featuresHisto}
-#    histAvStot={nom:[] for nom in featuresHisto}
-#    histAvMtot={nom:[] for nom in featuresHisto}
-#    histApStot={nom:[] for nom in featuresHisto}
     ctrlWell1 = []; ctrlWell2=[]
     for el in typeD:
         ctrlWell1.extend(typeD[el])
@@ -53,105 +50,94 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
     
     yqualDict=expSi(qc)
     dictSiEntrez=siEntrez(mitocheck)
-    
-    if exp_list ==None:
-        exp_list=[]
-        plates = os.listdir(folder)
-        sys.stderr.write('{} \n'.format(len(plates)))
-        for pl in plates:
 
-            listfiles = filter(lambda x: 'hist2_tabFeatures' in x, os.listdir(os.path.join(folder, pl)))
-            
-            for fichier in listfiles:
-                exp_list.append((pl, fichier.split('_')[2]+'_01'))
+    i=0
+    for pl, w in exp_list:
+        print i,
+        id_plate = int(pl.split('_')[0][2:])
 
-        return histConcatenation(folder, exp_list)
-    
-    else:
-        i=0
-        for pl, w in exp_list:
-            print i,
-            id_plate = int(pl.split('_')[0][2:])
+        if id_plate<50:
+            whoCtrl = ctrlWell1
+        else:
+            whoCtrl = ctrlWell2
 
-            if id_plate<50:
-                whoCtrl = ctrlWell1
-            else:
-                whoCtrl = ctrlWell2
-
-            i+=1
-            if pl[:9]+'--'+w[2:5] not in yqualDict:
-    #i. checking if quality control passed
-                sys.stderr.write("Quality control not passed {} {} \n".format(pl[:9], w[2:5]))
-                continue   
-            elif w[2:5] not in whoCtrl and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
-    #ii.checking if siRNA corresponds to a single target in the current state of knowledge
-                sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(pl[:9], w[2:5]))  
-                continue
-            try:
-    #iii.loading data
-                f=open(os.path.join(folder, pl, filename.format(w)), 'r')
-                arr, coord, histN= pickle.load(f)
-                f.close()
-            except IOError:
-                sys.stderr.write("No file {}\n".format(os.path.join(pl, filename.format(w))))
-            except EOFError:
-                sys.stderr.write("EOFError with file {}\n".format(os.path.join(pl, filename.format(w))))
+        i+=1
+        if pl[:9]+'--'+w[2:5] not in yqualDict:
+#i. checking if quality control passed
+            sys.stderr.write("Quality control not passed {} {} \n".format(pl[:9], w[2:5]))
+            continue   
+        elif w[2:5] not in whoCtrl and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
+#ii.checking if siRNA corresponds to a single target in the current state of knowledge
+            sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(pl[:9], w[2:5]))  
+            continue
+        try:
+#iii.loading data
+            f=open(os.path.join(folder, pl, filename.format(w)), 'r')
+            arr, coord, histN= pickle.load(f)
+            f.close()
+        except IOError:
+            sys.stderr.write("No file {}\n".format(os.path.join(pl, filename.format(w))))
+        except EOFError:
+            sys.stderr.write("EOFError with file {}\n".format(os.path.join(pl, filename.format(w))))
+            pbl_well.append((pl, w))
+        else:
+            if arr==None:
+                sys.stderr.write( "Array {} is None\n".format(os.path.join(pl, filename.format(w))))
                 pbl_well.append((pl, w))
+                continue
+            elif len(arr.shape)==1 or arr.shape[0]<20:
+                sys.stderr.write("Array {} has less than 20 trajectories. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
+                pbl_well.append((pl, w))
+                continue
             else:
-                if arr==None:
-                    sys.stderr.write( "Array {} is None\n".format(os.path.join(pl, filename.format(w))))
-                    pbl_well.append((pl, w))
-                    continue
-                elif len(arr.shape)==1 or arr.shape[0]<20:
-                    sys.stderr.write("Array {} has less than 20 trajectories. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
-                    pbl_well.append((pl, w))
-                    continue
-                else:
-                    try:
-                        #espece de bricolage si movement type a un coeff de correlation inf a 0.7 pour >=2 regressions
-                        arr[np.where(arr[:,14]>1),11]=None
-                        toDel = []
-                        if np.any(arr[:,-1]>=5) or np.any(np.isnan(arr)):
-                            toDel = np.where(arr[:,-1]>=5)[0]
+                try:
+                    #Si movement type a un coeff de correlation inf a 0.7 pour >=2 regressions, on supprime la trajectoire
+                    arr[np.where(arr[:,14]>1),11]=None
+                    toDel = []
+                    
+                    #Si on regarde les trajectoires a l'echelle du movie on garde les trajectoires qui ont quelques NaN que l'on supprimera en regardant les distributions
+                    if perMovie:
+                        test=np.any(arr[:,-1]>=5)
+                        
+                    #Sinon on supprime les trajectoires concernees pcq on ne pourra pas faire le clustering 
+                    else:
+                        test=(np.any(arr[:,-1]>=5) or np.any(np.isnan(arr)))
+                        
+                    if test:
+                        toDel = np.where(arr[:,-1]>=5)[0]
+                        if not perMovie:
                             toDel=np.hstack((toDel, np.where(np.isnan(arr))[0]))
-                            arr=np.delete(arr, toDel, 0)
+                        arr=np.delete(arr, toDel, 0)
 
-                        arr=np.hstack((arr[:,:len(featuresNumeriques)+len(featuresHisto)], arr[:,-1, np.newaxis]))
-                        r= arr if r==[] else np.vstack((r, arr))
-                        if hist:
-                            for nom in featuresHisto:
-    #TODO check that this works
-                                histN[nom]=np.delete(np.array(histN[nom]), toDel)
-                                histNtot[nom].extend(list(histN[nom]))
-    #                            histAvStot[nom].extend(histAvS[nom]); histAvMtot[nom].extend(histAvM[nom])
-    #                            histApStot[nom].extend(histApS[nom])
-                        ll=arr.shape[0]
-        
-                    except (TypeError, ValueError, AttributeError):
-                        print "Probleme avec le fichier {}".format(os.path.join(pl, filename.format(w)))
-                        pdb.set_trace()
-            
-                    else:   
-                        time_length.extend([len(coord[k][0]) for k in range(len(coord))])
-                        siCourant = yqualDict[pl[:9]+'--'+w[2:5]]
-                        sirna.append(siCourant)
-                        who.append((pl, w))
-                        length.append(ll)
-                        if w[2:5] in whoCtrl:
-                            ctrlStatus.append(0)
-                            genes.append('ctrl')
-                        else:
-                            ctrlStatus.append(1)
-                            try:
-                                genes.append(dictSiEntrez[siCourant])
-                            except KeyError:
-                                print "Key Error for experiment {} {}".format(pl, w)
-                                continue
+                    arr=np.hstack((arr[:,:len(featuresNumeriques)+len(featuresHisto)], arr[:,-1, np.newaxis]))
+                    r= arr if r==[] else np.vstack((r, arr))
+                    if hist:
+                        for nom in featuresHisto:
+                            histN[nom]=np.delete(np.array(histN[nom]), toDel)
+                            histNtot[nom].extend(list(histN[nom]))
+                    ll=arr.shape[0]
+    
+                except (TypeError, ValueError, AttributeError):
+                    sys.stderr.write("Probleme avec le fichier {}".format(os.path.join(pl, filename.format(w))))
+                else:   
+                    time_length.extend([len(coord[k][0]) for k in range(len(coord))])
+                    siCourant = yqualDict[pl[:9]+'--'+w[2:5]]
+                    sirna.append(siCourant)
+                    who.append((pl, w))
+                    length.append(ll)
+                    if w[2:5] in whoCtrl:
+                        ctrlStatus.append(0)
+                        genes.append('ctrl')
+                    else:
+                        ctrlStatus.append(1)
+                        try:
+                            genes.append(dictSiEntrez[siCourant])
+                        except KeyError:
+                            print "Key Error for experiment {} {}".format(pl, w)
+                            continue
         if r ==[]:
             raise AttributeError
-        if verbose>0:           
-            print r.shape
-            print sirna
+
 #log trsforming data
         r2 = histLogTrsforming(r, verbose=verbose)        
 
@@ -311,7 +297,7 @@ def BatchKmeans(data, mini, maxi, N=5, metric='euclidean'):
     cohesion_r=[]
     for k in range(mini, maxi+1):
         print "--------------------------------------Cluster number : ", k
-        model = MiniBatchKMeans(n_clusters=k, batch_size = 500, init='random',n_init=1000,max_iter=1000, max_no_improvement=100, compute_labels = True)#100, 300 puis 500,500
+        model = MiniBatchKMeans(n_clusters=k, batch_size = 1000, init='k-means++',n_init=1000,max_iter=1000, max_no_improvement=100, compute_labels = True)#100, 300 puis 500,500
         zou = model.fit(data)
         print 'Computing silhouette score'
         if k>1:

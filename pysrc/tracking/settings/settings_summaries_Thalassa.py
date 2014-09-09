@@ -16,7 +16,7 @@ pval_filename = 'pval_F2_iter{}_{}.pkl'
 figure_name = "comparaison_{}_{}.png" 
 threshold_filename = 'thresholds_significancy_5_{}.pkl' 
 
-mitocheck_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens72.txt'
+mitocheck_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens75.txt'
 
 quality_control_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt'
 
