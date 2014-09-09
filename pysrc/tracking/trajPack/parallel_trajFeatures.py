@@ -45,7 +45,7 @@ def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = Fa
         else:
             filenameT = None
             #ajout du frameLot et du tabF
-        frameLotC, tabFC = gettingRaw(filename, filenameT, plate, well)
+        frameLotC, tabFC = gettingRaw(filename, filenameT, plate, well, name_primary_channel='primary__primary')
         if newFrameLot == None:
             newFrameLot = frameLotC 
         else: newFrameLot.addFrameLot(frameLotC)
