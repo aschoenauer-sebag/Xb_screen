@@ -42,6 +42,12 @@ def ordonnancement(new_sol):
     return stories
 
 def trackletBuilder(new_sol, centresFolder, training=False):
+    '''
+    J'ajoute un compteur HoleError dans le cas ou Cplex ne respecte pas les contraintes : des cellules ne sont pas atteintes
+    et par consequent elles ont l'air de surgir de nulle part sans etre apparues via l'algorithme. Je considere que dix erreurs de ce type sont acceptables
+    par movie
+    
+    '''
     nb_voisins_max=10
     #distance_densi=40
     stories = ordonnancement(new_sol); res = {}
@@ -53,12 +59,13 @@ def trackletBuilder(new_sol, centresFolder, training=False):
         movie_length.update({plate : {}})
         
         for well in stories[plate]:
+            
+            count_HoleError=0
+            
             print plate, well
             ensembleTraj = fHacktrack2.ensTraj()
             res[plate].update({well:ensembleTraj})
             connexions[plate].update({well:{}})
-#            print ensembleTraj.numMitoses
-#            print ensembleTraj.lstTraj
             num = 0; l=[0]; trajC=None
             idd=0; firstIndex=min(stories[plate][well].keys()); 
 
@@ -129,8 +136,12 @@ def trackletBuilder(new_sol, centresFolder, training=False):
                         incomingTraj = ensembleTraj.findLabelFrame(c.label, index)
                         if incomingTraj==[]:
                             #It can happen only at the first frame : trajectories have not been initiated yet
-                            #otherwise I raise HoleError
-                            if index>firstIndex and training==False: raise HoleError(plate, well, index)
+                            #otherwise I raise HoleError if it has been observed more than 10 times
+                            if index>firstIndex and training==False: 
+                                count_HoleError+=1
+                                if count_HoleError>=10:
+                                    raise HoleError(plate, well, index)
+                                
                             if not mit:
                                 t=target[0]
                                 newTraj = fHacktrack2.trajectoire(num, c.center[0], c.center[1], index, c.label, idd)
@@ -205,7 +216,11 @@ def trackletBuilder(new_sol, centresFolder, training=False):
 #                                print incomingTraj[0].numCellule, incomingTraj[0].id
                             except IndexError:
                                 #donc il faut creer des nouvelles trajectoires
-                                if index>firstIndex and training==False: raise HoleError(plate, well, index)
+                                if index>firstIndex and training==False: 
+                                    count_HoleError+=1
+                                    if count_HoleError>=10:
+                                        raise HoleError(plate, well, index)
+                                    
                                 trajC = fHacktrack2.trajectoire(num, c.center[0], c.center[1], index, c.label, idd)
                                 trajC.addDensity(c.center, treeC, nb_voisins_max, densities)
                                 idSource.append(idd)

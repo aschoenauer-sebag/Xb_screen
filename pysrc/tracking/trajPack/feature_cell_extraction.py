@@ -131,9 +131,9 @@ def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_dist
         gene_highconf = Counter([geneL[siRNAL.index(siRNA)] for siRNA in siRNA_highconf])
         
         #gene_highconf={gene:gene_highconf[gene]/float(gene_count[gene]) for gene in gene_highconf}
-        gene_highconf=filter(lambda x: gene_highconf[x]>=1, gene_highconf)
+        gene_highconf=filter(lambda x: gene_highconf[x]>=2, gene_highconf)
         
-        trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+        trad = EnsemblEntrezTrad('../data/mapping_2013/mitocheck_siRNAs_target_genes_Ens72.txt')
         gene_hits_Ensembl=[trad[el] for el in gene_hit]
         gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
         gene_Ensembl = [trad[el] for el in gene_count]
@@ -155,7 +155,7 @@ def collectingDistances(folder, testCtrl =False):
     if not testCtrl:
         files = filter(lambda x: 'distances2' in x and 'CTRL' not in x, os.listdir(folder))
         yqualDict=expSi('../data/mapping_2014/qc_export.txt', sens=0)
-        dictSiEntrez=siEntrez('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+        dictSiEntrez=siEntrez('../data/mapping_2013/mitocheck_siRNAs_target_genes_Ens72.txt')
     else:
         files = filter(lambda x: 'distances2_CTRL' in x, os.listdir(folder))
     print len(files)
@@ -223,10 +223,6 @@ def empiricalDistributions(dist_controls, dist_exp, folder, sup=False, union=Fal
     if 'empirical_p_qval.pkl' not in os.listdir(folder) or redo:
         ctrl_pval, ctrl_qval = empiricalPvalues(dist_controls, dist_controls, folder,name='ctrlPval', sup=sup)
         empirical_pval, empirical_qval = empiricalPvalues(dist_controls, dist_exp, folder,name='expPval', sup=sup)
-#        
-#        binning=np.array([0,0.80,0.95,1])
-#        discretisation = [[np.searchsorted(binning, empirical_pval[param][j,k]) for j in range(empirical_pval[param].shape[0])]
-#                          for k in range(empirical_pval[param].shape[1])]
         
         
         f = open(os.path.join(folder, 'empirical_p_qval.pkl'), 'w')
@@ -237,21 +233,24 @@ def empiricalDistributions(dist_controls, dist_exp, folder, sup=False, union=Fal
         
     
     # statistical test according to Fisher's method http://en.wikipedia.org/wiki/Fisher%27s_method
-    ctrl_combined_pval_stat = {param : np.zeros(shape = (ctrl_pval[param].shape[0],1), dtype=float) for param in parameters}
-    combined_pval_stat = {param : np.zeros(shape = (empirical_pval[param].shape[0],1), dtype=float) for param in parameters}
-    
-#    combined_qval = {param : np.zeros(shape = (empirical_pval[param].shape[0],), dtype=float) for param in parameters}
+    ctrl_combined_pval = {param : np.zeros(shape = (ctrl_pval[param].shape[0],1), dtype=float) for param in parameters}
+    combined_pval = {param : np.zeros(shape = (empirical_pval[param].shape[0],1), dtype=float) for param in parameters}
+
+    ctrl_combined_qval = {param : np.zeros(shape = (ctrl_pval[param].shape[0],), dtype=float) for param in parameters}
+    combined_qval = {param : np.zeros(shape = (empirical_pval[param].shape[0],), dtype=float) for param in parameters}
     for param in parameters:
-        ctrl_combined_pval_stat[param] = -2*np.sum(np.log(ctrl_pval[param]),1)
-        ctrl_combined_pval_stat[param] = ctrl_combined_pval_stat[param][:,np.newaxis]
-        combined_pval_stat[param] = -2*np.sum(np.log(empirical_pval[param]),1)
-        combined_pval_stat[param] = combined_pval_stat[param][:,np.newaxis]
+        stat = -2*np.sum(np.log(ctrl_pval[param]),1)
+        ctrl_combined_pval[param] = chi2.sf(stat, 2*ctrl_pval[param].shape[1])
+#        ctrl_combined_pval_stat[param] = ctrl_combined_pval_stat[param][:,np.newaxis]
+        stat = -2*np.sum(np.log(empirical_pval[param]),1)
+        combined_pval[param] = chi2.sf(stat, 2*empirical_pval[param].shape[1])
+#        combined_pval_stat[param] = combined_pval_stat[param][:,np.newaxis]
         
         
-    ctrl_combined_pval, ctrl_combined_qval = empiricalPvalues(ctrl_combined_pval_stat, ctrl_combined_pval_stat, folder,name='ctrlStat', sup=True)
-    combined_pval, combined_qval = empiricalPvalues(ctrl_combined_pval_stat, combined_pval_stat, folder,name='expStat', sup=True)
-        #combined_qval[param]= combined_pval[param]*combined_pval[param].shape[0]/(1+np.argsort(combined_pval[param]))
-    
+#    ctrl_combined_pval, ctrl_combined_qval = empiricalPvalues(ctrl_combined_pval_stat, ctrl_combined_pval_stat, folder,name='ctrlStat', sup=True)
+#    combined_pval, combined_qval = empiricalPvalues(ctrl_combined_pval_stat, combined_pval_stat, folder,name='expStat', sup=True)
+        combined_qval[param]= combined_pval[param]*combined_pval[param].shape[0]/(1+np.argsort(combined_pval[param]))
+        ctrl_combined_qval[param]= ctrl_combined_pval[param]*ctrl_combined_pval[param].shape[0]/(1+np.argsort(ctrl_combined_pval[param]))
     return ctrl_combined_pval, ctrl_combined_qval, combined_pval, combined_qval
 
 
