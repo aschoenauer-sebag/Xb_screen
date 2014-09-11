@@ -590,6 +590,9 @@ class cellExtractor():
                                             self.settings.quality_control_file, verbose=self.verbose)
             except:
                 print "Problem with controls from plate {}".format(plate)
+                length.append(np.nan)
+                for k, feature in enumerate(self.currInterestFeatures):
+                    histDict[feature].append(np.nan)
             else:    
                 length.append(np.sum(curr_length))
                 assert(np.sum(curr_length)==curr_r.shape[0])                        
@@ -635,8 +638,11 @@ class cellExtractor():
                 else:
                     h1 = histogrammes[feature][i]
                     h2 = ctrl_histogrammes[feature][corresponding_ctrl]
+                    if not (len(h2)==1 and np.isnan(h2)):
                 #taking the p-value because the distance does not take into account the sample sizes explicitly
-                    distances[i,k]=ks_2samp(h1[~np.isnan(h1)], h2[~np.isnan(h2)])[1]
+                        distances[i,k]=ks_2samp(h1[~np.isnan(h1)], h2[~np.isnan(h2)])[1]
+                    else:
+                        distances[i,k]=np.nan
         return distances
     
     def saveResults(self, distances):
