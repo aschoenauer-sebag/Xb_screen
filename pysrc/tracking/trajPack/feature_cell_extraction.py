@@ -638,7 +638,7 @@ class cellExtractor():
                 else:
                     h1 = histogrammes[feature][i]
                     h2 = ctrl_histogrammes[feature][corresponding_ctrl]
-                    if not (type(h2)!=list and np.isnan(h2)):
+                    if not (type(h2)==float and np.isnan(h2)):
                 #taking the p-value because the distance does not take into account the sample sizes explicitly
                         distances[i,k]=ks_2samp(h1[~np.isnan(h1)], h2[~np.isnan(h2)])[1]
                     else:
