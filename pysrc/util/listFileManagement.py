@@ -20,6 +20,18 @@ def is_ctrl(experiment):
             return True
     return False
 
+def emptyImagesDeletion(folder, debut, fin=192):
+    wells = filter(lambda x:'W0' in x, os.listdir(folder))
+    print 'Deleting images from timepoint ', debut, 'to timepoint ', fin, 'INCLUSES '
+    print 'Is that what you want?'
+    pdb.set_trace()
+    
+    for well in wells:
+        print well
+        images = os.listdir(os.path.join(folder, well))
+        for image in filter(lambda x: int(x.split('_')[1][1:])>=debut and int(x.split('_')[1][1:])<=fin, images):
+            os.remove(os.path.join(folder, well, image)) 
+
 
 def renameFromZeiss(inputFolder, plate, nb_wells):        
     #SI ON A DES IMAGES ZEISS PUREMENT ET SIMPLEMENT, noms des dossiers deja changes

@@ -2,9 +2,50 @@ import os, pdb
 import vigra
 import vigra.impex as vi
 import numpy as np
-
+import cPickle as pickle
+from collections import Counter
+import matplotlib.pyplot as p
 from util.plots import couleurs
 from tracking.importPack import imp 
+
+def checkNormalization(folder, plate, lengthMovie = 192):
+    '''
+    This function checks the max intensity on both channels on all images for all wells of a given plate.
+    Maxima should be around 1,000 or 3,000 depending on the channel.
+    
+    If images have a maximum under 200 it is black (from experience).
+    '''
+    arr=np.zeros(shape=(len(os.listdir(folder)), lengthMovie, 2))
+    
+    if 'CR_normalization.pkl' not in os.listdir(folder):
+        for w, well in enumerate(os.listdir(folder)):
+            imageName = '%s--%s--P0001_t00{:>03}_c0000{}.tif'%(plate, well)
+            for timepoint in range(1,lengthMovie+1):
+                for ch in [1,2]:
+                    im = vi.readImage(os.path.join(well, imageName.format(timepoint, ch)))
+                    arr[w, timepoint-1, ch-1]=np.max(im)
+        f=open(os.path.join(folder, 'CR_normalization.pkl'), 'w')
+        pickle.dump(arr, f); f.close()
+    else:
+        f=open(os.path.join(folder, 'CR_normalization.pkl'))
+        arr=pickle.load(f); f.close()
+        
+    print 'Compte rendu, plate ', plate
+    total_missing = []
+    for k in range(arr.shape[0]):
+        print '------Well ', k
+        l=sorted(Counter(np.where(arr[k]<200)[0]).keys())
+        total_missing.extend(l)
+        print 'Frames where no images? \n', l
+        ll=filter(lambda x: x not in l, range(lengthMovie))
+        print 'Else maximun average', np.mean(arr[k, ll,:],0), 'std ', np.std(arr[k, ll,:],0)
+    
+    summary = np.bincount(total_missing, minlength=lengthMovie)
+    p.scatter(range(lengthMovie), summary )
+    p.grid(True)
+    p.show()
+    print summary
+    return summary
 
 def imageNormalization(wellL, rawFolder):
     '''

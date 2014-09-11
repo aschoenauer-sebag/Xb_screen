@@ -49,7 +49,7 @@ parameters=[
   ('div_name', 'KS'),
   ('lambda', 10))]
 
-def plotDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_distances2_CTRL.pkl", sigma=0.1, binSize=10,texts=None):
+def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all_distances_whole_CTRL.pkl", sigma=0.1, binSize=10,texts=None):
     f=open(os.path.join(folder, filename))
     distances = pickle.load(f);f.close()
     
@@ -82,7 +82,7 @@ def plotDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_dis
 #    p.legend()
 #    p.show()
 
-def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_distances2_CTRL.pkl", threshold=0.05):
+def hitDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all_distances_whole_CTRL.pkl", threshold=0.05):
     if filename not in os.listdir(folder):
         exp = collectingDistances(folder, testCtrl=False)
         ctrl = collectingDistances(folder, testCtrl=True)
@@ -133,15 +133,15 @@ def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_dist
         #gene_highconf={gene:gene_highconf[gene]/float(gene_count[gene]) for gene in gene_highconf}
         gene_highconf=filter(lambda x: gene_highconf[x]>=2, gene_highconf)
         
-        trad = EnsemblEntrezTrad('../data/mapping_2013/mitocheck_siRNAs_target_genes_Ens72.txt')
+        trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
         gene_hits_Ensembl=[trad[el] for el in gene_hit]
         gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
         gene_Ensembl = [trad[el] for el in gene_count]
         
-        print 'Ctrl hits ', len(ctrl_hit), 'out of', len(platesL)
-        print 'Experiences ', len(exp_hit), 'out of',len(expL)
-        print 'siRNA high conf ', len(siRNA_highconf), 'out of',len(siRNA_count)
-        print 'Genes high conf', len(gene_highconf), 'out of', len(gene_count)
+        print 'Ctrl hits ', len(ctrl_hit), 'out of', len(platesL), 'ie ', len(ctrl_hit)/float(len(platesL))
+        print 'Experiences ', len(exp_hit), 'out of',len(expL), 'ie ', len(exp_hit)/float(len(expL))
+        print 'siRNA high conf ', len(siRNA_highconf), 'out of',len(siRNA_count), 'ie', len(siRNA_highconf)/float(len(siRNA_count))
+        print 'Genes high conf', len(gene_highconf), 'out of', len(gene_count), 'ie ', len(gene_highconf)/float(len(gene_count))
 
         geneListToFile(gene_hits_Ensembl, 'gene_hits_p{}.txt'.format(parameters.index(param)))
         geneListToFile(gene_highconf_Ensembl, 'gene_high_conf_p{}.txt'.format(parameters.index(param)))
@@ -153,11 +153,11 @@ def hitDistances(folder, filename='all_distances2.pkl', ctrl_filename ="all_dist
     
 def collectingDistances(folder, testCtrl =False):
     if not testCtrl:
-        files = filter(lambda x: 'distances2' in x and 'CTRL' not in x, os.listdir(folder))
+        files = filter(lambda x: 'distances_whole' in x and 'CTRL' not in x, os.listdir(folder))
         yqualDict=expSi('../data/mapping_2014/qc_export.txt', sens=0)
-        dictSiEntrez=siEntrez('../data/mapping_2013/mitocheck_siRNAs_target_genes_Ens72.txt')
+        dictSiEntrez=siEntrez('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
     else:
-        files = filter(lambda x: 'distances2_CTRL' in x, os.listdir(folder))
+        files = filter(lambda x: 'distances_whole_CTRL' in x, os.listdir(folder))
     print len(files)
 
     result={param:[[], [], [], None] for param in parameters}
@@ -170,7 +170,7 @@ def collectingDistances(folder, testCtrl =False):
             if param not in d:
                 print "NO parameter sets ", file_, 'param ', parameters.index(param)
             else:
-                siRNA = file_.split('_')[1][:-4]
+                siRNA = file_.split('_')[-1][:-4]
                 result[param][0].extend([siRNA for k in range(d[param].shape[0])])
                 if not testCtrl:
                     try:
@@ -240,17 +240,18 @@ def empiricalDistributions(dist_controls, dist_exp, folder, sup=False, union=Fal
     combined_qval = {param : np.zeros(shape = (empirical_pval[param].shape[0],), dtype=float) for param in parameters}
     for param in parameters:
         stat = -2*np.sum(np.log(ctrl_pval[param]),1)
-        ctrl_combined_pval[param] = chi2.sf(stat, 2*ctrl_pval[param].shape[1])
-#        ctrl_combined_pval_stat[param] = ctrl_combined_pval_stat[param][:,np.newaxis]
+        #ctrl_combined_pval[param] = chi2.sf(stat, 2*ctrl_pval[param].shape[1])
+        ctrl_combined_pval[param] = stat[:,np.newaxis]
+        
         stat = -2*np.sum(np.log(empirical_pval[param]),1)
-        combined_pval[param] = chi2.sf(stat, 2*empirical_pval[param].shape[1])
-#        combined_pval_stat[param] = combined_pval_stat[param][:,np.newaxis]
+        #combined_pval[param] = chi2.sf(stat, 2*empirical_pval[param].shape[1])
+        combined_pval[param] = stat[:,np.newaxis]
         
         
-#    ctrl_combined_pval, ctrl_combined_qval = empiricalPvalues(ctrl_combined_pval_stat, ctrl_combined_pval_stat, folder,name='ctrlStat', sup=True)
-#    combined_pval, combined_qval = empiricalPvalues(ctrl_combined_pval_stat, combined_pval_stat, folder,name='expStat', sup=True)
-        combined_qval[param]= combined_pval[param]*combined_pval[param].shape[0]/(1+np.argsort(combined_pval[param]))
-        ctrl_combined_qval[param]= ctrl_combined_pval[param]*ctrl_combined_pval[param].shape[0]/(1+np.argsort(ctrl_combined_pval[param]))
+    ctrl_combined_pval, ctrl_combined_qval = empiricalPvalues(ctrl_combined_pval, ctrl_combined_pval, folder,name='ctrlStat', sup=True)
+    combined_pval, combined_qval = empiricalPvalues(ctrl_combined_pval, combined_pval, folder,name='expStat', sup=True)
+#        combined_qval[param]= combined_pval[param]*combined_pval[param].shape[0]/(1+np.argsort(combined_pval[param]))
+#        ctrl_combined_qval[param]= ctrl_combined_pval[param]*ctrl_combined_pval[param].shape[0]/(1+np.argsort(ctrl_combined_pval[param]))
     return ctrl_combined_pval, ctrl_combined_qval, combined_pval, combined_qval
 
 
@@ -634,8 +635,8 @@ class cellExtractor():
                 else:
                     h1 = histogrammes[feature][i]
                     h2 = ctrl_histogrammes[feature][corresponding_ctrl]
-                    
-                    distances[i,k]=ks_2samp(h1[~np.isnan(h1)], h2[~np.isnan(h2)])[0]
+                #taking the p-value because the distance does not take into account the sample sizes explicitly
+                    distances[i,k]=ks_2samp(h1[~np.isnan(h1)], h2[~np.isnan(h2)])[1]
         return distances
     
     def saveResults(self, distances):
