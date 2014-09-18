@@ -763,7 +763,7 @@ class cellExtractor():
                 false_exp = np.random.randint(len(usable_ctrl), size=1)
                 chosen_ctrl = filter(lambda x: x not in false_exp, range(len(usable_ctrl)))
             else:
-                chosen_ctrl = sample(xrange(len(usable_ctrl)), size=5)
+                chosen_ctrl = sample(xrange(len(usable_ctrl)), 5)
                 false_exp = filter(lambda x: x not in chosen_ctrl, range(len(usable_ctrl)))
             
             self.expList = list(usable_ctrl[false_exp])
