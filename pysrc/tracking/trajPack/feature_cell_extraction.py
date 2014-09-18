@@ -13,6 +13,7 @@ elif getpass.getuser()=='lalil0u':
 from optparse import OptionParser
 from operator import itemgetter
 from collections import Counter, defaultdict
+from random import sample
 from scipy.stats import pearsonr
 import matplotlib.pyplot as p
 import brewer2mpl
@@ -757,13 +758,13 @@ class cellExtractor():
             
             if len(usable_ctrl)<2:
                 return
-            elif len(usable_ctrl)==2:
+            elif len(usable_ctrl)<6:
                 #randomly selecting two wells of the plate that will be used to be compared to the others
                 false_exp = np.random.randint(len(usable_ctrl), size=1)
+                chosen_ctrl = filter(lambda x: x not in false_exp, range(len(usable_ctrl)))
             else:
-                false_exp = np.random.randint(len(usable_ctrl), size=2)
-                while false_exp[0]==false_exp[1]:
-                    false_exp = np.random.randint(len(usable_ctrl), size=2)
+                chosen_ctrl = sample(xrange(len(usable_ctrl)), size=5)
+                false_exp = filter(lambda x: x not in chosen_ctrl, range(len(usable_ctrl)))
             
             self.expList = list(usable_ctrl[false_exp])
             histogrammes, bins = self.getData(self.settings.histDataAsWell)
@@ -772,6 +773,7 @@ class cellExtractor():
             
             if self.verbose:
                 print "all ctrl", ctrl
+                print 'all usable ctrl', usable_ctrl
                 print 'false exp', self.expList
                 
             #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON all control experiments 
