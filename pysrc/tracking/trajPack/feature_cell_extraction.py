@@ -18,7 +18,7 @@ import matplotlib.pyplot as p
 import brewer2mpl
 from tracking.trajPack import featuresSaved, featuresHisto, featuresNumeriques
 from util.listFileManagement import fromShareToCBIO, appendingControl
-from tracking.trajPack.clustering import histConcatenation,outputBin
+from tracking.trajPack.clustering import histConcatenation,outputBin, usable
 from tracking.PyPack.fHacktrack2 import initXml, finirXml
 from tracking.histograms.k_means_transportation import DIVERGENCES, _distances
 from tracking.histograms.transportation import costMatrix, computingBins
@@ -30,6 +30,11 @@ from sklearn.decomposition import PCA
 from util import settings
 from scipy.stats.stats import ks_2samp, spearmanr, scoreatpercentile, percentileofscore
 from scipy.stats import chi2
+
+from rpy2.robjects.packages import importr
+from rpy2.robjects.vectors import FloatVector
+
+stats = importr('stats')
 
 nb_exp_list=[100, 500, 1000, 2000]
 parameters=[
@@ -82,24 +87,31 @@ def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="al
 #    p.legend()
 #    p.show()
 
-def hitDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all_distances_whole_CTRL.pkl", threshold=0.05):
-    if filename not in os.listdir(folder):
-        exp = collectingDistances(folder, testCtrl=False)
-        ctrl = collectingDistances(folder, testCtrl=True)
-        f=open(os.path.join(folder, filename), 'w')
-        pickle.dump(exp, f); f.close()
-        
-        f=open(os.path.join(folder, ctrl_filename), 'w')
-        pickle.dump(ctrl,f); f.close()
-        
-    else:
-        f=open(os.path.join(folder, filename))
-        exp=pickle.load(f); f.close()
-        f=open(os.path.join(folder, ctrl_filename), 'r')
-        ctrl =pickle.load(f); f.close()
+def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="all_distances_whole2_CTRL.pkl", threshold=0.05, sup=False, renorm_first_statistic=False,
+                 renorm_second_statistic=True, redo=False):
+    '''
+    This function collects all distances or p-values from files, then with or without renormalizing them with respect to control distributions
+    combines them with Fisher's method and finally with or without renormalizing them computes the hit list
+    
+    '''
+    #i. Collecting distances
+        #parameters : names of quality control and mapping files
+    
+    exp = collectingDistances(filename, folder, testCtrl=False, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt',
+                              redo=redo)
+    ctrl = collectingDistances(ctrl_filename, folder, testCtrl=True, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt',
+                               redo=redo)        
     r=[]
+    
+    #ii. Computing renormalized distributions if renorm_first_statistic==True, else simply combining them using Fisher's method
+        #and returning p-val anq q-val distributions, normalized or not
+        #parameters: renorm_first_statistic, renorm_second_statistic
+                    #sup: if True, indicates that outliers have big values (eg distances) else outliers have small values (eg p-values)
+
     ctrl_pval, ctrl_qval, combined_pval, combined_qval = empiricalDistributions({param:ctrl[param][-1] for param in parameters},
-                                                           {param:exp[param][-1] for param in parameters}, folder, sup=True)
+                                                           {param:exp[param][-1] for param in parameters}, folder, sup=sup,
+                                                           renorm_first_statistic=renorm_first_statistic, renorm_second_statistic=renorm_second_statistic,
+                                                           redo=redo)
     for param in parameters:
         siRNAL, expL, geneL, _ = exp[param]
         platesL,_,_,_=ctrl[param]
@@ -110,7 +122,7 @@ def hitDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all
         
         ctrl_hit=[]
         for k in range(len(platesL)):
-            if ctrl_pval[param][k]<threshold and ctrl_qval[param][k]<threshold:
+            if ctrl_qval[param][k]<threshold:
                 ctrl_hit.append(platesL[k])
     
         exp_hit=[]
@@ -119,19 +131,19 @@ def hitDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all
 
         
         for k in range(len(siRNAL)):
-            if curr_pval[k]<threshold and curr_qval[k]<threshold:
+            if curr_qval[k]<threshold:
                 exp_hit.append(expL[k])
                 siRNA_hit.append(siRNAL[k])
                 gene_hit.append(geneL[k])
                 
         siRNA_hit=Counter(siRNA_hit)
-        siRNA_hit={siRNA:siRNA_hit[siRNA]/float(siRNA_count[siRNA]) for siRNA in siRNA_hit}
+        siRNA_hit_perc={siRNA:siRNA_hit[siRNA]/float(siRNA_count[siRNA]) for siRNA in siRNA_hit}
         
-        siRNA_highconf = filter(lambda x: siRNA_hit[x]>0.5, siRNA_hit)
+        siRNA_highconf = filter(lambda x: siRNA_hit_perc[x]>0.5 and siRNA_hit[x]>=2, siRNA_hit_perc)
         gene_highconf = Counter([geneL[siRNAL.index(siRNA)] for siRNA in siRNA_highconf])
         
         #gene_highconf={gene:gene_highconf[gene]/float(gene_count[gene]) for gene in gene_highconf}
-        gene_highconf=filter(lambda x: gene_highconf[x]>=2, gene_highconf)
+        gene_highconf=filter(lambda x: gene_highconf[x]>=1, gene_highconf)
         
         trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
         gene_hits_Ensembl=[trad[el] for el in gene_hit]
@@ -148,41 +160,66 @@ def hitDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all
         geneListToFile(gene_Ensembl, 'gene_list_p{}.txt'.format(parameters.index(param)))
         
         r.append([exp_hit, gene_hit, gene_highconf])
-    return r
+        
+        result = defaultdict(list)
+        for i,gene in enumerate(geneL):
+            if gene not in result: 
+                result[gene]=defaultdict(list)
+            result[gene][siRNAL[i]].append(curr_qval[i])
+
+    return r, result, expL, siRNAL, geneL, ctrl_pval, ctrl_qval, curr_pval, curr_qval
 
     
-def collectingDistances(folder, testCtrl =False):
-    if not testCtrl:
-        files = filter(lambda x: 'distances_whole' in x and 'CTRL' not in x, os.listdir(folder))
-        yqualDict=expSi('../data/mapping_2014/qc_export.txt', sens=0)
-        dictSiEntrez=siEntrez('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
-    else:
-        files = filter(lambda x: 'distances_whole_CTRL' in x, os.listdir(folder))
-    print len(files)
-
-    result={param:[[], [], [], None] for param in parameters}
+def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl =False,
+                        redo=False):
+    if filename not in os.listdir(folder) or redo:
+        if not testCtrl:
+            files = filter(lambda x: 'distances_whole' in x and 'CTRL' not in x and 'all' not in x, os.listdir(folder))
+            yqualDict=expSi(qc_filename, sens=0)
+            dictSiEntrez=siEntrez(mapping_filename)
+        else:
+            files = filter(lambda x: 'distances_whole2_CTRL' in x  and 'all' not in x, os.listdir(folder))
+        print len(files)
     
-    for file_ in files:
-        f=open(os.path.join(folder, file_))
-        d=pickle.load(f)
-        f.close()
-        for param in parameters:
-            if param not in d:
-                print "NO parameter sets ", file_, 'param ', parameters.index(param)
-            else:
-                siRNA = file_.split('_')[-1][:-4]
-                result[param][0].extend([siRNA for k in range(d[param].shape[0])])
-                if not testCtrl:
-                    try:
-                        gene = dictSiEntrez[siRNA]
-                    except:
-                        pdb.set_trace()
-                    result[param][1].extend(yqualDict[siRNA])
-                    result[param][2].extend([gene for k in range(d[param].shape[0])])
-                
-                result[param][3]=np.vstack((result[param][3], d[param])) if result[param][3] is not None else d[param]
+        result={param:[[], [], [], None] for param in parameters}
+        
+        for file_ in files:
+            f=open(os.path.join(folder, file_))
+            d=pickle.load(f)
+            f.close()
             
+            for param in parameters:
+                if param not in d:
+                    print "NO parameter sets ", file_, 'param ', parameters.index(param)
+                else:
+                    siRNA = file_.split('_')[-1][:-4]
+                    l= Counter(np.where(~np.isnan(d[param]))[0]).keys()
+                    
+#                    if len(l)==1 and not testCtrl:
+#                        #meaning it is an orphan siRNA with only one experiment. But do we really want to take them out? The experiment is real after all
+#                        continue 
+#                    
+                    result[param][0].extend([siRNA for k in range(len(l))])
+                    if not testCtrl:
+                        try:
+                            gene = dictSiEntrez[siRNA]
+                        except:
+                            pdb.set_trace()
+                        result[param][1].extend(list(np.array(yqualDict[siRNA])[l]))
+                        result[param][2].extend([gene for k in range(len(l))])
+                    
+                    result[param][3]=np.vstack((result[param][3], d[param][l])) if result[param][3] is not None else d[param][l]
+
+        f=open(os.path.join(folder, filename), 'w')
+        pickle.dump(result, f); f.close()
+
+    else:
+        f=open(os.path.join(folder, filename))
+        result=pickle.load(f); f.close()
+    
     return result
+
+    
 
 def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False):
     empirical_pval = {param : np.zeros(shape = (dist_exp[param].shape[0], dist_exp[param].shape[1]), dtype=float) for param in parameters}
@@ -192,8 +229,10 @@ def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False):
         #for all parameter sets
         for k in range(dist_exp[param].shape[1]):
             #for all features
+            print '---------------',k
             for j in range(dist_exp[param].shape[0]):
                 #for all experiments
+                
                 if sup:
     #if we are dealing with distances to calculate empirical distributions,
     #we're looking for distances that are big, so a small p-value should be for big distances.
@@ -201,37 +240,45 @@ def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False):
                     empirical_pval[param][j,k] = (100 - percentileofscore(dist_controls[param][:,k], dist_exp[param][j,k]))/100.0
                 else:
                     empirical_pval[param][j,k] = percentileofscore(dist_controls[param][:,k], dist_exp[param][j,k])/100.0
-        
-            empirical_qval[param][:,k] = empirical_pval[param][:,k]*empirical_pval[param].shape[0]/(np.argsort(empirical_pval[param][:,k])+1)
-
+                    
+    #The minimum precision is 1/#controls. It is not possible that there is p-value 0 here        
+            empirical_pval[param][np.where(empirical_pval[param]==0)]=1/float(dist_controls[param].shape[0])
+    #Calling R function p-adjust, applying Benjamini-Hochberg method
+            empirical_qval[param] = stats.p_adjust(FloatVector(list(empirical_pval[param][:,k])), method = 'BH')
         #plotting empirical p-value distribution
         f=p.figure()
         ax=f.add_subplot(111)
         nb,bins,patches=ax.hist(empirical_pval[param], bins=50, alpha=0.2)
+        nb,bins,patches=ax.hist(empirical_qval[param], bins=50, alpha=0.2, color='red')
+        ax.set_xlim(0,1)
         p.savefig(os.path.join(folder, 'pvalParam{}_{}.png'.format(parameters.index(param), name)))
         p.close('all')
             
     return empirical_pval, empirical_qval
 
-def empiricalDistributions(dist_controls, dist_exp, folder, sup=False, union=False, redo=False):
+def empiricalDistributions(dist_controls, dist_exp, folder, sup=False, union=False, redo=False, renorm_first_statistic=False, renorm_second_statistic=True):
     '''
     This function computes empirical p-value distributions
     dist_controls et dist_exp are dictionaries with keys=parameter sets
     dist_controls[param] array of size nb experiments x nb of features
     '''
     param=parameters[0]
-    if 'empirical_p_qval.pkl' not in os.listdir(folder) or redo:
-        ctrl_pval, ctrl_qval = empiricalPvalues(dist_controls, dist_controls, folder,name='ctrlPval', sup=sup)
-        empirical_pval, empirical_qval = empiricalPvalues(dist_controls, dist_exp, folder,name='expPval', sup=sup)
-        
-        
-        f = open(os.path.join(folder, 'empirical_p_qval.pkl'), 'w')
-        pickle.dump((ctrl_pval, ctrl_qval, empirical_pval, empirical_qval),f); f.close()
+    print "First, univariate p-values"
+    if renorm_first_statistic:
+        if 'empirical_p_qval.pkl' not in os.listdir(folder) or redo:
+            ctrl_pval, ctrl_qval = empiricalPvalues(dist_controls, dist_controls, folder,name='ctrlPval', sup=sup)
+            empirical_pval, empirical_qval = empiricalPvalues(dist_controls, dist_exp, folder,name='expPval', sup=sup)
+            
+            
+            f = open(os.path.join(folder, 'empirical_p_qval.pkl'), 'w')
+            pickle.dump((ctrl_pval, ctrl_qval, empirical_pval, empirical_qval),f); f.close()
+        else:
+            f=open(os.path.join(folder, 'empirical_p_qval.pkl'))
+            ctrl_pval, ctrl_qval, empirical_pval, empirical_qval = pickle.load(f); f.close()
     else:
-        f=open(os.path.join(folder, 'empirical_p_qval.pkl'))
-        ctrl_pval, ctrl_qval, empirical_pval, empirical_qval = pickle.load(f); f.close()
-        
+        ctrl_pval = dist_controls; empirical_pval = dist_exp
     
+    print 'Second, combining p-values'
     # statistical test according to Fisher's method http://en.wikipedia.org/wiki/Fisher%27s_method
     ctrl_combined_pval = {param : np.zeros(shape = (ctrl_pval[param].shape[0],1), dtype=float) for param in parameters}
     combined_pval = {param : np.zeros(shape = (empirical_pval[param].shape[0],1), dtype=float) for param in parameters}
@@ -239,20 +286,33 @@ def empiricalDistributions(dist_controls, dist_exp, folder, sup=False, union=Fal
     ctrl_combined_qval = {param : np.zeros(shape = (ctrl_pval[param].shape[0],), dtype=float) for param in parameters}
     combined_qval = {param : np.zeros(shape = (empirical_pval[param].shape[0],), dtype=float) for param in parameters}
     for param in parameters:
-        stat = -2*np.sum(np.log(ctrl_pval[param]),1)
-        #ctrl_combined_pval[param] = chi2.sf(stat, 2*ctrl_pval[param].shape[1])
+        stat = -2*np.sum(np.log(ctrl_pval[param]),1) 
         ctrl_combined_pval[param] = stat[:,np.newaxis]
         
         stat = -2*np.sum(np.log(empirical_pval[param]),1)
-        #combined_pval[param] = chi2.sf(stat, 2*empirical_pval[param].shape[1])
         combined_pval[param] = stat[:,np.newaxis]
-        
-        
-    ctrl_combined_pval, ctrl_combined_qval = empiricalPvalues(ctrl_combined_pval, ctrl_combined_pval, folder,name='ctrlStat', sup=True)
-    combined_pval, combined_qval = empiricalPvalues(ctrl_combined_pval, combined_pval, folder,name='expStat', sup=True)
-#        combined_qval[param]= combined_pval[param]*combined_pval[param].shape[0]/(1+np.argsort(combined_pval[param]))
-#        ctrl_combined_qval[param]= ctrl_combined_pval[param]*ctrl_combined_pval[param].shape[0]/(1+np.argsort(ctrl_combined_pval[param]))
-    return ctrl_combined_pval, ctrl_combined_qval, combined_pval, combined_qval
+    
+    
+    if renorm_second_statistic:
+        if 'comb_empirical_p_qval.pkl' not in os.listdir(folder) or redo:
+            ctrl_combined_pval2, ctrl_combined_qval = empiricalPvalues(ctrl_combined_pval, ctrl_combined_pval, folder,name='ctrlCombinedStat', sup=True)
+            combined_pval, combined_qval = empiricalPvalues(ctrl_combined_pval, combined_pval, folder,name='expCombinedStat', sup=True)
+            
+            f = open(os.path.join(folder, 'comb_empirical_p_qval.pkl'), 'w')
+            pickle.dump((ctrl_combined_pval2, ctrl_combined_qval, combined_pval, combined_qval),f); f.close()
+        else:
+            f = open(os.path.join(folder, 'comb_empirical_p_qval.pkl'), 'r')
+            ctrl_combined_pval2, ctrl_combined_qval, combined_pval, combined_qval=pickle.load(f); f.close()
+
+    else:
+        for param in parameters:
+            ctrl_combined_pval[param] = chi2.sf(ctrl_combined_pval[param], 2*ctrl_pval[param].shape[1])
+            ctrl_combined_qval[param]= ctrl_combined_pval[param]*ctrl_combined_pval[param].shape[0]/(1+np.argsort(ctrl_combined_pval[param]))
+            
+            combined_pval[param] = chi2.sf(combined_pval[param], 2*empirical_pval[param].shape[1])
+            combined_qval[param]= combined_pval[param]*combined_pval[param].shape[0]/(1+np.argsort(combined_pval[param]))
+    print 'End'
+    return ctrl_combined_pval2, ctrl_combined_qval, combined_pval, combined_qval
 
 
 def _writeXml(plate, well, resultCour, num=1):
@@ -679,13 +739,18 @@ class cellExtractor():
             plates, ctrl_histogrammes = self.ctrlHistograms(bins)
             
         else:
-            ctrl = appendingControl([self.plate])
-            #randomly selecting two wells of the plate that will be used to be compared to the others
-            false_exp = np.random.randint(len(ctrl), size=2)
-            while false_exp[0]==false_exp[1]:
-                false_exp = np.random.randint(len(ctrl), size=2)
+            ctrl = np.array(appendingControl([self.plate]))
+            usable_ctrl = ctrl[np.where( usable(self.settings.data_folder, ctrl, qc=self.settings.quality_control_file, mitocheck=self.settings.mitocheck_file))]
             
-            self.expList = list(np.array(ctrl)[false_exp])
+            if len(usable_ctrl)<2:
+                return
+            #randomly selecting two wells of the plate that will be used to be compared to the others
+            false_exp = np.random.randint(len(usable_ctrl), size=2)
+            
+            while false_exp[0]==false_exp[1]:
+                false_exp = np.random.randint(len(usable_ctrl), size=2)
+            
+            self.expList = list(usable_ctrl[false_exp])
             histogrammes, bins = self.getData(self.settings.histDataAsWell)
             
             plates, ctrl_histogrammes = self.ctrlHistograms(bins, toDel=false_exp)

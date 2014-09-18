@@ -684,12 +684,6 @@ class hitFinder():
                                             result[k,j,i].append(d[parameter_set][exp][-1])
                                         except AttributeError:
                                             result[k,j,i]=[d[parameter_set][exp][-1]]
-#                                    if type(d[parameter_set])==list:
-#                                        d[parameter_set]=d[parameter_set][0]
-#                                    try:
-#                                        result[k,j,i].append(d[parameter_set])
-#                                    except AttributeError:
-#                                        result[k,j,i]=[d[parameter_set]]
                                 else:
                                     try:
                                         result[k,j,i].append(np.nan)
@@ -757,8 +751,8 @@ class hitFinder():
         thresholds, dist_controls = self._thresholds(comparisons, percentile, parameters, result, iterations, save=testCtrl)
         
         #determining empirical pval per siRNA and plotting correlations
-        if not testCtrl:
-            si_empirical_pval = self._empiricalDistributions(dist_controls, result, iterations, sup=False)
+ #       if not testCtrl:
+#            si_empirical_pval = self._empiricalDistributions(dist_controls, result, iterations, sup=False)
 #            si_empirical_pval = self.combiningPval(siRNAL, platesL, empirical_pval)
 #            print "empirical p-values", si_empirical_pval.shape
 #            self._correlationExpParam(comparisons, parameters, si_empirical_pval, testCtrl, sh)

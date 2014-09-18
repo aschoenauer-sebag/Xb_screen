@@ -29,7 +29,7 @@ from util.kkmeans import KernelKMeans
 from tracking.trajPack import featuresHisto, featuresNumeriques
 from tracking.plots import plotClustInd, makeColorRamp, plotMovies, plotKMeansPerFilm, markers
 from util.sandbox import cleaningLength, logTrsforming, subsampling, dist, histLogTrsforming, homeMadeGraphLaplacian
-from util.listFileManagement import gettingSiRNA, expSi, siEntrez, typeD, typeD2
+from util.listFileManagement import gettingSiRNA, expSi, siEntrez, typeD, typeD2, is_ctrl
 from util.plots import basic_colors, couleurs
 
 from tracking.histograms import *
@@ -37,36 +37,59 @@ from util.kkmeans import KernelKMeans
 
 #from joblib import Parallel, delayed, Memory
 
+def usable(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', 
+           filename='hist_tabFeatures_{}.pkl'):
+    
+    yqualDict=expSi(qc)
+    dictSiEntrez=siEntrez(mitocheck)
+    r=[]
+    for exp in expL:
+        pl,w=exp
+        if pl[:9]+'--'+w[2:5] not in yqualDict:
+    #i. checking if quality control passed
+            sys.stderr.write("Quality control not passed {} {} \n".format(pl[:9], w[2:5]))
+            r.append(False)   
+        elif not is_ctrl(exp) and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
+    #ii.checking if siRNA corresponds to a single target in the current state of knowledge
+            sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(pl[:9], w[2:5]))
+            r.append(False)  
+        try:
+#iii.loading data
+            f=open(os.path.join(folder, pl, filename.format(w)), 'r')
+            arr, coord, histN= pickle.load(f)
+            f.close()
+        except IOError:
+            sys.stderr.write("No file {}\n".format(os.path.join(pl, filename.format(w))))
+            r.append(False)
+        except EOFError:
+            sys.stderr.write("EOFError with file {}\n".format(os.path.join(pl, filename.format(w))))
+            r.append(False)
+        else:
+            if arr==None:
+                sys.stderr.write( "Array {} is None\n".format(os.path.join(pl, filename.format(w))))
+                r.append(False)
+            elif len(arr.shape)==1 or arr.shape[0]<20:
+                sys.stderr.write("Array {} has less than 20 trajectories. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
+                r.append(False)
+        r.append(True)
+    return np.array(r)
 
 def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.pkl', verbose=0, hist=True, perMovie = False):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; sirna=[]; genes=[]
     time_length=[]; pbl_well=[]
     histNtot={nom:[] for nom in featuresHisto}
-    ctrlWell1 = []; ctrlWell2=[]
-    for el in typeD:
-        ctrlWell1.extend(typeD[el])
-    for el in typeD2:
-        ctrlWell2.extend(typeD2[el])
-    
+
     yqualDict=expSi(qc)
     dictSiEntrez=siEntrez(mitocheck)
 
-    i=0
-    for pl, w in exp_list:
+    for i, exp in enumerate(exp_list):
         print i,
-        id_plate = int(pl.split('_')[0][2:])
-
-        if id_plate<50:
-            whoCtrl = ctrlWell1
-        else:
-            whoCtrl = ctrlWell2
-
-        i+=1
+        pl,w=exp
         if pl[:9]+'--'+w[2:5] not in yqualDict:
 #i. checking if quality control passed
             sys.stderr.write("Quality control not passed {} {} \n".format(pl[:9], w[2:5]))
             continue   
-        elif w[2:5] not in whoCtrl and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
+        elif not is_ctrl((pl,w)) and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
 #ii.checking if siRNA corresponds to a single target in the current state of knowledge
             sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(pl[:9], w[2:5]))  
             continue

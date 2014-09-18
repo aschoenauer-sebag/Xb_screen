@@ -17,8 +17,46 @@ from tracking.trajPack.clustering import couleurs
 from tracking.trajPack.trajFeatures import driftCorrection
 
 from plateSetting import readPlateSetting
+from util.plots import plotBarPlot
 
+def plottingBar(folder, plate, xenobiotic, solvent,sh=True, target='speed'):
+    average_xb, proliferation_xb = featureEvolOverTime(None, None, os.path.join(folder, plate), True, 192, xenobiotic,True, True, False)
+    average_solv, proliferation_solv = featureEvolOverTime(None, None, os.path.join(folder, plate), True, 192, solvent,True, True, False)
 
+    if target=='proliferation':
+        average_xb=proliferation_xb
+        average_solv=proliferation_solv
+    elif target !='speed':
+        raise AttributeError
+
+    if plate == '130814':
+        arr=np.vstack((a[:149] for a in average_solv))
+        average_xb=np.vstack((a[:149] for a in average_xb))
+        mean_solv = np.mean(arr, 0)[np.newaxis, :]
+        stds=[np.vstack((np.std(arr, 0)[:,np.newaxis][(0,40,96,144),:], np.zeros(shape=(1,1))))]
+        if xenobiotic == 'TGF beta 1':
+            average_xb = np.mean(average_xb,0)[np.newaxis, :]
+            stds.append(np.vstack((np.std(average_xb, 0)[:,np.newaxis][(0,40,96,144),:], np.zeros(shape=(1,1)))))
+        else:
+            stds.extend([None for el in range(10)])
+        averages = np.vstack((mean_solv, average_xb))
+        averages = np.hstack((averages[:,(0,40,96,144)], np.zeros(shape=(averages.shape[0],1))))
+        
+    elif plate=='150814':
+        mean_solv = np.mean(average_solv, 0)[np.newaxis, :]
+        stds=[np.std(average_solv, 0)[:,np.newaxis][(0,40,96,144, 184),:]]
+        if xenobiotic == 'TGF beta 1':
+            average_xb = np.mean(average_xb,0)[np.newaxis, :]
+            stds.append(np.std(average_xb, 0)[:,np.newaxis][(0,40,96,144, 184),:])
+        else:
+            stds.extend([None for el in range(10)])
+
+        averages=np.vstack((mean_solv, average_xb))[:,(0,40,96,144, 184)]
+        
+    plotBarPlot(averages, '{} average per well'.format(target), ['D {}'.format(k) for k in range(averages.shape[0])], [0,'10h','24h','36h','48h'], 
+                '{} average over time, {}, {}'.format(target, xenobiotic, plate), target=target,
+                stds = stds, name='{}_{}'.format(plate,xenobiotic), folder=folder, sh=sh)
+        
 def plotSpeedHistogramEvolution(plate, well, speed, name, outputFolder):
     if not os.path.isdir(os.path.join(outputFolder, name)):
         os.mkdir(os.path.join(outputFolder,name))
@@ -48,6 +86,7 @@ def featureEvolOverTime(dicT, connexions, outputFolder, verbose, movie_length, n
         platesL = dicT.keys()
         
     for plate in platesL:
+        averages=[]; proliferations=[]
         average = None
         proliferation = None
         
@@ -101,6 +140,8 @@ def featureEvolOverTime(dicT, connexions, outputFolder, verbose, movie_length, n
                 ax1.text(frames[2]+2, average[-1], 'D {}'.format(wells.index( well)))
                 ax2.text(frames[2]+2, proliferation[-1], 'D {}'.format(wells.index( well)))
                 
+                averages.append(average); proliferations.append(proliferation)
+                
             if averagingOverWells:
                 averageCour = np.sum(speed,1)/trajPerFrame[:,0]
                 if plate=='130814':
@@ -116,7 +157,6 @@ def featureEvolOverTime(dicT, connexions, outputFolder, verbose, movie_length, n
 
                 proliferationCour/=float(np.mean(trajPerFrame[:6,0]))
                 proliferation = proliferationCour if proliferation is None else np.vstack((proliferation, proliferationCour))
-                
             #plotSpeedHistogramEvolution(plate, well, speed,name,outputFolder)
         
         if plot and averagingOverWells:
@@ -154,7 +194,7 @@ def featureEvolOverTime(dicT, connexions, outputFolder, verbose, movie_length, n
                 p.savefig(os.path.join(outputFolder, 'speed_{}.png'.format(name+'_average')))
             else:
                 p.savefig(os.path.join(outputFolder, 'speed_{}.png'.format(name)))
-        return average, proliferation
+        return np.array(averages), np.array(proliferations)
 
 def compaSegmentation(hdf5Folder, plate, sh=False, number=False): 
     '''

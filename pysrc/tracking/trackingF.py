@@ -10,7 +10,8 @@ import matplotlib as mpl
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as p
 
-from trajPack.trajFeatures import trackletBuilder, featureEvolOverTime, ordonnancement
+from trajPack.trajFeatures import trackletBuilder, ordonnancement
+from analyzer.rough_analysis import featureEvolOverTime
 #import PyPack
 
 count = 0
@@ -332,7 +333,7 @@ if __name__ == '__main__':
 
     now = datetime.datetime.now()
     
-    savingFolder = "/media/lalil0u/New/projects/Xb_screen/track_predictions"
+    savingFolder = "/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions"
     hdf5Folder = "/media/lalil0u/New/projects/Xb_screen/plates_new_seg"
     plate = '130814'
     
@@ -353,7 +354,7 @@ if __name__ == '__main__':
     print "TIME TIME TIME", time.clock()
 #    try:
     first=True
-    for wellL in well_groups[5:7]:
+    for wellL in well_groups[5:]:
         sol = gettingSolu(loadingFolder, hdf5Folder, plate,wellL[0], xb_screen=True, first=first)
         first=False
         

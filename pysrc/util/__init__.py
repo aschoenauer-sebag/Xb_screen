@@ -26,6 +26,11 @@ typeD2["scrambled"] = ["015", "026", "063", "074", "304", "315", "352", "363"]
 #typeD2["empty"] = ["311", "322", "359", "370"]
 #typeD2["marker"] = ["001"]
 
+ctrlWell1 = []; ctrlWell2=[]
+for el in typeD:
+    ctrlWell1.extend(typeD[el])
+for el in typeD2:
+    ctrlWell2.extend(typeD2[el])
 
 
 """

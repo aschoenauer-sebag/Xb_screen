@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as p
+import os
 
 basic_colors = ["#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00" ]
 markers =('o', 'v','*', '^', '<','8', '>',  's', 'p',  'h', 'H', 'D', 'd', 'o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd')
@@ -41,6 +43,40 @@ couleurs.append('#d73027')
 #couleurs.append("#FDAE61")
 #couleurs.append("#A50026")
 #couleurs.append("#D73027")
+
+def plotBarPlot(means, ylabel, xlabels, xticklabels, title,name,target,  stds=None,folder=None, sh=True):    
+    '''
+    Xticklabels = sequence of labels for x ticks
+    '''
+    rects=[]
+    ind = np.arange(means.shape[1])  # the x locations for the groups[0, 1, 2, 3, 4]
+    width = 0.4 # the width of the bars
+    space = 4.6#approx width*len(means)
+    ind = np.array([space* el for el in ind])
+    
+    fig = p.figure(figsize=(14,8))
+    ax = fig.add_subplot(111)
+    for k in range(len(means)):
+        if stds is None or (stds is not None and stds[k] is None):
+            rects.append(ax.bar(ind+width*k, means[k], width, color=couleurs[k]))
+        elif stds[k] is not None:
+            rects.append(ax.bar(ind+width*k, means[k], width, color=couleurs[k], yerr=stds[k][:,0]))
+            
+    # add some labels
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    ax.set_xticks([2+space*el for el in np.arange(means.shape[1])])
+    ax.set_xticklabels( xticklabels )
+    ax.set_ylim(0,6)
+    fig.legend( rects, xlabels)
+    p.grid(True)
+    p.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
+    if sh:
+        p.show()
+    else:
+        p.savefig(os.path.join(folder, '{}_barplot{}.png'.format(target, name)))
+        
+    return
 
 def makeColorRamp(N, hex_output=False):
     basic_colors = couleurs[:6]
