@@ -636,14 +636,27 @@ class cellExtractor():
         histDict = defaultdict(list)
         length=[]
         for plate in plates:
-            ctrlExpList = appendingControl([plate])
-            if self.verbose:
-                print 'before cleaning', len(ctrlExpList)
+            
+            #meaning we are dealing with control control tests
             if toDel!=[]:
+                ctrlExpList = appendingControl([plate])
+                if self.verbose:
+                    print 'before cleaning', len(ctrlExpList)
+                
                 true_ctrl = filter(lambda x: x not in toDel, range(len(ctrlExpList)))
                 ctrlExpList = list(np.array(ctrlExpList)[true_ctrl])
-            if self.verbose:
-                print 'after cleaning', len(ctrlExpList)
+                if self.verbose:
+                    print 'after cleaning', len(ctrlExpList)
+            #saving the controls that were used to compare the 'false experiments' to use them to compare the real experiments of the same plate
+             
+                f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate)), 'w')
+                pickle.dump(ctrlExpList, f); f.close()
+                
+            else:
+            #loading the controls that were used to compute control control p-values
+                f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate)))
+                ctrlExpList = pickle.load(f); f.close()
+                
 
             try:
                 _,curr_r, _, _,_, curr_length, _, _, _ = histConcatenation(self.settings.data_folder, ctrlExpList, self.settings.mitocheck_file,
@@ -744,11 +757,13 @@ class cellExtractor():
             
             if len(usable_ctrl)<2:
                 return
-            #randomly selecting two wells of the plate that will be used to be compared to the others
-            false_exp = np.random.randint(len(usable_ctrl), size=2)
-            
-            while false_exp[0]==false_exp[1]:
+            elif len(usable_ctrl)==2:
+                #randomly selecting two wells of the plate that will be used to be compared to the others
+                false_exp = np.random.randint(len(usable_ctrl), size=1)
+            else:
                 false_exp = np.random.randint(len(usable_ctrl), size=2)
+                while false_exp[0]==false_exp[1]:
+                    false_exp = np.random.randint(len(usable_ctrl), size=2)
             
             self.expList = list(usable_ctrl[false_exp])
             histogrammes, bins = self.getData(self.settings.histDataAsWell)
