@@ -179,7 +179,7 @@ def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_e
             yqualDict=expSi(qc_filename, sens=0)
             dictSiEntrez=siEntrez(mapping_filename)
         else:
-            files = filter(lambda x: 'distances_whole2_5Ctrl_CTRL' in x  and 'all' not in x, os.listdir(folder))
+            files = filter(lambda x: 'distances_whole2_5Ctrl' in x and 'CTRL' in x  and 'all' not in x, os.listdir(folder))
         print len(files)
     
         result={param:[[], [], [], None] for param in parameters}
