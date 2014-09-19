@@ -37,6 +37,29 @@ from util.kkmeans import KernelKMeans
 
 #from joblib import Parallel, delayed, Memory
 
+def correct_from_Nan(arr, perMovie):
+#Si movement type a un coeff de correlation inf a 0.7 pour >=2 regressions, on supprime la trajectoire
+    arr[np.where(arr[:,14]>1),11]=None
+    toDel = []
+    
+#Si on regarde les trajectoires a l'echelle du movie on garde les trajectoires qui ont quelques NaN que l'on supprimera en regardant les distributions
+    if perMovie:
+        test=np.any(arr[:,-1]>=5)
+        
+#Sinon on supprime les trajectoires concernees pcq on ne pourra pas faire le clustering 
+    else:
+        test=(np.any(arr[:,-1]>=5) or np.any(np.isnan(arr)))
+        
+    if test:
+        toDel = np.where(arr[:,-1]>=5)[0]
+        if not perMovie:
+            toDel=np.hstack((toDel, np.where(np.isnan(arr))[0]))
+        arr=np.delete(arr, toDel, 0)
+
+    arr=np.hstack((arr[:,:len(featuresNumeriques)+len(featuresHisto)], arr[:,-1, np.newaxis]))
+
+    return arr, toDel
+
 def usable(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', 
            filename='hist_tabFeatures_{}.pkl'):
     
@@ -116,25 +139,8 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                 continue
             else:
                 try:
-                    #Si movement type a un coeff de correlation inf a 0.7 pour >=2 regressions, on supprime la trajectoire
-                    arr[np.where(arr[:,14]>1),11]=None
-                    toDel = []
-                    
-                    #Si on regarde les trajectoires a l'echelle du movie on garde les trajectoires qui ont quelques NaN que l'on supprimera en regardant les distributions
-                    if perMovie:
-                        test=np.any(arr[:,-1]>=5)
-                        
-                    #Sinon on supprime les trajectoires concernees pcq on ne pourra pas faire le clustering 
-                    else:
-                        test=(np.any(arr[:,-1]>=5) or np.any(np.isnan(arr)))
-                        
-                    if test:
-                        toDel = np.where(arr[:,-1]>=5)[0]
-                        if not perMovie:
-                            toDel=np.hstack((toDel, np.where(np.isnan(arr))[0]))
-                        arr=np.delete(arr, toDel, 0)
+                    arr, toDel = correct_from_Nan(arr, perMovie)
 
-                    arr=np.hstack((arr[:,:len(featuresNumeriques)+len(featuresHisto)], arr[:,-1, np.newaxis]))
                     r= arr if r==[] else np.vstack((r, arr))
                     if hist:
                         for nom in featuresHisto:
@@ -145,7 +151,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                 except (TypeError, ValueError, AttributeError):
                     sys.stderr.write("Probleme avec le fichier {}".format(os.path.join(pl, filename.format(w))))
                 else:   
-                    time_length.extend([len(coord[k][0]) for k in range(len(coord))])
+                    time_length.extend([len(coord[k][0]) for k in filter(lambda x: x not in toDel, range(len(coord)))])
                     siCourant = yqualDict[pl[:9]+'--'+w[2:5]]
                     sirna.append(siCourant)
                     who.append((pl, w))

@@ -19,7 +19,7 @@
 #################
 ### Imports an tab-delimited expression matrix and produces and hierarchically clustered heatmap
 #################
-import matplotlib
+
 import matplotlib.pyplot as pylab
 from matplotlib import mpl
 import scipy
@@ -28,22 +28,29 @@ import scipy.spatial.distance as dist
 import numpy
 import string
 import time
-import sys, os
+import sys, os, pdb
 import getopt
-from trajPack import basic_colors
 
 ################# Perform the hierarchical clustering #################
 
 def heatmap(x, row_header, column_header, row_method,
             column_method, row_metric, column_metric,
-            color_gradient, filename, show=True):
+            color_gradient, filename, normalization=True, log=False):
     
-    print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric)
+    print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric),
+    if numpy.any(numpy.isnan(x)):
+        sys.stderr.write("WARNING, there are NaN values in the data. Hence distances with data elements that have NaN values will have value NaN, which might perturb the hierarchical clustering.")
         
     """
     This below code is based in large part on the protype methods:
     http://old.nabble.com/How-to-plot-heatmap-with-matplotlib--td32534593.html
     http://stackoverflow.com/questions/7664826/how-to-get-flat-clustering-corresponding-to-color-clusters-in-the-dendrogram-cre
+    
+    Possibilities for methods: single, complete, average, centroid, median, ward
+    
+    Possibilities for metrics: 'braycurtis', 'canberra', 'chebyshev', 'cityblock', 'correlation', 
+    'cosine', 'dice', 'euclidean', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'matching', 
+    'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule
 
     x is an m by n ndarray, m observations, n genes
     """
@@ -68,12 +75,20 @@ def heatmap(x, row_header, column_header, row_method,
         cmap=pylab.cm.coolwarm
 
     ### Scale the max and min colors so that 0 is white/black
-    vmin=x.min()
-    vmax=x.max()
+    vmin=numpy.nanmin(x)
+    vmax=numpy.nanmax(x)
     vmax = max([vmax,abs(vmin)])
-    vmin = vmax*-1
-    norm = mpl.colors.Normalize(vmin/2, vmax/2) ### adjust the max and min to scale these colors
-
+    #vmin = vmax*-1
+    if log:
+        norm = mpl.colors.LogNorm(vmin, vmax) ### adjust the max and min to scale these colors
+    elif normalization:
+        norm = mpl.colors.Normalize(10**(-5), 0.1)
+    else:
+        if numpy.any(x<0):
+            norm = mpl.colors.Normalize(-1,1)
+        else:
+            norm = None
+            #mpl.colors.Normalize(0,1)
     ### Scale the Matplotlib window size
     default_window_hight = 8.5
     default_window_width = 12
@@ -92,27 +107,22 @@ def heatmap(x, row_header, column_header, row_method,
     axr_x = ax1_x + ax1_w + width_between_ax1_axr
     axr_y = ax1_y; axr_h = ax1_h
     width_between_axr_axm = 0.004
-    
-    # axr, placement of row side colorbar
-    [axrr_x, axrr_y, axrr_w, axrr_h] = [0.31,0.1,color_bar_w,0.6] ### second to last controls the width of the side color bar - 0.015 when showing
-    axrr_x = axr_x + axr_w + width_between_ax1_axr
-    axrr_y = ax1_y; axrr_h = ax1_h
 
     # axc, placement of column side colorbar
     [axc_x, axc_y, axc_w, axc_h] = [0.4,0.63,0.5,color_bar_w] ### last one controls the hight of the top color bar - 0.015 when showing
-    axc_x = axrr_x + axrr_w + width_between_axr_axm
+    axc_x = axr_x + axr_w + width_between_axr_axm
     axc_y = ax1_y + ax1_h + height_between_ax1_axc
     height_between_axc_ax2 = 0.004
 
     # axm, placement of heatmap for the data matrix
     [axm_x, axm_y, axm_w, axm_h] = [0.4,0.9,2.5,0.5]
-    axm_x = axrr_x + axrr_w + width_between_axr_axm
+    axm_x = axr_x + axr_w + width_between_axr_axm
     axm_y = ax1_y; axm_h = ax1_h
     axm_w = axc_w
 
     # ax2, placement of dendrogram 2, on the top of the heatmap
     [ax2_x, ax2_y, ax2_w, ax2_h] = [0.3,0.72,0.6,0.15] ### last one controls hight of the dendrogram
-    ax2_x = axrr_x + axrr_w + width_between_axr_axm
+    ax2_x = axr_x + axr_w + width_between_axr_axm
     ax2_y = ax1_y + ax1_h + height_between_ax1_axc + axc_h + height_between_axc_ax2
     ax2_w = axc_w
 
@@ -127,7 +137,7 @@ def heatmap(x, row_header, column_header, row_method,
         ax2 = fig.add_axes([ax2_x, ax2_y, ax2_w, ax2_h], frame_on=True)
         Y2 = sch.linkage(D2, method=column_method, metric=column_metric) ### array-clustering metric - 'average', 'single', 'centroid', 'complete'
         Z2 = sch.dendrogram(Y2)
-        ind2 = sch.fcluster(Y2,0.7*max(Y2[:,2]),'distance') ### This is the default behavior of dendrogram
+        ind2 = sch.fcluster(Y2,0.4*max(Y2[:,2]),'distance') ### This is the default behavior of dendrogram
         ax2.set_xticks([]) ### Hides ticks
         ax2.set_yticks([])
         time_diff = str(round(time.time()-start_time,1))
@@ -162,9 +172,6 @@ def heatmap(x, row_header, column_header, row_method,
         idx1 = Z1['leaves'] ### apply the clustering for the gene-dendrograms to the actual matrix data
         xt = xt[idx1,:]   # xt is transformed x
         ind1 = ind1[idx1,:] ### reorder the flat cluster to match the order of the leaves the dendrogram
-   #a decommenter pour remettre les labels ds l'ordre donne par le clustering     
-#        row_header = numpy.array(row_header)
-#        row_header = row_header[idx1,:]
     ### taken from http://stackoverflow.com/questions/2982929/plotting-results-of-hierarchical-clustering-ontop-of-a-matrix-of-data-in-python/3011894#3011894
     im = axm.matshow(xt, aspect='auto', origin='lower', cmap=cmap, norm=norm) ### norm=norm added to scale coloring of expression with zero = white or black
     axm.set_xticks([]) ### Hides x-ticks
@@ -176,19 +183,19 @@ def heatmap(x, row_header, column_header, row_method,
     for i in range(x.shape[0]):
         if row_method != None:
             if len(row_header)<100: ### Don't visualize gene associations when more than 100 rows
-                axm.text(x.shape[1]-0.5, i, '  '+str(row_header[idx1[i]]))
+                axm.text(x.shape[1]-0.5, i, '  '+row_header[idx1[i]])
             new_row_header.append(row_header[idx1[i]])
         else:
             if len(row_header)<100: ### Don't visualize gene associations when more than 100 rows
-                axm.text(x.shape[1]-0.5, i, '  '+str(row_header[i])) ### When not clustering rows
-            new_row_header.append(str(row_header[i]))
+                axm.text(x.shape[1]-0.5, i, '  '+row_header[i]) ### When not clustering rows
+            new_row_header.append(row_header[i])
     for i in range(x.shape[1]):
         if column_method != None:
-            axm.text(i, -0.9, ' '+str(column_header[idx2[i]]), rotation=270, verticalalignment="top") # rotation could also be degrees
+            axm.text(i, -0.9, ' '+column_header[idx2[i]], rotation=270, verticalalignment="top") # rotation could also be degrees
             new_column_header.append(column_header[idx2[i]])
         else: ### When not clustering columns
-            axm.text(i, -0.9, ' '+str(column_header[i]), rotation=270, verticalalignment="top")
-            new_column_header.append(str(column_header[i]))
+            axm.text(i, -0.9, ' '+column_header[i], rotation=270, verticalalignment="top")
+            new_column_header.append(column_header[i])
 
     # Plot colside colors
     # axc --> axes for column side colorbar
@@ -212,35 +219,20 @@ def heatmap(x, row_header, column_header, row_method,
         im_r = axr.matshow(dr, aspect='auto', origin='lower', cmap=cmap_r)
         axr.set_xticks([]) ### Hides ticks
         axr.set_yticks([])
-        
-    # axr --> axes for row side colorbar according to labels, a decommenter ainsi que lignes 165
-    cmap_rr = mpl.colors.ListedColormap(basic_colors)
-#    if row_method != None:
-#        axrr = fig.add_axes([axrr_x, axrr_y, axrr_w, axrr_h])  # axes for column side colorbar
-#        drr = numpy.array(row_header, dtype=int)
-#        drr.shape = (len(row_header),1)
-#        #print ind1, len(ind1)
-#        cmap_rr = mpl.colors.ListedColormap(basic_colors)#['r', 'g', 'b', 'y', 'w', 'k', 'm'])
-#        im_rr = axrr.matshow(drr, aspect='auto', origin='lower', cmap=cmap_rr)
-#        axrr.set_xticks([]) ### Hides ticks
-#        axrr.set_yticks([])
 
     # Plot color legend
     axcb = fig.add_axes([axcb_x, axcb_y, axcb_w, axcb_h], frame_on=False)  # axes for colorbar
-    cb = mpl.colorbar.ColorbarBase(axcb, cmap=cmap_rr, norm=norm, orientation='horizontal')
+    cb = mpl.colorbar.ColorbarBase(axcb, cmap=cmap, norm=norm, orientation='horizontal')
     axcb.set_title("colorkey")
     
-#    if '/' in filename:
-#        dataset_name = string.split(filename,'/')[-1][:-4]
-#        root_dir = string.join(string.split(filename,'/')[:-1],'/')+'/'
-#    else:
-#        dataset_name = string.split(filename,'\\')[-1][:-4]
-#        root_dir = string.join(string.split(filename,'\\')[:-1],'\\')+'\\'
-    if column_method !=None:
-        filename = '%s_%s_%s_%s_%s.pdf' % (filename,column_metric,row_metric, column_method, row_method)
+    if '/' in filename:
+        dataset_name = string.split(filename,'/')[-1][:-4]
+        root_dir = string.join(string.split(filename,'/')[:-1],'/')+'/'
     else:
-        filename = '%s.pdf' % (filename)
-    cb.set_label("Normalized and standardized features values")
+        dataset_name = string.split(filename,'\\')[-1][:-4]
+        root_dir = string.join(string.split(filename,'\\')[:-1],'\\')+'\\'
+    filename = root_dir+'Clustering-%s-hierarchical_%s_%s.pdf' % (dataset_name,column_metric,row_metric)
+    cb.set_label("Differential Expression (log2 fold)")
     exportFlatClusterData(filename, new_row_header,new_column_header,xt,ind1,ind2)
 
     ### Render the graphic
@@ -251,10 +243,9 @@ def heatmap(x, row_header, column_header, row_method,
 
     pylab.savefig(filename)
     print 'Exporting:',filename
-#    filename = filename[:-3]+'png'
-#    pylab.savefig(filename, dpi=100) #,dpi=200
-    if show:
-        pylab.show()
+    filename = filename[:-3]+'png'
+    pylab.savefig(filename, dpi=100) #,dpi=200
+    pylab.show()
 
 def getColorRange(x):
     """ Determines the range of colors, centered at zero, for normalizing cmap """
@@ -277,9 +268,9 @@ def exportFlatClusterData(filename, new_row_header,new_column_header,xt,ind1,ind
     
     filename = string.replace(filename,'.pdf','.txt')
     export_text = open(filename,'w')
-    column_header = string.join(['UID','row_clusters-flat']+new_column_header,'\t')+'\n' ### format column-names for export
+    column_header = string.join(['UID','row_clusters-flat']+new_column_header,' ')+'\n' ### format column-names for export
     export_text.write(column_header)
-    column_clusters = string.join(['column_clusters-flat','']+ map(str, ind2),'\t')+'\n' ### format column-flat-clusters for export
+    column_clusters = string.join(['column_clusters-flat','']+ map(str, ind2),' ')+'\n' ### format column-flat-clusters for export
     export_text.write(column_clusters)
     
     ### The clusters, dendrogram and flat clusters are drawn bottom-up, so we need to reverse the order to match
@@ -289,24 +280,24 @@ def exportFlatClusterData(filename, new_row_header,new_column_header,xt,ind1,ind
     ### Export each row in the clustered data matrix xt
     i=0
     for row in xt:
-        export_text.write(string.join([str(new_row_header[i]),str(ind1[i])]+map(str, row),'\t')+'\n')
+        export_text.write(string.join([new_row_header[i],str(ind1[i])]+map(str, row),' ')+'\n')
         i+=1
     export_text.close()
     
-#    ### Export as CDT file
-#    filename = string.replace(filename,'.txt','.cdt')
-#    export_cdt = open(filename,'w')
-#    column_header = string.join(['UNIQID','NAME','GWEIGHT']+new_column_header,'\t')+'\n' ### format column-names for export
-#    export_cdt.write(column_header)
-#    eweight = string.join(['EWEIGHT','','']+ ['1']*len(new_column_header),'\t')+'\n' ### format column-flat-clusters for export
-#    export_cdt.write(eweight)
-#    
-#    ### Export each row in the clustered data matrix xt
-#    i=0
-#    for row in xt:
-#        export_cdt.write(string.join([new_row_header[i]]*2+['1']+map(str, row),'\t')+'\n')
-#        i+=1
-#    export_cdt.close()
+    ### Export as CDT file
+    filename = string.replace(filename,'.txt','.cdt')
+    export_cdt = open(filename,'w')
+    column_header = string.join(['UNIQID','NAME','GWEIGHT']+new_column_header,'\t')+'\n' ### format column-names for export
+    export_cdt.write(column_header)
+    eweight = string.join(['EWEIGHT','','']+ ['1']*len(new_column_header),'\t')+'\n' ### format column-flat-clusters for export
+    export_cdt.write(eweight)
+    
+    ### Export each row in the clustered data matrix xt
+    i=0
+    for row in xt:
+        export_cdt.write(string.join([new_row_header[i]]*2+['1']+map(str, row),'\t')+'\n')
+        i+=1
+    export_cdt.close()
 
 ################# Create Custom Color Gradients #################
 #http://matplotlib.sourceforge.net/examples/pylab_examples/custom_cmap.html
@@ -325,7 +316,7 @@ def RedBlackSkyBlue():
                        (1.0, 0.0, 0.0))
             }
 
-    my_cmap = matplotlib.colors.LinearSegmentedColormap('my_colormap',cdict,512)
+    my_cmap = mpl.colors.LinearSegmentedColormap('my_colormap',cdict,256)
     return my_cmap
 
 def RedBlackBlue():
@@ -341,7 +332,7 @@ def RedBlackBlue():
                        (1.0, 0.0, 0.0))
             }
 
-    my_cmap = matplotlib.colors.LinearSegmentedColormap('my_colormap',cdict,256)
+    my_cmap = mpl.colors.LinearSegmentedColormap('my_colormap',cdict,256)
     return my_cmap
 
 def RedBlackGreen():
@@ -357,7 +348,7 @@ def RedBlackGreen():
                        (1.0, 0.0, 0.0))
             }
     
-    my_cmap = matplotlib.colors.LinearSegmentedColormap('my_colormap',cdict,256)
+    my_cmap = mpl.colors.LinearSegmentedColormap('my_colormap',cdict,256)
     return my_cmap
 
 def YellowBlackBlue():
@@ -375,7 +366,7 @@ def YellowBlackBlue():
             }
     ### yellow is created by adding y = 1 to RedBlackSkyBlue green last tuple
     ### modulate between blue and cyan using the last y var in the first green tuple
-    my_cmap = matplotlib.colors.LinearSegmentedColormap('my_colormap',cdict,256)
+    my_cmap = mpl.colors.LinearSegmentedColormap('my_colormap',cdict,256)
     return my_cmap
 
 ################# General data import methods #################

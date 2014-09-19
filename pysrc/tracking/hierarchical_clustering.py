@@ -24,6 +24,7 @@ import matplotlib.pyplot as pylab
 from matplotlib import mpl
 import scipy
 import scipy.cluster.hierarchy as sch
+import fastcluster
 import scipy.spatial.distance as dist
 import numpy
 import string
@@ -52,7 +53,14 @@ def heatmap(x, row_header, column_header, row_method,
     'cosine', 'dice', 'euclidean', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'matching', 
     'minkowski', 'rogerstanimoto', 'russellrao', 'seuclidean', 'sokalmichener', 'sokalsneath', 'sqeuclidean', 'yule
 
-    x is an m by n ndarray, m observations, n genes
+    x is an m by n ndarray, m observations, n genes, or m rows,n columns
+    
+    WARNING
+    This is a modified version to work with "big data" (starting with m=50,000). Indeed, the previous version actually stores
+    the distance matrix in the memory which makes it crash. Here, we use the package fastcluster (see http://danifold.net/fastcluster.html)
+    in its memory-efficient implementation.
+    
+    
     """
     
     ### Define the color gradient to use based on the provided name
@@ -132,10 +140,11 @@ def heatmap(x, row_header, column_header, row_method,
     # Compute and plot top dendrogram
     if column_method != None:
         start_time = time.time()
-        d2 = dist.pdist(x.T)
-        D2 = dist.squareform(d2)
+#        d2 = dist.pdist(x.T)
+#        D2 = dist.squareform(d2)
         ax2 = fig.add_axes([ax2_x, ax2_y, ax2_w, ax2_h], frame_on=True)
-        Y2 = sch.linkage(D2, method=column_method, metric=column_metric) ### array-clustering metric - 'average', 'single', 'centroid', 'complete'
+        
+        Y2 = fastcluster.linkage_vector(x.T, method=column_method, metric=column_metric) ### array-clustering metric - 'average', 'single', 'centroid', 'complete'
         Z2 = sch.dendrogram(Y2)
         ind2 = sch.fcluster(Y2,0.4*max(Y2[:,2]),'distance') ### This is the default behavior of dendrogram
         ax2.set_xticks([]) ### Hides ticks
@@ -148,10 +157,11 @@ def heatmap(x, row_header, column_header, row_method,
     # Compute and plot left dendrogram.
     if row_method != None:
         start_time = time.time()
-        d1 = dist.pdist(x)
-        D1 = dist.squareform(d1)  # full matrix
+#        d1 = dist.pdist(x)
+#        D1 = dist.squareform(d1)  # full matrix
         ax1 = fig.add_axes([ax1_x, ax1_y, ax1_w, ax1_h], frame_on=True) # frame_on may be False
-        Y1 = sch.linkage(D1, method=row_method, metric=row_metric) ### gene-clustering metric - 'average', 'single', 'centroid', 'complete'
+        
+        Y1 = fastcluster.linkage_vector(x, method=row_method, metric=row_metric) ### gene-clustering metric - 'average', 'single', 'centroid', 'complete'
         Z1 = sch.dendrogram(Y1, orientation='right')
         ind1 = sch.fcluster(Y1,0.4*max(Y1[:,2]),'distance') ### This is the default behavior of dendrogram
         ax1.set_xticks([]) ### Hides ticks

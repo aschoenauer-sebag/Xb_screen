@@ -7,6 +7,8 @@ import vigra
 import numpy as np
 
 import pdb
+from tracking.trajPack.clustering import correct_from_Nan
+from util.sandbox import histLogTrsforming
 
 BASE_DIR = '/share/data20T/mitocheck/compressed_data'
 TRAJECTORY_DIR = '/share/data20T/mitocheck/tracking_results'
@@ -45,6 +47,9 @@ FEATURE_RANGE = dict(zip(FEATURES, minMax))
 #                  'effective speed': (0.0, 9.0), 
 #                  'diffusion coefficient': (0.0, 10.0)
 #                 }
+pca_file = '../resultData/features_on_films/pca_hitSimpson.pkl'
+cluster_file = '../resultData/features_on_films/cluster_hitSimpson.pkl'
+diverging_colors = ["#d73027", "#f46d43", "#fdae61", "#fee090", "#e0f3f8", "#abd9e9", "#74add1", "#4575b4"]
 
 
 # colors 
@@ -208,12 +213,81 @@ class MovieMaker(object):
         res = [np.array(xvec), np.array(yvec)]
         return res
     
+    def make_markers(self, ltId, pos, feature, trajectory_dir):
+        # find the feature and coordinate files
+        labteks_found = filter(lambda x: x[:len(ltId)]==ltId, os.listdir(trajectory_dir))
+        if len(labteks_found) == 0:
+            raise ValueError('%s not found in %s' % (ltId, self.base_dir))
+        if len(labteks_found) > 1:
+            raise ValueError('multiple labteks found')
+        labtek_dir = os.path.join(trajectory_dir, labteks_found[0])
+        
+        feature_file = 'hist_tabFeatures_{}.pkl'.format(pos)
+        
+        try:
+            fp = open(os.path.join(labtek_dir, feature_file), 'r')
+            tab, coord, hist = pickle.load(fp)
+            fp.close()
+        except:
+            pdb.set_trace()
+            
+        if feature in FEATURES:
+            cm = ColorMap()
+            cr = cm.makeColorRamp(256, ["#FFFF00", "#FF0000"])
+            
+            # centers_PLT0023_11--ex2005_06_03--sp2005_04_19--tt17--c3_w00210_01.pkl 
+            # traj_noF_densities_w00210_01.hdf5.pkl
+            ending = '%05i_01.pkl' % int(pos)
+            feature_index = FEATURES.index(feature)
+                        
+            
+            values = tab[:,feature_index]
+            colors = [cm.getColorFromMap(x, cr, FEATURE_RANGE[feature][0], FEATURE_RANGE[feature][1])
+                      for x in values.tolist()]
+        elif feature=='labels':
+            #we are going to predict on the fly the clustering labels not to have to stock them smw (fast to predict)
+            tab, toDel = correct_from_Nan(tab, perMovie=False)
+            #i. logTrsforming
+            tab=histLogTrsforming(tab)
+            if pca_file is not None:
+                f=open(pca_file, 'r')
+                pca, mean, std=pickle.load(f); f.close()
+                
+                tab=pca.transform((tab-mean)/std)[:,:7]
+                
+            f=open(cluster_file, 'r')
+            cluster_model, std = pickle.load(f); f.close()
+            if std is not None:
+                labels = cluster_model.predict(tab/std)
+            else:
+                labels = cluster_model.predict(tab)
+            
+            colors = [diverging_colors[labels[k]] for k in range(tab.shape[0])]
+            
+            
+            
+            
+        markers = {}
+        for i, track_coord in enumerate(coord):                    
+            tvec, xvec, yvec = track_coord
+            
+            for t, x, y in zip(tvec, xvec, yvec):
+                if not t in markers:
+                    markers[t] = []
+                markers[t].append((x, y, colors[i]))
+        return markers
+    
     def make_movie(self, id, out_path, tempDir=None, sirna=None, gene=None, outDir=None,
                    trajectory_dir=None, feature_movie_dir=None, feature=None):
         
+        '''
+        Feature can be a trajectory feature like diffusion coefficient. It can also be
+        'labels', meaning we are going to plot the cluster of the trajectory
+        '''
+        
         in_path = self.get_img_dir(id)
         ltId, pos = id.split('--')
-        
+        co = self.make_circle_offset(RADIUS)      
         # temp directory
         if tempDir is None:
             tempDir = os.path.join(out_path, 'temp')
@@ -225,50 +299,8 @@ class MovieMaker(object):
                 
         # read feature data
         if not feature_movie_dir is None and not feature is None:
+            markers = self.make_markers(ltId, pos, trajectory_dir)
             
-            co = self.make_circle_offset(RADIUS)      
-            
-            cm = ColorMap()
-            cr = cm.makeColorRamp(256, ["#FFFF00", "#FF0000"])
-            
-            # centers_PLT0023_11--ex2005_06_03--sp2005_04_19--tt17--c3_w00210_01.pkl 
-            # traj_noF_densities_w00210_01.hdf5.pkl
-            ending = '%05i_01.pkl' % int(pos)
-            feature_index = FEATURES.index(feature)
-                        
-            # find the feature_files
-            labteks_found = filter(lambda x: x[:len(ltId)]==ltId, os.listdir(trajectory_dir))
-            if len(labteks_found) == 0:
-                raise ValueError('%s not found in %s' % (ltId, self.base_dir))
-            if len(labteks_found) > 1:
-                raise ValueError('multiple labteks found')
-            labtek_dir = os.path.join(trajectory_dir, labteks_found[0])
-            
-            feature_files = filter(lambda x: 'hist_tabFeatures' in x and x[-len(ending):]==ending, 
-                                   os.listdir(labtek_dir))
-            if len(feature_files)==0:
-                print 'file not found ... skipping feature projection'
-            else:
-                fp = open(os.path.join(labtek_dir, feature_files[0]), 'r')
-                feat = pickle.load(fp)
-                fp.close()
-                
-                values = feat[0][:,feature_index]
-                colors = [cm.getColorFromMap(x, cr, FEATURE_RANGE[feature][0], FEATURE_RANGE[feature][1])
-                          for x in values.tolist()]
-                #tvec = feat[1][0]
-                #xvec = feat[1][1]
-                #yvec = feat[1][2]
-                markers = {}
-                for i, track_coord in enumerate(feat[1]):                    
-                    tvec, xvec, yvec = track_coord
-                    
-                    for t, x, y in zip(tvec, xvec, yvec):
-                        if not t in markers:
-                            markers[t] = []
-                        markers[t].append((x, y, colors[i]))
-                        
-                #disp_features = dict(zip(tvec, [x,y,v for x,y,v in zip(xvec, yvec, values)]))
                 
         
         # convert images
@@ -400,6 +432,7 @@ if __name__ ==  "__main__":
                       help="file containing the names of ids to process")
     parser.add_option("-f", "--feature_target_dir", dest="feature_target_dir",
                       help="directory for the feature projection movies")
+    parser.add_option('--labels', dest='labels', type=int, help="If you're interested in plotting clustering labels as opposed to features")
                       
     (options, args) = parser.parse_args()
     
@@ -412,21 +445,27 @@ if __name__ ==  "__main__":
     else:
         in_path = options.in_path
 
+#The pickle_file should be a dictionary with keys=features. If options.labels, then it should just be labels
+
     fp = open(options.pickle_file, 'r')
     movies = pickle.load(fp)
     fp.close()
 
     mm = MovieMaker(in_path)
-    l=['signed turning angle',
- 'movement type',
- 'corrected straightness index',
- 'ball number2',
- 'norm convex hull area',
- 'effective space length',
- 'effective speed',
- 'diffusion coefficient',
- 'largest move',
- 'ball number1', 'entropy1', 'entropy2']
+    if not options.labels:
+        l=['signed turning angle',
+         'movement type',
+         'corrected straightness index',
+         'ball number2',
+         'norm convex hull area',
+         'effective space length',
+         'effective speed',
+         'diffusion coefficient',
+         'largest move',
+         'ball number1', 'entropy1', 'entropy2']
+    else:
+        l=['labels']
+        
     for category in l:
         if category !='mean squared displacement':
             ids = movies[category]
