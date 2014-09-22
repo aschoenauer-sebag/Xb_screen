@@ -19,8 +19,7 @@ import matplotlib.pyplot as p
 import brewer2mpl
 from tracking.trajPack import featuresSaved, featuresHisto, featuresNumeriques
 from util.listFileManagement import fromShareToCBIO, appendingControl
-from tracking.trajPack.clustering import histConcatenation,outputBin, usable,\
-    correct_from_Nan
+from tracking.trajPack.clustering import histConcatenation,outputBin, usable, correct_from_Nan
 from tracking.PyPack.fHacktrack2 import initXml, finirXml
 from tracking.histograms.k_means_transportation import DIVERGENCES, _distances
 from tracking.histograms.transportation import costMatrix, computingBins
