@@ -54,9 +54,8 @@ def correct_from_Nan(arr, perMovie):
         if not perMovie:
             toDel=np.hstack((toDel, np.where(np.isnan(arr))[0]))
         arr=np.delete(arr, toDel, 0)
-    pdb.set_trace()
     arr=np.hstack((arr[:,:len(featuresNumeriques)+len(featuresHisto)], arr[:,-1, np.newaxis]))
-    print arr.shape
+
     return arr, toDel
 
 def usable(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', 
