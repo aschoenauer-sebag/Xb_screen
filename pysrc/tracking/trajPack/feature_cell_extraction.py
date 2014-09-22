@@ -252,6 +252,8 @@ def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_e
                                                                        qc='../data/qc_export.txt',mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0]
                             if curr_usable.shape[0]==len(l):
                                 used_experiments = expList[curr_usable]
+                            elif l==[]:
+                                continue
                             else:
                                 pdb.set_trace()
                             
