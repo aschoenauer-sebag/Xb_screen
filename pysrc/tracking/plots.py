@@ -15,7 +15,6 @@ from trajPack import featuresListArray, featuresHisto
 
 from util.plots import makeColorRamp, basic_colors, markers
 
-from hierarchical_clustering import heatmap
 import brewer2mpl
 
 def plotPermutationResults(res):
