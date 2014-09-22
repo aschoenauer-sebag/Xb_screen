@@ -616,7 +616,7 @@ class cellExtractor():
         self.bin_size = bin_size
         self.lambda_=lambda_        
         
-        self.currInterestFeatures = featuresNumeriques
+        self.currInterestFeatures = list(featuresNumeriques)
         self.currInterestFeatures.extend(['mean persistence',  'mean straight'])
         if self.settings.histDataAsWell:
             raise AttributeError
