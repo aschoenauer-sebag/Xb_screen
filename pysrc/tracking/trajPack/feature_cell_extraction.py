@@ -232,32 +232,34 @@ def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_e
                 else:
                     siRNA = file_.split('_')[-1][:-4]
                     l= Counter(np.where(~np.isnan(d[param]))[0]).keys()
-                    
-#                    if len(l)==1 and not testCtrl:
-#                        #meaning it is an orphan siRNA with only one experiment. But do we really want to take them out? The experiment is real after all
-#                        continue 
-#                    
-                    result[param][0].extend([siRNA for k in range(len(l))])
-                    if not testCtrl:
-                        try:
-                            gene = dictSiEntrez[siRNA]
-                        except:
-                            pdb.set_trace()
-                        expList = np.array(strToTuple(yqualDict[siRNA], os.listdir('/share/data20T/mitocheck/tracking_results')))
-                       
-                        if d[param].shape[0]==len(expList):
-                            used_experiments = expList
-                        else:
-                            curr_usable =np.where(usable('/share/data20T/mitocheck/tracking_results', expList,
-                                                                       qc='../data/qc_export.txt',mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0]
-                            used_experiments = expList[curr_usable]
-                            used_experiments = used_experiments[l]
-                            
-                        result[param][1].extend(list(used_experiments[l]))
-                        result[param][2].extend([gene for k in range(len(l))])
-
-                    
-                    result[param][3]=np.vstack((result[param][3], d[param][l])) if result[param][3] is not None else d[param][l]
+                    if l==[]:
+                        continue
+                    else:
+    #                    if len(l)==1 and not testCtrl:
+    #                        #meaning it is an orphan siRNA with only one experiment. But do we really want to take them out? The experiment is real after all
+    #                        continue 
+    #                    
+                        result[param][0].extend([siRNA for k in range(len(l))])
+                        if not testCtrl:
+                            try:
+                                gene = dictSiEntrez[siRNA]
+                            except:
+                                pdb.set_trace()
+                            expList = np.array(strToTuple(yqualDict[siRNA], os.listdir('/share/data20T/mitocheck/tracking_results')))
+                           
+                            if d[param].shape[0]==len(expList):
+                                used_experiments = expList
+                            else:
+                                curr_usable =np.where(usable('/share/data20T/mitocheck/tracking_results', expList,
+                                                                           qc='../data/qc_export.txt',mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0]
+                                used_experiments = expList[curr_usable]
+                                used_experiments = used_experiments[l]
+                                
+                            result[param][1].extend(list(used_experiments[l]))
+                            result[param][2].extend([gene for k in range(len(l))])
+    
+                        
+                        result[param][3]=np.vstack((result[param][3], d[param][l])) if result[param][3] is not None else d[param][l]
 
         f=open(os.path.join(folder, filename), 'w')
         pickle.dump(result, f); f.close()
