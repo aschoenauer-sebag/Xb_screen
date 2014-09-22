@@ -851,7 +851,7 @@ if __name__ == '__main__':
     considered experiments, so that the calculation is parallelizable
     '''
     parser = OptionParser(usage="usage: %prog [options]")    
-    
+    parser.add_option('--action', type=str, default=None)
     parser.add_option('--siRNA', type=str, dest='siRNA', default=None)
     parser.add_option('--testCtrl', type=str, dest='testCtrl', default=0)
 
@@ -866,6 +866,10 @@ if __name__ == '__main__':
     
     settings_file = 'tracking/settings/settings_feature_extraction.py'
 
-    extractor=cellExtractor(options.siRNA, settings_file,options.testCtrl, options.div_name, options.bins_type,
-                 bin_size=options.bin_size,lambda_=options.lambda_, verbose=options.verbose)
-    extractor()
+    if options.action=='collectDistances':
+        collectingDistances('all_distances_whole_5Ctrl.pkl', '../resultData/features_on_films/', 
+                            '../data/qc_export.txt', '../data/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl=False, redo=True)
+    else:
+        extractor=cellExtractor(options.siRNA, settings_file,options.testCtrl, options.div_name, options.bins_type,
+                     bin_size=options.bin_size,lambda_=options.lambda_, verbose=options.verbose)
+        extractor()
