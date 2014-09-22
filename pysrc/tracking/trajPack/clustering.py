@@ -56,7 +56,7 @@ def correct_from_Nan(arr, perMovie):
         arr=np.delete(arr, toDel, 0)
 
     arr=np.hstack((arr[:,:len(featuresNumeriques)+len(featuresHisto)], arr[:,-1, np.newaxis]))
-
+    print arr.shape
     return arr, toDel
 
 def usable(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', 
