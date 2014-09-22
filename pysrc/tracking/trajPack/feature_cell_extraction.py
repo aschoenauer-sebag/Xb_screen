@@ -754,7 +754,7 @@ class cellExtractor():
                         distances[i,k]=np.nan
         return distances
     
-    def alreadyDone(self, distances):
+    def alreadyDone(self):
         return self.settings.outputFile.format(self.siRNA) in os.listdir(self.settings.result_folder)
     
     def saveResults(self, distances):
