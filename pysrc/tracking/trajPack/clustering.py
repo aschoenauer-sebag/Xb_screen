@@ -166,7 +166,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                             print "Key Error for experiment {} {}".format(pl, w)
                             continue
     if r ==[]:
-        raise AttributeError
+        return None
 
 #log trsforming data
     r2 = histLogTrsforming(r, verbose=verbose)        

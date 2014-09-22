@@ -18,7 +18,7 @@ from scipy.stats import pearsonr
 import matplotlib.pyplot as p
 import brewer2mpl
 from tracking.trajPack import featuresSaved, featuresHisto, featuresNumeriques
-from util.listFileManagement import fromShareToCBIO, appendingControl
+from util.listFileManagement import fromShareToCBIO, appendingControl, txtToList
 from tracking.trajPack.clustering import histConcatenation,outputBin, usable, correct_from_Nan
 from tracking.PyPack.fHacktrack2 import initXml, finirXml
 from tracking.histograms.k_means_transportation import DIVERGENCES, _distances
@@ -121,7 +121,7 @@ def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="al
 #    p.show()
 
 def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="all_distances_whole2_CTRL.pkl", threshold=0.05, sup=False, renorm_first_statistic=False,
-                 renorm_second_statistic=True, redo=False):
+                 renorm_second_statistic=True, redo=False, without_mitotic_hits=False):
     '''
     This function collects all distances or p-values from files, then with or without renormalizing them with respect to control distributions
     combines them with Fisher's method and finally with or without renormalizing them computes the hit list
@@ -173,11 +173,16 @@ def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="al
         siRNA_hit_perc={siRNA:siRNA_hit[siRNA]/float(siRNA_count[siRNA]) for siRNA in siRNA_hit}
         
         siRNA_highconf = filter(lambda x: siRNA_hit_perc[x]>0.5 and siRNA_hit[x]>=2, siRNA_hit_perc)
-        gene_highconf = Counter([geneL[siRNAL.index(siRNA)] for siRNA in siRNA_highconf])
         
+        if without_mitotic_hits:
+            print "Filtering out mitotic hits from Mitocheck supp table 2"
+            mito_hits = txtToList('../data/mitocheck_hits.txt')[:,0]
+            siRNA_highconf=[siRNA for siRNA in siRNA_highconf if siRNA not in mito_hits]
+        
+        gene_highconf = Counter([geneL[siRNAL.index(siRNA)] for siRNA in siRNA_highconf])
         #gene_highconf={gene:gene_highconf[gene]/float(gene_count[gene]) for gene in gene_highconf}
         gene_highconf=filter(lambda x: gene_highconf[x]>=1, gene_highconf)
-        
+            
         trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
         gene_hits_Ensembl=[trad[el] for el in gene_hit]
         gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
@@ -200,7 +205,7 @@ def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="al
                 result[gene]=defaultdict(list)
             result[gene][siRNAL[i]].append(curr_qval[i])
 
-    return r, result, expL, siRNAL, geneL, ctrl_pval, ctrl_qval, curr_pval, curr_qval
+    return r, siRNA_highconf, siRNAL, curr_qval
 
     
 def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl =False,
@@ -238,8 +243,16 @@ def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_e
                             gene = dictSiEntrez[siRNA]
                         except:
                             pdb.set_trace()
-                        result[param][1].extend(list(np.array(yqualDict[siRNA])[l]))
+                        expList = np.array(strToTuple(yqualDict[siRNA], os.listdir('/share/data20T/mitocheck/tracking_results')))
+                        pdb.set_trace()
+                        if d[param].shape[0]==len(expList):
+                            used_experiments = expList
+                        else:
+                            used_experiments = expList[np.where(usable('/share/data20T/mitocheck/tracking_results', expList))]
+                            
+                        result[param][1].extend(list(used_experiments[l]))
                         result[param][2].extend([gene for k in range(len(l))])
+
                     
                     result[param][3]=np.vstack((result[param][3], d[param][l])) if result[param][3] is not None else d[param][l]
 
@@ -638,7 +651,7 @@ class cellExtractor():
         meaning the number of trajectories in each
         '''
         histDict = defaultdict(list)
-
+        
         _,r, _, self.expList,_, length, _, _, _ = histConcatenation(self.settings.data_folder, self.expList, self.settings.mitocheck_file,
                                         self.settings.quality_control_file, verbose=self.verbose, perMovie=True)
                     
