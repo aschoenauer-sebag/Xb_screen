@@ -7,3 +7,6 @@ quality_control_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_e
 
 #Option to say that we're only dealing with numerical features for the moment
 histDataAsWell=False
+
+#Option to say if we want to redo experiments anyway
+redo=False

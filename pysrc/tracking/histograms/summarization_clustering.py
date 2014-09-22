@@ -347,33 +347,6 @@ class hitFinder():
             
         return labels
     
-    def plotTrajectories(self, expList, labels):
-        resultCour=[]
-        clusters = Counter(labels).keys()
-        for plate, well in expList:
-            if self.verbose:
-                print "Taking care of plate {}, well {}".format(plate, well)
-        
-            f=open(os.path.join(self.settings.data_folder,plate, 'hist2_tabFeatures_{}.pkl'.format(well)))
-            _, coord, _=pickle.load(f); f.close()
-            resultCour.extend(coord)
-
-        XX=[]; YY=[]
-        for k in range(len(resultCour)):
-            X=np.array(resultCour[k][1]); X-=X[0]; XX.append(X)
-            Y=np.array( resultCour[k][2]); Y-=Y[0]; YY.append(Y)
-        minx,maxx = min([min(X) for X in XX]), max([max(X) for X in XX])
-        miny,maxy = min([min(Y) for Y in YY]), max([max(Y) for Y in YY])
-        
-        for cluster in clusters:
-            for i in np.where(np.array(labels)==cluster)[0][:10]:
-                if not os.path.isdir(os.path.join(self.settings.result_folder, 'images')): 
-                    os.mkdir(os.path.join(self.settings.result_folder, 'images'))
-                plotAlignedTraj(XX[i], YY[i], minx, maxx, miny, maxy, show=False, 
-                     name=os.path.join(self.settings.result_folder, 'images', 'cluster{}_{}_{}.png'.format(cluster, self.siRNA,i)))
-
-        return 1
-    
     def labelOnly(self, param_tuple,plot=True, ctrlIter=0):
         
         #i. getting experiments corresponding to siRNA if we're not looking for control experiments only

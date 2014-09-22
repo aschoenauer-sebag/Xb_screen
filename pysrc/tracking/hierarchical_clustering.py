@@ -63,6 +63,15 @@ def heatmap(x, row_header, column_header, row_method,
     
     """
     
+    #for export
+    if numpy.any(~numpy.array([type(s)==str for s in row_header])):
+        row_header=[str(el) for el in row_header]
+    if numpy.any(~numpy.array([type(s)==str for s in column_header])):
+        column_header=[str(el) for el in column_header]
+        
+    
+        
+    
     ### Define the color gradient to use based on the provided name
     n = len(x[0]); m = len(x)
     if color_gradient == 'red_white_blue':
@@ -193,18 +202,18 @@ def heatmap(x, row_header, column_header, row_method,
     for i in range(x.shape[0]):
         if row_method != None:
             if len(row_header)<100: ### Don't visualize gene associations when more than 100 rows
-                axm.text(x.shape[1]-0.5, i, '  '+row_header[idx1[i]])
+                axm.text(x.shape[1]-0.5, i, '  {}'.format(row_header[idx1[i]]))
             new_row_header.append(row_header[idx1[i]])
         else:
             if len(row_header)<100: ### Don't visualize gene associations when more than 100 rows
-                axm.text(x.shape[1]-0.5, i, '  '+row_header[i]) ### When not clustering rows
+                axm.text(x.shape[1]-0.5, i, ' {}'.format(row_header[i])) ### When not clustering rows
             new_row_header.append(row_header[i])
     for i in range(x.shape[1]):
         if column_method != None:
-            axm.text(i, -0.9, ' '+column_header[idx2[i]], rotation=270, verticalalignment="top") # rotation could also be degrees
+            axm.text(i, -0.9, '{}'.format(column_header[idx2[i]]), rotation=270, verticalalignment="top") # rotation could also be degrees
             new_column_header.append(column_header[idx2[i]])
         else: ### When not clustering columns
-            axm.text(i, -0.9, ' '+column_header[i], rotation=270, verticalalignment="top")
+            axm.text(i, -0.9, '{}'.format(column_header[i]), rotation=270, verticalalignment="top")
             new_column_header.append(column_header[i])
 
     # Plot colside colors

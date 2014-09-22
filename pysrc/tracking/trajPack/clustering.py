@@ -6,7 +6,6 @@ import cPickle as pickle
 from matplotlib import pyplot as p
 from collections import defaultdict
 from itertools import product
-from tracking.hierarchical_clustering import heatmap
 from math import sqrt
 from numpy.linalg import inv
 from optparse import OptionParser

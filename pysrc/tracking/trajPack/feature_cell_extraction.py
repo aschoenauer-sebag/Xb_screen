@@ -19,7 +19,8 @@ import matplotlib.pyplot as p
 import brewer2mpl
 from tracking.trajPack import featuresSaved, featuresHisto, featuresNumeriques
 from util.listFileManagement import fromShareToCBIO, appendingControl
-from tracking.trajPack.clustering import histConcatenation,outputBin, usable
+from tracking.trajPack.clustering import histConcatenation,outputBin, usable,\
+    correct_from_Nan
 from tracking.PyPack.fHacktrack2 import initXml, finirXml
 from tracking.histograms.k_means_transportation import DIVERGENCES, _distances
 from tracking.histograms.transportation import costMatrix, computingBins
@@ -54,6 +55,38 @@ parameters=[
   ('cost_type', 'number'),
   ('div_name', 'KS'),
   ('lambda', 10))]
+
+def plotTrajectories(verbose, expList, labels, data_folder, result_folder):
+    resultCour=[]
+    clusters = Counter(labels).keys()
+    for plate, well in expList:
+        if verbose:
+            print "Taking care of plate {}, well {}".format(plate, well)
+    
+        f=open(os.path.join(data_folder,plate, 'hist_tabFeatures_{}.pkl'.format(well)))
+        tab, coord, _=pickle.load(f); f.close()
+        tab, toDel = correct_from_Nan(tab, perMovie=True)
+        new_coord=[]
+        for i,el in enumerate(coord):
+            if i not in toDel:
+                new_coord.append(el)
+        resultCour.extend(new_coord)
+
+    XX=[]; YY=[]
+    for k in range(len(resultCour)):
+        X=np.array(resultCour[k][1]); X-=X[0]; XX.append(X)
+        Y=np.array( resultCour[k][2]); Y-=Y[0]; YY.append(Y)
+    minx,maxx = min([min(X) for X in XX]), max([max(X) for X in XX])
+    miny,maxy = min([min(Y) for Y in YY]), max([max(Y) for Y in YY])
+    
+    for cluster in clusters:
+        for i in np.where(np.array(labels)==cluster)[0][:10]:
+            if not os.path.isdir(os.path.join(result_folder, 'images')): 
+                os.mkdir(os.path.join(result_folder, 'images'))
+            plotAlignedTraj(XX[i], YY[i], minx, maxx, miny, maxy, show=False, val=cluster, 
+                 name=os.path.join(result_folder, 'images', 'cluster{}_{}.png'.format(cluster, i)))
+
+    return 1
 
 def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all_distances_whole_CTRL.pkl", sigma=0.1, binSize=10,texts=None):
     f=open(os.path.join(folder, filename))
@@ -639,7 +672,7 @@ class cellExtractor():
         for plate in plates:
             
             #meaning we are dealing with control control tests
-            if toDel!=[]:
+            if len(toDel)>0:
                 ctrlExpList = appendingControl([plate])
                 if self.verbose:
                     print 'before cleaning', len(ctrlExpList)
@@ -655,10 +688,13 @@ class cellExtractor():
                 
             else:
             #loading the controls that were used to compute control control p-values
-                f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate)))
-                ctrlExpList = pickle.load(f); f.close()
-                
-
+                try:
+                    f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate)))
+                    ctrlExpList = pickle.load(f); f.close()
+                except IOError:
+                    sys.stderr.write('No file registering used ctrls for plate {}'.format(plate))
+                    ctrlExpList=None
+                    
             try:
                 _,curr_r, _, _,_, curr_length, _, _, _ = histConcatenation(self.settings.data_folder, ctrlExpList, self.settings.mitocheck_file,
                                             self.settings.quality_control_file, verbose=self.verbose)
@@ -719,20 +755,22 @@ class cellExtractor():
                         distances[i,k]=np.nan
         return distances
     
+    def alreadyDone(self, distances):
+        return self.settings.outputFile.format(self.siRNA) in os.listdir(self.settings.result_folder)
+    
     def saveResults(self, distances):
-        if self.settings.outputFile.format(self.siRNA) in os.listdir(self.settings.result_folder):
-            f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)))
-            d=pickle.load(f)
-            f.close()
-            try:
-                l=d[self.parameters()]
-                sys.stderr.write("Bizarre, on dirait que cela a deja ete calcule")
-            except KeyError:
-                pass
-        else:
-            d={}
+#        if self.settings.outputFile.format(self.siRNA) in os.listdir(self.settings.result_folder):
+#            f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)))
+#            d=pickle.load(f)
+#            f.close()
+#            try:
+#                l=d[self.parameters()]
+#            except KeyError:
+#                pass
+#        else:
+#            d={}
 
-        d.update({self.parameters():distances})
+        d={self.parameters():distances}
         f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)), 'w')
         pickle.dump(d, f)
         f.close()
@@ -740,6 +778,9 @@ class cellExtractor():
     
     def __call__(self):
         
+    #before anything, testing for existence if not redo anyway
+        if not self.settings.redo and self.alreadyDone():
+            return
     #i. getting experiments corresponding to siRNA if we're not looking for control experiments only
         if self.plate is None:
             self.expList=self._findExperiment()

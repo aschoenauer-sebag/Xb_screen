@@ -7,11 +7,12 @@ import vigra
 import numpy as np
 
 import pdb
+from tracking.trajPack import featuresNumeriques, featuresSaved
 from tracking.trajPack.clustering import correct_from_Nan
 from util.sandbox import histLogTrsforming
 
-BASE_DIR = '/share/data20T/mitocheck/compressed_data'
-TRAJECTORY_DIR = '/share/data20T/mitocheck/tracking_results'
+BASE_DIR = '/media/lalil0u/New/cluster/images'#'/share/data20T/mitocheck/compressed_data'
+TRAJECTORY_DIR ='/media/lalil0u/New/cluster/'# '/share/data20T/mitocheck/tracking_results'
 
 FEATURES = [            
             'ball number1','ball number2',
@@ -27,11 +28,6 @@ FEATURES = [
             ]
 
 RADIUS = 11
-
-f=open('/cbio/donnees/aschoenauer/workspace2/Xb_screen/resultData/features_on_films/distExp_123etctrl_minmax_50.pkl', 'r')
-minMax = pickle.load(f); f.close()
-
-FEATURE_RANGE = dict(zip(FEATURES, minMax))
 
 #FEATURE_RANGE =  {'entropy1': (0.15, 0.75), 
 #                  'mean squared displacement': (0.0, 50.0), 
@@ -49,7 +45,14 @@ FEATURE_RANGE = dict(zip(FEATURES, minMax))
 #                 }
 pca_file = '../resultData/features_on_films/pca_hitSimpson.pkl'
 cluster_file = '../resultData/features_on_films/cluster_hitSimpson.pkl'
-diverging_colors = ["#d73027", "#f46d43", "#fdae61", "#fee090", "#e0f3f8", "#abd9e9", "#74add1", "#4575b4"]
+diverging_colors = [(215,48,39),
+                (244,109,67),
+                (253,174,97),
+                (254,224,144),
+                (224,243,248),
+                (171,217,233),
+                (116,173,209),
+                (69,117,180)]
 
 
 # colors 
@@ -193,7 +196,7 @@ class MovieMaker(object):
         if len(labteks_found) > 1:
             raise ValueError('multiple labteks found')
         labtek_dir = os.path.join(base_dir, labteks_found[0])
-        pos_found = filter(lambda x: x[:len(pos)]==pos, os.listdir(labtek_dir))
+        pos_found = filter(lambda x: int(x[:3])==int(pos[:-3]), os.listdir(labtek_dir))
         if len(pos_found) == 0:
             raise ValueError('%s not found in %s' % (pos, labtek_dir))
         if len(pos_found) > 1:
@@ -247,8 +250,13 @@ class MovieMaker(object):
         elif feature=='labels':
             #we are going to predict on the fly the clustering labels not to have to stock them smw (fast to predict)
             tab, toDel = correct_from_Nan(tab, perMovie=False)
+            new_coord = []#np.array(coord)[[el for el in range(len(coord)) if el not in toDel]]
+            for i,el in enumerate(coord):
+                if i not in toDel:
+                    new_coord.append(el)
             #i. logTrsforming
             tab=histLogTrsforming(tab)
+            tab=np.hstack((tab[:,:len(featuresNumeriques)], tab[:,featuresSaved.index('mean persistence')][:,np.newaxis], tab[:,featuresSaved.index('mean straight')][:,np.newaxis]))
             if pca_file is not None:
                 f=open(pca_file, 'r')
                 pca, mean, std=pickle.load(f); f.close()
@@ -257,18 +265,12 @@ class MovieMaker(object):
                 
             f=open(cluster_file, 'r')
             cluster_model, std = pickle.load(f); f.close()
-            if std is not None:
-                labels = cluster_model.predict(tab/std)
-            else:
-                labels = cluster_model.predict(tab)
+            labels = cluster_model.predict(tab/std)
             
             colors = [diverging_colors[labels[k]] for k in range(tab.shape[0])]
             
-            
-            
-            
         markers = {}
-        for i, track_coord in enumerate(coord):                    
+        for i, track_coord in enumerate(new_coord):                    
             tvec, xvec, yvec = track_coord
             
             for t, x, y in zip(tvec, xvec, yvec):
@@ -299,7 +301,7 @@ class MovieMaker(object):
                 
         # read feature data
         if not feature_movie_dir is None and not feature is None:
-            markers = self.make_markers(ltId, pos, trajectory_dir)
+            markers = self.make_markers(ltId, pos,feature, trajectory_dir)
             
                 
         
@@ -337,12 +339,17 @@ class MovieMaker(object):
                     for m in markers[i]:
                         x = m[0]
                         y = m[1]
-                        color = [255 * ccc for ccc in m[2]]
-                        
+                        if feature is not 'labels':
+                            color = [255 * ccc for ccc in m[2]]
+                        else:
+                            color = m[2]
                         xvec = co[0] + x
                         yvec = co[1] + y
                         for i in range(3):
-                            img_rgb[xvec, yvec, i] = color[i]
+                            try:
+                                img_rgb[xvec, yvec, i] = color[i]
+                            except:
+                                pdb.set_trace()
                             #print x, y, xvec, yvec, color[i]
                         #for c in color:
                         #    for xo, yo in co:
@@ -463,6 +470,9 @@ if __name__ ==  "__main__":
          'diffusion coefficient',
          'largest move',
          'ball number1', 'entropy1', 'entropy2']
+        f=open('/cbio/donnees/aschoenauer/workspace2/Xb_screen/resultData/features_on_films/distExp_123etctrl_minmax_50.pkl', 'r')
+        minMax = pickle.load(f); f.close()
+        FEATURE_RANGE = dict(zip(FEATURES, minMax))
     else:
         l=['labels']
         
