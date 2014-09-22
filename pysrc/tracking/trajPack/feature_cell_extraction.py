@@ -250,12 +250,8 @@ def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_e
                         else:
                             curr_usable =np.where(usable('/share/data20T/mitocheck/tracking_results', expList,
                                                                        qc='../data/qc_export.txt',mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0]
-                            if curr_usable.shape[0]==len(l):
-                                used_experiments = expList[curr_usable]
-                            elif l==[]:
-                                continue
-                            else:
-                                pdb.set_trace()
+                            used_experiments = expList[curr_usable]
+                            used_experiments = used_experiments[l]
                             
                         result[param][1].extend(list(used_experiments[l]))
                         result[param][2].extend([gene for k in range(len(l))])
