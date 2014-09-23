@@ -220,7 +220,7 @@ def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_e
         print len(files)
     
         result={param:[[], [], [], None] for param in parameters}
-        
+        pbls=[]
         for file_ in files:
             f=open(os.path.join(folder, file_))
             d=pickle.load(f)
@@ -252,8 +252,12 @@ def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_e
                             else:
                                 curr_usable =np.where(usable('/share/data20T/mitocheck/tracking_results', expList,
                                                                            qc='../data/qc_export.txt',mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0]
-                                used_experiments = expList[curr_usable]
-                                used_experiments = used_experiments[l]
+                                try:
+                                    used_experiments = expList[curr_usable]
+                                    used_experiments = used_experiments[l]
+                                except:
+                                    pbls.append(file_)
+                                    continue
                                 
                             result[param][1].extend(list(used_experiments[l]))
                             result[param][2].extend([gene for k in range(len(l))])
@@ -262,7 +266,7 @@ def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_e
                         result[param][3]=np.vstack((result[param][3], d[param][l])) if result[param][3] is not None else d[param][l]
 
         f=open(os.path.join(folder, filename), 'w')
-        pickle.dump(result, f); f.close()
+        pickle.dump([result,pbls], f); f.close()
 
     else:
         f=open(os.path.join(folder, filename))
