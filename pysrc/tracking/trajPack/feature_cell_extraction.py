@@ -259,7 +259,7 @@ def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_e
                                     pbls.append(file_)
                                     continue
                                 
-                            result[param][1].extend(list(used_experiments[l]))
+                            result[param][1].extend(list(used_experiments))
                             result[param][2].extend([gene for k in range(len(l))])
     
                         
