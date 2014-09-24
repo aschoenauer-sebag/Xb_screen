@@ -732,10 +732,10 @@ class cellExtractor():
                 except IOError:
                     sys.stderr.write('No file registering used ctrls for plate {}'.format(plate))
                     ctrlExpList=None
-                    
+    #DONC LES CONTROLES SONT LOADED SANS LES nan POUR TOUTES LES FEATURES POUR 5Ctrl1 je relance 5Ctrl2 AVEC les nan pour les features ou ils ne sont pas nan
             try:
                 _,curr_r, _, _,_, curr_length, _, _, _ = histConcatenation(self.settings.data_folder, ctrlExpList, self.settings.mitocheck_file,
-                                            self.settings.quality_control_file, verbose=self.verbose)
+                                            self.settings.quality_control_file, verbose=self.verbose, perMovie=True)
             except:
                 print "Problem with controls from plate {}".format(plate)
                 length.append(np.nan)
