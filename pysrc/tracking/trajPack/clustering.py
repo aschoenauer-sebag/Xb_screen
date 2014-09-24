@@ -1222,14 +1222,14 @@ def importSpecClust(folder, baseName, neighbours, sigma, show=False):
 
 if __name__ == '__main__':
     
-    f=open('../resultData/features_on_films/results_whole_5Ctrl_experiments.pkl')
+    f=open('../resultData/features_on_films/results_whole_5Ctrl_experiments_highconfsiRNAs.pkl')
     l=pickle.load(f)
     f.close()
     print 'this is launched'
     _, r, histNtot,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation('/share/data20T/mitocheck/tracking_results/', 
                             l, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=True)
     
-    f=open('../resultData/features_on_films/hit_experiments_data.pkl', 'r')
+    f=open('../resultData/features_on_films/hit_experiments_siRNAhighconf_data.pkl', 'w')
     pickle.dump([r, who, ctrlStatus, genes, sirna], f)
     f.close()
     
