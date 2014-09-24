@@ -180,9 +180,9 @@ def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="al
             siRNA_highconf=[siRNA for siRNA in siRNA_highconf if siRNA not in mito_hits]
         
         exp_of_highconfsiRNAs=[]
-        for siRNA in siRNA_highconf:
-            experiments = np.array(expL)[np.where(np.array(siRNAL)==siRNA)]
-            exp_of_highconfsiRNAs.extend([experiment for experiment in filter(lambda x: x in exp_hit, experiments)])
+#        for siRNA in siRNA_highconf:
+#            experiments = np.array(expL)[np.where(np.array(siRNAL)==siRNA)]
+#            exp_of_highconfsiRNAs.extend([experiment for experiment in filter(lambda x: x in exp_hit, experiments)])
         
         gene_highconf = Counter([geneL[siRNAL.index(siRNA)] for siRNA in siRNA_highconf])
         #gene_highconf={gene:gene_highconf[gene]/float(gene_count[gene]) for gene in gene_highconf}
