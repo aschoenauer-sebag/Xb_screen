@@ -1222,16 +1222,23 @@ def importSpecClust(folder, baseName, neighbours, sigma, show=False):
 
 if __name__ == '__main__':
     
-    f=open('../resultData/features_on_films/results_whole_5Ctrl_experiments_highconfsiRNAs.pkl')
-    l=pickle.load(f)
-    f.close()
-    print 'this is launched'
-    _, r, histNtot,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation('/share/data20T/mitocheck/tracking_results/', 
-                            l, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=True)
+#    f=open('../resultData/features_on_films/results_whole_5Ctrl_experiments_highconfsiRNAs.pkl')
+#    l=pickle.load(f)
+#    f.close()
+#    print 'this is launched'
+#    _, r, histNtot,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation('/share/data20T/mitocheck/tracking_results/', 
+#                            l, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=True)
     
-    f=open('../resultData/features_on_films/hit_experiments_siRNAhighconf_data.pkl', 'w')
-    pickle.dump([r, who, ctrlStatus, genes, sirna], f)
+    f=open('../resultData/features_on_films/hit_experiments_siRNAhighconf_data.pkl')
+    r, who, ctrlStatus, genes, sirna=pickle.load(f)
     f.close()
+    
+    nr=(r-np.mean(r,0))/np.std(r,0)
+    
+    print 'BatchKMeans'
+    silhouette_r, cohesion_r = BatchKmeans(nr, 2, 30, N=10)
+    f=open('../resultData/features_on_films/batchKMeans_hitexp_highconfsiRNAs_0.pkl', 'w')
+    pickle.dump([silhouette_r, cohesion_r], f); f.close()
     
 #    description =\
 #'''
