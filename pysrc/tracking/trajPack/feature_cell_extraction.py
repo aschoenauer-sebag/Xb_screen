@@ -179,6 +179,11 @@ def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="al
             mito_hits = txtToList('../data/mitocheck_hits.txt')[:,0]
             siRNA_highconf=[siRNA for siRNA in siRNA_highconf if siRNA not in mito_hits]
         
+        exp_of_highconfsiRNAs=[]
+        for siRNA in siRNA_highconf:
+            experiments = np.array(expL)[np.where(np.array(siRNAL)==siRNA)]
+            exp_of_highconfsiRNAs.extend([experiment for experiment in filter(lambda x: x in exp_hit, experiments)])
+        
         gene_highconf = Counter([geneL[siRNAL.index(siRNA)] for siRNA in siRNA_highconf])
         #gene_highconf={gene:gene_highconf[gene]/float(gene_count[gene]) for gene in gene_highconf}
         gene_highconf=filter(lambda x: gene_highconf[x]>=1, gene_highconf)
@@ -187,6 +192,12 @@ def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="al
         gene_hits_Ensembl=[trad[el] for el in gene_hit]
         gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
         gene_Ensembl = [trad[el] for el in gene_count]
+        
+        for geneList in [gene_hits_Ensembl, gene_highconf_Ensembl, gene_Ensembl]:
+            for i,gene in enumerate(geneList):
+                    if '/' in gene:
+                        geneList[i]=gene.split('/')[0]
+                        geneList.append(gene.split('/')[1])
         
         print 'Ctrl hits ', len(ctrl_hit), 'out of', len(platesL), 'ie ', len(ctrl_hit)/float(len(platesL))
         print 'Experiences ', len(exp_hit), 'out of',len(expL), 'ie ', len(exp_hit)/float(len(expL))
@@ -205,11 +216,11 @@ def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="al
                 result[gene]=defaultdict(list)
             result[gene][siRNAL[i]].append(curr_qval[i])
 
-    return r, siRNA_highconf, siRNAL, curr_qval
+    return r, exp_of_highconfsiRNAs, siRNA_highconf, siRNAL, curr_qval
 
     
 def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl =False,
-                        redo=False):
+                        redo=False, siRNAFilterList=None):
     if filename not in os.listdir(folder) or redo:
         if not testCtrl:
             files = filter(lambda x: 'distances_whole_5Ctrl' in x and 'CTRL' not in x and 'all' not in x, os.listdir(folder))
@@ -231,6 +242,9 @@ def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_e
                     print "NO parameter sets ", file_, 'param ', parameters.index(param)
                 else:
                     siRNA = file_.split('_')[-1][:-4]
+                    if siRNAFilterList is not None and siRNA not in siRNAFilterList:
+                        continue
+                    
                     l= Counter(np.where(~np.isnan(d[param]))[0]).keys()
                     if l==[]:
                         continue
@@ -875,6 +889,15 @@ if __name__ == '__main__':
     if options.action=='collectDistances':
         collectingDistances('all_distances_whole_5Ctrl.pkl', '../resultData/features_on_films/', 
                             '../data/qc_export.txt', '../data/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl=False, redo=True)
+        
+    elif options.action=='collectSelectedDistances':
+        f=open('../resultData/features_on_films/siRNAhighconf.pkl', 'r')
+        siRNAFilterList =pickle.load(f)
+        f.close()
+        collectingDistances('all_distances_whole_5Ctrl_highconfSubset.pkl', '../resultData/features_on_films/', 
+                            '../data/qc_export.txt', '../data/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl=False, redo=True,
+                            siRNAFilterList=siRNAFilterList)
+        
     else:
         extractor=cellExtractor(options.siRNA, settings_file,options.testCtrl, options.div_name, options.bins_type,
                      bin_size=options.bin_size,lambda_=options.lambda_, verbose=options.verbose)

@@ -336,6 +336,30 @@ def EnsemblEntrezTrad(fichier):
         l=np.array(l); l=dict(zip(l[:,0], l[:,1]))
     return l
 
+def multipleGeneListsToFile(geneLists, geneListNames, name):
+    '''
+    Writing a gene list into a text file
+    
+    Input: 
+    - genes: gene list
+    - name: filename, will be written in working directory
+    '''
+    m=np.max([len(geneL) for geneL in geneLists])
+    f=open(name, 'w')
+    for listName in geneListNames:
+        f.write('{}\t'.format(listName))
+    f.write('\n')
+    for k in range(m):
+        for l in range(len(geneLists)): 
+            try:
+                f.write('{}\t'.format(geneLists[l][k]))
+            except IndexError:
+                f.write('\t ')
+        f.write('\n')
+    f.close()    
+    print 'fichier ecrit ', os.path.join(os.getcwd(), name)
+    return 1
+
 def geneListToFile(genes, name):
     '''
     Writing a gene list into a text file

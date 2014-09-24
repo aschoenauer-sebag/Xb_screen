@@ -32,12 +32,15 @@ import string
 import time
 import sys, os, pdb
 import getopt
+from collections import Counter
+
+from util.listFileManagement import EnsemblEntrezTrad, multipleGeneListsToFile
 
 ################# Perform the hierarchical clustering #################
 
 def heatmap(x, row_header, column_header, row_method,
             column_method, row_metric, column_metric,
-            color_gradient, filename, normalization=True, log=False):
+            color_gradient, filename, normalization=True, log=False, trad=False):
     
     print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric),
     if numpy.any(numpy.isnan(x)):
@@ -56,23 +59,26 @@ def heatmap(x, row_header, column_header, row_method,
 
     x is an m by n ndarray, m observations, n genes, or m rows,n columns
     
-    WARNING
+    WARNING WARNING
     This is a modified version to work with "big data" (starting with m=50,000). Indeed, the previous version actually stores
     the distance matrix in the memory which makes it crash. Here, we use the package fastcluster (see http://danifold.net/fastcluster.html)
     in its memory-efficient implementation.
-    
+    The parameter method must be one of 'single', 'centroid', 'median', 'ward'
     
     """
-    
+    if '/' in filename:
+        dataset_name = string.split(filename,'/')[-1][:-4]
+        root_dir = string.join(string.split(filename,'/')[:-1],'/')+'/'
+    else:
+        dataset_name = string.split(filename,'\\')[-1][:-4]
+        root_dir = string.join(string.split(filename,'\\')[:-1],'\\')+'\\'
+        
     #for export
     if numpy.any(~numpy.array([type(s)==str for s in row_header])):
         row_header=[str(el) for el in row_header]
     if numpy.any(~numpy.array([type(s)==str for s in column_header])):
         column_header=[str(el) for el in column_header]
         
-    
-        
-    
     ### Define the color gradient to use based on the provided name
     n = len(x[0]); m = len(x)
     if color_gradient == 'red_white_blue':
@@ -100,7 +106,7 @@ def heatmap(x, row_header, column_header, row_method,
     if log:
         norm = mpl.colors.LogNorm(vmin, vmax) ### adjust the max and min to scale these colors
     elif normalization:
-        norm = mpl.colors.Normalize(10**(-5), 0.1)
+        norm = mpl.colors.Normalize(10**(-70), 1)
     else:
         if numpy.any(x<0):
             norm = mpl.colors.Normalize(-1,1)
@@ -180,7 +186,36 @@ def heatmap(x, row_header, column_header, row_method,
         print 'Row clustering completed in %s seconds' % time_diff
     else:
         ind1 = ['NA']*len(row_header) ### Used for exporting the flat cluster data
+    
+    print 'Saving flat clusters in', 'Flat_clusters_{}.pkl'.format(dataset_name) 
+    f=open('Flat_clusters_{}.pkl'.format(dataset_name), 'w')
+    pickle.dump([ind1, ind2],f); f.close()
+    
+    if trad:
+        if len(row_header)>100:
+            genes=list(row_header)
+            clustering = numpy.array(ind1)
+        elif len(column_header)>100:
+            genes=list(column_header)
+            clustering=numpy.array(ind2)
+        else:
+            print 'Tell which of column and row is the gene list'
+            pdb.set_trace()
+        #il faut d'abord traduire de SYMBOL en ENSEMBL
+        trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
         
+        result=[Counter([trad[genes[k]] for k in numpy.where(clustering==cluster)[0]]).keys() for cluster in range(1,numpy.max(ind2)+1)]
+        for geneList in result:
+            for i,gene in enumerate(geneList):
+                if '/' in gene:
+                    geneList[i]=gene.split('/')[0]
+                    geneList.append(gene.split('/')[1])
+                
+        #ensuite on va enregistrer les genes des differents clusters dans differents fichiers
+        #background par defaut c'est genes_list.txt
+        print "Nb of cluster found", numpy.max(ind2)
+        multipleGeneListsToFile(result, ['Cluster {}'.format(k+1) for k in range(numpy.max(ind2))], 'gene_cluster_{}_{}.txt'.format(column_method, row_method))
+    
     # Plot distance matrix.
     axm = fig.add_axes([axm_x, axm_y, axm_w, axm_h])  # axes for the data matrix
     xt = x
@@ -245,13 +280,7 @@ def heatmap(x, row_header, column_header, row_method,
     cb = mpl.colorbar.ColorbarBase(axcb, cmap=cmap, norm=norm, orientation='horizontal')
     axcb.set_title("colorkey")
     
-    if '/' in filename:
-        dataset_name = string.split(filename,'/')[-1][:-4]
-        root_dir = string.join(string.split(filename,'/')[:-1],'/')+'/'
-    else:
-        dataset_name = string.split(filename,'\\')[-1][:-4]
-        root_dir = string.join(string.split(filename,'\\')[:-1],'\\')+'\\'
-    filename = root_dir+'Clustering-%s-hierarchical_%s_%s.pdf' % (dataset_name,column_metric,row_metric)
+    filename = root_dir+'Clustering-%s-hierarchical_%s_%s.pdf' % (dataset_name,column_metric,column_method)
     cb.set_label("Differential Expression (log2 fold)")
     exportFlatClusterData(filename, new_row_header,new_column_header,xt,ind1,ind2)
 
@@ -263,13 +292,12 @@ def heatmap(x, row_header, column_header, row_method,
 
     pylab.savefig(filename)
     print 'Exporting:',filename
-    print 'Saving flat clusters in', 'Flat_clusters_{}.pkl'.format(dataset_name) 
-    f=open('Flat_clusters_{}.pkl'.format(dataset_name), 'w')
-    pickle.dump([idx1, idx2],f); f.close()
     
     filename = filename[:-3]+'png'
     pylab.savefig(filename, dpi=100) #,dpi=200
     pylab.show()
+    
+    return result
 
 def getColorRange(x):
     """ Determines the range of colors, centered at zero, for normalizing cmap """
