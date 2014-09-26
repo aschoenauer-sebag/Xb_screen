@@ -28,7 +28,8 @@ from util.kkmeans import KernelKMeans
 from tracking.trajPack import featuresHisto, featuresNumeriques
 from tracking.plots import plotClustInd, makeColorRamp, plotMovies, plotKMeansPerFilm, markers
 from util.sandbox import cleaningLength, logTrsforming, subsampling, dist, histLogTrsforming, homeMadeGraphLaplacian
-from util.listFileManagement import gettingSiRNA, expSi, siEntrez, typeD, typeD2, is_ctrl
+from util.listFileManagement import gettingSiRNA, expSi, siEntrez, typeD, typeD2, is_ctrl,\
+    strToTuple
 from util.plots import basic_colors, couleurs
 
 from tracking.histograms import *
@@ -1222,21 +1223,27 @@ def importSpecClust(folder, baseName, neighbours, sigma, show=False):
 
 if __name__ == '__main__':
     
-#    f=open('../resultData/features_on_films/results_whole_5Ctrl_experiments_highconfsiRNAs.pkl')
-#    l=pickle.load(f)
-#    f.close()
-#    print 'this is launched'
-#    _, r, histNtot,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation('/share/data20T/mitocheck/tracking_results/', 
-#                            l, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=True)
-    
-    f=open('../resultData/features_on_films/hit_experiments_siRNAhighconf_PCAed_data.pkl')
-    narr=pickle.load(f)
+    f=open('../resultData/features_on_films/results_whole_5Ctrl2_experiments_highconfsiRNAs.pkl')
+    l=pickle.load(f)
     f.close()
     
-    print 'BatchKMeans'
-    silhouette_r, cohesion_r = BatchKmeans(narr, 2, 30, N=10)
-    f=open('../resultData/features_on_films/batchKMeans_hitexp_highconfsiRNAs_1.pkl', 'w')
-    pickle.dump([silhouette_r, cohesion_r], f); f.close()
+    ll=strToTuple(l, os.listdir('/share/data20T/mitocheck/tracking_results'))
+    
+    print 'this is launched'
+    _, r, _,  who,ctrlStatus, length, genes, sirna, _=histConcatenation('/share/data20T/mitocheck/tracking_results/', 
+                            ll, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=True)
+    f=open('../resultData/features_on_films/hit_experiments_5Ctrl2_siRNAhighconf_data.pkl', 'w')
+    pickle.dump([r,  who,ctrlStatus, length, genes, sirna], f)
+    f.close()
+    
+#    f=open('../resultData/features_on_films/hit_experiments_siRNAhighconf_PCAed_data.pkl')
+#    narr=pickle.load(f)
+#    f.close()
+    
+#    print 'BatchKMeans'
+#    silhouette_r, cohesion_r = BatchKmeans(narr, 2, 30, N=10)
+#    f=open('../resultData/features_on_films/batchKMeans_hitexp_highconfsiRNAs_1.pkl', 'w')
+#    pickle.dump([silhouette_r, cohesion_r], f); f.close()
     
 #    description =\
 #'''

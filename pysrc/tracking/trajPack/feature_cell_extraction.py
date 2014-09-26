@@ -182,13 +182,13 @@ def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="al
             mito_hits = txtToList('../data/mitocheck_hits.txt')[:,0]
             siRNA_highconf=[siRNA for siRNA in siRNA_highconf if siRNA not in mito_hits]
         
-        exp_of_highconfsiRNAs=[]
+        exp_of_highconfsiRNAs=defaultdict(list)
         exp_hit2=['{}--{}'.format(exp[0][:9], exp[1][2:5]) for exp in exp_hit]
         for siRNA in siRNA_highconf:
             experiments = np.array(expL)[np.where(np.array(siRNAL)==siRNA)]
             experiments2=['{}--{}'.format(exp[0][:9], exp[1][2:5]) for exp in experiments]
             
-            exp_of_highconfsiRNAs.extend([experiment for experiment in filter(lambda x: x in exp_hit2, experiments2)])
+            exp_of_highconfsiRNAs[siRNA]=[(experiment in exp_hit2) for experiment in experiments2]
         
         gene_highconf = Counter([geneL[siRNAL.index(siRNA)] for siRNA in siRNA_highconf])
         #gene_highconf={gene:gene_highconf[gene]/float(gene_count[gene]) for gene in gene_highconf}
@@ -216,11 +216,11 @@ def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="al
         
         r.append([exp_hit, gene_hit, gene_highconf])
         
-        result = defaultdict(list)
-        for i,gene in enumerate(geneL):
-            if gene not in result: 
-                result[gene]=defaultdict(list)
-            result[gene][siRNAL[i]].append(curr_qval[i])
+#        result = defaultdict(list)
+#        for i,gene in enumerate(geneL):
+#            if gene not in result: 
+#                result[gene]=defaultdict(list)
+#            result[gene][siRNAL[i]].append(curr_qval[i])
 
     return r, exp_of_highconfsiRNAs, siRNA_highconf, siRNAL, curr_qval
 

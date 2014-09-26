@@ -162,7 +162,7 @@ def heatmap(x, row_header, column_header, row_method,
         
         Y2 = fastcluster.linkage_vector(x.T, method=column_method, metric=column_metric) ### array-clustering metric - 'average', 'single', 'centroid', 'complete'
         Z2 = sch.dendrogram(Y2)
-        ind2 = sch.fcluster(Y2,0.4*max(Y2[:,2]),'distance') ### This is the default behavior of dendrogram
+        ind2 = sch.fcluster(Y2,0.7*max(Y2[:,2]),'distance') ### This is the default behavior of dendrogram
         ax2.set_xticks([]) ### Hides ticks
         ax2.set_yticks([])
         time_diff = str(round(time.time()-start_time,1))
