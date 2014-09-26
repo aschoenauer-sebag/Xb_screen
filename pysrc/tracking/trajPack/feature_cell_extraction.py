@@ -135,7 +135,10 @@ def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="al
     ctrl = collectingDistances(ctrl_filename, folder, testCtrl=True, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt',
                                redo=redo)        
     r=[]
-    
+    if type(exp)==list:
+        exp=exp[0]
+    if type(ctrl)==list:
+        ctrl=ctrl[0]
     #ii. Computing renormalized distributions if renorm_first_statistic==True, else simply combining them using Fisher's method
         #and returning p-val anq q-val distributions, normalized or not
         #parameters: renorm_first_statistic, renorm_second_statistic
@@ -897,7 +900,7 @@ if __name__ == '__main__':
                             long_version=True)
         
     elif options.action=='collectSelectedDistances':
-        f=open('../resultData/features_on_films/siRNAhighconf.pkl', 'r')
+        f=open('../resultData/features_on_films/siRNAhighconf_5Ctrl2.pkl', 'r')
         siRNAFilterList =pickle.load(f)
         f.close()
         collectingDistances('all_distances_whole_5Ctrl_highconfSubset.pkl', '../resultData/features_on_films/', 
