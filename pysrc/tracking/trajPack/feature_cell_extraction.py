@@ -223,7 +223,7 @@ def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="al
 
     
 def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl =False,
-                        redo=False, siRNAFilterList=None):
+                        redo=False, siRNAFilterList=None,long_version=False):
     if filename not in os.listdir(folder) or redo:
         if not testCtrl:
             files = filter(lambda x: 'distances_whole_5Ctrl2' in x and 'CTRL' not in x and 'all' not in x, os.listdir(folder))
@@ -267,15 +267,17 @@ def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_e
                             if d[param].shape[0]==len(expList):
                                 used_experiments = expList
                             else:
-                                curr_usable =np.where(usable('/share/data20T/mitocheck/tracking_results', expList,
-                                                                           qc='../data/qc_export.txt',mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0]
-                                try:
-                                    used_experiments = expList[curr_usable]
-                                    used_experiments = used_experiments[l]
-                                except:
-                                    pbls.append(file_)
-                                    continue
-                                
+                                if long_version:
+                                    curr_usable =np.where(usable('/share/data20T/mitocheck/tracking_results', expList,
+                                                                               qc='../data/qc_export.txt',mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0]
+                                    try:
+                                        used_experiments = expList[curr_usable]
+                                        used_experiments = used_experiments[l]
+                                    except:
+                                        pbls.append(file_)
+                                        continue
+                                else:
+                                    used_experiments=expList[l]
                             result[param][1].extend(list(used_experiments))
                             result[param][2].extend([gene for k in range(len(l))])
     
@@ -891,7 +893,8 @@ if __name__ == '__main__':
 
     if options.action=='collectDistances':
         collectingDistances('all_distances_whole_5Ctrl2.pkl', '../resultData/features_on_films/', 
-                            '../data/qc_export.txt', '../data/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl=False, redo=True)
+                            '../data/qc_export.txt', '../data/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl=False, redo=True,
+                            long_version=True)
         
     elif options.action=='collectSelectedDistances':
         f=open('../resultData/features_on_films/siRNAhighconf.pkl', 'r')
@@ -899,6 +902,7 @@ if __name__ == '__main__':
         f.close()
         collectingDistances('all_distances_whole_5Ctrl_highconfSubset.pkl', '../resultData/features_on_films/', 
                             '../data/qc_export.txt', '../data/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl=False, redo=True,
+                            long_version=True,
                             siRNAFilterList=siRNAFilterList)
         
     else:
