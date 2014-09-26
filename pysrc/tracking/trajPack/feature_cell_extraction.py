@@ -226,11 +226,11 @@ def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_e
                         redo=False, siRNAFilterList=None):
     if filename not in os.listdir(folder) or redo:
         if not testCtrl:
-            files = filter(lambda x: 'distances_whole_5Ctrl' in x and 'CTRL' not in x and 'all' not in x, os.listdir(folder))
+            files = filter(lambda x: 'distances_whole_5Ctrl2' in x and 'CTRL' not in x and 'all' not in x, os.listdir(folder))
             yqualDict=expSi(qc_filename, sens=0)
             dictSiEntrez=siEntrez(mapping_filename)
         else:
-            files = filter(lambda x: 'distances_whole_5Ctrl' in x and 'CTRL' in x  and 'all' not in x, os.listdir(folder))
+            files = filter(lambda x: 'distances_whole_5Ctrl2' in x and 'CTRL' in x  and 'all' not in x, os.listdir(folder))
         print len(files)
     
         result={param:[[], [], [], None] for param in parameters}
@@ -890,7 +890,7 @@ if __name__ == '__main__':
     settings_file = 'tracking/settings/settings_feature_extraction.py'
 
     if options.action=='collectDistances':
-        collectingDistances('all_distances_whole_5Ctrl.pkl', '../resultData/features_on_films/', 
+        collectingDistances('all_distances_whole_5Ctrl2.pkl', '../resultData/features_on_films/', 
                             '../data/qc_export.txt', '../data/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl=False, redo=True)
         
     elif options.action=='collectSelectedDistances':

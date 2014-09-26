@@ -1235,7 +1235,7 @@ if __name__ == '__main__':
     
     print 'BatchKMeans'
     silhouette_r, cohesion_r = BatchKmeans(narr, 2, 30, N=10)
-    f=open('../resultData/features_on_films/batchKMeans_hitexp_highconfsiRNAs_0.pkl', 'w')
+    f=open('../resultData/features_on_films/batchKMeans_hitexp_highconfsiRNAs_1.pkl', 'w')
     pickle.dump([silhouette_r, cohesion_r], f); f.close()
     
 #    description =\
