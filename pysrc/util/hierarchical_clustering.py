@@ -47,7 +47,7 @@ from util.listFileManagement import EnsemblEntrezTrad, multipleGeneListsToFile
 
 def heatmap(x, row_header, column_header, row_method,
             column_method, row_metric, column_metric,
-            color_gradient, filename, normalization=True, log=False, trad=False):
+            color_gradient, filename, normalization=True, log=False, trad=False, level=0.4):
     
     print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric),
     if numpy.any(numpy.isnan(x)):
@@ -186,7 +186,7 @@ def heatmap(x, row_header, column_header, row_method,
         
         Y1 = fastcluster.linkage_vector(x, method=row_method, metric=row_metric) ### gene-clustering metric - 'average', 'single', 'centroid', 'complete'
         Z1 = sch.dendrogram(Y1, orientation='right')
-        ind1 = sch.fcluster(Y1,0.4*max(Y1[:,2]),'distance') ### This is the default behavior of dendrogram
+        ind1 = sch.fcluster(Y1,level*max(Y1[:,2]),'distance') ### This is the default behavior of dendrogram
         ax1.set_xticks([]) ### Hides ticks
         ax1.set_yticks([])
         time_diff = str(round(time.time()-start_time,1))
@@ -460,48 +460,56 @@ def importData(filename):
     return numpy.array(matrix), column_header, row_header
   
 if __name__ == '__main__':
-    
-    ################  Default Methods ################
-    row_method = 'average'
-    column_method = 'single'
-    row_metric = 'cityblock' #cosine
-    column_metric = 'euclidean'
-    color_gradient = 'red_white_blue'
-    
-    """ Running with cosine or other distance metrics can often produce negative Z scores
-        during clustering, so adjustments to the clustering may be required.
-        
-    see: http://docs.scipy.org/doc/scipy/reference/cluster.hierarchy.html
-    see: http://docs.scipy.org/doc/scipy/reference/spatial.distance.htm  
-    color_gradient = red_white_blue|red_black_sky|red_black_blue|red_black_green|yellow_black_blue|green_white_purple'
-    """
-    ################  Comand-line arguments ################
-    if len(sys.argv[1:])<=1:  ### Indicates that there are insufficient number of command-line arguments
-        print "Warning! Please designate a tab-delimited input expression file in the command-line"
-        print "Example: python hierarchical_clustering.py --i /Users/me/logfolds.txt"
-        sys.exit()
-    else:
-        options, remainder = getopt.getopt(sys.argv[1:],'', ['i=','row_header','column_method',
-                                                    'row_metric','column_metric','color_gradient'])
-        for opt, arg in options:
-            if opt == '--i': filename=arg
-            elif opt == '--row_header': row_header=arg
-            elif opt == '--column_method': column_method=arg
-            elif opt == '--row_metric': row_metric=arg
-            elif opt == '--column_metric': column_metric=arg
-            elif opt == '--color_gradient': color_gradient=arg
-            else:
-                print "Warning! Command-line argument: %s not recognized. Exiting..." % opt; sys.exit()
-            
-    matrix, column_header, row_header = importData(filename)
+    f=open('../resultData/features_on_films/hit_experiments_5Ctrl2_siRNAhighconf_PCAED_data.pkl')
+    narr=pickle.load(f)
+    f.close()
+    r=heatmap(narr.T, range(narr.shape[1]),range(narr.shape[0]), 
+              'ward', 'ward', 'euclidean', 'euclidean', 'red_black_sky', 'traj_HCsiRNA2_clustering', normalization=False, trad=False,
+              level=0.4)
 
-    if len(matrix)>0:
-        try:
-            heatmap(matrix, row_header, column_header, row_method, column_method, row_metric, column_metric, color_gradient, filename)
-        except Exception:
-            print 'Error using %s ... trying euclidean instead' % row_metric
-            row_metric = 'euclidean'
-            try:
-                heatmap(matrix, row_header, column_header, row_method, column_method, row_metric, column_metric, color_gradient, filename)
-            except IOError:
-                print 'Error with clustering encountered'
+    
+    
+#    ################  Default Methods ################
+#    row_method = 'average'
+#    column_method = 'single'
+#    row_metric = 'cityblock' #cosine
+#    column_metric = 'euclidean'
+#    color_gradient = 'red_white_blue'
+#    
+#    """ Running with cosine or other distance metrics can often produce negative Z scores
+#        during clustering, so adjustments to the clustering may be required.
+#        
+#    see: http://docs.scipy.org/doc/scipy/reference/cluster.hierarchy.html
+#    see: http://docs.scipy.org/doc/scipy/reference/spatial.distance.htm  
+#    color_gradient = red_white_blue|red_black_sky|red_black_blue|red_black_green|yellow_black_blue|green_white_purple'
+#    """
+#    ################  Comand-line arguments ################
+#    if len(sys.argv[1:])<=1:  ### Indicates that there are insufficient number of command-line arguments
+#        print "Warning! Please designate a tab-delimited input expression file in the command-line"
+#        print "Example: python hierarchical_clustering.py --i /Users/me/logfolds.txt"
+#        sys.exit()
+#    else:
+#        options, remainder = getopt.getopt(sys.argv[1:],'', ['i=','row_header','column_method',
+#                                                    'row_metric','column_metric','color_gradient'])
+#        for opt, arg in options:
+#            if opt == '--i': filename=arg
+#            elif opt == '--row_header': row_header=arg
+#            elif opt == '--column_method': column_method=arg
+#            elif opt == '--row_metric': row_metric=arg
+#            elif opt == '--column_metric': column_metric=arg
+#            elif opt == '--color_gradient': color_gradient=arg
+#            else:
+#                print "Warning! Command-line argument: %s not recognized. Exiting..." % opt; sys.exit()
+#            
+#    matrix, column_header, row_header = importData(filename)
+#
+#    if len(matrix)>0:
+#        try:
+#            heatmap(matrix, row_header, column_header, row_method, column_method, row_metric, column_metric, color_gradient, filename)
+#        except Exception:
+#            print 'Error using %s ... trying euclidean instead' % row_metric
+#            row_metric = 'euclidean'
+#            try:
+#                heatmap(matrix, row_header, column_header, row_method, column_method, row_metric, column_metric, color_gradient, filename)
+#            except IOError:
+#                print 'Error with clustering encountered'
