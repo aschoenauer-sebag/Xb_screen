@@ -19,9 +19,16 @@
 #################
 ### Imports an tab-delimited expression matrix and produces and hierarchically clustered heatmap
 #################
+import getpass
+if getpass.getuser()=='aschoenauer':
+    import matplotlib as mpl
+    mpl.use('Agg')
+    show = False
+elif getpass.getuser()=='lalil0u':
+    import matplotlib as mpl
+    show=True
 
 import matplotlib.pyplot as pylab
-import matplotlib as mpl
 import scipy
 import cPickle as pickle
 import scipy.cluster.hierarchy as sch
@@ -293,9 +300,8 @@ def heatmap(x, row_header, column_header, row_method,
     pylab.savefig(filename)
     print 'Exporting:',filename
     
-    filename = filename[:-3]+'png'
-    pylab.savefig(filename, dpi=100) #,dpi=200
-    pylab.show()
+    if show:
+        pylab.show()
     
     return result
 
