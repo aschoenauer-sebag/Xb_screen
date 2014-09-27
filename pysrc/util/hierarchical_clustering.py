@@ -463,6 +463,7 @@ if __name__ == '__main__':
     f=open('../resultData/features_on_films/hit_experiments_5Ctrl2_siRNAhighconf_PCAED_data.pkl')
     narr=pickle.load(f)
     f.close()
+    print 'data loaded'
     r=heatmap(narr.T, range(narr.shape[1]),range(narr.shape[0]), 
               'ward', 'ward', 'euclidean', 'euclidean', 'red_black_sky', 'traj_HCsiRNA2_clustering', normalization=False, trad=False,
               level=0.4)
