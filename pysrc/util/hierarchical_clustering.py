@@ -47,7 +47,7 @@ from util.listFileManagement import EnsemblEntrezTrad, multipleGeneListsToFile
 
 def heatmap(x, row_header, column_header, row_method,
             column_method, row_metric, column_metric,
-            color_gradient, filename, normalization=True, log=False, trad=False, level=0.4):
+            color_gradient, filename, normalization=True, log=False, trad=False, level=0.4, save=True):
     
     print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric),
     if numpy.any(numpy.isnan(x)):
@@ -193,10 +193,10 @@ def heatmap(x, row_header, column_header, row_method,
         print 'Row clustering completed in %s seconds' % time_diff
     else:
         ind1 = ['NA']*len(row_header) ### Used for exporting the flat cluster data
-    
-    print 'Saving flat clusters in', 'Flat_clusters_{}.pkl'.format(dataset_name) 
-    f=open('Flat_clusters_{}.pkl'.format(dataset_name), 'w')
-    pickle.dump([ind1, ind2],f); f.close()
+    if save:
+        print 'Saving flat clusters in', 'Flat_clusters_{}.pkl'.format(dataset_name) 
+        f=open('Flat_clusters_{}.pkl'.format(dataset_name), 'w')
+        pickle.dump([ind1, ind2],f); f.close()
     
     if trad:
         if len(row_header)>100:
@@ -302,8 +302,8 @@ def heatmap(x, row_header, column_header, row_method,
     
     if show:
         pylab.show()
-    
-    return result
+    if trad:
+        return result
 
 def getColorRange(x):
     """ Determines the range of colors, centered at zero, for normalizing cmap """

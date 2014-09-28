@@ -1223,7 +1223,7 @@ def importSpecClust(folder, baseName, neighbours, sigma, show=False):
 
 if __name__ == '__main__':
     
-    f=open('../resultData/features_on_films/results_whole_5Ctrl2_experiments_highconfsiRNAs.pkl')
+    f=open('../resultData/features_on_films/results_whole_5Ctrl3_experiments_highconfsiRNAs.pkl')
     l=pickle.load(f)
     f.close()
     

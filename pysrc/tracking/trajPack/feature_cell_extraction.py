@@ -120,8 +120,35 @@ def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="al
 #    p.legend()
 #    p.show()
 
+def multipleHitDistances(folder, iterations, threshold, filename='all_distances_whole_5Ctrl', combination='min', redo=False, without_mitotic_hits=False):
+    
+    result=[]
+    expL=None
+    for k in iterations:
+        print '------------------------------------------- iteration ',k
+        _, _, _, curr_expL, curr_qval = hitDistances(os.path.join(folder, 'step_whole_5Ctrl{}'.format(k)),
+                key_name = 'distances_whole_5Ctrl{}'.format(k), 
+                filename='{}{}.pkl'.format(filename, k), 
+                ctrl_filename ="{}{}_CTRL.pkl".format(filename, k), 
+                threshold=threshold, sup=False, renorm_first_statistic=False,
+                 renorm_second_statistic=True, redo=redo, without_mitotic_hits=without_mitotic_hits, trad=False)
+        
+        result.append((np.array(curr_expL), np.array(curr_qval)))
+        expL=curr_expL if expL is None else filter(lambda x: x in expL, curr_expL)
+    print 'iterations done ', len(expL)
+    global_result = np.zeros(shape=(len(expL), len(iterations)))
+    for i in range(len(expL)):
+        for k in range(len(iterations)):
+            curr_expL, curr_qval = result[k]
+            global_result[i,k]=curr_qval[np.where(curr_expL==expL[i])]
+        
+    exp_hit=expL[np.where(np.min(global_result,1)<threshold)]
+    print len(exp_hit), 'sur iterations ', iterations
+        
+        
+
 def hitDistances(folder,key_name = 'distances_whole_5Ctrl3', filename='all_distances_whole2.pkl', ctrl_filename ="all_distances_whole2_CTRL.pkl", threshold=0.05, sup=False, renorm_first_statistic=False,
-                 renorm_second_statistic=True, redo=False, without_mitotic_hits=False):
+                 renorm_second_statistic=True, redo=False, without_mitotic_hits=False, trad=True):
     '''
     This function collects all distances or p-values from files, then with or without renormalizing them with respect to control distributions
     combines them with Fisher's method and finally with or without renormalizing them computes the hit list
@@ -159,6 +186,7 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl3', filename='all_dista
         gene_count=Counter(geneL)
         
         ctrl_hit=[]
+        print "Ctrl min qval ", np.min(ctrl_qval[param])
         for k in range(len(platesL)):
             if ctrl_qval[param][k]<threshold:
                 ctrl_hit.append(platesL[k])
@@ -167,7 +195,9 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl3', filename='all_dista
         siRNA_hit=[]
         gene_hit=[]
 
-        
+        min_=np.min(curr_qval)
+        print "Exp min qval ", min_
+        print "How many min", len(np.where(curr_qval==min_)[0])
         for k in range(len(siRNAL)):
             if curr_qval[k]<threshold:
                 exp_hit.append(expL[k])
@@ -184,37 +214,38 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl3', filename='all_dista
             mito_hits = txtToList('../data/mitocheck_hits.txt')[:,0]
             siRNA_highconf=[siRNA for siRNA in siRNA_highconf if siRNA not in mito_hits]
         
-        exp_of_highconfsiRNAs=defaultdict(list)
-        exp_hit2=['{}--{}'.format(exp[0][:9], exp[1][2:5]) for exp in exp_hit]
-        for siRNA in siRNA_highconf:
-            experiments = np.array(expL)[np.where(np.array(siRNAL)==siRNA)]
-            experiments2=['{}--{}'.format(exp[0][:9], exp[1][2:5]) for exp in experiments]
-            
-            exp_of_highconfsiRNAs[siRNA]=[(experiment in exp_hit2) for experiment in experiments2]
-        
         gene_highconf = Counter([geneL[siRNAL.index(siRNA)] for siRNA in siRNA_highconf])
         #gene_highconf={gene:gene_highconf[gene]/float(gene_count[gene]) for gene in gene_highconf}
         gene_highconf=filter(lambda x: gene_highconf[x]>=1, gene_highconf)
-            
-        trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
-        gene_hits_Ensembl=[trad[el] for el in gene_hit]
-        gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
-        gene_Ensembl = [trad[el] for el in gene_count]
-        
-        for geneList in [gene_hits_Ensembl, gene_highconf_Ensembl, gene_Ensembl]:
-            for i,gene in enumerate(geneList):
-                    if '/' in gene:
-                        geneList[i]=gene.split('/')[0]
-                        geneList.append(gene.split('/')[1])
         
         print 'Ctrl hits ', len(ctrl_hit), 'out of', len(platesL), 'ie ', len(ctrl_hit)/float(len(platesL))
         print 'Experiences ', len(exp_hit), 'out of',len(expL), 'ie ', len(exp_hit)/float(len(expL))
         print 'siRNA high conf ', len(siRNA_highconf), 'out of',len(siRNA_count), 'ie', len(siRNA_highconf)/float(len(siRNA_count))
         print 'Genes high conf', len(gene_highconf), 'out of', len(gene_count), 'ie ', len(gene_highconf)/float(len(gene_count))
 
-        geneListToFile(gene_hits_Ensembl, 'gene_hits_p{}.txt'.format(parameters.index(param)))
-        geneListToFile(gene_highconf_Ensembl, 'gene_high_conf_p{}.txt'.format(parameters.index(param)))
-        geneListToFile(gene_Ensembl, 'gene_list_p{}.txt'.format(parameters.index(param)))
+        exp_of_highconfsiRNAs=defaultdict(list)
+        if trad:
+            exp_hit2=['{}--{}'.format(exp[0][:9], exp[1][2:5]) for exp in exp_hit]
+            for siRNA in siRNA_highconf:
+                experiments = np.array(expL)[np.where(np.array(siRNAL)==siRNA)]
+                experiments2=['{}--{}'.format(exp[0][:9], exp[1][2:5]) for exp in experiments]
+                
+                exp_of_highconfsiRNAs[siRNA]=[(experiment in exp_hit2) for experiment in experiments2]
+            
+            trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+            gene_hits_Ensembl=[trad[el] for el in gene_hit]
+            gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
+            gene_Ensembl = [trad[el] for el in gene_count]
+            
+            for geneList in [gene_hits_Ensembl, gene_highconf_Ensembl, gene_Ensembl]:
+                for i,gene in enumerate(geneList):
+                        if '/' in gene:
+                            geneList[i]=gene.split('/')[0]
+                            geneList.append(gene.split('/')[1])
+    
+            geneListToFile(gene_hits_Ensembl, 'gene_hits_p{}.txt'.format(parameters.index(param)))
+            geneListToFile(gene_highconf_Ensembl, 'gene_high_conf_p{}.txt'.format(parameters.index(param)))
+            geneListToFile(gene_Ensembl, 'gene_list_p{}.txt'.format(parameters.index(param)))
         
         r.append([exp_hit, gene_hit, gene_highconf])
         
@@ -224,24 +255,27 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl3', filename='all_dista
 #                result[gene]=defaultdict(list)
 #            result[gene][siRNAL[i]].append(curr_qval[i])
 
-    return r, exp_of_highconfsiRNAs, siRNA_highconf, siRNAL, curr_qval
+    return r, exp_of_highconfsiRNAs, siRNA_highconf, expL, curr_qval
 
     
 def collectingDistances(filename, folder, 
                         key_name = 'distances_whole_5Ctrl3',
                         qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl =False,
-                        redo=False, siRNAFilterList=None,long_version=False):
+                        redo=False, siRNAFilterList=None,long_version=False, usable_file='../resultData/features_on_films/usable_experiments_whole_mitocheck.pkl'):
     if filename not in os.listdir(folder) or redo:
         if not testCtrl:
             files = filter(lambda x: key_name in x and 'CTRL' not in x and 'all' not in x, os.listdir(folder))
             yqualDict=expSi(qc_filename, sens=0)
             dictSiEntrez=siEntrez(mapping_filename)
+            if long_version:
+                f=open(os.path.join(folder, usable_file))
+                usable=pickle.load(f); f.close()
+            
         else:
             files = filter(lambda x: key_name in x and 'CTRL' in x  and 'all' not in x, os.listdir(folder))
         print len(files)
     
         result={param:[[], [], [], None] for param in parameters}
-        pbls=[]
         for file_ in files:
             f=open(os.path.join(folder, file_))
             d=pickle.load(f)
@@ -265,43 +299,31 @@ def collectingDistances(filename, folder,
     #                    
                         result[param][0].extend([siRNA for k in range(len(l))])
                         if not testCtrl:
-                            try:
-                                gene = dictSiEntrez[siRNA]
-                            except:
-                                pdb.set_trace()
+                            gene = dictSiEntrez[siRNA]
                             expList = np.array(strToTuple(yqualDict[siRNA], os.listdir('/share/data20T/mitocheck/tracking_results')))
                            
                             if d[param].shape[0]==len(expList):
-                                used_experiments = expList
+                                used_experiments = expList[l]
                             else:
                                 if long_version:
-                                    curr_usable =np.where(usable('/share/data20T/mitocheck/tracking_results', expList,
-                                                                               qc='../data/qc_export.txt',mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0]
-                                    try:
-                                        used_experiments = expList[curr_usable]
-                                        used_experiments = used_experiments[l]
-                                    except:
-                                        pbls.append(file_)
-                                        continue
+                                    used_experiments = expList[usable[siRNA]]
+                                    used_experiments = used_experiments[l]
                                 else:
                                     used_experiments=expList[l]
-                            result[param][1].extend(list(used_experiments))
+                                    
+                            result[param][1].extend([el[0][:9]+'--'+el[1][2:5] for el in used_experiments])
                             result[param][2].extend([gene for k in range(len(l))])
-    
                         
                         result[param][3]=np.vstack((result[param][3], d[param][l])) if result[param][3] is not None else d[param][l]
 
         f=open(os.path.join(folder, filename), 'w')
-        pickle.dump([result,pbls], f); f.close()
+        pickle.dump(result, f); f.close()
 
     else:
         f=open(os.path.join(folder, filename))
         result=pickle.load(f); f.close()
     
     return result
-
-    
-
 def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False):
     empirical_pval = {param : np.zeros(shape = (dist_exp[param].shape[0], dist_exp[param].shape[1]), dtype=float) for param in parameters}
     empirical_qval = {param : np.zeros(shape = (dist_exp[param].shape[0], dist_exp[param].shape[1]), dtype=float) for param in parameters}

@@ -6,9 +6,13 @@ import cPickle as pickle
 import numpy as np
 import vigra.impex as vi
 from PIL import Image
+from optparse import OptionParser
+
 
 from util import typeD, typeD2
 from tracking.trajPack import sdFeatures1, logTrsf
+
+from tracking.trajPack.clustering import usable
 
 def is_ctrl(experiment):
     id_ = int(experiment[0].split('_')[0][2:])
@@ -438,8 +442,38 @@ def noRaw(arrExp, moviesD='/share/data20T/mitocheck/compressed_data'):
             elif len(zz)>1: raise
             else:
                 resultToDo.append(arrExp[k])
-    return bou, resultNoRaw, resultToDo    
+    return bou, resultNoRaw, resultToDo   
 
+def countingUsable(siRNAL, result_file, qc_file='../data/qc_export.txt', 
+                   tracking_folder='/share/data20T/mitocheck/tracking_results', resultFolder='../resultData/features_on_films'):
+    '''
+    This function is designed to tell which experiments of a given siRNA in siRNAL are usable for trajectory study
+    
+    '''
+    result=defaultdict(list)
+    yqualDict=expSi(qc_file, sens=0)
+    
+    for siRNA in siRNAL:
+        expList = np.array(strToTuple(yqualDict[siRNA], os.listdir(tracking_folder)))
+        
+        result[siRNA] =np.where(usable(tracking_folder, 
+                                       expList,
+                                       qc=qc_file,
+                                       mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0] 
+    
+    if result_file is os.listdir(resultFolder):
+        f=open(os.path.join(resultFolder, result_file), 'r')
+        r=pickle.load(f); f.close()
+        
+    else:
+        r={}
+        
+    r.update(result)
+    f=open(os.path.join(resultFolder, result_file), 'w')
+    pickle.dump(r, f)
+    
+    return
+    
 def countingDone(experiments,featlistonly=True, name=None,rawD='/share/data20T/mitocheck/Alice/results',\
                  trajD = "/share/data20T/mitocheck/tracking_results", featureTabName='hist2_tabFeatures_{}.pkl'):
     '''
@@ -770,4 +804,24 @@ class ArffReader(object):
 
     
 if __name__ == '__main__':
-    checkingHDF5()
+
+    description ='%prog - Checking usable experiments for all Mitocheck siRNAs'
+    parser = OptionParser(usage="usage: %prog [options]",
+                         description=description)
+
+    parser.add_option("-s", "--slice", dest="slice", default=0,
+                      help="The slice of the list which we're going to deal with")
+    
+    (options, args) = parser.parse_args()    
+    f=open(z,'r')
+    siRNAL=pickle.load(f); f.close()
+    
+    l=len(siRNAL)/100
+    if options.slice==100:
+        end=len(siRNAL)
+    else:
+        end=(options.slice+1)*l
+    siRNAL=siRNAL[options.slice*l:end]
+    
+    countingUsable(siRNAL, result_file='usable_experiments_whole_mitocheck.pkl', qc_file='../data/qc_export.txt', 
+                   tracking_folder='/share/data20T/mitocheck/tracking_results', resultFolder='../resultData/features_on_films')
