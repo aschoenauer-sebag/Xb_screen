@@ -20,7 +20,7 @@ pbsArrayEnvVar = 'SGE_TASK_ID'
 
 def script_usable(outFolder='../scripts', baseName='usable'):
     cmd ="""
-python tracking/util/listFileManagement.py --slice %i
+python util/listFileManagement.py --slice %i
 """
     head = """#!/bin/sh
 cd %s""" %progFolder
