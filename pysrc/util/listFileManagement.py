@@ -10,9 +10,8 @@ from optparse import OptionParser
 
 
 from util import typeD, typeD2
-from tracking.trajPack import sdFeatures1, logTrsf
 
-from tracking.trajPack.clustering import usable
+from tracking.trajPack import clustering
 
 def is_ctrl(experiment):
     id_ = int(experiment[0].split('_')[0][2:])
@@ -456,7 +455,7 @@ def countingUsable(siRNAL, result_file, qc_file='../data/qc_export.txt',
     for siRNA in siRNAL:
         expList = np.array(strToTuple(yqualDict[siRNA], os.listdir(tracking_folder)))
         
-        result[siRNA] =np.where(usable(tracking_folder, 
+        result[siRNA] =np.where(clustering.usable(tracking_folder, 
                                        expList,
                                        qc=qc_file,
                                        mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0] 
