@@ -846,7 +846,7 @@ if __name__ == '__main__':
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
 
-    parser.add_option("-s", "--slice", dest="slice", default=0,
+    parser.add_option("-s", "--slice", dest="slice", default=0, type=int,
                       help="The slice of the list which we're going to deal with")
     
     (options, args) = parser.parse_args()    
