@@ -29,7 +29,7 @@ cd %s""" %progFolder
         cour_cmd= cmd%k        
         # this is now written to a script file (simple text file)
         # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
-        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
+        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(k))
         script_file = file(script_name, "w")
         script_file.write(head + cour_cmd)
         script_file.close()
