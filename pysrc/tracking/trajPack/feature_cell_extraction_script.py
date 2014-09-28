@@ -26,7 +26,7 @@ python tracking/util/listFileManagement.py --slice %i
 cd %s""" %progFolder
     size=100
     for k in range(100):
-        cour_cmd= cmd%k        
+        cour_cmd= cmd%(k-1)        
         # this is now written to a script file (simple text file)
         # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
         script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(k))
