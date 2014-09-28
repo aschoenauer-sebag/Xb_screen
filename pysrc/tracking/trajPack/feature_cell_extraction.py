@@ -120,7 +120,7 @@ def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="al
 #    p.legend()
 #    p.show()
 
-def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="all_distances_whole2_CTRL.pkl", threshold=0.05, sup=False, renorm_first_statistic=False,
+def hitDistances(folder,key_name = 'distances_whole_5Ctrl3', filename='all_distances_whole2.pkl', ctrl_filename ="all_distances_whole2_CTRL.pkl", threshold=0.05, sup=False, renorm_first_statistic=False,
                  renorm_second_statistic=True, redo=False, without_mitotic_hits=False):
     '''
     This function collects all distances or p-values from files, then with or without renormalizing them with respect to control distributions
@@ -130,9 +130,11 @@ def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="al
     #i. Collecting distances
         #parameters : names of quality control and mapping files
     
-    exp = collectingDistances(filename, folder, testCtrl=False, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt',
+    exp = collectingDistances(filename, folder,key_name, 
+                              testCtrl=False, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt',
                               redo=redo)
-    ctrl = collectingDistances(ctrl_filename, folder, testCtrl=True, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt',
+    ctrl = collectingDistances(ctrl_filename, folder,key_name,
+                               testCtrl=True, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt',
                                redo=redo)        
     r=[]
     if type(exp)==list:
@@ -225,15 +227,17 @@ def hitDistances(folder, filename='all_distances_whole2.pkl', ctrl_filename ="al
     return r, exp_of_highconfsiRNAs, siRNA_highconf, siRNAL, curr_qval
 
     
-def collectingDistances(filename, folder, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl =False,
+def collectingDistances(filename, folder, 
+                        key_name = 'distances_whole_5Ctrl3',
+                        qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl =False,
                         redo=False, siRNAFilterList=None,long_version=False):
     if filename not in os.listdir(folder) or redo:
         if not testCtrl:
-            files = filter(lambda x: 'distances_whole_5Ctrl2' in x and 'CTRL' not in x and 'all' not in x, os.listdir(folder))
+            files = filter(lambda x: key_name in x and 'CTRL' not in x and 'all' not in x, os.listdir(folder))
             yqualDict=expSi(qc_filename, sens=0)
             dictSiEntrez=siEntrez(mapping_filename)
         else:
-            files = filter(lambda x: 'distances_whole_5Ctrl2' in x and 'CTRL' in x  and 'all' not in x, os.listdir(folder))
+            files = filter(lambda x: key_name in x and 'CTRL' in x  and 'all' not in x, os.listdir(folder))
         print len(files)
     
         result={param:[[], [], [], None] for param in parameters}
