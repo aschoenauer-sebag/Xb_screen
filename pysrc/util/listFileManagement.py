@@ -813,7 +813,7 @@ if __name__ == '__main__':
                       help="The slice of the list which we're going to deal with")
     
     (options, args) = parser.parse_args()    
-    f=open(z,'r')
+    f=open('../data/siRNA_targeted_Mitocheck_2014.pkl','r')
     siRNAL=pickle.load(f); f.close()
     
     l=len(siRNAL)/100
