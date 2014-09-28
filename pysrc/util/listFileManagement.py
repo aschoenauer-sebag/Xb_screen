@@ -1,4 +1,4 @@
-import os, pdb, shutil
+import os, pdb, shutil,sys
 from collections import defaultdict
 from operator import itemgetter
 from collections import Counter
@@ -11,7 +11,45 @@ from optparse import OptionParser
 
 from util import typeD, typeD2
 
-from tracking.trajPack import clustering
+def usable(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', 
+           filename='hist_tabFeatures_{}.pkl'):
+    
+    yqualDict=expSi(qc)
+    dictSiEntrez=siEntrez(mitocheck)
+    r=[]
+    for exp in expL:
+        pl,w=exp
+        if pl[:9]+'--'+w[2:5] not in yqualDict:
+    #i. checking if quality control passed
+            sys.stderr.write("Quality control not passed {} {} \n".format(pl[:9], w[2:5]))
+            r.append(False)   
+        elif not is_ctrl(exp) and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
+    #ii.checking if siRNA corresponds to a single target in the current state of knowledge
+            sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(pl[:9], w[2:5]))
+            r.append(False)  
+        else:
+            try:
+    #iii.loading data
+                f=open(os.path.join(folder, pl, filename.format(w)), 'r')
+                arr, coord, histN= pickle.load(f)
+                f.close()
+            except IOError:
+                sys.stderr.write("No file {}\n".format(os.path.join(pl, filename.format(w))))
+                r.append(False)
+            except EOFError:
+                sys.stderr.write("EOFError with file {}\n".format(os.path.join(pl, filename.format(w))))
+                r.append(False)
+            else:
+                if arr==None:
+                    sys.stderr.write( "Array {} is None\n".format(os.path.join(pl, filename.format(w))))
+                    r.append(False)
+                elif len(arr.shape)==1 or arr.shape[0]<20:
+                    sys.stderr.write("Array {} has less than 20 trajectories. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
+                    r.append(False)
+                else:
+                    r.append(True)
+    return np.array(r)
+
 
 def is_ctrl(experiment):
     id_ = int(experiment[0].split('_')[0][2:])
@@ -455,7 +493,7 @@ def countingUsable(siRNAL, result_file, qc_file='../data/qc_export.txt',
     for siRNA in siRNAL:
         expList = np.array(strToTuple(yqualDict[siRNA], os.listdir(tracking_folder)))
         
-        result[siRNA] =np.where(clustering.usable(tracking_folder, 
+        result[siRNA] =np.where(usable(tracking_folder, 
                                        expList,
                                        qc=qc_file,
                                        mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0] 
