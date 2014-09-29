@@ -498,16 +498,8 @@ def countingUsable(siRNAL, result_file, qc_file='../data/qc_export.txt',
                                        qc=qc_file,
                                        mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0] 
     
-    if result_file is os.listdir(resultFolder):
-        f=open(os.path.join(resultFolder, result_file), 'r')
-        r=pickle.load(f); f.close()
-        
-    else:
-        r={}
-        
-    r.update(result)
     f=open(os.path.join(resultFolder, result_file), 'w')
-    pickle.dump(r, f)
+    pickle.dump(result, f)
     
     return
     
@@ -859,6 +851,6 @@ if __name__ == '__main__':
     else:
         end=(options.slice+1)*l
     siRNAL=siRNAL[options.slice*l:end]
-    
-    countingUsable(siRNAL, result_file='usable_experiments_whole_mitocheck.pkl', qc_file='../data/qc_export.txt', 
+    print len(siRNAL), options.slice*l, end
+    countingUsable(siRNAL, result_file='usable_experiments_whole_mitocheck{}.pkl'.format(options.slice), qc_file='../data/qc_export.txt', 
                    tracking_folder='/share/data20T/mitocheck/tracking_results', resultFolder='../resultData/features_on_films')

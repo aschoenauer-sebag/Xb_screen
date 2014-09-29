@@ -268,7 +268,7 @@ def collectingDistances(filename, folder,
             yqualDict=expSi(qc_filename, sens=0)
             dictSiEntrez=siEntrez(mapping_filename)
             if long_version:
-                f=open(os.path.join(folder, usable_file))
+                f=open(usable_file)
                 usable=pickle.load(f); f.close()
             
         else:
