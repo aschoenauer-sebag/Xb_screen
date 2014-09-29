@@ -120,48 +120,138 @@ def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="al
 #    p.legend()
 #    p.show()
 
-def multipleHitDistances(folder, iterations, threshold, filename='all_distances_whole_5Ctrl', combination='min', redo=False, without_mitotic_hits=False):
+def multipleHitDistances(folder, iterations, threshold=0.05, qc_filename='../data/mapping_2014/qc_export.txt', filename='all_distances_whole_5Ctrl', combination='min', redo=False, without_mitotic_hits=False):
     
     result=[]
     expL=None
-    for k in iterations:
-        print '------------------------------------------- iteration ',k
-        _, _, _, curr_expL, curr_qval = hitDistances(os.path.join(folder, 'step_whole_5Ctrl{}'.format(k)),
-                key_name = 'distances_whole_5Ctrl{}'.format(k), 
-                filename='{}{}.pkl'.format(filename, k), 
-                ctrl_filename ="{}{}_CTRL.pkl".format(filename, k), 
-                threshold=threshold, sup=False, renorm_first_statistic=False,
-                 renorm_second_statistic=True, redo=redo, without_mitotic_hits=without_mitotic_hits, trad=False)
-        
-        result.append((np.array(curr_expL), np.array(curr_qval)))
-        expL=curr_expL if expL is None else filter(lambda x: x in expL, curr_expL)
-    print 'iterations done ', len(expL)
-    global_result = np.zeros(shape=(len(expL), len(iterations)))
-    for i in range(len(expL)):
+    exp_to_siRNA=expSi(qc_filename, sens=1)
+    if 'all_distances_iter{}.pkl'.format(len(iterations)) not in os.listdir(folder) or redo:
+        for k in iterations:
+            print '------------------------------------------- iteration ',k
+            _, _, _, curr_result = hitDistances(os.path.join(folder, 'step_whole_5Ctrl{}'.format(k)),
+                    key_name = 'distances_whole_5Ctrl{}'.format(k), 
+                    filename='{}{}.pkl'.format(filename, k), 
+                    ctrl_filename ="{}{}_CTRL.pkl".format(filename, k), 
+                    threshold=threshold, sup=False, renorm_first_statistic=False,
+                    qc_filename=qc_filename,
+                     renorm_second_statistic=True, redo=redo, without_mitotic_hits=without_mitotic_hits, trad=False, iteration=k)
+            curr_expL=curr_result[:,0]
+            curr_qval=np.array(curr_result[:,-1],dtype=np.float_)
+            result.append((np.array(curr_expL), np.array(curr_qval)))
+            if expL is None:
+                expL=sorted(curr_expL) 
+                siRNAL=np.array(curr_result[:,2])
+                geneL=np.array(curr_result[:,1])
+                
+            elif expL !=sorted(curr_expL):
+                print '######################## different experiment list - need to recompute siRNA list'
+                pdb.set_trace()
+                expL=filter(lambda x: x in expL, curr_expL)
+            else:
+                print 'Same experiment list ', k
+        expL=np.array(expL)
+        print 'iterations done ', len(expL)
+    
+        global_result = np.zeros(shape=(len(expL), len(iterations)))
         for k in range(len(iterations)):
             curr_expL, curr_qval = result[k]
-            global_result[i,k]=curr_qval[np.where(curr_expL==expL[i])]
+            global_result[:,k]=curr_qval
+                
+        print 'Everything together'        
+        f=open(os.path.join(folder, 'all_distances_iter{}.pkl'.format(len(iterations))), 'w')
+        pickle.dump([expL, siRNAL, geneL, global_result], f);f.close()
+    else:
+        f=open(os.path.join(folder, 'all_distances_iter{}.pkl'.format(len(iterations))))
+        expL, siRNAL, geneL, global_result=pickle.load(f); f.close()
         
-    exp_hit=expL[np.where(np.min(global_result,1)<threshold)]
+    if combination=='min':
+        global_qval=np.min(global_result,1)
+    elif combination=="median":
+        global_qval=np.median(global_result,1)
+    elif combination=="max":
+        global_qval=np.max(global_result,1)
+    elif combination=='mean':
+        global_qval=np.mean(global_result,1)
+    
+    exp_hit, gene_hit, gene_highconf, exp_of_highconfsiRNAs, siRNA_highconf=finding_hit(global_qval, threshold=threshold, siRNAL=list(siRNAL), geneL=list(geneL), expL=list(expL),
+                                                                     trad=True, without_mitotic_hits=without_mitotic_hits)
     print len(exp_hit), 'sur iterations ', iterations
+    
+    return global_result, exp_hit, exp_of_highconfsiRNAs
+
+def finding_hit(curr_qval,threshold, siRNAL, geneL, expL,trad=True, without_mitotic_hits=False):
+    exp_hit=[]
+    siRNA_hit=[]
+    gene_hit=[]
+    siRNA_count=Counter(siRNAL)
+    gene_count=Counter(geneL)
+    
+    for k in range(len(siRNAL)):
+        if curr_qval[k]<threshold:
+            exp_hit.append(expL[k])
+            siRNA_hit.append(siRNAL[k])
+            gene_hit.append(geneL[k])
+                
+    siRNA_hit=Counter(siRNA_hit)
+    siRNA_hit_perc={siRNA:siRNA_hit[siRNA]/float(siRNA_count[siRNA]) for siRNA in siRNA_hit}
+    
+    siRNA_highconf = filter(lambda x: siRNA_hit_perc[x]>0.5 and siRNA_hit[x]>=2, siRNA_hit_perc)
+    
+    if without_mitotic_hits:
+        print "Filtering out mitotic hits from Mitocheck supp table 2"
+        mito_hits = txtToList('../data/mitocheck_hits.txt')[:,0]
+        siRNA_highconf=[siRNA for siRNA in siRNA_highconf if siRNA not in mito_hits]
+    
+    gene_highconf = Counter([geneL[siRNAL.index(siRNA)] for siRNA in siRNA_highconf])
+    #gene_highconf={gene:gene_highconf[gene]/float(gene_count[gene]) for gene in gene_highconf}
+    gene_highconf=filter(lambda x: gene_highconf[x]>=1, gene_highconf)
+    
+    print 'Experiences ', len(exp_hit), 'out of',len(expL), 'ie ', len(exp_hit)/float(len(expL))
+    print 'siRNA high conf ', len(siRNA_highconf), 'out of',len(siRNA_count), 'ie', len(siRNA_highconf)/float(len(siRNA_count))
+    print 'Genes high conf', len(gene_highconf), 'out of', len(gene_count), 'ie ', len(gene_highconf)/float(len(gene_count))
+
+    exp_of_highconfsiRNAs=[]
+    if trad:
+        for siRNA in siRNA_highconf:
+            experiments = np.array(expL)[np.where(np.array(siRNAL)==siRNA)]
+            exp_of_highconfsiRNAs.extend([experiment for experiment in experiments if experiment in exp_hit])
+        
+        trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+        gene_hits_Ensembl=[trad[el] for el in gene_hit]
+        gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
+        gene_Ensembl = [trad[el] for el in gene_count]
+        
+        for geneList in [gene_hits_Ensembl, gene_highconf_Ensembl, gene_Ensembl]:
+            for i,gene in enumerate(geneList):
+                    if '/' in gene:
+                        geneList[i]=gene.split('/')[0]
+                        geneList.append(gene.split('/')[1])
+
+        geneListToFile(gene_hits_Ensembl, 'gene_hits_KS.txt')
+        geneListToFile(gene_highconf_Ensembl, 'gene_high_conf_KS.txt')
+        geneListToFile(gene_Ensembl, 'gene_list_KS.txt')
+
+    return exp_hit, gene_hit, gene_highconf, exp_of_highconfsiRNAs, siRNA_highconf
         
         
 
-def hitDistances(folder,key_name = 'distances_whole_5Ctrl3', filename='all_distances_whole2.pkl', ctrl_filename ="all_distances_whole2_CTRL.pkl", threshold=0.05, sup=False, renorm_first_statistic=False,
-                 renorm_second_statistic=True, redo=False, without_mitotic_hits=False, trad=True):
+def hitDistances(folder,key_name = 'distances_whole_5Ctrl{}', filename='all_distances_whole_5Ctrl{}.pkl', ctrl_filename ="all_distances_whole_5Ctrl{}_CTRL.pkl", 
+                 threshold=0.05, sup=False, renorm_first_statistic=False,qc_filename='../data/mapping_2014/qc_export.txt',
+                 renorm_second_statistic=True, redo=False, without_mitotic_hits=False, trad=True, iteration=1, finding_hit_here=False):
     '''
     This function collects all distances or p-values from files, then with or without renormalizing them with respect to control distributions
     combines them with Fisher's method and finally with or without renormalizing them computes the hit list
     
     '''
+    
     #i. Collecting distances
         #parameters : names of quality control and mapping files
     
-    exp = collectingDistances(filename, folder,key_name, 
-                              testCtrl=False, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt',
+    exp = collectingDistances(filename.format(iteration), folder,key_name.format(iteration), 
+                              testCtrl=False, qc_filename=qc_filename,mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt',
                               redo=redo)
-    ctrl = collectingDistances(ctrl_filename, folder,key_name,
-                               testCtrl=True, qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt',
+    ctrl = collectingDistances(ctrl_filename.format(iteration), folder,key_name.format(iteration),
+                               testCtrl=True, qc_filename=qc_filename,mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt',
                                redo=redo)        
     r=[]
     if type(exp)==list:
@@ -176,78 +266,29 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl3', filename='all_dista
     ctrl_pval, ctrl_qval, combined_pval, combined_qval = empiricalDistributions({param:ctrl[param][-1] for param in parameters},
                                                            {param:exp[param][-1] for param in parameters}, folder, sup=sup,
                                                            renorm_first_statistic=renorm_first_statistic, renorm_second_statistic=renorm_second_statistic,
-                                                           redo=redo)
+                                                           redo=redo, iteration=iteration)
     for param in parameters:
         siRNAL, expL, geneL, _ = exp[param]
         platesL,_,_,_=ctrl[param]
         curr_pval=combined_pval[param]; curr_qval=combined_qval[param]
-        
-        siRNA_count=Counter(siRNAL)
-        gene_count=Counter(geneL)
         
         ctrl_hit=[]
         print "Ctrl min qval ", np.min(ctrl_qval[param])
         for k in range(len(platesL)):
             if ctrl_qval[param][k]<threshold:
                 ctrl_hit.append(platesL[k])
-    
-        exp_hit=[]
-        siRNA_hit=[]
-        gene_hit=[]
-
+        print 'Ctrl hits ', len(ctrl_hit), 'out of', len(platesL), 'ie ', len(ctrl_hit)/float(len(platesL))
+        
         min_=np.min(curr_qval)
         print "Exp min qval ", min_
         print "How many min", len(np.where(curr_qval==min_)[0])
-        for k in range(len(siRNAL)):
-            if curr_qval[k]<threshold:
-                exp_hit.append(expL[k])
-                siRNA_hit.append(siRNAL[k])
-                gene_hit.append(geneL[k])
-                
-        siRNA_hit=Counter(siRNA_hit)
-        siRNA_hit_perc={siRNA:siRNA_hit[siRNA]/float(siRNA_count[siRNA]) for siRNA in siRNA_hit}
-        
-        siRNA_highconf = filter(lambda x: siRNA_hit_perc[x]>0.5 and siRNA_hit[x]>=2, siRNA_hit_perc)
-        
-        if without_mitotic_hits:
-            print "Filtering out mitotic hits from Mitocheck supp table 2"
-            mito_hits = txtToList('../data/mitocheck_hits.txt')[:,0]
-            siRNA_highconf=[siRNA for siRNA in siRNA_highconf if siRNA not in mito_hits]
-        
-        gene_highconf = Counter([geneL[siRNAL.index(siRNA)] for siRNA in siRNA_highconf])
-        #gene_highconf={gene:gene_highconf[gene]/float(gene_count[gene]) for gene in gene_highconf}
-        gene_highconf=filter(lambda x: gene_highconf[x]>=1, gene_highconf)
-        
-        print 'Ctrl hits ', len(ctrl_hit), 'out of', len(platesL), 'ie ', len(ctrl_hit)/float(len(platesL))
-        print 'Experiences ', len(exp_hit), 'out of',len(expL), 'ie ', len(exp_hit)/float(len(expL))
-        print 'siRNA high conf ', len(siRNA_highconf), 'out of',len(siRNA_count), 'ie', len(siRNA_highconf)/float(len(siRNA_count))
-        print 'Genes high conf', len(gene_highconf), 'out of', len(gene_count), 'ie ', len(gene_highconf)/float(len(gene_count))
-
-        exp_of_highconfsiRNAs=defaultdict(list)
-        if trad:
-            exp_hit2=['{}--{}'.format(exp[0][:9], exp[1][2:5]) for exp in exp_hit]
-            for siRNA in siRNA_highconf:
-                experiments = np.array(expL)[np.where(np.array(siRNAL)==siRNA)]
-                experiments2=['{}--{}'.format(exp[0][:9], exp[1][2:5]) for exp in experiments]
-                
-                exp_of_highconfsiRNAs[siRNA]=[(experiment in exp_hit2) for experiment in experiments2]
-            
-            trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
-            gene_hits_Ensembl=[trad[el] for el in gene_hit]
-            gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
-            gene_Ensembl = [trad[el] for el in gene_count]
-            
-            for geneList in [gene_hits_Ensembl, gene_highconf_Ensembl, gene_Ensembl]:
-                for i,gene in enumerate(geneList):
-                        if '/' in gene:
-                            geneList[i]=gene.split('/')[0]
-                            geneList.append(gene.split('/')[1])
-    
-            geneListToFile(gene_hits_Ensembl, 'gene_hits_p{}.txt'.format(parameters.index(param)))
-            geneListToFile(gene_highconf_Ensembl, 'gene_high_conf_p{}.txt'.format(parameters.index(param)))
-            geneListToFile(gene_Ensembl, 'gene_list_p{}.txt'.format(parameters.index(param)))
-        
-        r.append([exp_hit, gene_hit, gene_highconf])
+        if finding_hit_here:
+            exp_hit, gene_hit, gene_highconf,exp_of_highconfsiRNAs,siRNA_highconf=finding_hit(curr_qval,
+                                                        threshold, siRNAL, geneL, expL,trad=trad, 
+                                                        without_mitotic_hits=without_mitotic_hits)
+            r.append([exp_hit, gene_hit, gene_highconf])
+        else:
+            exp_of_highconfsiRNAs, siRNA_highconf=None,None
         
 #        result = defaultdict(list)
 #        for i,gene in enumerate(geneL):
@@ -255,7 +296,9 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl3', filename='all_dista
 #                result[gene]=defaultdict(list)
 #            result[gene][siRNAL[i]].append(curr_qval[i])
 
-    return r, exp_of_highconfsiRNAs, siRNA_highconf, expL, curr_qval
+    result = zip(expL, geneL, siRNAL, np.array(curr_qval))
+    result.sort(key=itemgetter(0))
+    return r, exp_of_highconfsiRNAs, siRNA_highconf, np.array(result)
 
     
 def collectingDistances(filename, folder, 
@@ -359,7 +402,7 @@ def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False):
             
     return empirical_pval, empirical_qval
 
-def empiricalDistributions(dist_controls, dist_exp, folder, sup=False, union=False, redo=False, renorm_first_statistic=False, renorm_second_statistic=True):
+def empiricalDistributions(dist_controls, dist_exp, folder,iteration=1, sup=False, union=False, redo=False, renorm_first_statistic=False, renorm_second_statistic=True):
     '''
     This function computes empirical p-value distributions
     dist_controls et dist_exp are dictionaries with keys=parameter sets
@@ -369,14 +412,14 @@ def empiricalDistributions(dist_controls, dist_exp, folder, sup=False, union=Fal
     print "First, univariate p-values"
     if renorm_first_statistic:
         if 'empirical_p_qval.pkl' not in os.listdir(folder) or redo:
-            ctrl_pval, ctrl_qval = empiricalPvalues(dist_controls, dist_controls, folder,name='ctrlPval', sup=sup)
-            empirical_pval, empirical_qval = empiricalPvalues(dist_controls, dist_exp, folder,name='expPval', sup=sup)
+            ctrl_pval, ctrl_qval = empiricalPvalues(dist_controls, dist_controls, folder,name='ctrlPval{}'.format(iteration), sup=sup)
+            empirical_pval, empirical_qval = empiricalPvalues(dist_controls, dist_exp, folder,name='expPval{}'.format(iteration), sup=sup)
             
             
-            f = open(os.path.join(folder, 'empirical_p_qval.pkl'), 'w')
+            f = open(os.path.join(folder, 'empirical_p_qval{}.pkl'.format(iteration)), 'w')
             pickle.dump((ctrl_pval, ctrl_qval, empirical_pval, empirical_qval),f); f.close()
         else:
-            f=open(os.path.join(folder, 'empirical_p_qval.pkl'))
+            f=open(os.path.join(folder, 'empirical_p_qval{}.pkl'.format(iteration)))
             ctrl_pval, ctrl_qval, empirical_pval, empirical_qval = pickle.load(f); f.close()
     else:
         ctrl_pval = dist_controls; empirical_pval = dist_exp
@@ -397,14 +440,14 @@ def empiricalDistributions(dist_controls, dist_exp, folder, sup=False, union=Fal
     
     
     if renorm_second_statistic:
-        if 'comb_empirical_p_qval.pkl' not in os.listdir(folder) or redo:
-            ctrl_combined_pval2, ctrl_combined_qval = empiricalPvalues(ctrl_combined_pval, ctrl_combined_pval, folder,name='ctrlCombinedStat', sup=True)
-            combined_pval, combined_qval = empiricalPvalues(ctrl_combined_pval, combined_pval, folder,name='expCombinedStat', sup=True)
+        if 'comb_empirical_p_qval{}.pkl'.format(iteration) not in os.listdir(folder) or redo:
+            ctrl_combined_pval2, ctrl_combined_qval = empiricalPvalues(ctrl_combined_pval, ctrl_combined_pval, folder,name='ctrlCombinedStat{}'.format(iteration), sup=True)
+            combined_pval, combined_qval = empiricalPvalues(ctrl_combined_pval, combined_pval, folder,name='expCombinedStat{}'.format(iteration), sup=True)
             
-            f = open(os.path.join(folder, 'comb_empirical_p_qval.pkl'), 'w')
+            f = open(os.path.join(folder, 'comb_empirical_p_qval{}.pkl'.format(iteration)), 'w')
             pickle.dump((ctrl_combined_pval2, ctrl_combined_qval, combined_pval, combined_qval),f); f.close()
         else:
-            f = open(os.path.join(folder, 'comb_empirical_p_qval.pkl'), 'r')
+            f = open(os.path.join(folder, 'comb_empirical_p_qval{}.pkl'.format(iteration)), 'r')
             ctrl_combined_pval2, ctrl_combined_qval, combined_pval, combined_qval=pickle.load(f); f.close()
 
     else:
