@@ -952,13 +952,15 @@ class cellExtractor():
                 different_controls=range(len(usable_ctrl))
             else:
                 #randomly selecting two wells of the plate that will be used to be compared to the others, and do it twice
-                different_controls=np.random.shuffle([(a,b) for a,b in combinations(range(len(usable_ctrl)), 2)])[:21]
+                different_controls=[(a,b) for a,b in combinations(range(len(usable_ctrl)), 2)]
+                np.random.shuffle(different_controls)
+                different_controls=different_controls[:21]
             
             if self.verbose:
                 print different_controls
 
             for false_experiments in different_controls:
-                self.expList = list(usable_ctrl[false_experiments])
+                self.expList = [usable_ctrl[i] for i in false_experiments]
                 if self.verbose:
                     print 'false experiments', self.expList
 
