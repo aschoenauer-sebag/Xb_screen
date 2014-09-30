@@ -970,7 +970,7 @@ class cellExtractor():
                 
                 if len(usable_ctrl)==8:
                     left=[j for j in range(len(usable_ctrl)) if j not in false_experiments][np.random.permutation(len(usable_ctrl)-len(false_experiments))[0]]
-                    false_experiments.append(left[0])
+                    false_experiments=np.hstack((false_experiments,left))
                     
                 if self.verbose:
                     print 'to del on this plate ', false_experiments
