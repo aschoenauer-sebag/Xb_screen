@@ -797,7 +797,7 @@ class cellExtractor():
         else:
             return histDict, None
     
-    def ctrlHistograms(self, bins, toDel=[]):
+    def ctrlHistograms(self, bins,usable_ctrl=None, toDel=[]):
         '''
         Since we want to calculate the length of an experiment to its controls, we only need to keep one table per
         plate, and not one table per control experiment
@@ -813,12 +813,11 @@ class cellExtractor():
             
             #meaning we are dealing with control control tests
             if len(toDel)>0:
-                ctrlExpList = appendingControl([plate])
                 if self.verbose:
-                    print 'before cleaning', len(ctrlExpList)
+                    print 'before cleaning', len(usable_ctrl)
                 
-                true_ctrl = filter(lambda x: x not in toDel, range(len(ctrlExpList)))
-                ctrlExpList = list(np.array(ctrlExpList)[true_ctrl])
+                true_ctrl = filter(lambda x: x not in toDel, range(len(usable_ctrl)))
+                ctrlExpList = list(np.array(usable_ctrl)[true_ctrl])
                 if self.verbose:
                     print 'after cleaning', len(ctrlExpList)
             #saving the controls that were used to compare the 'false experiments' to use them to compare the real experiments of the same plate
@@ -973,7 +972,7 @@ class cellExtractor():
                 if self.verbose:
                     print 'to del on this plate ', false_experiments
                     
-                plates, ctrl_histogrammes = self.ctrlHistograms(bins, toDel=false_experiments)
+                plates, ctrl_histogrammes = self.ctrlHistograms(bins,usable_ctrl, toDel=false_experiments)
                     
                 #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON all control experiments 
                 #for the plate
