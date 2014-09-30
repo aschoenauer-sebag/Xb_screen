@@ -907,8 +907,8 @@ class cellExtractor():
                 d=pickle.load(f)
                 f.close()
             else:
-                d={}
-            d.update({self.parameters():distances})
+                d={self.parameters():None}
+            d[self.parameters()]=np.hstack((d[self.parameters()], distances)) if d[self.parameters()] is not None else distances
 
         f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)), 'w')
         pickle.dump(d, f)
@@ -949,7 +949,7 @@ class cellExtractor():
                 return
             elif len(usable_ctrl)<=6:
                 #randomly selecting one well of the plate that will be used to be compared to the others, and do it once
-                different_controls=range(len(usable_ctrl))
+                different_controls=[[i] for i in range(len(usable_ctrl))]
             else:
                 #randomly selecting two wells of the plate that will be used to be compared to the others, and do it twice
                 different_controls=[(a,b) for a,b in combinations(range(len(usable_ctrl)), 2)]
