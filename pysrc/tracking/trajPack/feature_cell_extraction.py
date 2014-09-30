@@ -956,8 +956,7 @@ class cellExtractor():
                 
             else:
                 #randomly selecting two wells of the plate that will be used to be compared to the others, and do it twice
-                different_controls=[[a,b] for a,b in combinations(range(len(usable_ctrl)), 2)][np.random.permutation(len(usable_ctrl)*(len(usable_ctrl)-1))[:21]]
-                different_controls=different_controls[:21]
+                different_controls=np.array([[a,b] for a,b in combinations(range(len(usable_ctrl)), 2)])[np.random.permutation(len(usable_ctrl)*(len(usable_ctrl)-1)/2)[:21]]
             
             if self.verbose:
                 print different_controls
