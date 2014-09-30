@@ -956,8 +956,7 @@ class cellExtractor():
                 
             else:
                 #randomly selecting two wells of the plate that will be used to be compared to the others, and do it twice
-                different_controls=[[a,b] for a,b in combinations(range(len(usable_ctrl)), 2)]
-                np.random.shuffle(different_controls)
+                different_controls=[[a,b] for a,b in combinations(range(len(usable_ctrl)), 2)][np.random.permutation(len(usable_ctrl)*(len(usable_ctrl)-1))[:21]]
                 different_controls=different_controls[:21]
             
             if self.verbose:
@@ -971,7 +970,7 @@ class cellExtractor():
                 histogrammes, bins = self.getData(self.settings.histDataAsWell)
                 
                 if len(usable_ctrl)==8:
-                    left=np.random.shuffle([j for j in range(len(usable_ctrl)) if j not in false_experiments])
+                    left=[j for j in range(len(usable_ctrl)) if j not in false_experiments][np.random.permutation(len(usable_ctrl)-len(false_experiments))[0]]
                     false_experiments.append(left[0])
                     
                 if self.verbose:
