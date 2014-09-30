@@ -907,7 +907,7 @@ class cellExtractor():
                 f.close()
             else:
                 d={self.parameters():None}
-            d[self.parameters()]=np.hstack((d[self.parameters()], distances)) if d[self.parameters()] is not None else distances
+            d[self.parameters()]=np.vstack((d[self.parameters()], distances)) if d[self.parameters()] is not None else distances
 
         f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)), 'w')
         pickle.dump(d, f)
