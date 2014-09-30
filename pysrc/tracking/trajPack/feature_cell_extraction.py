@@ -946,9 +946,14 @@ class cellExtractor():
             
             if len(usable_ctrl)<2:
                 return
+            elif len(usable_ctrl)==2:
+                #only one comparison possible if only two control movies
+                different_controls=[[0]]
+                
             elif len(usable_ctrl)<=6:
                 #randomly selecting one well of the plate that will be used to be compared to the others, and do it once
                 different_controls=[[i] for i in range(len(usable_ctrl))]
+                
             else:
                 #randomly selecting two wells of the plate that will be used to be compared to the others, and do it twice
                 different_controls=[(a,b) for a,b in combinations(range(len(usable_ctrl)), 2)]
