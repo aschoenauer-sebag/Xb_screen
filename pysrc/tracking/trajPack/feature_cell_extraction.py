@@ -12,6 +12,7 @@ elif getpass.getuser()=='lalil0u':
 
 from optparse import OptionParser
 from operator import itemgetter
+from itertools import combinations
 from collections import Counter, defaultdict
 from random import sample
 from scipy.stats import pearsonr
@@ -120,7 +121,11 @@ def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="al
 #    p.legend()
 #    p.show()
 
-def multipleHitDistances(folder, iterations, threshold=0.05, qc_filename='../data/mapping_2014/qc_export.txt', filename='all_distances_whole_5Ctrl', combination='min', redo=False, without_mitotic_hits=False):
+def multipleHitDistances(folder, iterations, 
+                         threshold=0.05, 
+                         qc_filename='../data/mapping_2014/qc_export.txt', filename='all_distances_whole_5Ctrl', 
+                         combination='min', redo=False, without_mitotic_hits=False,
+                         without_mean_persistence=True):
     
     result=[]
     expL=None
@@ -134,7 +139,9 @@ def multipleHitDistances(folder, iterations, threshold=0.05, qc_filename='../dat
                     ctrl_filename ="{}{}_CTRL.pkl".format(filename, k), 
                     threshold=threshold, sup=False, renorm_first_statistic=False,
                     qc_filename=qc_filename,
-                     renorm_second_statistic=True, redo=redo, without_mitotic_hits=without_mitotic_hits, trad=False, iteration=k)
+                     renorm_second_statistic=True, redo=redo, without_mitotic_hits=without_mitotic_hits, trad=False, iteration=k,
+                     without_mean_persistence=True)
+            
             curr_expL=curr_result[:,0]
             curr_qval=np.array(curr_result[:,-1],dtype=np.float_)
             result.append((np.array(curr_expL), np.array(curr_qval)))
@@ -237,7 +244,8 @@ def finding_hit(curr_qval,threshold, siRNAL, geneL, expL,trad=True, without_mito
 
 def hitDistances(folder,key_name = 'distances_whole_5Ctrl{}', filename='all_distances_whole_5Ctrl{}.pkl', ctrl_filename ="all_distances_whole_5Ctrl{}_CTRL.pkl", 
                  threshold=0.05, sup=False, renorm_first_statistic=False,qc_filename='../data/mapping_2014/qc_export.txt',
-                 renorm_second_statistic=True, redo=False, without_mitotic_hits=False, trad=True, iteration=1, finding_hit_here=False):
+                 renorm_second_statistic=True, redo=False, without_mitotic_hits=False, trad=True, iteration=1, finding_hit_here=False,
+                 without_mean_persistence=True):
     '''
     This function collects all distances or p-values from files, then with or without renormalizing them with respect to control distributions
     combines them with Fisher's method and finally with or without renormalizing them computes the hit list
@@ -266,7 +274,8 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl{}', filename='all_dist
     ctrl_pval, ctrl_qval, combined_pval, combined_qval = empiricalDistributions({param:ctrl[param][-1] for param in parameters},
                                                            {param:exp[param][-1] for param in parameters}, folder, sup=sup,
                                                            renorm_first_statistic=renorm_first_statistic, renorm_second_statistic=renorm_second_statistic,
-                                                           redo=redo, iteration=iteration)
+                                                           redo=redo, iteration=iteration,
+                                                           without_mean_persistence=without_mean_persistence)
     for param in parameters:
         siRNAL, expL, geneL, _ = exp[param]
         platesL,_,_,_=ctrl[param]
@@ -406,12 +415,21 @@ def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False):
             
     return empirical_pval, empirical_qval
 
-def empiricalDistributions(dist_controls, dist_exp, folder,iteration=1, sup=False, union=False, redo=False, renorm_first_statistic=False, renorm_second_statistic=True):
+def empiricalDistributions(dist_controls, dist_exp, folder,iteration=1, sup=False, union=False, redo=False, renorm_first_statistic=False, renorm_second_statistic=True,
+                           without_mean_persistence=True):
     '''
     This function computes empirical p-value distributions
     dist_controls et dist_exp are dictionaries with keys=parameter sets
     dist_controls[param] array of size nb experiments x nb of features
+    
+    Parameter without_mean_persistence says if we are going to take into account the mean persistence feature
+    
     '''
+#here we define what the features are
+    features = list(featuresNumeriques)
+    features.append('mean persistence')
+    features.append('mean straight')
+    
     param=parameters[0]
     print "First, univariate p-values"
     if renorm_first_statistic:
@@ -436,6 +454,12 @@ def empiricalDistributions(dist_controls, dist_exp, folder,iteration=1, sup=Fals
     ctrl_combined_qval = {param : np.zeros(shape = (ctrl_pval[param].shape[0],), dtype=float) for param in parameters}
     combined_qval = {param : np.zeros(shape = (empirical_pval[param].shape[0],), dtype=float) for param in parameters}
     for param in parameters:
+        if without_mean_persistence:
+            ctrl_pval[param]=np.delete(ctrl_pval[param], features.index('mean persistence'),1)
+            empirical_pval[param] = np.delete(empirical_pval[param], features.index('mean persistence'),1)
+            
+        pdb.set_trace()
+            
         stat = -2*np.sum(np.log(ctrl_pval[param]),1) 
         ctrl_combined_pval[param] = stat[:,np.newaxis]
         
@@ -875,21 +899,21 @@ class cellExtractor():
         return self.settings.outputFile.format(self.siRNA) in os.listdir(self.settings.result_folder)
     
     def saveResults(self, distances):
-#        if self.settings.outputFile.format(self.siRNA) in os.listdir(self.settings.result_folder):
-#            f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)))
-#            d=pickle.load(f)
-#            f.close()
-#            try:
-#                l=d[self.parameters()]
-#            except KeyError:
-#                pass
-#        else:
-#            d={}
+        if self.plate is None:
+            d={self.parameters():distances}
+        else:
+            if self.settings.outputFile.format(self.siRNA) in os.listdir(self.settings.result_folder):
+                f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)))
+                d=pickle.load(f)
+                f.close()
+            else:
+                d={}
+            d.update({self.parameters():distances})
 
-        d={self.parameters():distances}
         f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)), 'w')
         pickle.dump(d, f)
         f.close()
+
         return
     
     def __call__(self):
@@ -910,38 +934,54 @@ class cellExtractor():
             #iii. calculate the histograms of corresponding controls. Should be per plate then, a dictionary
             plates, ctrl_histogrammes = self.ctrlHistograms(bins)
             
+            #iv. calculate the distance from each experiment to its control
+            distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes)
+            print distances
+            #v. save results
+            self.saveResults(distances)
+            
+            
         else:
             ctrl = np.array(appendingControl([self.plate]))
             usable_ctrl = ctrl[np.where( usable(self.settings.data_folder, ctrl, qc=self.settings.quality_control_file, mitocheck=self.settings.mitocheck_file))]
             
             if len(usable_ctrl)<2:
                 return
-            elif len(usable_ctrl)<6:
-                #randomly selecting two wells of the plate that will be used to be compared to the others
-                false_exp = np.random.randint(len(usable_ctrl), size=1)
-                chosen_ctrl = filter(lambda x: x not in false_exp, range(len(usable_ctrl)))
+            elif len(usable_ctrl)<=6:
+                #randomly selecting one well of the plate that will be used to be compared to the others, and do it once
+                different_controls=range(len(usable))
             else:
-                chosen_ctrl = sample(xrange(len(usable_ctrl)), 5)
-                false_exp = filter(lambda x: x not in chosen_ctrl, range(len(usable_ctrl)))
-            
-            self.expList = list(usable_ctrl[false_exp])
-            histogrammes, bins = self.getData(self.settings.histDataAsWell)
-            
-            plates, ctrl_histogrammes = self.ctrlHistograms(bins, toDel=false_exp)
+                #randomly selecting two wells of the plate that will be used to be compared to the others, and do it twice
+                different_controls=np.random.shuffle([(a,b) for a,b in combinations(range(len(usable)), 2)])[:21]
             
             if self.verbose:
-                print "all ctrl", ctrl
-                print 'all usable ctrl', usable_ctrl
-                print 'false exp', self.expList
+                print different_controls
+
+            for false_experiments in different_controls:
+                self.expList = list(usable_ctrl[false_experiments])
+                if self.verbose:
+                    print 'false experiments', self.expList
+
+                histogrammes, bins = self.getData(self.settings.histDataAsWell)
                 
-            #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON all control experiments 
-            #for the plate
-    
-        #iv. calculate the distance from each experiment to its control
-        distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes)
-        print distances
-        #v. save results
-        self.saveResults(distances)
+                if len(usable)==8:
+                    left=np.random.shuffle([j for j in range(len(usable)) if j not in false_experiments])
+                    false_experiments.append(left[0])
+                    
+                if self.verbose:
+                    print 'to del on this plate ', false_experiments
+                    
+                plates, ctrl_histogrammes = self.ctrlHistograms(bins, toDel=false_experiments)
+                    
+                #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON all control experiments 
+                #for the plate
+        
+                #iv. calculate the distance from each experiment to its control
+                distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes)
+                print distances
+                #v. save results
+                self.saveResults(distances)
+                                 
         
         return
     
