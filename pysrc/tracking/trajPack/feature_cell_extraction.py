@@ -297,8 +297,9 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl{}', filename='all_dist
 #            result[gene][siRNAL[i]].append(curr_qval[i])
 
     result = zip(expL, geneL, siRNAL, np.array(curr_qval))
+    
     result.sort(key=itemgetter(0))
-    return r, exp_of_highconfsiRNAs, siRNA_highconf, np.array(result)
+    return exp_hit, exp_of_highconfsiRNAs, siRNA_highconf, np.array(result), 
 
     
 def collectingDistances(filename, folder, 
@@ -328,7 +329,10 @@ def collectingDistances(filename, folder,
                 if param not in d:
                     print "NO parameter sets ", file_, 'param ', parameters.index(param)
                 else:
-                    siRNA = file_.split('_')[-1][:-4]
+                    if not testCtrl:
+                        siRNA = file_.split('_')[-1][:-4]
+                    else:
+                        siRNA=file_[-13:-4]
                     if siRNAFilterList is not None and siRNA not in siRNAFilterList:
                         continue
                     
