@@ -147,7 +147,7 @@ cd %s""" %progFolder
         cmd = ''
         # command to be executed on the cluster
         temp_cmd = """
-python trajPack/clustering.py --action clustering --outputname results_whole_iter5_median_015 -n %i
+python tracking/trajPack/clustering.py --action clustering --outputname results_whole_iter5_median_015 -n %i
 """
         temp_cmd %= (
                      i
