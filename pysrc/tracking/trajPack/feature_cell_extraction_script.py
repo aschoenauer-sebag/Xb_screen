@@ -20,7 +20,7 @@ pbsArrayEnvVar = 'SGE_TASK_ID'
 
 def script_hierarchical_clustering(outFolder='../scripts', baseName='hierclust'):
     cmd ="""
-python util/hierarchical_clustering.py --level %i
+python util/hierarchical_clustering.py --level %f
 """
     head = """#!/bin/sh
 cd %s""" %progFolder
