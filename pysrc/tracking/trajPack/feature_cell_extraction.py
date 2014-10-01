@@ -902,11 +902,24 @@ class cellExtractor():
         return distances
     
     def alreadyDone(self):
-        return self.settings.outputFile.format(self.siRNA) in os.listdir(self.settings.result_folder)
+        if self.settings.outputFile.format(self.siRNA) in os.listdir(self.settings.result_folder):
+            f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)))
+            d=pickle.load(f); f.close()
+            if self.parameters() in d:
+                return True
+            else:
+                return False
+        else:
+            return False
     
     def saveResults(self, distances):
         if self.plate is None:
-            d={self.parameters():distances}
+            if self.settings.outputFile.format(self.siRNA) in os.listdir(self.settings.result_folder):
+                f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)))
+                d=pickle.load(f); f.close()
+                d.update({self.parameters():distances})
+            else:
+                d={self.parameters():distances}
         else:
             if self.settings.outputFile.format(self.siRNA) in os.listdir(self.settings.result_folder):
                 f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)))
