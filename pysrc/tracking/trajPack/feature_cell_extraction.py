@@ -925,6 +925,8 @@ class cellExtractor():
                 f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)))
                 d=pickle.load(f)
                 f.close()
+                if self.parameters() not in d:
+                    d[self.parameters()]=None
             else:
                 d={self.parameters():None}
             d[self.parameters()]=np.vstack((d[self.parameters()], distances)) if d[self.parameters()] is not None else distances
