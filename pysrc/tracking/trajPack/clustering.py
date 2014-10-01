@@ -1183,19 +1183,32 @@ def importSpecClust(folder, baseName, neighbours, sigma, show=False):
         return eigen_gap, BIC, FS, partition, sil, coh
 
 if __name__ == '__main__':
+    description =\
+'''
+%prog - Parallel clustering
+You can in particular set up the noise level
+'''
+    parser = OptionParser(usage="usage: %prog [options]",
+                         description=description)
     
-    f=open('../resultData/features_on_films/results_whole_iter4_hit_experiments_median01.pkl')
-    l=pickle.load(f)
-    f.close()
+    parser.add_option('--action', type=str, default=None)
+    parser.add_option('--outputname', type=str, default='results_whole_iter5_median_01')
+    (options, args) = parser.parse_args()
+
     
-    ll=strToTuple(l, os.listdir('/share/data20T/mitocheck/tracking_results'))
-    
-    print 'this is launched'
-    _, r, _,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation('/share/data20T/mitocheck/tracking_results/', 
-                            ll, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=True)
-    f=open('../resultData/features_on_films/hit_experiments_median01_iter4_data.pkl', 'w')
-    pickle.dump([r,  who,ctrlStatus, length, genes, sirna, time_length], f)
-    f.close()
+    if options.action=='collectingTrajectories':
+        f=open(os.path.join('../resultData/features_on_films/', options.outputname+'_hit_exp.pkl'))
+        l=pickle.load(f)
+        f.close()
+        
+        ll=strToTuple(l, os.listdir('/share/data20T/mitocheck/tracking_results'))
+        
+        print 'this is launched'
+        _, r, _,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation('/share/data20T/mitocheck/tracking_results/', 
+                                ll, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=True)
+        f=open(os.path.join('../resultData/features_on_films/', options.outputname+'hit_exp_data.pkl'), 'w')
+        pickle.dump([r,  who,ctrlStatus, length, genes, sirna, time_length], f)
+        f.close()
     
 #    f=open('../resultData/features_on_films/hit_experiments_siRNAhighconf_PCAed_data.pkl')
 #    narr=pickle.load(f)
@@ -1206,14 +1219,6 @@ if __name__ == '__main__':
 #    f=open('../resultData/features_on_films/batchKMeans_hitexp_highconfsiRNAs_1.pkl', 'w')
 #    pickle.dump([silhouette_r, cohesion_r], f); f.close()
     
-#    description =\
-#'''
-#%prog - Parallel clustering
-#You can in particular set up the noise level
-#'''
-#    parser = OptionParser(usage="usage: %prog [options]",
-#                         description=description)
-
 #    parser.add_option("-f", "--folder", dest="folder", default='/cbio/donnees/aschoenauer/workspace2/Tracking/resultData/',
 #                      help="The folder where the data is and everything saved")
 #    
