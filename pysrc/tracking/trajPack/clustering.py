@@ -1205,7 +1205,7 @@ You can in particular set up the noise level
         
         print 'this is launched'
         _, r, _,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation('/share/data20T/mitocheck/tracking_results/', 
-                                ll, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=True)
+                                ll, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=False)
         f=open(os.path.join('../resultData/features_on_films/', options.outputname+'hit_exp_data.pkl'), 'w')
         pickle.dump([r,  who,ctrlStatus, length, genes, sirna, time_length], f)
         f.close()
