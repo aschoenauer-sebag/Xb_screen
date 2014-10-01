@@ -1209,6 +1209,19 @@ You can in particular set up the noise level
         f=open(os.path.join('../resultData/features_on_films/', options.outputname+'hit_exp_data.pkl'), 'w')
         pickle.dump([r,  who,ctrlStatus, length, genes, sirna, time_length], f)
         f.close()
+        
+        from tracking.trajPack import featuresSaved
+        from sklearn.decomposition import PCA
+        
+        r=np.hstack((r[:,:len(featuresNumeriques)], r[:,featuresSaved.index('mean persistence'), np.newaxis], r[:, featuresSaved.index('mean straight'), np.newaxis]))
+        print r.shape
+
+        pca=PCA(n_components=r.shape[1])
+        nr=(r-np.mean(r,0))/np.std(r,0)
+        pcaed=pca.fit_transform(nr)
+        pcaed=pcaed/np.std(pcaed,0)
+        f=open(os.path.join('../resultData/features_on_films/', options.outputname+'_pcaed.pkl'), 'w')
+        pickle.dump((pca, pcaed),f); f.close()
     
 #    f=open('../resultData/features_on_films/hit_experiments_siRNAhighconf_PCAed_data.pkl')
 #    narr=pickle.load(f)
