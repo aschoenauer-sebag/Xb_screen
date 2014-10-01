@@ -1201,8 +1201,8 @@ You can in particular set up the noise level
         l=pickle.load(f)
         f.close()
         
-        ll=strToTuple(l, os.listdir('/share/data20T/mitocheck/tracking_results'))
-        
+        ll=strToTuple(l[:-300], os.listdir('/share/data20T/mitocheck/tracking_results'))
+        ll.extend(l[-300:])
         print 'this is launched'
         _, r, _,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation('/share/data20T/mitocheck/tracking_results/', 
                                 ll, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=False)
