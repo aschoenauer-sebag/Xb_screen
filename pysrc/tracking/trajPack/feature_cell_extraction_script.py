@@ -120,7 +120,7 @@ python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --b
     else:
         #A. DEALING WITH CONTROLS
         baseName+='CTRL_'
-        siRNAList = os.listdir('/share/data20T/mitocheck/compressed_data/')
+        siRNAList = os.listdir('/share/data20T/mitocheck/tracking_results')
         cmd ="""
 python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s --bins_type %s --bin_size %s
 """
