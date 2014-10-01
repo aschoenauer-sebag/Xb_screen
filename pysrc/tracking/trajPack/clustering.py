@@ -1192,7 +1192,7 @@ You can in particular set up the noise level
                          description=description)
     
     parser.add_option('--action', type=str, default=None)
-    parser.add_option('--outputname', type=str, default='results_whole_iter5_median_01')
+    parser.add_option('--outputname', type=str, default='results_whole_iter5_median_015')
     (options, args) = parser.parse_args()
 
     
