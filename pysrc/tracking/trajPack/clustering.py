@@ -1193,6 +1193,8 @@ You can in particular set up the noise level
     
     parser.add_option('--action', type=str, default=None)
     parser.add_option('--outputname', type=str, default='results_whole_iter5_median_015')
+    parser.add_option("-n", "--n_iter", dest="n_iter", default = 0, 
+                      help="Nb de fois")
     (options, args) = parser.parse_args()
 
     
@@ -1222,15 +1224,16 @@ You can in particular set up the noise level
         pcaed=pcaed/np.std(pcaed,0)
         f=open(os.path.join('../resultData/features_on_films/', options.outputname+'_pcaed.pkl'), 'w')
         pickle.dump((pca, pcaed),f); f.close()
+        
+    elif options.action=='clustering':
+        f=open(os.path.join('../resultData/features_on_films/',options.outputname+'_pcaed.pkl'),'r')
+        pca, narr=pickle.load(f)
+        f.close()
     
-#    f=open('../resultData/features_on_films/hit_experiments_siRNAhighconf_PCAed_data.pkl')
-#    narr=pickle.load(f)
-#    f.close()
-    
-#    print 'BatchKMeans'
-#    silhouette_r, cohesion_r = BatchKmeans(narr, 2, 30, N=10)
-#    f=open('../resultData/features_on_films/batchKMeans_hitexp_highconfsiRNAs_1.pkl', 'w')
-#    pickle.dump([silhouette_r, cohesion_r], f); f.close()
+        print 'BatchKMeans'
+        silhouette_r, cohesion_r = BatchKmeans(narr, 2, 30, N=10)
+        f=open('../resultData/features_on_films/{}_batchKM_{}.pkl'.format(options.outputname, options.n_iter), 'w')
+        pickle.dump([silhouette_r, cohesion_r], f); f.close()
     
 #    parser.add_option("-f", "--folder", dest="folder", default='/cbio/donnees/aschoenauer/workspace2/Tracking/resultData/',
 #                      help="The folder where the data is and everything saved")
@@ -1243,8 +1246,7 @@ You can in particular set up the noise level
 #                       4 for fuzzy C-means\
 #                       5 for IBP")
 #
-#    parser.add_option("-n", "--n_iter", dest="n_iter", default = 0, 
-#                      help="Nb de fois")
+
 #    
 #    parser.add_option("-g", "--neighbours", dest="neighbours", default = 5, type=int,
 #                      help="Nb de voisins")

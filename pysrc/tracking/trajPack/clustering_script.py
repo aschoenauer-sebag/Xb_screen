@@ -134,41 +134,30 @@ python tracking/histograms/k_means_transportation.py --only_dataprep %i --sim %i
     return 1
 
 
-def generationScript(baseName, algo, data, debut, fin, neighbours, sigma, density, covar, fuzzifier, num_samp):
-    jobCount = 0
-    nb_jobs = fin-debut+1
-    if algo==0:
-        baseName = baseName+'_n{}_'.format(neighbours)
-    if algo==4:
-        baseName = baseName+'_n{}_s{}'.format(neighbours, sigma)
+def generationScript(baseName, algo=None, data=None, debut=None, fin=None, neighbours=None, sigma=None, density=None, covar=None, fuzzifier=None, num_samp=None):
+    jobCount = 10
+#    nb_jobs = fin-debut+1
+#    if algo==0:
+#        baseName = baseName+'_n{}_'.format(neighbours)
+#    if algo==4:
+#        baseName = baseName+'_n{}_s{}'.format(neighbours, sigma)
     head = """#!/bin/sh
 cd %s""" %progFolder
-    for i in range(nb_jobs):
-        jobCount += 1
+    for i in range(jobCount):
         cmd = ''
-
         # command to be executed on the cluster
         temp_cmd = """
-python trajPack/clustering.py -f /cbio/donnees/aschoenauer/workspace2/Tracking/resultData -a %i -n %i -g %i -s %f -d %i --density %i --covariance %s --fuzzy %i --numsampling %i
+python trajPack/clustering.py --action clustering --outputname results_whole_iter5_median_015 -n %i
 """
-
         temp_cmd %= (
-                algo,
-                int(debut)+i,
-                int(neighbours),
-                sigma,
-                data,
-                density,
-                covar,
-                fuzzifier,
-                num_samp
+                     i
                 )
 
         cmd += temp_cmd
 
         # this is now written to a script file (simple text file)
         # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
-        script_name = os.path.join(scriptFolder, '%s%i.sh' % (baseName, jobCount))
+        script_name = os.path.join(scriptFolder, '%s%i.sh' % (baseName, i+1))
         script_file = file(script_name, "w")
         script_file.write(head + cmd)
         script_file.close()

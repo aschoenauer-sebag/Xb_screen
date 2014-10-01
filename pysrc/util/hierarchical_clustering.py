@@ -30,6 +30,7 @@ elif getpass.getuser()=='lalil0u':
 
 import matplotlib.pyplot as pylab
 import scipy
+from optparse import OptionParser
 import cPickle as pickle
 import scipy.cluster.hierarchy as sch
 import fastcluster
@@ -194,8 +195,8 @@ def heatmap(x, row_header, column_header, row_method,
     else:
         ind1 = ['NA']*len(row_header) ### Used for exporting the flat cluster data
     if save:
-        print 'Saving flat clusters in', 'Flat_clusters_{}.pkl'.format(dataset_name) 
-        f=open('Flat_clusters_{}.pkl'.format(dataset_name), 'w')
+        print 'Saving flat clusters in', 'Flat_clusters_{}_{}.pkl'.format(dataset_name, level) 
+        f=open('Flat_clusters_{}_{}.pkl'.format(dataset_name,level), 'w')
         pickle.dump([ind1, ind2],f); f.close()
     
     if trad:
@@ -460,13 +461,20 @@ def importData(filename):
     return numpy.array(matrix), column_header, row_header
   
 if __name__ == '__main__':
-    f=open('../resultData/features_on_films/hit_experiments_5Ctrl2_siRNAhighconf_PCAED_data.pkl')
-    narr=pickle.load(f)
+    
+    parser = OptionParser(usage="usage: %prog [options]")    
+    parser.add_option('--level', type=int, default=0.4)
+    
+    (options, args) = parser.parse_args()
+    
+    f=open('../resultData/features_on_films/results_whole_iter5_median_015_pcaed.pkl')
+    _, narr=pickle.load(f)
     f.close()
+    
     print 'data loaded'
     r=heatmap(narr.T, range(narr.shape[1]),range(narr.shape[0]), 
-              'ward', 'ward', 'euclidean', 'euclidean', 'red_black_sky', 'traj_HCsiRNA2_clustering', normalization=False, trad=False,
-              level=0.4)
+              'ward', 'ward', 'euclidean', 'euclidean', 'red_black_sky', 'traj_HCsiRNA_iter5_clustering', normalization=False, trad=False,
+              level=options.level)
 
     
     
