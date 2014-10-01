@@ -463,7 +463,7 @@ def importData(filename):
 if __name__ == '__main__':
     
     parser = OptionParser(usage="usage: %prog [options]")    
-    parser.add_option('--level', type=int, default=0.4)
+    parser.add_option('--level', type=float, default=0.4)
     
     (options, args) = parser.parse_args()
     
