@@ -35,7 +35,6 @@ def correct_from_Nan(arr, perMovie):
     return arr, toDel
 
 def returnCoord(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.pkl', verbose=0):
-    X=[]; Y=[]
     result={}
     yqualDict=expSi(qc)
     dictSiEntrez=siEntrez(mitocheck)
@@ -904,7 +903,7 @@ if __name__ == '__main__':
     l=pickle.load(f)
     f.close()
     
-    result=returnCoord('/share/data20T/mitocheck/tracking_results', l, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt')
+    result=returnCoord('/share/data20T/mitocheck/tracking_results', l[:10], '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt')
     f=open('../resultData/features_on_films/results_whole_iter5_median_015_coord.pkl', 'w')
     pickle.dump(result,f); f.close()
     
