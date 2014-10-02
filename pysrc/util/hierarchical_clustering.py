@@ -74,6 +74,7 @@ def heatmap(x, row_header, column_header, row_method,
     The parameter method must be one of 'single', 'centroid', 'median', 'ward'
     
     """
+    print level
     if '/' in filename:
         dataset_name = string.split(filename,'/')[-1][:-4]
         root_dir = string.join(string.split(filename,'/')[:-1],'/')+'/'
