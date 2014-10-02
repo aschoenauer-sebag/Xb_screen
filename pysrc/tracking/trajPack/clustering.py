@@ -29,35 +29,13 @@ from tracking.trajPack import featuresHisto, featuresNumeriques
 from tracking.plots import plotClustInd, makeColorRamp, plotMovies, plotKMeansPerFilm, markers
 from util.sandbox import cleaningLength, logTrsforming, subsampling, dist, histLogTrsforming, homeMadeGraphLaplacian
 from util.listFileManagement import gettingSiRNA, expSi, siEntrez, typeD, typeD2, is_ctrl,\
-    strToTuple
+    strToTuple, correct_from_Nan
 from util.plots import basic_colors, couleurs
 
 from tracking.histograms import *
 from util.kkmeans import KernelKMeans
 
 #from joblib import Parallel, delayed, Memory
-
-def correct_from_Nan(arr, perMovie):
-#Si movement type a un coeff de correlation inf a 0.7 pour >=2 regressions, on supprime la trajectoire
-    arr[np.where(arr[:,14]>1),11]=None
-    toDel = []
-    
-#Si on regarde les trajectoires a l'echelle du movie on garde les trajectoires qui ont quelques NaN que l'on supprimera en regardant les distributions
-    if perMovie:
-        test=np.any(arr[:,-1]>=5)
-        
-#Sinon on supprime les trajectoires concernees pcq on ne pourra pas faire le clustering 
-    else:
-        test=(np.any(arr[:,-1]>=5) or np.any(np.isnan(arr)))
-        
-    if test:
-        toDel = np.where(arr[:,-1]>=5)[0]
-        if not perMovie:
-            toDel=np.hstack((toDel, np.where(np.isnan(arr))[0]))
-        arr=np.delete(arr, toDel, 0)
-    arr=np.hstack((arr[:,:len(featuresNumeriques)+len(featuresHisto)], arr[:,-1, np.newaxis]))
-
-    return arr, toDel
 
 def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.pkl', verbose=0, hist=True, perMovie = False):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; sirna=[]; genes=[]
@@ -1202,9 +1180,10 @@ You can in particular set up the noise level
         f=open(os.path.join('../resultData/features_on_films/', options.outputname+'_hit_exp.pkl'))
         l=pickle.load(f)
         f.close()
-        
-        ll=strToTuple(l[:-300], os.listdir('/share/data20T/mitocheck/tracking_results'))
-        ll.extend(l[-300:])
+    #DECIDE if strToTuple necessary, sinon
+        ll=l
+#        ll=strToTuple(l[:-300], os.listdir('/share/data20T/mitocheck/tracking_results'))
+#        ll.extend(l[-300:])
         print 'this is launched'
         _, r, _,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation('/share/data20T/mitocheck/tracking_results/', 
                                 ll, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=False)

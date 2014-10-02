@@ -126,7 +126,8 @@ def multipleHitDistances(folder, iterations,
                          threshold=0.05, 
                          qc_filename='../data/mapping_2014/qc_export.txt', filename='all_distances_whole_5Ctrl', 
                          combination='min', redo=False, without_mitotic_hits=False,
-                         without_mean_persistence=True):
+                         without_mean_persistence=True,
+                         without_outliers=True):
     features = list(featuresNumeriques)
     features.append('mean persistence')
     features.append('mean straight')
@@ -174,6 +175,19 @@ def multipleHitDistances(folder, iterations,
     else:
         f=open(os.path.join(folder, 'all_distances_iter{}.pkl'.format(len(iterations))))
         expL, siRNAL, geneL, global_result=pickle.load(f); f.close()
+        
+    if without_outliers:
+        f=open(os.path.join(folder, 'OUTLIERplates_iter5_median015.pkl'))
+        outliers=pickle.load(f); f.close()
+        
+        expL2=np.array([el[:9] for el in expL])
+        print expL2[:10]
+        for plate in outliers:
+            toDel=np.where(expL2==plate)[0]
+            expL=np.delete(expL, toDel, 0)
+            siRNAL=np.delete(siRNAL, toDel,0)
+            geneL=np.delete(geneL, toDel, 0)
+            global_result=np.delete(global_result, toDel,0)
         
     if combination=='min':
         global_pval=np.min(global_result,1)

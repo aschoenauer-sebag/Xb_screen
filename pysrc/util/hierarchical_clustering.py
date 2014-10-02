@@ -17,7 +17,7 @@
 #SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #################
-### Imports an tab-delimited expression matrix and produces and hierarchically clustered heatmap
+### Produces and hierarchically clustered heatmap
 #################
 import getpass
 if getpass.getuser()=='aschoenauer':
@@ -32,10 +32,12 @@ import matplotlib.pyplot as pylab
 import scipy
 from optparse import OptionParser
 import cPickle as pickle
+from sklearn.cluster import MiniBatchKMeans
 import scipy.cluster.hierarchy as sch
 import fastcluster
 import scipy.spatial.distance as dist
 import numpy
+import numpy as np
 import string
 import time
 import sys, os, pdb
@@ -43,12 +45,71 @@ import getopt
 from collections import Counter
 
 from util.listFileManagement import EnsemblEntrezTrad, multipleGeneListsToFile
+from tracking.trajPack import featuresNumeriques, featuresSaved
+
+def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchical', level=0.4,trad=False,
+                  num_clusters=6, labels_filename='BatchKM_k{}_ALLdata.pkl', pcaed_filename='results_whole_iter5_median_015_pcaed.pkl'):
+    
+    #DONC FAIRE TOUT DANS LA MEME FONCTION
+    
+    features=list(featuresNumeriques); features.append('mean persistence'); features.append('mean straight')
+    f=open(os.path.join(folder,data_filename))
+    r,  who,ctrlStatus, length, genes, sirna, time_length=pickle.load(f); f.close()
+    
+    #r=np.hstack((r[:,:len(featuresNumeriques)], r[:,featuresSaved.index('mean persistence'), np.newaxis], r[:, featuresSaved.index('mean straight'), np.newaxis]))
+    
+    r=np.hstack((r, np.array(time_length)[:,np.newaxis])); fL=list(features);fL.append('time length')
+    
+    mean_=np.mean(r,0)
+    for k,feature in enumerate(features):
+        print feature, mean_[k]
+    nr=(r-mean_)/np.std(r,0)
+
+    #nr=np.hstack((nr, indices[:,np.newaxis])); fL.append('hierarchical cluster')
+    small_nr=None
+    
+    if action=='hierarchical':
+        num_clusters=len(np.bincount(indices)); begin_=1
+        print 'Going for hierarchical clustering (ward, euclidean) with {} clusters'.format(num_clusters)
+
+    elif action=='kmeans':
+        print 'Going for mini batch k-means with {} clusters'.format(num_clusters); begin_=0
+        try:
+            f=open(os.path.join(folder, labels_filename.format(num_clusters)), 'r')
+            labels,percentages=pickle.load(f); f.close()
+        except OSError:
+            print 'File Error ', os.path.join(folder, labels_filename.format(num_clusters))
+        else:
+            indices=labels
+
+#        f=open(os.path.join(folder, pcaed_filename), 'r')
+#        _,pcaed_data=pickle.load(f); f.close()
+#        
+#        model = MiniBatchKMeans(n_clusters=num_clusters, batch_size = 2000, init='k-means++',n_init=1000,max_iter=1000, max_no_improvement=100, compute_labels = True)
+#        indices = model.fit(pcaed_data[:,:7])
+#        indices=indices.labels_
+
+    for k in range(begin_, num_clusters):
+        where_=np.where(np.array(indices)==k)[0]
+        np.random.shuffle(where_)
+        small_nr = np.vstack((small_nr, nr[where_[:1000]])) if small_nr is not None else nr[where_[:1000]]
+    print small_nr.shape
+
+    print 'Showing trajectory clusters'
+    heatmap(small_nr.T,fL, range(small_nr.shape[0]), 'ward', None, 'euclidean', None, 
+            color_gradient='red_white_blue', filename=outputfile+'TRAJ', trad=False, save=False)
+    if action=='kmeans':
+        heatmap(percentages, genes,range(begin_, num_clusters), 'ward', 'ward', 'euclidean', 'euclidean', 
+            color_gradient='red_white_blue', filename=outputfile+'MOV', trad=trad, save=False, level=level)
+    
+    
+    return
 
 ################# Perform the hierarchical clustering #################
 
 def heatmap(x, row_header, column_header, row_method,
             column_method, row_metric, column_metric,
-            color_gradient, filename, normalization=True, log=False, trad=False, level=0.4, save=True):
+            color_gradient, filename, log=False, trad=False, level=0.4, save=True):
     
     print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric),
     if numpy.any(numpy.isnan(x)):
@@ -75,12 +136,6 @@ def heatmap(x, row_header, column_header, row_method,
     
     """
     print level
-    if '/' in filename:
-        dataset_name = string.split(filename,'/')[-1][:-4]
-        root_dir = string.join(string.split(filename,'/')[:-1],'/')+'/'
-    else:
-        dataset_name = string.split(filename,'\\')[-1][:-4]
-        root_dir = string.join(string.split(filename,'\\')[:-1],'\\')+'\\'
         
     #for export
     if numpy.any(~numpy.array([type(s)==str for s in row_header])):
@@ -112,15 +167,15 @@ def heatmap(x, row_header, column_header, row_method,
     vmax=numpy.nanmax(x)
     vmax = max([vmax,abs(vmin)])
     #vmin = vmax*-1
-    if log:
-        norm = mpl.colors.LogNorm(vmin, vmax) ### adjust the max and min to scale these colors
-    elif normalization:
-        norm = mpl.colors.Normalize(10**(-70), 1)
+#    if log:
+#        norm = mpl.colors.LogNorm(vmin, vmax) ### adjust the max and min to scale these colors
+#    elif normalization:
+#        norm = mpl.colors.Normalize(10**(-70), 1)
+#    else:
+    if numpy.any(x<0):
+        norm = mpl.colors.Normalize(-2,2)
     else:
-        if numpy.any(x<0):
-            norm = mpl.colors.Normalize(-1,1)
-        else:
-            norm = None
+        norm = None
             #mpl.colors.Normalize(0,1)
     ### Scale the Matplotlib window size
     default_window_hight = 8.5
@@ -212,8 +267,9 @@ def heatmap(x, row_header, column_header, row_method,
             pdb.set_trace()
         #il faut d'abord traduire de SYMBOL en ENSEMBL
         trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+        trad['ctrl']='None'
         
-        result=[Counter([trad[genes[k]] for k in numpy.where(clustering==cluster)[0]]).keys() for cluster in range(1,numpy.max(ind2)+1)]
+        result=[Counter([trad[genes[k]] for k in numpy.where(clustering==cluster)[0]]).keys() for cluster in range(1,numpy.max(clustering)+1)]
         for geneList in result:
             for i,gene in enumerate(geneList):
                 if '/' in gene:
@@ -222,8 +278,8 @@ def heatmap(x, row_header, column_header, row_method,
                 
         #ensuite on va enregistrer les genes des differents clusters dans differents fichiers
         #background par defaut c'est genes_list.txt
-        print "Nb of cluster found", numpy.max(ind2)
-        multipleGeneListsToFile(result, ['Cluster {}'.format(k+1) for k in range(numpy.max(ind2))], 'gene_cluster_{}_{}.txt'.format(column_method, row_method))
+        print "Nb of cluster found", numpy.max(clustering)
+        multipleGeneListsToFile(result, ['Cluster {}'.format(k+1) for k in range(numpy.max(clustering))], 'gene_cluster_{}_{}.txt'.format(column_method, filename))
     
     # Plot distance matrix.
     axm = fig.add_axes([axm_x, axm_y, axm_w, axm_h])  # axes for the data matrix
@@ -255,10 +311,12 @@ def heatmap(x, row_header, column_header, row_method,
             new_row_header.append(row_header[i])
     for i in range(x.shape[1]):
         if column_method != None:
-            axm.text(i, -0.9, '{}'.format(column_header[idx2[i]]), rotation=270, verticalalignment="top") # rotation could also be degrees
+            if len(column_header)<100:
+                axm.text(i, -0.9, '{}'.format(column_header[idx2[i]]), rotation=270, verticalalignment="top") # rotation could also be degrees
             new_column_header.append(column_header[idx2[i]])
         else: ### When not clustering columns
-            axm.text(i, -0.9, '{}'.format(column_header[i]), rotation=270, verticalalignment="top")
+            if len(column_header)<100:
+                axm.text(i, -0.9, '{}'.format(column_header[i]), rotation=270, verticalalignment="top")
             new_column_header.append(column_header[i])
 
     # Plot colside colors
@@ -286,11 +344,11 @@ def heatmap(x, row_header, column_header, row_method,
 
     # Plot color legend
     axcb = fig.add_axes([axcb_x, axcb_y, axcb_w, axcb_h], frame_on=False)  # axes for colorbar
-    cb = mpl.colorbar.ColorbarBase(axcb, cmap=cmap, norm=norm, orientation='horizontal')
+    cb = mpl.colorbar.ColorbarBase(axcb, cmap=cmap,norm=norm, orientation='horizontal')
     axcb.set_title("colorkey")
     
-    filename = root_dir+'Clustering-%s-hierarchical_%s_%s.pdf' % (dataset_name,column_metric,column_method)
-    cb.set_label("Differential Expression (log2 fold)")
+    filename = 'Clustering-%s-hierarchical_%s_%s.pdf' % (filename[:10],column_metric,column_method)
+    cb.set_label("Range")
     exportFlatClusterData(filename, new_row_header,new_column_header,xt,ind1,ind2)
 
     ### Render the graphic

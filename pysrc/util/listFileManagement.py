@@ -8,8 +8,75 @@ import vigra.impex as vi
 from PIL import Image
 from optparse import OptionParser
 
-
+from tracking.trajPack import featuresNumeriques, featuresHisto
 from util import typeD, typeD2
+
+
+def correct_from_Nan(arr, perMovie):
+#Si movement type a un coeff de correlation inf a 0.7 pour >=2 regressions, on supprime la trajectoire
+    arr[np.where(arr[:,14]>1),11]=None
+    toDel = []
+    
+#Si on regarde les trajectoires a l'echelle du movie on garde les trajectoires qui ont quelques NaN que l'on supprimera en regardant les distributions
+    if perMovie:
+        test=np.any(arr[:,-1]>=5)
+        
+#Sinon on supprime les trajectoires concernees pcq on ne pourra pas faire le clustering 
+    else:
+        test=(np.any(arr[:,-1]>=5) or np.any(np.isnan(arr)))
+        
+    if test:
+        toDel = np.where(arr[:,-1]>=5)[0]
+        if not perMovie:
+            toDel=np.hstack((toDel, np.where(np.isnan(arr))[0]))
+        arr=np.delete(arr, toDel, 0)
+    arr=np.hstack((arr[:,:len(featuresNumeriques)+len(featuresHisto)], arr[:,-1, np.newaxis]))
+
+    return arr, toDel
+
+def returnCoord(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.pkl', verbose=0):
+    X=[]; Y=[]
+    result={}
+    yqualDict=expSi(qc)
+    dictSiEntrez=siEntrez(mitocheck)
+
+    for i, exp in enumerate(exp_list):
+        print i,
+        pl,w=exp
+        if pl[:9]+'--'+w[2:5] not in yqualDict:
+#i. checking if quality control passed
+            sys.stderr.write("Quality control not passed {} {} \n".format(pl[:9], w[2:5]))
+            continue   
+        elif not is_ctrl((pl,w)) and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
+#ii.checking if siRNA corresponds to a single target in the current state of knowledge
+            sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(pl[:9], w[2:5]))  
+            continue
+        try:
+#iii.loading data
+            f=open(os.path.join(folder, pl, filename.format(w)), 'r')
+            arr, coord, _= pickle.load(f)
+            f.close()
+        except IOError:
+            sys.stderr.write("No file {}\n".format(os.path.join(pl, filename.format(w))))
+        except EOFError:
+            sys.stderr.write("EOFError with file {}\n".format(os.path.join(pl, filename.format(w))))
+        else:
+            if arr==None:
+                sys.stderr.write( "Array {} is None\n".format(os.path.join(pl, filename.format(w))))
+                continue
+            elif len(arr.shape)==1 or arr.shape[0]<20:
+                sys.stderr.write("Array {} has less than 20 trajectories. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
+                continue
+            else:
+                try:
+                    _, toDel = correct_from_Nan(arr, perMovie=False)
+                    coord = np.delete(coord, toDel)
+                except (TypeError, ValueError, AttributeError):
+                    sys.stderr.write("Probleme avec le fichier {}".format(os.path.join(pl, filename.format(w))))
+                else:   
+                    result['{}--{}'.format(pl[:9], w[2:5])]=coord
+
+    return result
 
 def usable(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', 
            filename='hist_tabFeatures_{}.pkl'):
@@ -833,24 +900,31 @@ class ArffReader(object):
 
     
 if __name__ == '__main__':
-
-    description ='%prog - Checking usable experiments for all Mitocheck siRNAs'
-    parser = OptionParser(usage="usage: %prog [options]",
-                         description=description)
-
-    parser.add_option("-s", "--slice", dest="slice", default=0, type=int,
-                      help="The slice of the list which we're going to deal with")
+    f=open('../resultData/features_on_films/results_whole_iter5_median_015_hit_exp.pkl')
+    l=pickle.load(f)
+    f.close()
     
-    (options, args) = parser.parse_args()    
-    f=open('../data/siRNA_targeted_Mitocheck_2014.pkl','r')
-    siRNAL=pickle.load(f); f.close()
+    result=returnCoord('/share/data20T/mitocheck/tracking_results', l, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt')
+    f=open('../resultData/features_on_films/results_whole_iter5_median_015_coord.pkl', 'w')
+    pickle.dump(result,f); f.close()
     
-    l=len(siRNAL)/100
-    if options.slice==100:
-        end=len(siRNAL)
-    else:
-        end=(options.slice+1)*l
-    siRNAL=siRNAL[options.slice*l:end]
-    print len(siRNAL), options.slice*l, end
-    countingUsable(siRNAL, result_file='usable_experiments_whole_mitocheck{}.pkl'.format(options.slice), qc_file='../data/qc_export.txt', 
-                   tracking_folder='/share/data20T/mitocheck/tracking_results', resultFolder='../resultData/features_on_films')
+#    description ='%prog - Checking usable experiments for all Mitocheck siRNAs'
+#    parser = OptionParser(usage="usage: %prog [options]",
+#                         description=description)
+#
+#    parser.add_option("-s", "--slice", dest="slice", default=0, type=int,
+#                      help="The slice of the list which we're going to deal with")
+#    
+#    (options, args) = parser.parse_args()    
+#    f=open('../data/siRNA_targeted_Mitocheck_2014.pkl','r')
+#    siRNAL=pickle.load(f); f.close()
+#    
+#    l=len(siRNAL)/100
+#    if options.slice==100:
+#        end=len(siRNAL)
+#    else:
+#        end=(options.slice+1)*l
+#    siRNAL=siRNAL[options.slice*l:end]
+#    print len(siRNAL), options.slice*l, end
+#    countingUsable(siRNAL, result_file='usable_experiments_whole_mitocheck{}.pkl'.format(options.slice), qc_file='../data/qc_export.txt', 
+#                   tracking_folder='/share/data20T/mitocheck/tracking_results', resultFolder='../resultData/features_on_films')
