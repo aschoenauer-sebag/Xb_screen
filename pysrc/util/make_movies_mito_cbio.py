@@ -491,6 +491,7 @@ if __name__ ==  "__main__":
                 for cluster in ids:
                     for i,exp in enumerate(ids[cluster][:20]):
                         print 'making movie number %i %s' %(i, exp)
+                        exp='{}--{}'.format(exp[0][:9], exp[1][2:5])
                         mm.make_movie(exp, cat_out_path,gene=cluster, 
                                       feature_movie_dir=options.feature_target_dir,
                                       feature=category, num_cluster=options.num_cluster)
