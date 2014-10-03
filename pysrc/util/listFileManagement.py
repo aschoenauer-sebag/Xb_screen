@@ -69,12 +69,11 @@ def returnCoord(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}
             else:
                 try:
                     _, toDel = correct_from_Nan(arr, perMovie=False)
-                    pdb.set_trace()
-                    coord = np.delete(coord, toDel)
+                    coord = np.delete(np.array(coord), toDel,0)
                 except (TypeError, ValueError, AttributeError):
                     sys.stderr.write("Probleme avec le fichier {}".format(os.path.join(pl, filename.format(w))))
                 else:   
-                    result['{}--{}'.format(pl[:9], w[2:5])]=coord
+                    result.append(coord)
 
     return result
 
