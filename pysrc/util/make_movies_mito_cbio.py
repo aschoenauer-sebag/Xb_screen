@@ -268,7 +268,7 @@ class MovieMaker(object):
 #            f=open(cluster_file, 'r')
 #            cluster_model, std = pickle.load(f); f.close()
 #            labels = cluster_model.predict(tab/std)
-            where_=np.where(who=='{}--{}'.format(ltId, pos))
+            where_=np.where(who=='{}--{}'.format(ltId, pos))[0]
             labels=labels[np.sum(length[:where_]):np.sum(length[:where_+1])]
             
             colors = [diverging_colors[labels[k]] for k in range(tab.shape[0])]
