@@ -34,7 +34,7 @@ def correct_from_Nan(arr, perMovie):
 
     return arr, toDel
 
-def returnCoord(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.pkl', verbose=0):
+def returnInfo(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.pkl', verbose=0,which_info='coord'):
     result=[]
     yqualDict=expSi(qc)
     dictSiEntrez=siEntrez(mitocheck)
@@ -68,12 +68,15 @@ def returnCoord(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}
                 continue
             else:
                 try:
-                    _, toDel = correct_from_Nan(arr, perMovie=False)
+                    arr, toDel = correct_from_Nan(arr, perMovie=False)
                     coord = np.delete(np.array(coord), toDel,0)
                 except (TypeError, ValueError, AttributeError):
                     sys.stderr.write("Probleme avec le fichier {}".format(os.path.join(pl, filename.format(w))))
-                else:   
-                    result.append(coord)
+                else:  
+                    if which_info=='coord':     
+                        result.append(coord)
+                    elif which_info=='length':
+                        result.append(arr.shape[0])
 
     return result
 
@@ -903,7 +906,7 @@ if __name__ == '__main__':
     l=pickle.load(f)
     f.close()
     
-    result=returnCoord('/share/data20T/mitocheck/tracking_results', l[:10], '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt')
+    result=returnInfo( '/share/data20T/mitocheck/tracking_results', l, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt',which_info='coord')
     f=open('../resultData/features_on_films/results_whole_iter5_median_015_coord.pkl', 'w')
     pickle.dump(result,f); f.close()
     

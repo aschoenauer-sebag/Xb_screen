@@ -225,7 +225,7 @@ def multipleHitDistances(folder, iterations,
                                                                      trad=True, without_mitotic_hits=without_mitotic_hits)
     print len(exp_hit), 'sur iterations ', iterations
     
-    return empirical_qval, exp_hit, exp_of_highconfsiRNAs, gene_highconf
+    return empirical_qval,expL, exp_hit, exp_of_highconfsiRNAs, gene_highconf
 
 def finding_hit(curr_qval,threshold, siRNAL, geneL, expL,trad=True, without_mitotic_hits=False):
     exp_hit=[]
