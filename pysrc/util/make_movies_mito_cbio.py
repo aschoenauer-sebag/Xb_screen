@@ -257,7 +257,7 @@ class MovieMaker(object):
             f=open('../resultData/features_on_films/BatchKM_k{}_ALLdata.pkl'.format(num_cluster))
             labels, perc, who, length=pickle.load(f); f.close()
 #            #i. logTrsforming
-#            tab=histLogTrsforming(tab)
+#   pu         tab=histLogTrsforming(tab)
 #            tab=np.hstack((tab[:,:len(featuresNumeriques)], tab[:,featuresSaved.index('mean persistence')][:,np.newaxis], tab[:,featuresSaved.index('mean straight')][:,np.newaxis]))
 #            if pca_file is not None:
 #                f=open(pca_file, 'r')
@@ -268,6 +268,7 @@ class MovieMaker(object):
 #            f=open(cluster_file, 'r')
 #            cluster_model, std = pickle.load(f); f.close()
 #            labels = cluster_model.predict(tab/std)
+
             where_=np.where(who=='{}--{}'.format(ltId, pos))[0]
             labels=labels[np.sum(length[:where_]):np.sum(length[:where_+1])]
             assert(len(labels)==len(new_coord))
@@ -317,7 +318,7 @@ class MovieMaker(object):
         img_list = filter(lambda x: os.path.splitext(x)[-1].lower() in ['.png', '.tif', '.tiff', '.jpg'], 
                           os.listdir(in_path))
         img_list.sort()
-        
+        print img_list[:10]
         for i, img_name in enumerate(img_list):
             img = vigra.readImage(os.path.join(in_path, img_name))
             new_filename = os.path.join(tempDir, 
