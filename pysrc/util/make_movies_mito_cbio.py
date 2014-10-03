@@ -11,8 +11,8 @@ from tracking.trajPack import featuresNumeriques, featuresSaved
 from tracking.trajPack.clustering import correct_from_Nan
 from util.sandbox import histLogTrsforming
 
-BASE_DIR = '/media/lalil0u/New/cluster/images'#'/share/data20T/mitocheck/compressed_data'
-TRAJECTORY_DIR ='/media/lalil0u/New/cluster/'# '/share/data20T/mitocheck/tracking_results'
+BASE_DIR = '/share/data20T/mitocheck/compressed_data'
+TRAJECTORY_DIR ='/share/data20T/mitocheck/tracking_results'
 
 FEATURES = [            
             'ball number1','ball number2',
