@@ -63,16 +63,19 @@ cd %s""" %progFolder
 
 def script_usable(outFolder='../scripts', baseName='usable'):
     cmd ="""
-python util/listFileManagement.py --slice %i
+python util/listFileManagement.py --plate %s
 """
     head = """#!/bin/sh
 cd %s""" %progFolder
-    size=100
-    for k in range(101):
-        cour_cmd= cmd%(k-1)        
+
+    f=open('../data/wrong_trajectories_plates.pkl')
+    plates = pickle.load(f); f.close()
+
+    for k,plate in enumerate(plates):
+        cour_cmd= cmd%plate        
         # this is now written to a script file (simple text file)
         # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
-        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(k))
+        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(k+1))
         script_file = file(script_name, "w")
         script_file.write(head + cour_cmd)
         script_file.close()
@@ -98,7 +101,7 @@ cd %s""" %progFolder
     main_script_file.write(main_content)
     main_script_file.close()
     os.system('chmod a+x %s' % array_script_name)
-    sub_cmd = 'qsub -t 1-%i %s' % (size, array_script_name)
+    sub_cmd = 'qsub -t 1-%i %s' % (len(plates), array_script_name)
 
     print sub_cmd
     

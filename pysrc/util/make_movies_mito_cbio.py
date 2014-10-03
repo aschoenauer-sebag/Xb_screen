@@ -277,7 +277,6 @@ class MovieMaker(object):
         markers = {}
         for i, track_coord in enumerate(new_coord):                    
             tvec, xvec, yvec = track_coord
-            
             for t, x, y in zip(tvec, xvec, yvec):
                 if not t in markers:
                     markers[t] = []
@@ -387,7 +386,7 @@ class MovieMaker(object):
             print encode_command
             print 'movie generated: %s' % os.path.join(outDir, movieName)
             os.system(encode_command)
-            pdb.set_trace()
+
             if not feature_movie_dir is None and not feature is None:
                 encode_command = 'mencoder "mf://%s/*.png" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
                 target_dir = feature_movie_dir
@@ -464,16 +463,16 @@ if __name__ ==  "__main__":
 
     mm = MovieMaker(in_path)
     if not options.labels:
-        l=['signed turning angle',
-         'movement type',
-         'corrected straightness index',
-         'ball number2',
-         'norm convex hull area',
-         'effective space length',
-         'effective speed',
-         'diffusion coefficient',
-         'largest move',
-         'ball number1', 'entropy1', 'entropy2']
+        l=['signed turning angle',]
+#         'movement type',
+#         'corrected straightness index',
+#         'ball number2',
+#         'norm convex hull area',
+#         'effective space length',
+#         'effective speed',
+#         'diffusion coefficient',
+#         'largest move',
+#         'ball number1', 'entropy1', 'entropy2']
         f=open('/cbio/donnees/aschoenauer/workspace2/Xb_screen/resultData/features_on_films/distExp_123etctrl_minmax_50.pkl', 'r')
         minMax = pickle.load(f); f.close()
         FEATURE_RANGE = dict(zip(FEATURES, minMax))
