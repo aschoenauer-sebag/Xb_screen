@@ -114,8 +114,9 @@ def globalSummaryScript(baseName, siRNAFile,div_name, bins_type, bin_size, testC
     i=0
     if not testCtrl:
         #A. DEALING WITH EXPERIMENTS
-        f=open(siRNAFile, 'r')
-        siRNAList = pickle.load(f); f.close()
+        siRNAList = ['123438', '123438', '148427', '148427', '122325', '122325', '28902', '28902']
+#        f=open(siRNAFile, 'r')
+#        siRNAList = pickle.load(f); f.close()
         cmd ="""
 python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --bins_type %s --bin_size %s
 """
@@ -123,12 +124,13 @@ python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --b
     else:
         #A. DEALING WITH CONTROLS, for a specific list of plates
         baseName+='CTRL_'
-        siRNAList = ["LT0061_05--ex2006_03_08--sp2005_06_02--tt17--c5",
-"LT0061_03--ex2005_07_15--sp2005_06_02--tt173--c4",
-"LT0004_47--ex2005_04_08--sp2005_3_18--tt18--c2",
-"LT0004_06--ex2005_11_18--sp2005_03_18-tt173--c3",
-"LT0079_13--ex2005_07_20--sp2005_07_04--tt17--c4",
-"LT0079_05--ex2006_03_10--sp2005_07_14--tt17--c5"]
+        siRNAList = os.listdir('/share/data20T/mitocheck/tracking_results')
+#        ["LT0061_05--ex2006_03_08--sp2005_06_02--tt17--c5",
+#"LT0061_03--ex2005_07_15--sp2005_06_02--tt173--c4",
+#"LT0004_47--ex2005_04_08--sp2005_3_18--tt18--c2",
+#"LT0004_06--ex2005_11_18--sp2005_03_18-tt173--c3",
+#"LT0079_13--ex2005_07_20--sp2005_07_04--tt17--c4",
+#"LT0079_05--ex2006_03_10--sp2005_07_14--tt17--c5"]
 
         cmd ="""
 python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s --bins_type %s --bin_size %s
