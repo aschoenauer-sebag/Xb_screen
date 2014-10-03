@@ -196,7 +196,7 @@ class MovieMaker(object):
         if len(labteks_found) > 1:
             raise ValueError('multiple labteks found')
         labtek_dir = os.path.join(base_dir, labteks_found[0])
-        pos_found = filter(lambda x: int(x[:3])==int(pos[:-3]), os.listdir(labtek_dir))
+        pos_found = filter(lambda x: int(x[:3])==int(pos), os.listdir(labtek_dir))
         if len(pos_found) == 0:
             raise ValueError('%s not found in %s' % (pos, labtek_dir))
         if len(pos_found) > 1:
