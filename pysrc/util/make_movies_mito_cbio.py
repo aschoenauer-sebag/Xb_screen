@@ -270,7 +270,7 @@ class MovieMaker(object):
 #            labels = cluster_model.predict(tab/std)
             where_=np.where(who=='{}--{}'.format(ltId, pos))[0]
             labels=labels[np.sum(length[:where_]):np.sum(length[:where_+1])]
-            
+            assert(len(labels)==len(new_coord))
             colors = [diverging_colors[labels[k]] for k in range(tab.shape[0])]
             
         markers = {}
