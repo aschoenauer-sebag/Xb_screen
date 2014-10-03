@@ -338,7 +338,7 @@ class MovieMaker(object):
                 
                 for channel in img_rgb.channelIter():
                     channel.copyValues(img)
-                
+                pdb.set_trace()
                 if i in markers:
                     for m in markers[i]:
                         x = m[0]
