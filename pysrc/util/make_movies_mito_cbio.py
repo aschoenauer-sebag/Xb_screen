@@ -489,7 +489,7 @@ if __name__ ==  "__main__":
                 os.makedirs(cat_out_path)
             if type(ids)==dict:
                 for cluster in ids:
-                    for i,exp in enumerate(ids[cluster]):
+                    for i,exp in enumerate(ids[cluster][:20]):
                         print 'making movie number %i %s' %(i, exp)
                         mm.make_movie(exp, cat_out_path,gene=cluster, 
                                       feature_movie_dir=options.feature_target_dir,
