@@ -785,8 +785,8 @@ class cellExtractor():
             for k,feature in enumerate(self.currInterestFeatures):
                 histDict[feature].append(r[np.sum(length[:i]):np.sum(length[:i+1]),featuresSaved.index(feature)])
         
-        f=open(os.path.join(self.settings.result_folder, 'distExp_ctrl_{}_{}.pkl'.format(self.bins_type, self.bin_size)))
-        bins = pickle.load(f); f.close()
+#        f=open(os.path.join(self.settings.result_folder, 'distExp_ctrl_{}_{}.pkl'.format(self.bins_type, self.bin_size)))
+#        bins = pickle.load(f); f.close()
         
         return histDict, None
     
