@@ -225,7 +225,7 @@ class MovieMaker(object):
             raise ValueError('multiple labteks found')
         labtek_dir = os.path.join(trajectory_dir, labteks_found[0])
         
-        feature_file = 'hist_tabFeatures_{}.pkl'.format(pos)
+        feature_file = 'hist_tabFeatures_{:>05}_01.pkl'.format(pos)
         
         try:
             fp = open(os.path.join(labtek_dir, feature_file), 'r')
