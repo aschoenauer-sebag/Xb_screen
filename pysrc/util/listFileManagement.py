@@ -35,7 +35,7 @@ def correct_from_Nan(arr, perMovie):
     return arr, toDel
 
 def returnCoord(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.pkl', verbose=0):
-    result={}
+    result=[]
     yqualDict=expSi(qc)
     dictSiEntrez=siEntrez(mitocheck)
 
