@@ -338,7 +338,6 @@ class MovieMaker(object):
                 
                 for channel in img_rgb.channelIter():
                     channel.copyValues(img)
-                pdb.set_trace()
                 if i in markers:
                     for m in markers[i]:
                         x = m[0]
@@ -387,7 +386,7 @@ class MovieMaker(object):
             print encode_command
             print 'movie generated: %s' % os.path.join(outDir, movieName)
             os.system(encode_command)
-            
+            pdb.set_trace()
             if not feature_movie_dir is None and not feature is None:
                 encode_command = 'mencoder "mf://%s/*.png" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
                 target_dir = feature_movie_dir
