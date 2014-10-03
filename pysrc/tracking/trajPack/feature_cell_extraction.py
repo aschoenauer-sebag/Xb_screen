@@ -26,7 +26,6 @@ from tracking.histograms.k_means_transportation import DIVERGENCES, _distances
 from tracking.histograms.transportation import costMatrix, computingBins
 from util.listFileManagement import expSi, strToTuple, siEntrez, EnsemblEntrezTrad, geneListToFile, usable
 from util.sandbox import concatCtrl
-from tracking.plots import plotAlignedTraj
 from sklearn.decomposition import PCA
 
 from util import settings
@@ -56,38 +55,6 @@ parameters=[
   ('cost_type', 'number'),
   ('div_name', 'KS'),
   ('lambda', 10))]
-
-def plotTrajectories(verbose, expList, labels, data_folder, result_folder):
-    resultCour=[]
-    clusters = Counter(labels).keys()
-    for plate, well in expList:
-        if verbose:
-            print "Taking care of plate {}, well {}".format(plate, well)
-    
-        f=open(os.path.join(data_folder,plate, 'hist_tabFeatures_{}.pkl'.format(well)))
-        tab, coord, _=pickle.load(f); f.close()
-        tab, toDel = correct_from_Nan(tab, perMovie=True)
-        new_coord=[]
-        for i,el in enumerate(coord):
-            if i not in toDel:
-                new_coord.append(el)
-        resultCour.extend(new_coord)
-
-    XX=[]; YY=[]
-    for k in range(len(resultCour)):
-        X=np.array(resultCour[k][1]); X-=X[0]; XX.append(X)
-        Y=np.array( resultCour[k][2]); Y-=Y[0]; YY.append(Y)
-    minx,maxx = min([min(X) for X in XX]), max([max(X) for X in XX])
-    miny,maxy = min([min(Y) for Y in YY]), max([max(Y) for Y in YY])
-    
-    for cluster in clusters:
-        for i in np.where(np.array(labels)==cluster)[0][:10]:
-            if not os.path.isdir(os.path.join(result_folder, 'images')): 
-                os.mkdir(os.path.join(result_folder, 'images'))
-            plotAlignedTraj(XX[i], YY[i], minx, maxx, miny, maxy, show=False, val=cluster, 
-                 name=os.path.join(result_folder, 'images', 'cluster{}_{}.png'.format(cluster, i)))
-
-    return 1
 
 def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all_distances_whole_CTRL.pkl", sigma=0.1, binSize=10,texts=None):
     f=open(os.path.join(folder, filename))

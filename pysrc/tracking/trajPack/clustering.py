@@ -1034,7 +1034,7 @@ def compHistBatchKMeans(div_name,filename, algo=1, simulated=0, iteration=0, sh=
         print 'image saved as {}'.format(os.path.join(folder, output_file))
         p.savefig(os.path.join(folder, output_file))
 
-def importBatchKMeans(folder, baseName, sh=False):
+def importBatchKMeans(folder, baseName, max_=31, sh=False):
     if type(baseName)==list:
         sil=[]; coh=[]
         for name in baseName:
@@ -1042,7 +1042,7 @@ def importBatchKMeans(folder, baseName, sh=False):
             s, c = importBatchKMeans(folder, name)
             sil.append(s); coh.append(c)
         sil.append('Silhouette score'); coh.append("Intra-cluster cohesion")
-        plotClustInd(folder, range(2,31),baseName, None,sh, sil, coh)
+        plotClustInd(folder, range(2,max_),baseName, None,sh, sil, coh)
     else:
         sil=None; coh=None
         for k in range(50):
@@ -1056,7 +1056,11 @@ def importBatchKMeans(folder, baseName, sh=False):
                 #print 'bou'
                 pass
             else:
-                sil=np.vstack((sil, np.array(s)[:,0])) if sil is not None else np.array(s)[:,0]
+                if len(np.array(s).shape)==1:
+                    z=np.array(s)
+                else:
+                    z=np.array(s)[:,0]
+                sil=np.vstack((sil, z)) if sil is not None else z
                 coh=np.vstack((coh, np.array(c))) if coh is not None else np.array(c)
 #                sil=np.vstack((sil, np.array(s)[:,0][:14])) if sil is not None else np.array(s)[:,0][:14]
  #               coh=np.vstack((coh, np.array(c)[:14])) if coh is not None else np.array(c)[:14]

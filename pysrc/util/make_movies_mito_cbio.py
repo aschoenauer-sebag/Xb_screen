@@ -216,7 +216,7 @@ class MovieMaker(object):
         res = [np.array(xvec), np.array(yvec)]
         return res
     
-    def make_markers(self, ltId, pos, feature, trajectory_dir):
+    def make_markers(self, ltId, pos, feature, trajectory_dir, num_cluster):
         # find the feature and coordinate files
         labteks_found = filter(lambda x: x[:len(ltId)]==ltId, os.listdir(trajectory_dir))
         if len(labteks_found) == 0:
@@ -254,18 +254,22 @@ class MovieMaker(object):
             for i,el in enumerate(coord):
                 if i not in toDel:
                     new_coord.append(el)
-            #i. logTrsforming
-            tab=histLogTrsforming(tab)
-            tab=np.hstack((tab[:,:len(featuresNumeriques)], tab[:,featuresSaved.index('mean persistence')][:,np.newaxis], tab[:,featuresSaved.index('mean straight')][:,np.newaxis]))
-            if pca_file is not None:
-                f=open(pca_file, 'r')
-                pca, mean, std=pickle.load(f); f.close()
-                
-                tab=pca.transform((tab-mean)/std)[:,:7]
-                
-            f=open(cluster_file, 'r')
-            cluster_model, std = pickle.load(f); f.close()
-            labels = cluster_model.predict(tab/std)
+            f=open('../resultData/features_on_films/BatchKM_k{}_ALLdata.pkl'.format(num_cluster))
+            labels, perc, who, length=pickle.load(f); f.close()
+#            #i. logTrsforming
+#            tab=histLogTrsforming(tab)
+#            tab=np.hstack((tab[:,:len(featuresNumeriques)], tab[:,featuresSaved.index('mean persistence')][:,np.newaxis], tab[:,featuresSaved.index('mean straight')][:,np.newaxis]))
+#            if pca_file is not None:
+#                f=open(pca_file, 'r')
+#                pca, mean, std=pickle.load(f); f.close()
+#                
+#                tab=pca.transform((tab-mean)/std)[:,:7]
+#                
+#            f=open(cluster_file, 'r')
+#            cluster_model, std = pickle.load(f); f.close()
+#            labels = cluster_model.predict(tab/std)
+            where_=np.where(who=='{}--{}'.format(ltId, pos))
+            labels=labels[np.sum(length[:where_]):np.sum(length[:where_+1])]
             
             colors = [diverging_colors[labels[k]] for k in range(tab.shape[0])]
             
@@ -280,7 +284,7 @@ class MovieMaker(object):
         return markers
     
     def make_movie(self, id, out_path, tempDir=None, sirna=None, gene=None, outDir=None,
-                   trajectory_dir=None, feature_movie_dir=None, feature=None):
+                   trajectory_dir=None, feature_movie_dir=None, feature=None, num_cluster=6):
         
         '''
         Feature can be a trajectory feature like diffusion coefficient. It can also be
@@ -301,7 +305,7 @@ class MovieMaker(object):
                 
         # read feature data
         if not feature_movie_dir is None and not feature is None:
-            markers = self.make_markers(ltId, pos,feature, trajectory_dir)
+            markers = self.make_markers(ltId, pos,feature, trajectory_dir, num_cluster)
             
                 
         
@@ -367,7 +371,7 @@ class MovieMaker(object):
             movieName += ('--%s' % gene)
         if not sirna is None:
             movieName += ('--%s' % sirna)
-        movieName += '.avi'
+        movieName += '{}.avi'.format(num_cluster)
 
         # make output directory
         if outDir is None:
@@ -440,7 +444,7 @@ if __name__ ==  "__main__":
     parser.add_option("-f", "--feature_target_dir", dest="feature_target_dir",
                       help="directory for the feature projection movies")
     parser.add_option('--labels', dest='labels', type=int, help="If you're interested in plotting clustering labels as opposed to features")
-                      
+    parser.add_option('--num_cluster', dest='num_cluster', type=int, help="Cluster number")
     (options, args) = parser.parse_args()
     
     if (options.pickle_file is None or options.out_path is None):
@@ -483,10 +487,19 @@ if __name__ ==  "__main__":
             cat_out_path = os.path.join(out_path, category.replace(' ', '_'))
             if not os.path.exists(cat_out_path):
                 os.makedirs(cat_out_path)
-    
-            for i,id in enumerate(ids[:20]):
-                print 'making movie number %i %s' %(i, id)
-                mm.make_movie(id, cat_out_path, 
-                              feature_movie_dir=options.feature_target_dir,
-                              feature=category)
+            if type(ids)==dict:
+                for cluster in ids:
+                    for i,exp in enumerate(ids[cluster]):
+                        print 'making movie number %i %s' %(i, exp)
+                        mm.make_movie(exp, cat_out_path,gene=cluster, 
+                                      feature_movie_dir=options.feature_target_dir,
+                                      feature=category, num_cluster=options.num_cluster)
+        
+
+            else:
+                for i,id in enumerate(ids[:20]):
+                    print 'making movie number %i %s' %(i, id)
+                    mm.make_movie(id, cat_out_path, 
+                                  feature_movie_dir=options.feature_target_dir,
+                                  feature=category, num_cluster=options.num_cluster)
         

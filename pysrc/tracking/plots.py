@@ -54,7 +54,30 @@ def plotHisto(histogramme, nb_bins_list):
         
     return
 
+def plotTrajectories(coordL, labels, result_folder):
+    resultCour=[]
+    how_many =np.bincount(labels)
+    clusters = len(how_many)
+    for coord in coordL:
+        resultCour.extend(coord)
 
+    XX=[]; YY=[]
+    for k in range(len(resultCour)):
+        X=np.array(resultCour[k][1]); X-=X[0]; XX.append(X)
+        Y=np.array( resultCour[k][2]); Y-=Y[0]; YY.append(Y)
+    minx,maxx = min([min(X) for X in XX]), max([max(X) for X in XX])
+    miny,maxy = min([min(Y) for Y in YY]), max([max(Y) for Y in YY])
+    
+    assert(len(resultCour)==len(labels))
+    
+    for cluster in range(clusters):
+        for i in np.where(np.array(labels)==cluster)[0][np.random.permutation(how_many[cluster])[:20]]:
+            if not os.path.isdir(os.path.join(result_folder, 'images_{}'.format(clusters))): 
+                os.mkdir(os.path.join(result_folder, 'images_{}'.format(clusters)))
+            plotAlignedTraj(XX[i], YY[i], minx, maxx, miny, maxy, show=False, val=cluster, 
+                 name=os.path.join(result_folder, 'images_{}'.format(clusters), 'cluster{}_{}.png'.format(cluster, i)))
+
+    return 1
 
 def plotAlignedTraj(X, Y,minx, maxx, miny, maxy,turn=False, show=False, name=None, val=None):
 
@@ -711,11 +734,11 @@ def histogramme(ax, vector1, name, nbins =500, transfo=None, vector2=None):
         if transfo is not None:
             vector2=vector2-np.min(vector2)+1
             vector2=np.log(vector2)
-        n, bins, patches = ax.hist(vector1,nbins, normed=1, histtype='bar', cumulative=False)
-        p.setp(patches, 'facecolor', 'g', 'alpha', 0.5)
-        n2, bins2, patches2 = ax.hist(vector2,nbins, normed=1, histtype='bar', cumulative=False)
-        p.setp(patches2, 'facecolor', 'r', 'alpha', 0.5)
-        ax.set_title(name+', green = pheno, red = ctrl')
+        n, bins, patches = ax.hist(vector1,bins=np.linspace(0, max(np.max(vector1),np.max(vector2)),nbins), normed=1, histtype='bar', cumulative=False,label="Ctrl", color='green', alpha=0.5)
+        #p.setp(patches, 'facecolor', 'g', 'alpha', 0.5)
+        n2, bins2, patches2 = ax.hist(vector2,bins=np.linspace(0, max(np.max(vector1),np.max(vector2)),nbins), normed=1, histtype='bar', cumulative=False,label='Exp', color='red', alpha=0.5)
+        #p.setp(patches2, 'facecolor', 'r', 'alpha', 0.5)
+        ax.set_title(name); ax.legend()
 #        p.show()
 
 
