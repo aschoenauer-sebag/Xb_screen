@@ -365,13 +365,11 @@ class MovieMaker(object):
 
         # movie filename
         movieName = id
-        print movieName, gene
-        pdb.set_trace()
         if not gene is None:
-            movieName += ('--%s' % gene)
+            movieName += ('--C%s' % gene)
         if not sirna is None:
             movieName += ('--%s' % sirna)
-        movieName += '{}.avi'.format(num_cluster)
+        movieName += '_k{}.avi'.format(num_cluster)
 
         # make output directory
         if outDir is None:
