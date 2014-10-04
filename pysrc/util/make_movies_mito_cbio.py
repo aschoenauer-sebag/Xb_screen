@@ -254,7 +254,7 @@ class MovieMaker(object):
             for i,el in enumerate(coord):
                 if i not in toDel:
                     new_coord.append(el)
-            f=open('../resultData/features_on_films/BatchKM_k{}_ALLdata.pkl'.format(num_cluster))
+            f=open('../resultData/features_on_films/labelsKM_k{}_halfM.pkl'.format(num_cluster))
             labels, perc, who, length=pickle.load(f); f.close()
 #            #i. logTrsforming
 #   pu         tab=histLogTrsforming(tab)
