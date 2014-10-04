@@ -251,8 +251,8 @@ def heatmap(x, row_header, column_header, row_method,
     else:
         ind1 = ['NA']*len(row_header) ### Used for exporting the flat cluster data
     if save:
-        print 'Saving flat clusters in', 'Flat_clusters_{}_{}.pkl'.format(dataset_name, level) 
-        f=open('Flat_clusters_{}_{}.pkl'.format(dataset_name,level), 'w')
+        print 'Saving flat clusters in', 'Flat_clusters_{}_{}.pkl'.format(filename, level) 
+        f=open('Flat_clusters_{}_{}.pkl'.format(filename,level), 'w')
         pickle.dump([ind1, ind2],f); f.close()
     
     if trad:
