@@ -365,6 +365,8 @@ class MovieMaker(object):
 
         # movie filename
         movieName = id
+        print movieName, gene
+        pdb.set_trace()
         if not gene is None:
             movieName += ('--%s' % gene)
         if not sirna is None:
