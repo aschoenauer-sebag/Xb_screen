@@ -1046,7 +1046,6 @@ def importBatchKMeans(folder, baseName, max_=31, sh=False):
     else:
         sil=None; coh=None
         for k in range(50):
-            #pdb.set_trace()
             try:
                 f=open(os.path.join(folder, baseName+'{}.pkl'.format(k)), 'r')
                 s, c = pickle.load(f)
