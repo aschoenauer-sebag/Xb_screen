@@ -18,15 +18,15 @@ pbsOutDir = '/cbio/donnees/aschoenauer/PBS/OUT'
 pbsErrDir = '/cbio/donnees/aschoenauer/PBS/ERR'
 pbsArrayEnvVar = 'SGE_TASK_ID'
 
-def script_hierarchical_clustering(outFolder='../scripts', baseName='hierclust'):
+def script_hierarchical_clustering(outFolder='../scripts', baseName='hierclust', outputname='halfM_max_05'):
     cmd ="""
-python util/hierarchical_clustering.py --level %f
+python util/hierarchical_clustering.py --level %f --outputname %s
 """
     head = """#!/bin/sh
 cd %s""" %progFolder
     levels = [0.4, 0.5,0.6,0.7,0.8]
     for k, level in enumerate(levels):
-        cour_cmd= cmd%level
+        cour_cmd= cmd%(level,outputname)
         # this is now written to a script file (simple text file)
         # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
         script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(k+1))

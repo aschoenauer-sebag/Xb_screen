@@ -1197,7 +1197,7 @@ You can in particular set up the noise level
         from tracking.trajPack import featuresSaved
         from sklearn.decomposition import PCA
         
-        r=np.hstack((r[:,:len(featuresNumeriques)], r[:,featuresSaved.index('mean persistence'), np.newaxis], r[:, featuresSaved.index('mean straight'), np.newaxis]))
+        r=np.hstack((r[:,:len(featuresNumeriques)], r[:, featuresSaved.index('mean straight'), np.newaxis]))
         print r.shape
 
         pca=PCA(n_components=r.shape[1])

@@ -523,10 +523,11 @@ if __name__ == '__main__':
     
     parser = OptionParser(usage="usage: %prog [options]")    
     parser.add_option('--level', type=float, default=0.4)
+    parser.add_option('--outputname', type=str, default='halfM_median_05')
     
     (options, args) = parser.parse_args()
     
-    f=open('../resultData/features_on_films/results_whole_iter5_median_015_pcaed.pkl')
+    f=open('../resultData/features_on_films/{}_pcaed.pkl'.format(options.outputname))
     _, narr=pickle.load(f)
     f.close()
     narr=narr[:,:7]
