@@ -317,7 +317,6 @@ class MovieMaker(object):
         img_list = filter(lambda x: os.path.splitext(x)[-1].lower() in ['.png', '.tif', '.tiff', '.jpg'], 
                           os.listdir(in_path))
         img_list.sort()
-        print img_list[:10]
         for i, img_name in enumerate(img_list):
             img = vigra.readImage(os.path.join(in_path, img_name))
             new_filename = os.path.join(tempDir, 

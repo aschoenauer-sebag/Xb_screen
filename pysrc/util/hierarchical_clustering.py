@@ -48,7 +48,7 @@ from util.listFileManagement import EnsemblEntrezTrad, multipleGeneListsToFile
 from tracking.trajPack import featuresNumeriques, featuresSaved
 
 def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchical', level=0.4,trad=False,
-                  num_clusters=6, labels_filename='BatchKM_k{}_ALLdata.pkl', pcaed_filename='results_whole_iter5_median_015_pcaed.pkl'):
+                  num_clusters=8, labels_filename='labelsKM_k{}_halfM.pkl', pcaed_filename='halfM_max_05_pcaed.pkl'):
     
     #DONC FAIRE TOUT DANS LA MEME FONCTION
     
@@ -56,7 +56,7 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
     f=open(os.path.join(folder,data_filename))
     r,  who,ctrlStatus, length, genes, sirna, time_length=pickle.load(f); f.close()
     
-    #r=np.hstack((r[:,:len(featuresNumeriques)], r[:,featuresSaved.index('mean persistence'), np.newaxis], r[:, featuresSaved.index('mean straight'), np.newaxis]))
+    r=np.hstack((r[:,:len(featuresNumeriques)], r[:,featuresSaved.index('mean persistence'), np.newaxis], r[:, featuresSaved.index('mean straight'), np.newaxis]))
     
     r=np.hstack((r, np.array(time_length)[:,np.newaxis])); fL=list(features);fL.append('time length')
     
