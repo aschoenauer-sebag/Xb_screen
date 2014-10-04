@@ -37,6 +37,33 @@ from rpy2.robjects.packages import importr
 from rpy2.robjects.vectors import FloatVector
 
 stats = importr('stats')
+#redone experiments after hdf5 catastrophe
+redone_experiments =np.array([['123438', 'LT0061_03--233'],
+       ['123438', 'LT0061_05--233'],
+       ['148427', 'LT0061_03--284'],
+       ['148427', 'LT0061_05--284'],
+       ['122325', 'LT0061_03--295'],
+       ['122325', 'LT0061_05--295'],
+       ['28902', 'LT0079_05--131'],
+       ['28902', 'LT0079_13--131']], 
+      dtype='|S14')
+#experiments for which hdf5 are fine but the controls on the same plate are not
+tofilter_experiments=['LT0007_26--001',
+ 'LT0003_15--194',
+ 'LT0003_15--270',
+ 'LT0003_15--271',
+ 'LT0006_44--234',
+ 'LT0006_44--236',
+ 'LT0006_44--252',
+ 'LT0007_26--152',
+ 'LT0007_26--174',
+ 'LT0010_27--080',
+ 'LT0010_27--096',
+ 'LT0010_27--097',
+ 'LT0010_27--098',
+ 'LT0010_27--099',
+ 'LT0015_22--039']
+
 
 nb_exp_list=[100, 500, 1000, 2000]
 parameters=[
@@ -45,11 +72,11 @@ parameters=[
 #  ('cost_type', 'number'),
 #  ('div_name', 'etransportation'),
 #  ('lambda', 10)),
- (('bin_size', 10),
-  ('bins_type', 'quantile'),
-  ('cost_type', 'number'),
-  ('div_name', 'MW'),
-  ('lambda', 10)),
+# (('bin_size', 10),
+#  ('bins_type', 'quantile'),
+#  ('cost_type', 'number'),
+#  ('div_name', 'MW'),
+#  ('lambda', 10)),
  (('bin_size', 10),
   ('bins_type', 'quantile'),
   ('cost_type', 'number'),
@@ -93,8 +120,8 @@ def multipleHitDistances(folder, iterations,
                          threshold=0.05, 
                          qc_filename='../data/mapping_2014/qc_export.txt', filename='all_distances_whole_5Ctrl', 
                          combination='min', redo=False, without_mitotic_hits=False,
-                         without_mean_persistence=True,
-                         without_outliers=True):
+                         without_mean_persistence=True, filtering_lonely_siRNAs=False,
+                         filtering_bad_hdf5=True):
     features = list(featuresNumeriques)
     features.append('mean persistence')
     features.append('mean straight')
@@ -102,7 +129,7 @@ def multipleHitDistances(folder, iterations,
     result=[]
     expL=None
     exp_to_siRNA=expSi(qc_filename, sens=1)
-    if 'all_distances_iter{}.pkl'.format(len(iterations)) not in os.listdir(folder) or redo:
+    if 'all_distances_iter{}{}{}.pkl'.format(len(iterations),filtering_lonely_siRNAs, without_mean_persistence) not in os.listdir(folder) or redo:
         for k in iterations:
             print '------------------------------------------- iteration ',k
             curr_result = hitDistances(os.path.join(folder, 'step_whole_5Ctrl{}'.format(k)),
@@ -136,26 +163,46 @@ def multipleHitDistances(folder, iterations,
             curr_expL, curr_pval = result[k]
             global_result[:,k]=curr_pval
                 
-        print 'Everything together'        
-        f=open(os.path.join(folder, 'all_distances_iter{}.pkl'.format(len(iterations))), 'w')
-        pickle.dump([expL, siRNAL, geneL, global_result], f);f.close()
-    else:
-        f=open(os.path.join(folder, 'all_distances_iter{}.pkl'.format(len(iterations))))
-        expL, siRNAL, geneL, global_result=pickle.load(f); f.close()
-        
-    if without_outliers:
-        f=open(os.path.join(folder, 'OUTLIERplates_iter5_median015.pkl'))
-        outliers=pickle.load(f); f.close()
-        
-        expL2=np.array([el[:9] for el in expL])
-        print expL2[:10]
-        for plate in outliers:
-            toDel=np.where(expL2==plate)[0]
+        if filtering_bad_hdf5:
+            f=open(os.path.join('../data/wrong_trajectories.pkl'))
+            wrong_hdf5_files=pickle.load(f); f.close()
+            
+            wrong_hdf5_files=['{}--{}'.format(el[0][:9], el[1][2:5]) for el in wrong_hdf5_files]
+            wrong_hdf5_files.extend(tofilter_experiments)
+            #filtering bad hdf5 files
+            toDel=[np.where(expL==wrong_file)[0][0] for wrong_file in wrong_hdf5_files if wrong_file in expL]
+
+            siRNAL=np.delete(siRNAL, toDel,0)            
             expL=np.delete(expL, toDel, 0)
-            siRNAL=np.delete(siRNAL, toDel,0)
             geneL=np.delete(geneL, toDel, 0)
             global_result=np.delete(global_result, toDel,0)
-        
+            
+            l=Counter(siRNAL)
+            if filtering_lonely_siRNAs:
+                toDel=[np.where(np.array(siRNAL)==sirna)[0][0] for sirna in filter(lambda x: l[x]==1,l)]
+                siRNAL=np.delete(siRNAL, toDel,0)
+                expL=np.delete(expL, toDel, 0)
+                geneL=np.delete(geneL, toDel, 0)
+                global_result=np.delete(global_result, toDel,0)
+
+    
+            #changing values for redone experiments
+            f=open('../resultData/features_on_films/all_distances_whole_5CtrlC.pkl')
+            redone=pickle.load(f)[parameters[0]];f.close()
+            new_expL = np.array(redone[1])
+            new_arr=-2*np.sum(np.log(redone[-1]),1)
+            for redone_exp in redone_experiments[:,1]:
+                for k in range(global_result.shape[1]):
+                    global_result[np.where(expL==redone_exp),k]=new_arr[np.where(new_expL==redone_exp)]
+        print 'Everything together'        
+                
+        f=open(os.path.join(folder, 'all_distances_iter{}{}{}.pkl'.format(len(iterations),filtering_lonely_siRNAs, without_mean_persistence)), 'w')
+        pickle.dump([expL, siRNAL, geneL, global_result], f);f.close()
+    else:
+        f=open(os.path.join(folder, 'all_distances_iter{}{}{}.pkl'.format(len(iterations),filtering_lonely_siRNAs, without_mean_persistence)))
+        expL, siRNAL, geneL, global_result=pickle.load(f); f.close()
+            
+            
     if combination=='min':
         global_pval=np.min(global_result,1)
     elif combination=="median":
@@ -172,19 +219,19 @@ def multipleHitDistances(folder, iterations,
     ctrl_pval=ctrl[param][-1]
     if without_mean_persistence:
         ctrl_pval=np.delete(ctrl_pval, features.index('mean persistence'),1)
-        ctrl_pval=np.delete(ctrl_pval, features.index('diffusion coefficient'),1)
-
-    stat = -2*np.sum(np.log(ctrl_pval),1) 
-    ctrl_combined_pval = stat[:,np.newaxis]
+        #ctrl_pval=np.delete(ctrl_pval, features.index('diffusion coefficient'),1)
     
-    if 'comb_empirical_p_qval{}.pkl'.format(combination) not in os.listdir(folder) or redo:
+    if 'comb_empirical_p_qval{}{}{}.pkl'.format(combination,filtering_lonely_siRNAs, without_mean_persistence) not in os.listdir(folder) or redo:
+        stat = -2*np.sum(np.log(ctrl_pval),1) 
+        ctrl_combined_pval = stat[:,np.newaxis]
+
         ctrl_qval = empiricalPvalues(ctrl_combined_pval, ctrl_combined_pval, folder, name='ctrlCombStatC', sup=True)
         empirical_qval = empiricalPvalues(ctrl_combined_pval,global_pval[:,np.newaxis], folder, name='expCombStat{}'.format(combination), sup=True)
         
-        f = open(os.path.join(folder, 'comb_empirical_p_qval{}.pkl'.format(combination)), 'w')
+        f = open(os.path.join(folder, 'comb_empirical_p_qval{}{}{}.pkl'.format(combination,filtering_lonely_siRNAs, without_mean_persistence)), 'w')
         pickle.dump((ctrl_qval, empirical_qval),f); f.close()
     else:
-        f = open(os.path.join(folder, 'comb_empirical_p_qval{}.pkl'.format(combination)), 'r')
+        f = open(os.path.join(folder, 'comb_empirical_p_qval{}{}{}.pkl'.format(combination,filtering_lonely_siRNAs, without_mean_persistence)), 'r')
         ctrl_qval, empirical_qval=pickle.load(f); f.close()
 
     empirical_qval=np.array(empirical_qval)
@@ -192,7 +239,7 @@ def multipleHitDistances(folder, iterations,
                                                                      trad=True, without_mitotic_hits=without_mitotic_hits)
     print len(exp_hit), 'sur iterations ', iterations
     
-    return empirical_qval,expL, exp_hit, exp_of_highconfsiRNAs, gene_highconf
+    return empirical_qval,siRNAL, exp_hit, exp_of_highconfsiRNAs, gene_highconf
 
 def finding_hit(curr_qval,threshold, siRNAL, geneL, expL,trad=True, without_mitotic_hits=False):
     exp_hit=[]
@@ -210,7 +257,7 @@ def finding_hit(curr_qval,threshold, siRNAL, geneL, expL,trad=True, without_mito
     siRNA_hit=Counter(siRNA_hit)
     siRNA_hit_perc={siRNA:siRNA_hit[siRNA]/float(siRNA_count[siRNA]) for siRNA in siRNA_hit}
     
-    siRNA_highconf = filter(lambda x: siRNA_hit_perc[x]>0.5 and siRNA_hit[x]>=2, siRNA_hit_perc)
+    siRNA_highconf = filter(lambda x: siRNA_hit_perc[x]>=0.5 and siRNA_hit[x]>=2, siRNA_hit_perc)
     
     if without_mitotic_hits:
         print "Filtering out mitotic hits from Mitocheck supp table 2"
@@ -273,7 +320,7 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl{}', filename='all_dist
         empirical_pval=exp[param][-1]
         if without_mean_persistence:
             empirical_pval = np.delete(empirical_pval, features.index('mean persistence'),1)
-            empirical_pval = np.delete(empirical_pval, features.index('diffusion coefficient'),1)
+            #empirical_pval = np.delete(empirical_pval, features.index('diffusion coefficient'),1)
 #ii. for each parameter, combining pvalues from KS using Fisher's formula
         stat = -2*np.sum(np.log(empirical_pval),1)
         combined_pval = stat[:,np.newaxis]

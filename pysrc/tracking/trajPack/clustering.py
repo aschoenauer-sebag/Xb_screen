@@ -1174,7 +1174,7 @@ You can in particular set up the noise level
                          description=description)
     
     parser.add_option('--action', type=str, default=None)
-    parser.add_option('--outputname', type=str, default='results_whole_iter5_median_015')
+    parser.add_option('--outputname', type=str, default='halfM_median_05')
     parser.add_option("-n", "--n_iter", dest="n_iter", default = 0, 
                       help="Nb de fois")
     (options, args) = parser.parse_args()
@@ -1184,14 +1184,13 @@ You can in particular set up the noise level
         f=open(os.path.join('../resultData/features_on_films/', options.outputname+'_hit_exp.pkl'))
         l=pickle.load(f)
         f.close()
-    #DECIDE if strToTuple necessary, sinon
-        ll=l
-#        ll=strToTuple(l[:-300], os.listdir('/share/data20T/mitocheck/tracking_results'))
-#        ll.extend(l[-300:])
+#    #DECIDE if strToTuple necessary, sinon
+#        l=strToTuple(l, os.listdir('/share/data20T/mitocheck/tracking_results'))
+#        ctrl = appendingCtrl(l)
         print 'this is launched'
         _, r, _,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation('/share/data20T/mitocheck/tracking_results/', 
-                                ll, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=False)
-        f=open(os.path.join('../resultData/features_on_films/', options.outputname+'hit_exp_data.pkl'), 'w')
+                                l, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=False)
+        f=open(os.path.join('../resultData/features_on_films/', options.outputname+'_hit_exp_data.pkl'), 'w')
         pickle.dump([r,  who,ctrlStatus, length, genes, sirna, time_length], f)
         f.close()
         
