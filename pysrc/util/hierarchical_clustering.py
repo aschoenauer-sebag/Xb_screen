@@ -70,13 +70,13 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
     
     if action=='hierarchical':
         num_clusters=len(np.bincount(indices)); begin_=1
-        print 'Going for hierarchical clustering (ward, euclidean) with {} clusters'.format(num_clusters)
+        print 'Going for hierarchical clustering (ward, euclidean) with {} clusters'.format(num_clusters-1)
 
     elif action=='kmeans':
         print 'Going for mini batch k-means with {} clusters'.format(num_clusters); begin_=0
         try:
             f=open(os.path.join(folder, labels_filename.format(num_clusters)), 'r')
-            labels,percentages=pickle.load(f); f.close()
+            labels,percentages, who, length=pickle.load(f); f.close()
         except OSError:
             print 'File Error ', os.path.join(folder, labels_filename.format(num_clusters))
         else:
@@ -99,9 +99,11 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
     heatmap(small_nr.T,fL, range(small_nr.shape[0]), 'ward', None, 'euclidean', None, 
             color_gradient='red_white_blue', filename=outputfile+'TRAJ', trad=False, save=False)
     if action=='kmeans':
-        heatmap(percentages, genes,range(begin_, num_clusters), 'ward', 'ward', 'euclidean', 'euclidean', 
-            color_gradient='red_white_blue', filename=outputfile+'MOV', trad=trad, save=False, level=level)
-    
+        heatmap(percentages[:1723], genes[:1723],range(begin_, num_clusters), None, 'ward', None, 'euclidean', 
+            color_gradient='red_white_blue', filename=outputfile+'MOV', trad=False, save=False, level=level)
+        heatmap(percentages[1723:], genes[1723:],range(begin_, num_clusters), None, 'ward', None, 'euclidean', 
+            color_gradient='red_white_blue', filename=outputfile+'CTRL', trad=False, save=False, level=level)
+
     
     return
 
@@ -175,8 +177,7 @@ def heatmap(x, row_header, column_header, row_method,
     if numpy.any(x<0):
         norm = mpl.colors.Normalize(-2,2)
     else:
-        norm = None
-            #mpl.colors.Normalize(0,1)
+        norm = mpl.colors.Normalize(0,50)
     ### Scale the Matplotlib window size
     default_window_hight = 8.5
     default_window_width = 12

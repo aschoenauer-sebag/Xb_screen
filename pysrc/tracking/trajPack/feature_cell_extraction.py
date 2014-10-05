@@ -279,17 +279,15 @@ def finding_hit(curr_qval,threshold, siRNAL, geneL, expL,trad=True, without_mito
             exp_of_highconfsiRNAs.extend([experiment for experiment in experiments if experiment in exp_hit])
         
         trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
-        gene_hits_Ensembl=[trad[el] for el in gene_hit]
         gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
         gene_Ensembl = [trad[el] for el in gene_count]
         
-        for geneList in [gene_hits_Ensembl, gene_highconf_Ensembl, gene_Ensembl]:
+        for geneList in [gene_highconf_Ensembl, gene_Ensembl]:
             for i,gene in enumerate(geneList):
                     if '/' in gene:
                         geneList[i]=gene.split('/')[0]
                         geneList.append(gene.split('/')[1])
 
-        geneListToFile(gene_hits_Ensembl, 'gene_hits_KS.txt')
         geneListToFile(gene_highconf_Ensembl, 'gene_high_conf_KS.txt')
         geneListToFile(gene_Ensembl, 'gene_list_KS.txt')
 

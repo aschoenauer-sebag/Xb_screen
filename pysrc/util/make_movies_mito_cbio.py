@@ -45,14 +45,15 @@ RADIUS = 11
 #                 }
 pca_file = '../resultData/features_on_films/pca_hitSimpson.pkl'
 cluster_file = '../resultData/features_on_films/cluster_hitSimpson.pkl'
-diverging_colors = [(215,48,39),
-                (244,109,67),
-                (253,174,97),
-                (254,224,144),
-                (224,243,248),
-                (171,217,233),
-                (116,173,209),
-                (69,117,180)]
+#couleurs pour les clusters
+diverging_colors = [(118,42,131),#violet
+                    (27,120,55),#vert
+                    (215,48,39),#rouge
+                    (140,81,10),#marron
+                    (253,174,97),#orange
+                    (197,27,125),#rose
+                    (128,205,93),#turquoise
+                    (69,117,180)]#bleu
 
 
 # colors 
@@ -443,6 +444,7 @@ if __name__ ==  "__main__":
                       help="directory for the feature projection movies")
     parser.add_option('--labels', dest='labels', type=int, help="If you're interested in plotting clustering labels as opposed to features")
     parser.add_option('--num_cluster', dest='num_cluster', type=int, help="Cluster number")
+    parser.add_option('--specific_cluster', dest='specific_cluster', type=int, default=None)
     (options, args) = parser.parse_args()
     
     if (options.pickle_file is None or options.out_path is None):
@@ -486,7 +488,8 @@ if __name__ ==  "__main__":
             if not os.path.exists(cat_out_path):
                 os.makedirs(cat_out_path)
             if type(ids)==dict:
-                for cluster in ids:
+                clusterL=ids.keys() if options.specific_cluster is None else [options.specific_cluster]
+                for cluster in clusterL:
                     for i,exp in enumerate(ids[cluster][:20]):
                         print 'making movie number %i %s' %(i, exp)
                         exp='{}--{}'.format(exp[0][:9], exp[1][2:5])
