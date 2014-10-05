@@ -50,9 +50,9 @@ diverging_colors = [(118,42,131),#violet
                     (27,120,55),#vert
                     (215,48,39),#rouge
                     (140,81,10),#marron
-                    (118,171,210),#violet pale
-                    (222,119,174),#rose
-                    (128,205,93),#turquoise
+                    (219,62,243),#violet pale
+                    (253,63,171),#rose
+                    (41,238,211),#bleu clair
                     (69,117,180)]#bleu
 
 
