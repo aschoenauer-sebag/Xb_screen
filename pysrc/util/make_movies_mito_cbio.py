@@ -50,8 +50,8 @@ diverging_colors = [(118,42,131),#violet
                     (27,120,55),#vert
                     (215,48,39),#rouge
                     (140,81,10),#marron
-                    (253,174,97),#orange
-                    (197,27,125),#rose
+                    (118,171,210),#violet pale
+                    (222,179,174),#rose
                     (128,205,93),#turquoise
                     (69,117,180)]#bleu
 
@@ -385,7 +385,7 @@ class MovieMaker(object):
             encode_command %= (tempDir, os.path.join(outDir, movieName))
             print encode_command
             print 'movie generated: %s' % os.path.join(outDir, movieName)
-            os.system(encode_command)
+            #os.system(encode_command)
 
             if not feature_movie_dir is None and not feature is None:
                 encode_command = 'mencoder "mf://%s/*.png" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
