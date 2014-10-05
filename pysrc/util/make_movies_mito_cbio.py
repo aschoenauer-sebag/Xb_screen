@@ -51,7 +51,7 @@ diverging_colors = [(118,42,131),#violet
                     (215,48,39),#rouge
                     (140,81,10),#marron
                     (118,171,210),#violet pale
-                    (222,179,174),#rose
+                    (222,119,174),#rose
                     (128,205,93),#turquoise
                     (69,117,180)]#bleu
 
@@ -320,10 +320,9 @@ class MovieMaker(object):
         img_list.sort()
         for i, img_name in enumerate(img_list):
             img = vigra.readImage(os.path.join(in_path, img_name))
-            new_filename = os.path.join(tempDir, 
-                                        '%s.jpg' % os.path.splitext(img_name)[0][2:])
-            vigra.impex.writeImage(img.astype(np.dtype('uint8')), 
-                                   new_filename)
+            #new_filename = os.path.join(tempDir, '%s.jpg' % os.path.splitext(img_name)[0][2:])
+            #vigra.impex.writeImage(img.astype(np.dtype('uint8')),new_filename)
+            
             if not feature_movie_dir is None:
                 f_temp_dir = os.path.join(feature_movie_dir, 'temp')
                 if not os.path.isdir(f_temp_dir):
