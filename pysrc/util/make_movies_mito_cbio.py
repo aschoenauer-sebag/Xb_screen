@@ -53,7 +53,7 @@ diverging_colors = [(118,42,131),#violet
                     (219,62,243),#violet pale
                     (253,63,171),#rose
                     (41,238,211),#bleu clair
-                    (69,117,180)]#bleu
+                    (69,117,180)]#bleu corresponding to l=['#762A83',"#1B7837", "#D73027", "#8C510A", "#DB3EF3","#FD3FAB", "#29EED3", "#4575B4"]
 
 
 # colors 
@@ -285,7 +285,8 @@ class MovieMaker(object):
         return markers
     
     def make_movie(self, id, out_path, tempDir=None, sirna=None, gene=None, outDir=None,
-                   trajectory_dir=None, feature_movie_dir=None, feature=None, num_cluster=6):
+                   trajectory_dir=None, feature_movie_dir=None, feature=None, num_cluster=6, 
+                   keep_projection_images=False):
         
         '''
         Feature can be a trajectory feature like diffusion coefficient. It can also be
@@ -410,11 +411,17 @@ class MovieMaker(object):
             #shell_command = 'rmdir %s' % tempDir
             #os.system(shell_command)
             if not feature_movie_dir is None and not feature is None:
-                shell_command = 'rm %s/*.png' % f_temp_dir
-                print shell_command
-                os.system(shell_command)
-                #shell_command = 'rmdir %s' % f_temp_dir
-                #os.system(shell_command)
+                if not keep_projection_images:
+                    shell_command = 'rm %s/*.png' % f_temp_dir
+                    print shell_command
+                    os.system(shell_command)
+                else:
+                    f_dir = os.path.join(feature_movie_dir, 'images_projection_{}'.format(id))
+                    if not os.path.isdir(f_dir):
+                        os.makedirs(f_dir)
+                    shell_command='mv %s/*.png %s' % (f_temp_dir, f_dir)
+                    print shell_command
+                    os.system(shell_command)
 
         except:
             print 'temp directory not removed'
@@ -444,6 +451,7 @@ if __name__ ==  "__main__":
     parser.add_option('--labels', dest='labels', type=int, help="If you're interested in plotting clustering labels as opposed to features")
     parser.add_option('--num_cluster', dest='num_cluster', type=int, help="Cluster number")
     parser.add_option('--specific_cluster', dest='specific_cluster', type=int, default=None)
+    parser.add_option('--keep_images', dest='keep_projection_images', type=int, default=0)
     (options, args) = parser.parse_args()
     
     if (options.pickle_file is None or options.out_path is None):
@@ -494,7 +502,8 @@ if __name__ ==  "__main__":
                         exp='{}--{}'.format(exp[0][:9], exp[1][2:5])
                         mm.make_movie(exp, cat_out_path,gene=cluster, 
                                       feature_movie_dir=options.feature_target_dir,
-                                      feature=category, num_cluster=options.num_cluster)
+                                      feature=category, num_cluster=options.num_cluster,
+                                      keep_projection_images=options.keep_projection_images)
         
 
             else:
