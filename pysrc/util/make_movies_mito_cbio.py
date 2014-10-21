@@ -510,8 +510,9 @@ if __name__ ==  "__main__":
 
             else:
                 for i,id in enumerate(ids[:20]):
-                    print 'making movie number %i %s' %(i, id)
-                    mm.make_movie(id, cat_out_path, 
+                    exp='{}--{}'.format(id[0][:9], id[1][2:5])
+                    print 'making movie number %i %s' %(i, exp)
+                    mm.make_movie(exp, cat_out_path, 
                                   feature_movie_dir=options.feature_target_dir,
                                   feature=category, num_cluster=options.num_cluster)
         
