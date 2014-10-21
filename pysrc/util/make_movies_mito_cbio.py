@@ -248,6 +248,7 @@ class MovieMaker(object):
             values = tab[:,feature_index]
             colors = [cm.getColorFromMap(x, cr, FEATURE_RANGE[feature][0], FEATURE_RANGE[feature][1])
                       for x in values.tolist()]
+            new_coord=coord
         elif feature=='labels':
             #we are going to predict on the fly the clustering labels not to have to stock them smw (fast to predict)
             tab, toDel = correct_from_Nan(tab, perMovie=False)
