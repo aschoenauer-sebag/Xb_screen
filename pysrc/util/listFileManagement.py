@@ -573,7 +573,7 @@ def countingUsable(siRNAL, result_file, qc_file='../data/qc_export.txt',
     return
     
 def countingDone(experiments,featlistonly=True, name=None,rawD='/share/data20T/mitocheck/Alice/results',\
-                 trajD = "/share/data20T/mitocheck/tracking_results", featureTabName='hist2_tabFeatures_{}.pkl'):
+                 trajD = "/share/data20T/mitocheck/tracking_results", featureTabName='hist_tabFeatures_{}.pkl'):
     '''
     Counts of a list of experiments how many have been dealt with with regard to object feature extraction,
     cell trajectory extraction and finally trajectory feature extraction.
