@@ -471,7 +471,9 @@ if __name__ ==  "__main__":
 
     mm = MovieMaker(in_path)
     if not options.labels:
-        l=['signed turning angle',]
+        l=movies.keys()
+        print "About to compute movies for those features ", l
+#        l=['signed turning angle',
 #         'movement type',
 #         'corrected straightness index',
 #         'ball number2',
