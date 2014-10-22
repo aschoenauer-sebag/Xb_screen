@@ -778,7 +778,7 @@ def plotDistanceDist(folder = '../resultData/features_on_films',siRNA_folder = '
     
 class cellExtractor():
     def __init__(self, siRNA, settings_file,
-                 testCtrl = False,
+                 testCtrl = False,iter=0,
                  div_name='total_variation', bin_type = 'quantile', cost_type = 'number',
                  bin_size=50,lambda_=10,M=None, verbose=0):
 
@@ -798,7 +798,8 @@ class cellExtractor():
         self.cost_type=cost_type
         self.bins_type = bin_type
         self.bin_size = bin_size
-        self.lambda_=lambda_        
+        self.lambda_=lambda_   
+        self.iter=iter     
         
         self.currInterestFeatures = list(featuresNumeriques)
         self.currInterestFeatures.extend(['mean persistence',  'mean straight'])
@@ -858,16 +859,19 @@ class cellExtractor():
                 ctrlExpList = list(np.array(usable_ctrl)[true_ctrl])
                 if self.verbose:
                     print 'after cleaning', len(ctrlExpList)
-            #saving the controls that were used to compare the 'false experiments' to use them to compare the real experiments of the same plate
+                    
+            #saving the controls that are usable, and five permutations of range(len(usable_ctrl)) for the experiments
+                permutations = [np.random.permutation(len(usable_ctrl))[:min(len(usable_ctrl)-1,5)] for k in range(5)]
              
                 f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate)), 'w')
-                pickle.dump(ctrlExpList, f); f.close()
+                pickle.dump([np.array(usable_ctrl), permutations], f); f.close()
                 
             else:
             #loading the controls that were used to compute control control p-values
                 try:
                     f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate)))
-                    ctrlExpList = pickle.load(f); f.close()
+                    usable_ctrl, permutations = pickle.load(f); f.close()
+                    ctrlExpList=usable_ctrl[permutations[self.iter]]
                 except IOError:
                     sys.stderr.write('No file registering used ctrls for plate {}'.format(plate))
                     ctrlExpList=None
@@ -891,11 +895,8 @@ class cellExtractor():
     
     def parameters(self):
         r={
-           'bins_type': self.bins_type,
-           'bin_size':self.bin_size,
            'div_name':self.div_name,
-           'lambda':self.lambda_,
-           'cost_type':self.cost_type
+           'iter':self.iter
            }
         return tuple(sorted(zip(r.keys(), r.values()), key=itemgetter(0)))
     
@@ -1053,6 +1054,7 @@ if __name__ == '__main__':
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
     parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
     parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
+    parser.add_option('--iter', type=int, dest="iter", default=0)
     
     parser.add_option("-l",type=int, dest="lambda_", default=10)
     parser.add_option("--verbose", dest="verbose", type=int,default=0)
@@ -1075,5 +1077,6 @@ if __name__ == '__main__':
         
     else:
         extractor=cellExtractor(options.siRNA, options.settings_file,options.testCtrl, options.div_name, options.bins_type,
+                                iter=options.iter,
                      bin_size=options.bin_size,lambda_=options.lambda_, verbose=options.verbose)
         extractor()

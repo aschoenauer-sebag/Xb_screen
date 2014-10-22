@@ -24,7 +24,7 @@ def generateQCFile(num_plates=None, num_replicates=[1,2,3]):
         num_plates = range(1, len(os.listdir(dataFolder))/3+1)
     
     for plate in num_plates:
-        l=len(os.listdir(os.path.join(dataFolder, 'LT{:>04}_01'.format(plate))))
+        l=len(os.listdir(os.path.join(dataFolder, 'LT{:>03}_01'.format(plate))))
         if l <50:
             wells = [15, 26, 63, 74, 304, 315, 352]
         else:

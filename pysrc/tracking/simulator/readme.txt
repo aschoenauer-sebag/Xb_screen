@@ -10,4 +10,7 @@ iii. If never done before, generate the false Quality Control file
 		simulator.generateQC()
 		
 iv. Do the jobs for the simulated traj, controls first
-		%run tracking/trajPack/feature_cell_extraction_script -b simDistances  
+		%run tracking/trajPack/feature_cell_extraction_script -b simDistances --div_name KS --testCtrl 1 --simulated 1  
+		
+v. For the experiments
+		%run tracking/trajPack/feature_cell_extraction_script -b simDistances --div_name KS --simulated 1 --iter 

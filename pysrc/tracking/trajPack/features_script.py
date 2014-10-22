@@ -219,7 +219,7 @@ if __name__ == '__main__':
         processedPlates = filter(lambda x: int(x[2:6])>3, os.listdir(dataFolder))
         toProcess=[]
         for plate in processedPlates:
-            toProcess.extend([(plate, '{:>03}'.format(k)) for k in range(1,385)])
+            toProcess.extend([(plate, '{:>03}'.format(k)) for k in [15, 26, 63, 74, 304, 315, 352]])
         scriptCible(toProcess, dataFolder, options.baseName, simulated=True)
         
     elif options.trajToDo is not None:

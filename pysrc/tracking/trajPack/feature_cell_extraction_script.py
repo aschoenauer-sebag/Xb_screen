@@ -126,7 +126,7 @@ def globalSummaryScript(baseName, siRNAFile,div_name,iter, bins_type, bin_size, 
         f=open(siRNAFile, 'r')
         siRNAList = pickle.load(f); f.close()
         cmd ="""
-python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --bins_type %s --bin_size %s --settings_file %s
+python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --bins_type %s --bin_size %s --settings_file %s --iter %i
 """
 
     else:
@@ -135,18 +135,18 @@ python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --b
         siRNAList = os.listdir(folder)
 
         cmd ="""
-python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s --bins_type %s --bin_size %s --settings_file %s
+python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s --bins_type %s --bin_size %s --settings_file %s --iter %i
 """
     
     head = """#!/bin/sh
 cd %s""" %progFolder
-    baseName = baseName+'{}{}{}'.format(div_name, bins_type, bin_size)
+    baseName = baseName+'{}{}'.format(div_name, iter)
 
     for siRNA in siRNAList:
         i+=1; jobCount +=1
         
         cour_cmd= cmd%(
-              siRNA, div_name, bins_type, bin_size, settings_file
+              siRNA, div_name, bins_type, bin_size, settings_file, iter
               )
         
         # this is now written to a script file (simple text file)
