@@ -118,7 +118,7 @@ cd %s""" %progFolder
     print sub_cmd
     return 1
 
-def scriptCible(param_list, dataFolder, baseName):
+def scriptCible(param_list, dataFolder, baseName, simulated=False):
     jobCount = 0
     fileNumber = int(ceil(len(param_list)/float(jobSize)))
     head = """#!/bin/sh
@@ -129,24 +129,27 @@ cd %s""" %progFolder
         jobCount += 1
         cmd = ''
         for plate, w in lstJobPositions:
-#FIRST if trajectories do not exist we do them
-            temp_cmd = """
-    python tracking/trajPack/parallel_trajFeatures.py -p %s -w %s -c %i -d %s"""
-            temp_cmd %= (
-                    plate,
-                    w+'.hdf5',
-                    0,
-                    dataFolder
-                    )
-    #        print temp_cmd
-            cmd += temp_cmd
+#FIRST if trajectories do not exist we do them, if it's not simulated data of course
+            if not simulated:
+                w+='.hdf5'
+                temp_cmd = """
+        python tracking/trajPack/parallel_trajFeatures.py -p %s -w %s -c %i -d %s"""
+                temp_cmd %= (
+                        plate,
+                        w,
+                        0,
+                        dataFolder
+                        )
+        #        print temp_cmd
+                cmd += temp_cmd
     #THEN we compute trajectories features anyway
             temp_cmd = """
-    python tracking/trajPack/parallel_trajFeatures.py -p %s -w %s -c %i """
+    python tracking/trajPack/parallel_trajFeatures.py -p %s -w %s -c %i --simulated %i"""
             temp_cmd %= (
                     plate,
-                    w+'.hdf5',
-                    1
+                    w,
+                    1,
+                    int(simulated)
                     )
     
             cmd += temp_cmd
@@ -206,27 +209,19 @@ if __name__ == '__main__':
                       help="Give absolute path to the file where you have listed the experiments you're interested in")
     parser.add_option("--feat", dest="featToDo", type=str, default= None,
                       help="Give absolute path to the file where you have listed the experiments you're interested in")
+    parser.add_option("-s", "--simulated", dest="simulated", default = 0, type=int, 
+                      help="Use of simulated trajectories or no")
 
     (options, args) = parser.parse_args()
     dataFolder = options.dataFolder#"/cbio/donnees/aschoenauer/data/tracking/migration"
-    
-    
-##here we are going to compute again same plates, subensemble of migration hits to get to know the new features
-#    
-#    f=open("/cbio/donnees/aschoenauer/workspace2/Tracking/src/trsf_maxd50inf3_data.pkl", 'r'); d=pickle.load(f); f.close()
-#    toProcess = d[1]
-#VERIFIER PUITS PAR PUITS QUI EST LA ET QUI N'EST PAS LA...
-    if options.trajToDo is None and options.featToDo is None:
+
+    if options.simulated:
         processedPlates = os.listdir(dataFolder)#"/cbio/donnees/aschoenauer/data/tracking/migration")
         toProcess=[]
         for plate in processedPlates:
-            try:
-                liste = os.listdir(os.path.join(dataFolder, plate, 'hdf5'))
-            except:
-                pass
-            else:
-                toProcess.extend([(plate, w) for w in liste])
-        scriptCible(toProcess, dataFolder, options.baseName)
+            toProcess.extend([(plate, '{:>03}'.format(k)) for k in range(1,385)])
+        scriptCible(toProcess, dataFolder, options.baseName, simulated=True)
+        
     elif options.trajToDo is not None:
         f=open(options.trajToDo, 'r')
         trajToDo=pickle.load(f); f.close()
