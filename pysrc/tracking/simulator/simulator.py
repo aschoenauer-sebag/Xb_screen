@@ -13,6 +13,21 @@ from util.settings import Settings
 import pdb
 import plotter_stats
 
+def generateQCFile(num_plates=[1,2,3], num_replicates=[1,2,3]):
+    f=open('../data/qc_simulated.txt', 'w')
+    f.write('Id\tsirnaId\ttype\tlabtekQC\tmanualSpotQC\tautoSpotQC\taccepted\tremark\n')
+    siRNAid=1
+    for plate in num_plates:
+        for well in range(1,385):
+            experiment_type='marker'
+            if well in [15, 26, 63, 74, 304, 315, 352]:
+                experiment_type='scrambled'
+            for replicate in num_replicates:
+                f.write('LT{:>04}_{:>02}--{:>03}\t{}\t{}\tpass\tpass\tpass\tTrue\tok\n'.format(plate, replicate, well, siRNAid, experiment_type) )
+            siRNAid+=1
+    f.close()
+    
+
 class BasicCountMachine(object):
     # transition_conditions = {source_state: (target_state, count_number)}
     def __init__(self, transition_conditions):
@@ -63,41 +78,55 @@ class PlateSimulator(object):
         self.trajectory_simulator = TrajectorySimulator(settings=self.settings)
         self.movement_types = None
         
-    def __call__(self):
+    def __call__(self, control_only=False):
         # sum should be 377 (7 negative controls)
         #parameter mean_variation_alpha for varying mean speed from one replicate to another
-        hit_vec = {
-                   'normal': 350, 
-                   'directed1': 4,
-                   'directed2': 8, 
-                   'fast': 8,
-                   'switch_fast': 7,
-                   }
-        res, annotation = self.simulate_plates_with_replicates(hit_vec, low_nb=100, high_nb=150, nb_min_thresh=20, 
+        if not control_only:
+            hit_vec = {
+                       'normal': 350, 
+                       'directed1': 4,
+                       'directed2': 8, 
+                       'fast': 8,
+                       'switch_fast': 7,
+                       }
+            res, annotation = self.simulate_plates_with_replicates(hit_vec, low_nb=100, high_nb=150, nb_min_thresh=20, 
+                                                                   mean_variation_alpha=0.0)
+            self.export_plate_simulation(res, annotation)
+    
+            hit_vec = {
+                       'normal': 320, 
+                       'directed1': 14,
+                       'directed2': 6, 
+                       'fast': 33,
+                       'switch_fast': 4,
+                       }        
+            res, annotation = self.simulate_plates_with_replicates(hit_vec, low_nb=100, high_nb=150, nb_min_thresh=20, 
+                                                                   mean_variation_alpha=0.5)
+            self.export_plate_simulation(res, annotation)
+    
+            hit_vec = {
+                       'normal': 357, 
+                       'directed1': 1,
+                       'directed2': 3, 
+                       'fast': 4,
+                       'switch_fast': 12,
+                       }        
+            res, annotation = self.simulate_plates_with_replicates(hit_vec, low_nb=100, high_nb=150, nb_min_thresh=20, 
+                                                                   mean_variation_alpha=1.0)
+            self.export_plate_simulation(res, annotation)
+        
+        for k in range(150):
+            res, annotation = self.simulate_plates_with_replicates(control_only=True, low_nb=100, high_nb=150, nb_min_thresh=20, 
                                                                mean_variation_alpha=0.0)
-        self.export_plate_simulation(res, annotation)
-
-        hit_vec = {
-                   'normal': 320, 
-                   'directed1': 14,
-                   'directed2': 6, 
-                   'fast': 33,
-                   'switch_fast': 4,
-                   }        
-        res, annotation = self.simulate_plates_with_replicates(hit_vec, low_nb=100, high_nb=150, nb_min_thresh=20, 
+            self.export_plate_simulation(res, annotation)
+        for k in range(200):
+            res, annotation = self.simulate_plates_with_replicates(control_only=True, low_nb=100, high_nb=150, nb_min_thresh=20, 
                                                                mean_variation_alpha=0.5)
-        self.export_plate_simulation(res, annotation)
-
-        hit_vec = {
-                   'normal': 357, 
-                   'directed1': 1,
-                   'directed2': 3, 
-                   'fast': 4,
-                   'switch_fast': 12,
-                   }        
-        res, annotation = self.simulate_plates_with_replicates(hit_vec, low_nb=100, high_nb=150, nb_min_thresh=20, 
-                                                               mean_variation_alpha=1.0)
-        self.export_plate_simulation(res, annotation)
+            self.export_plate_simulation(res, annotation)
+        for k in range(50):
+            res, annotation = self.simulate_plates_with_replicates(control_only=True, low_nb=100, high_nb=150, nb_min_thresh=20, 
+                                                               mean_variation_alpha=1)
+            self.export_plate_simulation(res, annotation)
 
         return
     
@@ -192,12 +221,14 @@ class PlateSimulator(object):
     
     def simulate_plates_with_replicates(self, hit_vec=None,
                                         low_nb=100, high_nb=200, nb_min_thresh=20, nb_type='from_file', 
-                                        mean_variation_alpha=0.0):
+                                        mean_variation_alpha=0.0,
+                                        control_only=False):
         
         if hit_vec is None:
             hit_vec = self.settings.hit_vec
             
         res = {}
+    #In particular those are the same negative controls as for the mitocheck plates
         neg_controls = [15, 26, 63, 74, 304, 315, 352]
         exp_spots_o = filter(lambda x: x not in neg_controls, range(1, 385))
         exp_spots = np.random.permutation(exp_spots_o)
@@ -257,7 +288,8 @@ class PlateSimulator(object):
                     simulator_settings[mt]['N'] = counts[mt]
                 res[plate_index][pos] = self.trajectory_simulator.make_trajectories(simulator_settings)
                 annotation[plate_index][pos] = 'control'
-                
+            if control_only:
+                return res, annotation
             # simulation for other spots
             k=0
             for exp_type in hit_vec:

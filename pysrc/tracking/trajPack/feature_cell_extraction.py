@@ -1043,7 +1043,8 @@ if __name__ == '__main__':
     nb_exp should be the minimum number of experiments to get a stable distribution of the feature among
     considered experiments, so that the calculation is parallelizable
     '''
-    parser = OptionParser(usage="usage: %prog [options]")    
+    parser = OptionParser(usage="usage: %prog [options]") 
+    parser.add_option('--settings_file', type=str, default='tracking/settings/settings_feature_extraction.py')   
     parser.add_option('--action', type=str, default=None)
     parser.add_option('--siRNA', type=str, dest='siRNA', default=None)
     parser.add_option('--testCtrl', type=str, dest='testCtrl', default=0)
@@ -1057,7 +1058,6 @@ if __name__ == '__main__':
     parser.add_option("--verbose", dest="verbose", type=int,default=0)
     (options, args) = parser.parse_args()
     
-    settings_file = 'tracking/settings/settings_feature_extraction.py'
 
     if options.action=='collectDistances':
         collectingDistances('all_distances_whole_5Ctrl2.pkl', '../resultData/features_on_films/', 
@@ -1074,6 +1074,6 @@ if __name__ == '__main__':
                             siRNAFilterList=siRNAFilterList)
         
     else:
-        extractor=cellExtractor(options.siRNA, settings_file,options.testCtrl, options.div_name, options.bins_type,
+        extractor=cellExtractor(options.siRNA, options.settings_file,options.testCtrl, options.div_name, options.bins_type,
                      bin_size=options.bin_size,lambda_=options.lambda_, verbose=options.verbose)
         extractor()

@@ -61,79 +61,81 @@ cd %s""" %progFolder
     
     return 1
 
-def script_usable(outFolder='../scripts', baseName='usable'):
-    cmd ="""
-python util/listFileManagement.py --plate %s
-"""
-    head = """#!/bin/sh
-cd %s""" %progFolder
-
-    f=open('../data/wrong_trajectories_plates.pkl')
-    plates = pickle.load(f); f.close()
-
-    for k,plate in enumerate(plates):
-        cour_cmd= cmd%plate        
-        # this is now written to a script file (simple text file)
-        # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
-        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(k+1))
-        script_file = file(script_name, "w")
-        script_file.write(head + cour_cmd)
-        script_file.close()
-
-        # make the script executable (without this, the cluster node cannot call it)
-        os.system('chmod a+x %s' % script_name)
-
-
-            # write the main script
-    array_script_name = '%s.sh' % os.path.join(scriptFolder, baseName)
-    main_script_file = file(array_script_name, 'w')
-    main_content = """#!/bin/sh
-%s
-#$ -o %s
-#$ -e %s
-%s$%s.sh
-""" % (path_command,
-       pbsOutDir,  
-       pbsErrDir, 
-       os.path.join(scriptFolder, baseName),
-       pbsArrayEnvVar)
-
-    main_script_file.write(main_content)
-    main_script_file.close()
-    os.system('chmod a+x %s' % array_script_name)
-    sub_cmd = 'qsub -t 1-%i %s' % (len(plates), array_script_name)
-
-    print sub_cmd
+#def script_usable(outFolder='../scripts', baseName='usable'):
+#    cmd ="""
+#python util/listFileManagement.py --plate %s
+#"""
+#    head = """#!/bin/sh
+#cd %s""" %progFolder
+#
+#    f=open('../data/wrong_trajectories_plates.pkl')
+#    plates = pickle.load(f); f.close()
+#
+#    for k,plate in enumerate(plates):
+#        cour_cmd= cmd%plate        
+#        # this is now written to a script file (simple text file)
+#        # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
+#        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(k+1))
+#        script_file = file(script_name, "w")
+#        script_file.write(head + cour_cmd)
+#        script_file.close()
+#
+#        # make the script executable (without this, the cluster node cannot call it)
+#        os.system('chmod a+x %s' % script_name)
+#
+#
+#            # write the main script
+#    array_script_name = '%s.sh' % os.path.join(scriptFolder, baseName)
+#    main_script_file = file(array_script_name, 'w')
+#    main_content = """#!/bin/sh
+#%s
+##$ -o %s
+##$ -e %s
+#%s$%s.sh
+#""" % (path_command,
+#       pbsOutDir,  
+#       pbsErrDir, 
+#       os.path.join(scriptFolder, baseName),
+#       pbsArrayEnvVar)
+#
+#    main_script_file.write(main_content)
+#    main_script_file.close()
+#    os.system('chmod a+x %s' % array_script_name)
+#    sub_cmd = 'qsub -t 1-%i %s' % (len(plates), array_script_name)
+#
+#    print sub_cmd
+#    
+#    return 1
     
-    return 1
-    
 
-def globalSummaryScript(baseName, siRNAFile,div_name, bins_type, bin_size, testCtrl=False):
+def globalSummaryScript(baseName, siRNAFile,div_name,iter, bins_type, bin_size, testCtrl=False, simulated=False):
     
     jobCount = 0
     i=0
+    
+    if simulated:
+        settings_file = 'tracking/settings/settings_feature_extraction_SIMULATED_DATA.py'
+        folder = '../resultData/simulated_traj/simres/plates'
+    else:
+        settings_file = 'tracking/settings/settings_feature_extraction.py'
+        folder = '/share/data20T/mitocheck/tracking_results'
+    
     if not testCtrl:
         #A. DEALING WITH EXPERIMENTS
-        siRNAList = ['123438', '123438', '148427', '148427', '122325', '122325', '28902', '28902']
-#        f=open(siRNAFile, 'r')
-#        siRNAList = pickle.load(f); f.close()
+        
+        f=open(siRNAFile, 'r')
+        siRNAList = pickle.load(f); f.close()
         cmd ="""
-python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --bins_type %s --bin_size %s
+python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --bins_type %s --bin_size %s --settings_file %s
 """
 
     else:
         #A. DEALING WITH CONTROLS, for a specific list of plates
         baseName+='CTRL_'
-        siRNAList = os.listdir('/share/data20T/mitocheck/tracking_results')
-#        ["LT0061_05--ex2006_03_08--sp2005_06_02--tt17--c5",
-#"LT0061_03--ex2005_07_15--sp2005_06_02--tt173--c4",
-#"LT0004_47--ex2005_04_08--sp2005_3_18--tt18--c2",
-#"LT0004_06--ex2005_11_18--sp2005_03_18-tt173--c3",
-#"LT0079_13--ex2005_07_20--sp2005_07_04--tt17--c4",
-#"LT0079_05--ex2006_03_10--sp2005_07_14--tt17--c5"]
+        siRNAList = os.listdir(folder)
 
         cmd ="""
-python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s --bins_type %s --bin_size %s
+python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s --bins_type %s --bin_size %s --settings_file %s
 """
     
     head = """#!/bin/sh
@@ -144,7 +146,7 @@ cd %s""" %progFolder
         i+=1; jobCount +=1
         
         cour_cmd= cmd%(
-              siRNA, div_name, bins_type, bin_size
+              siRNA, div_name, bins_type, bin_size, settings_file
               )
         
         # this is now written to a script file (simple text file)
@@ -185,23 +187,45 @@ if __name__ == '__main__':
     description =\
 '''
 %prog - Script generating for calculating distances between films
+
+Options:
+- baseName : script filename
+- div_name : possible values: transportation (for Sinkhorn divergence), etransportation (for exact transportation distances in 1D), total_variation or hellinger
+- bins_type : quantile or minmax, in case of transportation or etransportation distances
+- bin_size : a number between 5 and 100 (up to you), in case of transportation or etransportation distances
+
+-testCtrl : precise 1 if producing control pvalues. In this case, the iteration variable is not used (only for experiments)
+-iter : 0 to 4 at least, to test an experiment against a randomly chosen set of controls of the same plate
+-simulated: if working with simulated data
+- siRNAFile : the file indicating the correct siRNAs to study (still targeted to exactly one gene according to the state of knowledge)
 '''
 
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
-    parser.add_option("-b", "--base_name", dest="baseName",
-                      help="Base name for script")    
-    #possible values: transportation (for Sinkhorn divergence), etransportation (for exact transportation distances in 1D), total_variation or hellinger
+    parser.add_option("-b", "--base_name", dest="baseName",help="Base name for script")
+        
     parser.add_option('--div_name', type=str, dest='div_name', default='etransportation')
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
     parser.add_option('--bin_size', type=int, dest="bin_size", default=10)    
-    parser.add_option('--testCtrl', type=str, dest='testCtrl', default=0)
-
+    parser.add_option('--testCtrl', type=str, dest='testCtrl', default=0)   
+    parser.add_option('--iter', type=int, dest='iter', default=0)
+    parser.add_option("-s", "--simulated", dest="simulated", default = 0, type=int, 
+                      help="Use of simulated trajectories or no")
+    
     parser.add_option('--siRNA', type=str, dest='siRNAFile', default='../data/siRNA_Simpson.pkl')
 
     (options, args) = parser.parse_args()
     
-    globalSummaryScript(options.baseName,options.siRNAFile, options.div_name,
-                        options.bins_type, options.bin_size, options.testCtrl
+    globalSummaryScript(options.baseName,options.siRNAFile, options.div_name, options.iter,
+                        options.bins_type, options.bin_size, options.testCtrl, options.simulated
                       )
+    
+#NB before Bioimage Informatics, siRNAs impacted by the bug siRNAList = ['123438', '123438', '148427', '148427', '122325', '122325', '28902', '28902']
+#and the controls that were modified 
+#["LT0061_05--ex2006_03_08--sp2005_06_02--tt17--c5",
+#"LT0061_03--ex2005_07_15--sp2005_06_02--tt173--c4",
+#"LT0004_47--ex2005_04_08--sp2005_3_18--tt18--c2",
+#"LT0004_06--ex2005_11_18--sp2005_03_18-tt173--c3",
+#"LT0079_13--ex2005_07_20--sp2005_07_04--tt17--c4",
+#"LT0079_05--ex2006_03_10--sp2005_07_14--tt17--c5"]
     
