@@ -115,11 +115,11 @@ class PlateSimulator(object):
                                                                    mean_variation_alpha=1.0)
             self.export_plate_simulation(res, annotation)
         
-#        for k in range(150):
-#            res, annotation = self.simulate_plates_with_replicates(control_only=True, low_nb=100, high_nb=150, nb_min_thresh=20, 
-#                                                               mean_variation_alpha=0.0)
-#            self.export_plate_simulation(res, annotation)
-        for k in range(100):
+        for k in range(150):
+            res, annotation = self.simulate_plates_with_replicates(control_only=True, low_nb=100, high_nb=150, nb_min_thresh=20, 
+                                                               mean_variation_alpha=0.0)
+            self.export_plate_simulation(res, annotation)
+        for k in range(200):
             res, annotation = self.simulate_plates_with_replicates(control_only=True, low_nb=100, high_nb=150, nb_min_thresh=20, 
                                                                mean_variation_alpha=0.5)
             self.export_plate_simulation(res, annotation)
