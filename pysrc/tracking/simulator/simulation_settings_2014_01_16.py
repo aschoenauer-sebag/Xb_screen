@@ -1,6 +1,11 @@
 import os
-out_folder = '/media/lalil0u/New/workspace2/Tracking/resultData/simulated_traj'#'/cbio/donnees/aschoenauer/workspace2/Tracking/resultData/simulated_traj'
-plot_folder = os.path.join(out_folder, 'plots')
+#out_folder = '/media/lalil0u/New/workspace2/Tracking/resultData/simulated_traj'
+#out_folder = '/cbio/donnees/aschoenauer/workspace2/Tracking/resultData/simulated_traj'
+#plot_folder = os.path.join(out_folder, 'plots')
+out_folder = '/Users/twalter/data/migration_sim/data/output'
+plot_folder = '/Users/twalter/data/migration_sim/data/plots'
+real_data_folder = '/Users/twalter/data/migration_sim/data/real'
+
 adapt_axis = True
 grid = True
 
@@ -9,11 +14,13 @@ grid = True
 #    'stdev': 5
 #    }
 #
-length_file = os.path.join(out_folder, 'lengthDistribution.pkl')
+length_file = os.path.join(real_data_folder, 'lengthDistribution.pkl')
+nb_traj_file = os.path.join(real_data_folder, 'nb_tracks.pickle')
+
 L = {
     'distribution': 'Uniform',
-    'min': 10,
-    'max': 32
+    'min': 12,
+    'max': 40,
     }
 
 simulator_settings = {
@@ -66,6 +73,40 @@ simulator_settings = {
                 'angle2': {'distribution': 'Normal', 'stdev': 25.0},
                 },
 }
+
+
+probabilities = {   
+                 'normal': {'movement_normal': 0.92,
+                            'movement_fast': 0.05,
+                            'directional_bended': 0.01,
+                            'angle_switch': 0.01,
+                            'mode_switch': 0.01,
+                            },
+                 'directed1': {'movement_normal': 0.64,
+                               'movement_fast': 0.05,
+                               'directional_bended': 0.15,
+                               'angle_switch': 0.15,
+                               'mode_switch': 0.01,
+                               },
+                 'directed2': {'movement_normal': 0.7,
+                               'movement_fast': 0.05,
+                               'directional_bended': 0.2,
+                               'angle_switch': 0.04,
+                               'mode_switch': 0.01,
+                               },
+                 'fast': {'movement_normal': 0.6,
+                          'movement_fast': 0.3,
+                          'directional_bended': 0.01,
+                          'angle_switch': 0.01,
+                          'mode_switch': 0.08,
+                          },
+                 'switch_fast': {'movement_normal': 0.7,
+                                 'movement_fast': 0.1,
+                                 'directional_bended': 0.01,
+                                 'angle_switch': 0.01,
+                                 'mode_switch': 0.18,
+                                 },  
+                 }
 
 
 
