@@ -1,4 +1,4 @@
-import os, pdb, time, random
+import os, pdb, time, random, getpass
 import cPickle as pickle
 import numpy as np
 from importPack import imp, FEATURE_NUMBER
@@ -11,7 +11,8 @@ from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as p
 
 from trajPack.trajFeatures import trackletBuilder, ordonnancement
-from analyzer.rough_analysis import featureEvolOverTime
+if getpass.getuser()!='aschoenauer':
+    from analyzer.rough_analysis import featureEvolOverTime
 #import PyPack
 
 count = 0
