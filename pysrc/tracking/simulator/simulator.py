@@ -286,7 +286,7 @@ class PlateSimulator(object):
                 res[plate_index][pos] = self.trajectory_simulator.make_trajectories(simulator_settings)
                 annotation[plate_index][pos] = 'control'
             if control_only:
-                return res, annotation
+                continue
             # simulation for other spots
             k=0
             for exp_type in hit_vec:
