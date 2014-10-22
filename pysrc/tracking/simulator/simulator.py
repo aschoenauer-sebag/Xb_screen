@@ -223,9 +223,6 @@ class PlateSimulator(object):
                                         low_nb=100, high_nb=200, nb_min_thresh=20, nb_type='from_file', 
                                         mean_variation_alpha=0.0,
                                         control_only=False):
-        
-        if hit_vec is None:
-            hit_vec = self.settings.hit_vec
             
         res = {}
     #In particular those are the same negative controls as for the mitocheck plates
