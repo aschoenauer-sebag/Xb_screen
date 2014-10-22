@@ -21,7 +21,7 @@ def generateQCFile(num_plates=None, num_replicates=[1,2,3]):
     siRNAid=1
     
     if num_plates is None:
-        num_plates = range(1, len(os.listdir(dataFolder))+1)
+        num_plates = range(1, len(os.listdir(dataFolder))/3+1)
     
     for plate in num_plates:
         l=len(os.listdir(os.path.join(dataFolder, 'LT{:>04}_01'.format(plate))))
