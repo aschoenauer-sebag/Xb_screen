@@ -13,19 +13,40 @@ from util.settings import Settings
 import pdb
 import plotter_stats
 
-def generateQCFile(num_plates=[1,2,3], num_replicates=[1,2,3]):
+def generateQCFile(num_plates=None, num_replicates=[1,2,3]):
+    dataFolder = '../resultData/simulated_traj/simres/plates'
+    
     f=open('../data/qc_simulated.txt', 'w')
     f.write('Id\tsirnaId\ttype\tlabtekQC\tmanualSpotQC\tautoSpotQC\taccepted\tremark\n')
     siRNAid=1
+    
+    if num_plates is None:
+        num_plates = range(1, len(os.listdir(dataFolder))+1)
+    
     for plate in num_plates:
-        for well in range(1,385):
-            experiment_type='marker'
+        l=len(os.listdir(os.path.join(dataFolder, 'LT{:>04}_01'.format(plate))))
+        if l <50:
+            wells = [15, 26, 63, 74, 304, 315, 352]
+        else:
+            wells = range(1,385)
+        for well in wells:
             if well in [15, 26, 63, 74, 304, 315, 352]:
                 experiment_type='scrambled'
+                s='103860'
+            else:
+                experiment_type='marker'
+                s=siRNAid
+                siRNAid+=1
             for replicate in num_replicates:
-                f.write('LT{:>04}_{:>02}--{:>03}\t{}\t{}\tpass\tpass\tpass\tTrue\tok\n'.format(plate, replicate, well, siRNAid, experiment_type) )
-            siRNAid+=1
+                f.write('LT{:>04}_{:>02}--{:>03}\t{}\t{}\tpass\tpass\tpass\tTrue\tok\n'.format(plate, replicate, well, s, experiment_type) )
     f.close()
+    
+    print 'Maximum siRNA', siRNAid
+    print 'Saving siRNA list in ', '../data/siRNA_simulated.pkl'
+    f=open('../data/siRNA_simulated.pkl', 'w')
+    pickle.dump(range(1, siRNAid), f); f.close()
+    
+    return 1
     
 
 class BasicCountMachine(object):
