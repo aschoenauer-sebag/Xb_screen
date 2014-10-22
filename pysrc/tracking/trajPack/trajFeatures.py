@@ -709,7 +709,7 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
 #
             tabFeatures = None;
             i=0
-            for track in filter(lambda x: x.fusion !=True and len(x.lstPoints)>11 ,dicC.lstTraj):#tracklets):
+            for track in filter(lambda x: x.fusion !=True and len(x.lstPoints)>11 ,dicC.lstTraj):
                 t=track.lstPoints.keys(); t.sort(); 
                 #labelsSequence = [k[1] for k in t]
                 
@@ -736,12 +736,6 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
                 tabFeatures = arr if tabFeatures==None else np.vstack((tabFeatures, arr))
                 for nom in histNC:
                     histNC[nom].append(histN[nom])
-#                    for nom in histAvSC:
-#                        histAvSC[nom].append(histAvS[nom])
-#                    for nom in histApSC:
-#                        histApSC[nom].append(histApS[nom])
-#                    for nom in histAvMC:
-#                        histAvMC[nom].append(histAvM[nom])
                 i+=1
 #remarque sur la fonction histogramme de numpy : si on met le keyword normed a True cela normalise la probability density function mais pas les bins, ie on n'a pas un
 #histogramme au sens de la these de Sven Siggelkow

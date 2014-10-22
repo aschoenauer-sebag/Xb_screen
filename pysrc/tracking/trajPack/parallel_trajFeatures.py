@@ -4,6 +4,7 @@ import numpy as np
 import cPickle as pickle
 from optparse import OptionParser
 import matplotlib
+from tracking.PyPack.fHacktrack2 import trajectoire, ensTraj
 matplotlib.use('Agg')
 
 from tracking.importPack import FEATURE_NUMBER
@@ -120,7 +121,7 @@ Input:
     initTime=time.clock()
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
-
+    print sys.path
     parser.add_option("-p", "--plate", dest="plate",
                       help="The plate which you are interested in")
     
@@ -136,6 +137,9 @@ Input:
     parser.add_option("-n", "--name", dest="filename", default = 'hist_tabFeatures_{}.pkl', 
                       help="Filename for trajectory features")
     
+    parser.add_option("-s", "--simulated", dest="simulated", default = 0, type=int, 
+                      help="Use of simulated trajectories or no")
+    
     parser.add_option("-r", "--repeat", dest="repeat", default = False, 
                       help="False to do only videos that haven't been treated yet and true to compute features even if already computed")
 
@@ -149,11 +153,15 @@ Input:
     predict = True
     TroisD = False
     if type(options.choice)!=bool: options.choice=int(options.choice)
-    
     outputFolder = os.path.join("/share/data20T/mitocheck/tracking_results", options.plate)#######################################################################################
     fi = 'traj_noF_densities_w{}.pkl'.format(options.well)
     
     fi_trajfeatures = options.filename.format(options.well[:-5])
+    
+    if options.simulated:
+        training=True
+        outputFolder = os.path.join('../resultData/simulated_traj/simres/plates', options.plate)
+        fi='{}--{}.pickle'.format(options.plate, options.well)
     
     try:
         os.mkdir(outputFolder)
@@ -188,7 +196,6 @@ Input:
         print "### \n # \n ###\n  We are going to compute features from existing trajectories for plate {}\n Adding density information".format(options.plate)
         try:
             filename = os.path.join(outputFolder, fi); print filename
-            sys.path.append('/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/tracking/')
             f=open(filename, 'r')
             dataDict = pickle.load(f)
             f.close()
@@ -197,8 +204,17 @@ Input:
             sys.exit()
                     
         else:
-            d,c, movie_length = dataDict['tracklets dictionary'], dataDict['connexions between tracklets'], dataDict['movie_length']
-            res = histogramPreparationFromTracklets(d, c, outputFolder, False, verbose, movie_length, name=options.filename)  #(d,c, outputFolder, False, verbose, tab=True, length=movie_length)
+            if not options.simulated:
+                d,c, movie_length = dataDict['tracklets dictionary'], dataDict['connexions between tracklets'], dataDict['movie_length']
+                res = histogramPreparationFromTracklets(d, c, outputFolder, False, verbose, movie_length, name=options.filename)  #(d,c, outputFolder, False, verbose, tab=True, length=movie_length)
+            else:
+                d=ensTraj()
+                for traj in dataDict:
+                    t = trajectoire(1, xi=None, yi=None, frame=None, idC=None, id=1)
+                    t.lstPoints = traj
+                    d.lstTraj.append(t)
+                res=histogramPreparationFromTracklets({options.plate : {options.well : d}}, None, 
+                                                      outputFolder,training =True, verbose=verbose, movie_length={options.plate : {options.well :99}}, name=options.filename)  #(d,c, outputFolder, False, verbose, tab=True, length=movie_length)
     
     final = time.clock() - initTime
     print "##################TEMPS FINAL {}".format(final)

@@ -65,6 +65,7 @@ class PlateSimulator(object):
         
     def __call__(self):
         # sum should be 377 (7 negative controls)
+        #parameter mean_variation_alpha for varying mean speed from one replicate to another
         hit_vec = {
                    'normal': 350, 
                    'directed1': 4,
@@ -172,15 +173,16 @@ class PlateSimulator(object):
                 print 'making %s' % plate_folder
                 os.makedirs(plate_folder)
             for pos in res[plate_index].keys():
-                output_struct = {}
+                output_struct = []
                 k = 1
                 for movement_type in res[plate_index][pos].keys():
                     for trajectory in res[plate_index][pos][movement_type]:
+                        curr_traj={}
                         trajectory_length = len(trajectory)
                         offset = np.random.random_integers(1, 100-trajectory_length)
                         for j in range(trajectory_length): 
-                            output_struct[(offset + j, k)] = trajectory[j]
-                            
+                            curr_traj[(offset + j, k)] = trajectory[j]
+                        output_struct.append(curr_traj)
                 # writes one pickle for each position
                 fp = open(os.path.join(plate_folder, 'LT%04i_%02i--%03i.pickle' % ((max_number+1), (plate_index+1), pos)), 'w')
                 pickle.dump(output_struct, fp)
@@ -225,23 +227,24 @@ class PlateSimulator(object):
                 fp = open(self.settings.nb_traj_file, 'r')
                 temp = pickle.load(fp)
                 fp.close()
-
-                # choose a plate at random
-                real_plates = temp.keys()
-                nb_pos = 0
-                while(nb_pos < 50): 
-                    chosen_plate = real_plates[np.random.random_integers(len(temp.keys()))]
-                    chosen_positions = sorted(temp[chosen_plate].keys())
-                    nb_pos = len(chosen_positions)
-                    print 'read plate : %s %i' % (chosen_plate, len(chosen_positions))
-
-                values = dict(zip(chosen_positions, 
-                                  [temp[chosen_plate][x] for x in chosen_positions]))
-                
-                maxval = max(values.values())
-                minval = min(values.values())
-                default_values = np.random.random_integers(low=minval, high=maxval, size=384)
-                default_values[np.array(chosen_positions)-1] = [temp[chosen_plate][x] for x in chosen_positions]
+                default_values = np.array(temp)[np.random.permutation(len(temp))][:384]
+#COMMENTE EN ATTENDANT D'AVOIR LE FICHIER DE THOMAS
+#                # choose a plate at random
+#                real_plates = temp.keys()
+#                nb_pos = 0
+#                while(nb_pos < 50): 
+#                    chosen_plate = real_plates[np.random.random_integers(len(temp.keys()))]
+#                    chosen_positions = sorted(temp[chosen_plate].keys())
+#                    nb_pos = len(chosen_positions)
+#                    print 'read plate : %s %i' % (chosen_plate, len(chosen_positions))
+#
+#                values = dict(zip(chosen_positions, 
+#                                  [temp[chosen_plate][x] for x in chosen_positions]))
+#                
+#                maxval = max(values.values())
+#                minval = min(values.values())
+#                default_values = np.random.random_integers(low=minval, high=maxval, size=384)
+#                default_values[np.array(chosen_positions)-1] = [temp[chosen_plate][x] for x in chosen_positions]
                 total_nb_traj = dict(zip(range(1, 385), default_values))
                 
             # simulation for the negative controls
@@ -273,7 +276,6 @@ class PlateSimulator(object):
                     # assign for each movement_type the correct number of trajectories
                     for mt in self.movement_types:
                         simulator_settings[mt]['N'] = counts[mt]
-                    
                     res[plate_index][pos] = self.trajectory_simulator.make_trajectories(simulator_settings)
                     annotation[plate_index][pos] = exp_type
 
