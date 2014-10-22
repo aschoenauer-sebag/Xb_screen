@@ -216,7 +216,7 @@ if __name__ == '__main__':
     dataFolder = options.dataFolder#"/cbio/donnees/aschoenauer/data/tracking/migration"
 
     if options.simulated:
-        processedPlates = os.listdir(dataFolder)#"/cbio/donnees/aschoenauer/data/tracking/migration")
+        processedPlates = filter(lambda x: int(x[2:6])>3, os.listdir(dataFolder))
         toProcess=[]
         for plate in processedPlates:
             toProcess.extend([(plate, '{:>03}'.format(k)) for k in range(1,385)])

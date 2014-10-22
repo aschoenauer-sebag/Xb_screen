@@ -190,7 +190,7 @@ if __name__ == '__main__':
 
 Options:
 - baseName : script filename
-- div_name : possible values: transportation (for Sinkhorn divergence), etransportation (for exact transportation distances in 1D), total_variation or hellinger
+- div_name : possible values: KS or MW
 - bins_type : quantile or minmax, in case of transportation or etransportation distances
 - bin_size : a number between 5 and 100 (up to you), in case of transportation or etransportation distances
 
