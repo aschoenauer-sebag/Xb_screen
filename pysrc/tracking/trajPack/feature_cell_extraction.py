@@ -780,7 +780,7 @@ class cellExtractor():
     def __init__(self, siRNA, settings_file,
                  testCtrl = False,
                  div_name='total_variation', bin_type = 'quantile', 
-                 iter=0,
+                 iter_=0,
                  cost_type = 'number',
                  bin_size=50,lambda_=10,M=None, verbose=0):
 
@@ -801,7 +801,7 @@ class cellExtractor():
         self.bins_type = bin_type
         self.bin_size = bin_size
         self.lambda_=lambda_   
-        self.iter=iter     
+        self.iter=iter_     
         
         self.currInterestFeatures = list(featuresNumeriques)
         self.currInterestFeatures.extend(['mean persistence',  'mean straight'])
