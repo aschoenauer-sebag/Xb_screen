@@ -13,4 +13,5 @@ iv. Do the jobs for the simulated traj, controls first
 		%run tracking/trajPack/feature_cell_extraction_script -b simDistances --div_name KS --testCtrl 1 --simulated 1  
 		
 v. For the experiments
-		%run tracking/trajPack/feature_cell_extraction_script -b simDistances --div_name KS --simulated 1 --iter 
+	for k in range(5):
+		%run tracking/trajPack/feature_cell_extraction_script -b simDistances --div_name KS --simulated 1 --iter $k --simulated 1 
