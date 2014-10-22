@@ -121,7 +121,6 @@ Input:
     initTime=time.clock()
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
-    print sys.path
     parser.add_option("-p", "--plate", dest="plate",
                       help="The plate which you are interested in")
     
