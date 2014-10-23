@@ -38,31 +38,31 @@ from rpy2.robjects.vectors import FloatVector
 
 stats = importr('stats')
 #redone experiments after hdf5 catastrophe
-redone_experiments =np.array([['123438', 'LT0061_03--233'],
-       ['123438', 'LT0061_05--233'],
-       ['148427', 'LT0061_03--284'],
-       ['148427', 'LT0061_05--284'],
-       ['122325', 'LT0061_03--295'],
-       ['122325', 'LT0061_05--295'],
-       ['28902', 'LT0079_05--131'],
-       ['28902', 'LT0079_13--131']], 
-      dtype='|S14')
-#experiments for which hdf5 are fine but the controls on the same plate are not
-tofilter_experiments=['LT0007_26--001',
- 'LT0003_15--194',
- 'LT0003_15--270',
- 'LT0003_15--271',
- 'LT0006_44--234',
- 'LT0006_44--236',
- 'LT0006_44--252',
- 'LT0007_26--152',
- 'LT0007_26--174',
- 'LT0010_27--080',
- 'LT0010_27--096',
- 'LT0010_27--097',
- 'LT0010_27--098',
- 'LT0010_27--099',
- 'LT0015_22--039']
+#redone_experiments =np.array([['123438', 'LT0061_03--233'],
+#       ['123438', 'LT0061_05--233'],
+#       ['148427', 'LT0061_03--284'],
+#       ['148427', 'LT0061_05--284'],
+#       ['122325', 'LT0061_03--295'],
+#       ['122325', 'LT0061_05--295'],
+#       ['28902', 'LT0079_05--131'],
+#       ['28902', 'LT0079_13--131']], 
+#      dtype='|S14')
+##experiments for which hdf5 are fine but the controls on the same plate are not
+#tofilter_experiments=['LT0007_26--001',
+# 'LT0003_15--194',
+# 'LT0003_15--270',
+# 'LT0003_15--271',
+# 'LT0006_44--234',
+# 'LT0006_44--236',
+# 'LT0006_44--252',
+# 'LT0007_26--152',
+# 'LT0007_26--174',
+# 'LT0010_27--080',
+# 'LT0010_27--096',
+# 'LT0010_27--097',
+# 'LT0010_27--098',
+# 'LT0010_27--099',
+# 'LT0015_22--039']
 
 
 nb_exp_list=[100, 500, 1000, 2000]
@@ -78,7 +78,7 @@ parameters=[
 #  ('div_name', 'MW'),
 #  ('lambda', 10)),
   (('div_name', 'KS'),
-  ('iter', 0))]
+  ('iter', k)) for k in range(5)]
 
 def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all_distances_whole_CTRL.pkl", sigma=0.1, binSize=10,texts=None):
     f=open(os.path.join(folder, filename))
@@ -368,7 +368,9 @@ def collectingDistances(filename, folder,
                 usable=pickle.load(f); f.close()
             
         else:
+            parameters=parameters[:1]
             files = filter(lambda x: key_name in x and 'CTRL' in x  and 'all' not in x, os.listdir(folder))
+            
         print len(files)
     
         result={param:[[], [], [], None] for param in parameters}
