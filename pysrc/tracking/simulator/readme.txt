@@ -14,4 +14,4 @@ iv. Do the jobs for the simulated traj, controls first
 		
 v. For the experiments
 	for k in range(5):
-		%run tracking/trajPack/feature_cell_extraction_script -b simDistances --div_name KS --simulated 1 --iter $k --simulated 1 
+		%run tracking/trajPack/feature_cell_extraction_script -b simDistances --div_name KS --simulated 1 --iter $k --simulated 1 --siRNA ../data/siRNA_simulated.pkl

@@ -43,6 +43,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
     time_length=[]; pbl_well=[]
     histNtot={nom:[] for nom in featuresHisto}
 
+    pdb.set_trace()
     yqualDict=expSi(qc)
     if mitocheck is not None:
         dictSiEntrez=siEntrez(mitocheck)
