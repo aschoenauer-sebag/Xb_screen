@@ -25,10 +25,12 @@ def evalWorkflowOutput(folder, exp_hit,num_replicates=[1,2,3]):
         for replicate in num_replicates:
             try:
                 truth.extend(['{}_{:>02}--{:>03}'.format(plate,replicate, w) for w in ann[replicate-1] if ann[replicate-1][w] not in ["control", "normal"]])
-                types.update({'{}_{:>02}--{:>03}'.format(plate,replicate, w):ann[replicate-1][w] for w in ann[replicate-1] if ann[replicate-1][w] not in ["control", "normal"]})
+                types.update({'{}_{:>02}--{:>03}'.format(plate,replicate, w):ann[replicate-1][w] for w in ann[replicate-1]})
             except KeyError:
-                pass
-            normals+=len([w for w in ann[0] if ann[0][w]=='normal'])
+                print plate
+                continue
+            else:
+                normals+=len([w for w in ann[0] if ann[0][w]=='normal'])
 
     true_pos=len([el for el in exp_hit if el in truth])
     
