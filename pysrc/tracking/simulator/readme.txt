@@ -15,6 +15,18 @@ iv. Do the jobs for the simulated traj, controls first
 v. For the experiments
 	for k in range(5):
 		%run tracking/trajPack/feature_cell_extraction_script -b simDistances --div_name KS --simulated 1 --iter $k --simulated 1 --siRNA ../data/siRNA_simulated.pkl
+		
+vi. Extract collected distances
+	r=feature_cell_extraction.collectingDistances('dist_sim_CTRL.pkl', 
+		'../resultData/simulated_traj/simres', qc_filename='../data/qc_simulated.txt',mapping_filename= None, testCtrl=True, redo=True,long_version=False, key_name='dist_sim')
+		
+	r=feature_cell_extraction.collectingDistances('dist_sim.pkl', 
+		'../resultData/simulated_traj/simres', qc_filename='../data/qc_simulated.txt',mapping_filename= None, testCtrl=False, redo=True,long_version=False, key_name='dist_sim')
+vii. Compute hits
+	r=feature_cell_extraction.multipleHitDistances('../resultData/simulated_traj/simres','dist_sim', 
+	qc_filename='../data/qc_simulated.txt', mapping_filename=None, filename='all_dist_sim', combination='max', redo=False, trad=False, without_mean_persistence=True)
+	
+viii. Compare with planned hits
 
 		
 		

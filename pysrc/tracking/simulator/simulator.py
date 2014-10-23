@@ -13,6 +13,32 @@ from util.settings import Settings
 import pdb
 import plotter_stats
 
+def evalWorkflowOutput(folder, exp_hit,num_replicates=[1,2,3]):
+    annotations = os.listdir(os.path.join(folder, 'annotations'))
+    truth=[]
+    for annotation in annotations:
+        f=open(os.path.join(folder, "annotations", annotation))
+        ann=pickle.load(f)
+        f.close()
+        
+        plate = annotation.split('_')[-1][:6]
+        for replicate in num_replicates:
+            truth.extend(['{}_{:>02}--{:>03}'.format(plate,replicate, w) for w in ann[0] if ann[0][w] not in ["control", "normal"]])
+            
+    true_pos=len([el for el in exp_hit if el in truth])
+    
+    false_pos=len(exp_hit) - true_pos
+    
+    false_neg=len([el for el in truth if el not in exp_hit])
+    true_neg= len(truth) - false_neg
+    
+    accuracy = float(true_pos+true_neg)/len(truth)
+    precision=float(true_pos)/(true_pos+false_pos)
+    print "Accuracy ", accuracy
+    print "Precision ", precision
+    return accuracy, precision
+    
+
 def generateQCFile(num_plates=None, num_replicates=[1,2,3]):
     dataFolder = '../resultData/simulated_traj/simres/plates'
     plates=filter(lambda x: 'LT' in x, os.listdir(dataFolder))
@@ -221,7 +247,11 @@ class PlateSimulator(object):
         max_number = len(plates)
             
         # write annotation (hit categories and normal spots)
-        fp = open(os.path.join(simres_folder, 'annotation_LT%04i.pickle' % (max_number +1)), 'w')
+        annotation_folder = os.path.join(simres_folder, 'annotations')
+        if not os.path.exists(annotation_folder):
+            os.makedirs(annotation_folder)
+        
+        fp = open(os.path.join(annotation_folder, 'annotation_LT%04i.pickle' % (max_number +1)), 'w')
         pickle.dump(annotation, fp)
         fp.close()
 
