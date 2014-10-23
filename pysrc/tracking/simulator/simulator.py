@@ -17,7 +17,7 @@ from util.sandbox import accuracy_precision
 
 def evalWorkflowOutput(exp_hit,siRNA_hit,folder='../resultData/simulated_traj/simres',  num_replicates=[1,2,3]):
 #Evaluating the workflow at the level of the experiment
-    
+    print 'Workflow evaluation at the experiment level'
     annotations = sorted(os.listdir(os.path.join(folder, 'annotations')))
     truth=[]; types={}; normals=0
     for annotation in annotations:
@@ -41,7 +41,7 @@ def evalWorkflowOutput(exp_hit,siRNA_hit,folder='../resultData/simulated_traj/si
     print Counter((types[el] for el in truth if el not in exp_hit)), Counter((types[el] for el in exp_hit if el not in truth))
 
 #Evaluating the workflow at the level of the siRNA
-
+    print 'Workflow evaluation at the siRNA level'
     siRNA_hit = np.array(siRNA_hit, dtype=int)
 
     f=open(os.path.join(folder,"siRNA_hit_truth.pkl"), 'r')
@@ -51,8 +51,9 @@ def evalWorkflowOutput(exp_hit,siRNA_hit,folder='../resultData/simulated_traj/si
     all_siRNAs=len(pickle.load(f)); f.close()
 
     accuracy_precision(all_siRNAs-len(siRNA_hit_truth), siRNA_hit_truth, siRNA_hit)
-    
-    return [(el, types[el]) for el in truth if el not in exp_hit], [(el, types[el]) for el in exp_hit if el not in truth]
+    print [el for el in siRNA_hit if el not in siRNA_hit_truth],[el for el in siRNA_hit_truth if el not in siRNA_hit]
+     
+    #return [(el, types[el]) for el in truth if el not in exp_hit], [(el, types[el]) for el in exp_hit if el not in truth]
     
 
 def generateQCFile(num_plates=None, num_replicates=[1,2,3], rename=False,
