@@ -357,7 +357,7 @@ def collectingDistances(filename, folder,
                         key_name = 'distances_whole_5Ctrl3',
                         qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl =False,
                         redo=False, siRNAFilterList=None,long_version=False, usable_file='../resultData/features_on_films/usable_experiments_whole_mitocheck.pkl'):
-    
+    global parameters
     if filename not in os.listdir(folder) or redo:
         if not testCtrl:
             files = filter(lambda x: key_name in x and 'CTRL' not in x and 'all' not in x, os.listdir(folder))
@@ -366,9 +366,9 @@ def collectingDistances(filename, folder,
             if long_version:
                 f=open(usable_file)
                 usable=pickle.load(f); f.close()
-            parameters=parameters
+            pp=parameters
         else:
-            parameters=parameters[:1]
+            pp=parameters[:1]
             files = filter(lambda x: key_name in x and 'CTRL' in x  and 'all' not in x, os.listdir(folder))
             
         print len(files)
@@ -379,7 +379,7 @@ def collectingDistances(filename, folder,
             d=pickle.load(f)
             f.close()
             
-            for param in parameters:
+            for param in pp:
                 if param not in d:
                     print "NO parameter sets ", file_, 'param ', parameters.index(param)
                 else:
