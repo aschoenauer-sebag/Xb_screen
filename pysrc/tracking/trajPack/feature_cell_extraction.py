@@ -362,7 +362,7 @@ def collectingDistances(filename, folder,
         if not testCtrl:
             files = filter(lambda x: key_name in x and 'CTRL' not in x and 'all' not in x, os.listdir(folder))
             yqualDict=expSi(qc_filename, sens=0)
-            dictSiEntrez=siEntrez(mapping_filename, yqualDict)
+            dictSiEntrez=siEntrez(mapping_filename, yqualDict.keys())
             if long_version:
                 f=open(usable_file)
                 usable=pickle.load(f); f.close()

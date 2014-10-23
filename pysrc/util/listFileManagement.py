@@ -84,7 +84,7 @@ def usable(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../d
            filename='hist_tabFeatures_{}.pkl'):
     
     yqualDict=expSi(qc)
-    dictSiEntrez=siEntrez(mitocheck, yqualDict)
+    dictSiEntrez=siEntrez(mitocheck, yqualDict.values())
     
     r=[]
     for exp in expL:
@@ -785,7 +785,7 @@ def siEntrez(mitocheck, yqualDict=None):
     
         return result
     elif yqualDict is not None:
-        a=sorted(np.array(Counter(yqualDict.values()).keys(), dtype=int))
+        a=sorted(np.array(Counter(yqualDict).keys(), dtype=int))
         return {str(k):"Sim" for k in range(1,a[-2]+1)}
     else:
         raise AttributeError

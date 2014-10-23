@@ -44,7 +44,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
     histNtot={nom:[] for nom in featuresHisto}
 
     yqualDict=expSi(qc)
-    dictSiEntrez=siEntrez(mitocheck, yqualDict)
+    dictSiEntrez=siEntrez(mitocheck, yqualDict.values())
 
     for i, exp in enumerate(exp_list):
         print i,
