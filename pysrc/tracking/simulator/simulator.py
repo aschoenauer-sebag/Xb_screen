@@ -73,8 +73,8 @@ def generateQCFile(num_plates=None, num_replicates=[1,2,3], rename=False,
             wells = [15, 26, 63, 74, 304, 315, 352]
         else:
             wells = range(1,385)
-            f=open(os.path.join(folder, 'annotations', 'annotation_LT{:>04}.pickle'.format(plate)))
-            ann=pickle.load(f); f.close()
+            file_=open(os.path.join(folder, 'annotations', 'annotation_LT{:>04}.pickle'.format(plate)))
+            ann=pickle.load(file_); file_.close()
         for well in wells:
             if well in [15, 26, 63, 74, 304, 315, 352]:
                 experiment_type='scrambled'
