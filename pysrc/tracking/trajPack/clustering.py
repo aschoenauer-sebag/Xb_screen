@@ -43,13 +43,12 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
     time_length=[]; pbl_well=[]
     histNtot={nom:[] for nom in featuresHisto}
 
-    pdb.set_trace()
     yqualDict=expSi(qc)
     if mitocheck is not None:
         dictSiEntrez=siEntrez(mitocheck)
     else:
         a=sorted(np.array(Counter(yqualDict.values()).keys(), dtype=int))
-        dictSiEntrez = {k:"Sim" for k in range(1,a[-2]+1)}
+        dictSiEntrez = {str(k):"Sim" for k in range(1,a[-2]+1)}
 
     for i, exp in enumerate(exp_list):
         print i,
