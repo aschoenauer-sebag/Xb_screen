@@ -25,7 +25,7 @@ def generateQCFile(num_plates=None, num_replicates=[1,2,3]):
         num_plates = range(1, len(plates)/3+1)
     
     for plate in num_plates:
-        l=len(os.listdir(os.path.join(dataFolder, 'LT{:>03}_01'.format(plate))))
+        l=len(os.listdir(os.path.join(dataFolder, 'LT{:>04}_01'.format(plate))))
         if l <50:
             wells = [15, 26, 63, 74, 304, 315, 352]
         else:
@@ -41,10 +41,10 @@ def generateQCFile(num_plates=None, num_replicates=[1,2,3]):
             for replicate in num_replicates:
                 f.write('LT{:>04}_{:>02}--{:>03}\t{}\t{}\tpass\tpass\tpass\tTrue\tok\n'.format(plate, replicate, well, s, experiment_type) )
                 try:
-                    os.rename(os.path.join(dataFolder, 'LT{:>03}_{:>02}'.format(plate, replicate), 'hist_tabFeatures_{:>03}.pkl'.format(well) ), 
-                              os.path.join(dataFolder, 'LT{:>03}_{:>02}'.format(plate, replicate), 'hist_tabFeatures_{:>05}_01.pkl'.format(well)))
+                    os.rename(os.path.join(dataFolder, 'LT{:>04}_{:>02}'.format(plate, replicate), 'hist_tabFeatures_{:>03}.pkl'.format(well) ), 
+                              os.path.join(dataFolder, 'LT{:>04}_{:>02}'.format(plate, replicate), 'hist_tabFeatures_{:>05}_01.pkl'.format(well)))
                 except:
-                    print 'LT{:>03}_{:>02}'.format(plate, replicate), well
+                    print 'LT{:>04}_{:>02}'.format(plate, replicate), well
                 
                 
     f.close()
