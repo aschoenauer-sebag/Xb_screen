@@ -15,7 +15,7 @@ import plotter_stats
 
 def evalWorkflowOutput(folder, exp_hit,num_replicates=[1,2,3]):
     annotations = os.listdir(os.path.join(folder, 'annotations'))
-    truth=[]
+    truth=[]; normals=0
     for annotation in annotations:
         f=open(os.path.join(folder, "annotations", annotation))
         ann=pickle.load(f)
@@ -24,13 +24,14 @@ def evalWorkflowOutput(folder, exp_hit,num_replicates=[1,2,3]):
         plate = annotation.split('_')[-1][:6]
         for replicate in num_replicates:
             truth.extend(['{}_{:>02}--{:>03}'.format(plate,replicate, w) for w in ann[0] if ann[0][w] not in ["control", "normal"]])
+            normals+=len([w for w in ann[0] if ann[0][w]=='normal'])
             
     true_pos=len([el for el in exp_hit if el in truth])
     
     false_pos=len(exp_hit) - true_pos
     
     false_neg=len([el for el in truth if el not in exp_hit])
-    true_neg= len(truth) - false_neg
+    true_neg= normals - false_neg
     
     accuracy = float(true_pos+true_neg)/len(truth)
     precision=float(true_pos)/(true_pos+false_pos)
