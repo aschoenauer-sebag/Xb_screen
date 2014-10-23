@@ -1,5 +1,5 @@
 result_folder = '../resultData/simulated_traj/simres'
-outputFile = 'distances_whole_5CtrlC_{}.pkl'
+outputFile = 'dist_sim_{}.pkl'
 ctrl_exp_filename = 'ctrl_exp_{}.pkl'
 data_folder = '../resultData/simulated_traj/simres/plates'
 ##filename for trajectory features
