@@ -84,12 +84,8 @@ def usable(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../d
            filename='hist_tabFeatures_{}.pkl'):
     
     yqualDict=expSi(qc)
-    if mitocheck is not None:
-        dictSiEntrez=siEntrez(mitocheck)
-    else:
-        a=sorted(np.array(Counter(yqualDict.values()).keys(), dtype=int))
-        dictSiEntrez = {k:"Sim" for k in range(1,a[-2]+1)}
-
+    dictSiEntrez=siEntrez(mitocheck, yqualDict)
+    
     r=[]
     for exp in expL:
         pl,w=exp
@@ -778,14 +774,22 @@ def expSi(qc, sens=1):
             yeSiExp[yes[k,0]]=yes[k,1]
     return yeSiExp
 
-def siEntrez(mitocheck):
-    mitocheck=txtToList(mitocheck)
-    result = {}
-    for k in range(len(mitocheck)):
-        if len(mitocheck[k])==4:
-            result[mitocheck[k][1]]=mitocheck[k][-1]
-
-    return result
+def siEntrez(mitocheck, yqualDict=None):
+    
+    if mitocheck is not None:
+        mitocheck=txtToList(mitocheck)
+        result = {}
+        for k in range(len(mitocheck)):
+            if len(mitocheck[k])==4:
+                result[mitocheck[k][1]]=mitocheck[k][-1]
+    
+        return result
+    elif yqualDict is not None:
+        a=sorted(np.array(Counter(yqualDict.values()).keys(), dtype=int))
+        return {str(k):"Sim" for k in range(1,a[-2]+1)}
+    else:
+        raise AttributeError
+    
 
 class ArffReader(object):
     '''

@@ -77,11 +77,8 @@ parameters=[
 #  ('cost_type', 'number'),
 #  ('div_name', 'MW'),
 #  ('lambda', 10)),
- (('bin_size', 10),
-  ('bins_type', 'quantile'),
-  ('cost_type', 'number'),
-  ('div_name', 'KS'),
-  ('lambda', 10))]
+  (('div_name', 'KS'),
+  ('iter', 0))]
 
 def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all_distances_whole_CTRL.pkl", sigma=0.1, binSize=10,texts=None):
     f=open(os.path.join(folder, filename))
@@ -360,11 +357,12 @@ def collectingDistances(filename, folder,
                         key_name = 'distances_whole_5Ctrl3',
                         qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl =False,
                         redo=False, siRNAFilterList=None,long_version=False, usable_file='../resultData/features_on_films/usable_experiments_whole_mitocheck.pkl'):
+    
     if filename not in os.listdir(folder) or redo:
         if not testCtrl:
             files = filter(lambda x: key_name in x and 'CTRL' not in x and 'all' not in x, os.listdir(folder))
             yqualDict=expSi(qc_filename, sens=0)
-            dictSiEntrez=siEntrez(mapping_filename)
+            dictSiEntrez=siEntrez(mapping_filename, yqualDict)
             if long_version:
                 f=open(usable_file)
                 usable=pickle.load(f); f.close()
@@ -401,18 +399,22 @@ def collectingDistances(filename, folder,
                         result[param][0].extend([siRNA for k in range(len(l))])
                         if not testCtrl:
                             gene = dictSiEntrez[siRNA]
-                            expList = np.array(strToTuple(yqualDict[siRNA], os.listdir('/share/data20T/mitocheck/tracking_results')))
+                            if gene!='Sim':
+                                expList = np.array(strToTuple(yqualDict[siRNA], os.listdir('/share/data20T/mitocheck/tracking_results')))
                            
-                            if d[param].shape[0]==len(expList):
-                                used_experiments = expList[l]
-                            else:
-                                if long_version:
-                                    used_experiments = expList[usable[siRNA]]
-                                    used_experiments = used_experiments[l]
+                                if d[param].shape[0]==len(expList):
+                                    used_experiments = expList[l]
                                 else:
-                                    used_experiments=expList[l]
+                                    if long_version:
+                                        used_experiments = expList[usable[siRNA]]
+                                        used_experiments = used_experiments[l]
+                                    else:
+                                        used_experiments=expList[l]
                                     
-                            result[param][1].extend([el[0][:9]+'--'+el[1][2:5] for el in used_experiments])
+                                result[param][1].extend([el[0][:9]+'--'+el[1][2:5] for el in used_experiments])
+                            else:
+                                result[param][1].extend(yqualDict[siRNA])
+                                
                             result[param][2].extend([gene for k in range(len(l))])
                         
                         result[param][3]=np.vstack((result[param][3], d[param][l])) if result[param][3] is not None else d[param][l]
