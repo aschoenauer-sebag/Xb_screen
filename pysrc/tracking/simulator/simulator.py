@@ -55,6 +55,7 @@ def evalWorkflowOutput(exp_hit,siRNA_hit,folder='../resultData/simulated_traj/si
 
 def generateQCFile(num_plates=None, num_replicates=[1,2,3], rename=False,
                    folder = '../resultData/simulated_traj/simres'):
+    
     dataFolder = os.path.join(folder, 'plates')
     plates=filter(lambda x: 'LT' in x, os.listdir(dataFolder))
     
@@ -72,7 +73,7 @@ def generateQCFile(num_plates=None, num_replicates=[1,2,3], rename=False,
             wells = [15, 26, 63, 74, 304, 315, 352]
         else:
             wells = range(1,385)
-            f=open(os.path.join(dataFolder, 'annotations', 'annotation_LT{:>04}.pickle'.format(plate)))
+            f=open(os.path.join(folder, 'annotations', 'annotation_LT{:>04}.pickle'.format(plate)))
             ann=pickle.load(f); f.close()
         for well in wells:
             if well in [15, 26, 63, 74, 304, 315, 352]:
