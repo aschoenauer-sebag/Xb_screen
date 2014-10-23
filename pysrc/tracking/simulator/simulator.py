@@ -31,7 +31,7 @@ def evalWorkflowOutput(exp_hit,siRNA_hit,folder='../resultData/simulated_traj/si
                 truth.extend(['{}_{:>02}--{:>03}'.format(plate,replicate, w) for w in ann[replicate-1] if ann[replicate-1][w] not in ["control", "normal"]])
                 types.update({'{}_{:>02}--{:>03}'.format(plate,replicate, w):ann[replicate-1][w] for w in ann[replicate-1]})
             except KeyError:
-                print plate
+                print plate,
                 continue
             else:
                 normals+=len([w for w in ann[0] if ann[0][w]=='normal'])
@@ -168,51 +168,52 @@ class PlateSimulator(object):
         # sum should be 377 (7 negative controls)
         #parameter mean_variation_alpha for varying mean speed from one replicate to another
         if not control_only:
-            hit_vec = {
-                       'normal': 350, 
-                       'directed1': 4,
-                       'directed2': 8, 
-                       'fast': 8,
-                       'switch_fast': 7,
-                       }
-            res, annotation = self.simulate_plates_with_replicates(hit_vec, low_nb=100, high_nb=150, nb_min_thresh=20, 
-                                                                   mean_variation_alpha=0.0)
-            self.export_plate_simulation(res, annotation)
-    
-            hit_vec = {
-                       'normal': 320, 
-                       'directed1': 14,
-                       'directed2': 6, 
-                       'fast': 33,
-                       'switch_fast': 4,
-                       }        
-            res, annotation = self.simulate_plates_with_replicates(hit_vec, low_nb=100, high_nb=150, nb_min_thresh=20, 
-                                                                   mean_variation_alpha=0.5)
-            self.export_plate_simulation(res, annotation)
-    
-            hit_vec = {
-                       'normal': 357, 
-                       'directed1': 1,
-                       'directed2': 3, 
-                       'fast': 4,
-                       'switch_fast': 12,
-                       }        
-            res, annotation = self.simulate_plates_with_replicates(hit_vec, low_nb=100, high_nb=150, nb_min_thresh=20, 
-                                                                   mean_variation_alpha=1.0)
-            self.export_plate_simulation(res, annotation)
+            for k in range(44):
+                hit_vec = {
+                           'normal': 350, 
+                           'directed1': 4,
+                           'directed2': 8, 
+                           'fast': 8,
+                           'switch_fast': 7,
+                           }
+                res, annotation = self.simulate_plates_with_replicates(hit_vec, low_nb=100, high_nb=150, nb_min_thresh=20, 
+                                                                       mean_variation_alpha=0.0)
+                self.export_plate_simulation(res, annotation)
         
-        for k in range(150):
-            res, annotation = self.simulate_plates_with_replicates(control_only=True, low_nb=100, high_nb=150, nb_min_thresh=20, 
-                                                               mean_variation_alpha=0.0)
-            self.export_plate_simulation(res, annotation)
-        for k in range(200):
-            res, annotation = self.simulate_plates_with_replicates(control_only=True, low_nb=100, high_nb=150, nb_min_thresh=20, 
-                                                               mean_variation_alpha=0.5)
-            self.export_plate_simulation(res, annotation)
-        for k in range(50):
-            res, annotation = self.simulate_plates_with_replicates(control_only=True, low_nb=100, high_nb=150, nb_min_thresh=20, 
-                                                               mean_variation_alpha=1)
-            self.export_plate_simulation(res, annotation)
+                hit_vec = {
+                           'normal': 320, 
+                           'directed1': 14,
+                           'directed2': 6, 
+                           'fast': 33,
+                           'switch_fast': 4,
+                           }        
+                res, annotation = self.simulate_plates_with_replicates(hit_vec, low_nb=100, high_nb=150, nb_min_thresh=20, 
+                                                                       mean_variation_alpha=0.5)
+                self.export_plate_simulation(res, annotation)
+        
+                hit_vec = {
+                           'normal': 357, 
+                           'directed1': 1,
+                           'directed2': 3, 
+                           'fast': 4,
+                           'switch_fast': 12,
+                           }        
+                res, annotation = self.simulate_plates_with_replicates(hit_vec, low_nb=100, high_nb=150, nb_min_thresh=20, 
+                                                                       mean_variation_alpha=1.0)
+                self.export_plate_simulation(res, annotation)
+        
+#        for k in range(150):
+#            res, annotation = self.simulate_plates_with_replicates(control_only=True, low_nb=100, high_nb=150, nb_min_thresh=20, 
+#                                                               mean_variation_alpha=0.0)
+#            self.export_plate_simulation(res, annotation)
+#        for k in range(200):
+#            res, annotation = self.simulate_plates_with_replicates(control_only=True, low_nb=100, high_nb=150, nb_min_thresh=20, 
+#                                                               mean_variation_alpha=0.5)
+#            self.export_plate_simulation(res, annotation)
+#        for k in range(50):
+#            res, annotation = self.simulate_plates_with_replicates(control_only=True, low_nb=100, high_nb=150, nb_min_thresh=20, 
+#                                                               mean_variation_alpha=1)
+#            self.export_plate_simulation(res, annotation)
 
         return
     
@@ -885,6 +886,11 @@ class TrajectorySimulator(object):
 #    f=open('../resultData/simulated_traj/histogramsNtotSim.pkl', 'w')
 #    pickle.dump(np.hstack((r2, histogrammeMatrix)), f); f.close()
 
+
+if __name__ == '__main__':
+    p=PlateSimulator(settings_filename="../settings/settings_simulator_14_10_20.py")
+    
+    p()
                 
 
             
