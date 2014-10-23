@@ -1,7 +1,7 @@
 import os, re, sys, time
 import cPickle as pickle
 import numpy as np
-
+from collections import Counter
 import matplotlib
 matplotlib.use('Agg')
 
@@ -15,7 +15,7 @@ import plotter_stats
 
 def evalWorkflowOutput(folder, exp_hit,num_replicates=[1,2,3]):
     annotations = os.listdir(os.path.join(folder, 'annotations'))
-    truth=[]; normals=0
+    truth=[]; types={}; normals=0
     for annotation in annotations:
         f=open(os.path.join(folder, "annotations", annotation))
         ann=pickle.load(f)
@@ -23,7 +23,8 @@ def evalWorkflowOutput(folder, exp_hit,num_replicates=[1,2,3]):
         
         plate = annotation.split('_')[-1][:6]
         for replicate in num_replicates:
-            truth.extend(['{}_{:>02}--{:>03}'.format(plate,replicate, w) for w in ann[0] if ann[0][w] not in ["control", "normal"]])
+            truth.extend(['{}_{:>02}--{:>03}'.format(plate,replicate, w) for w in ann[replicate] if ann[replicate][w] not in ["control", "normal"]])
+            types.update({'{}_{:>02}--{:>03}'.format(plate,replicate, w):ann[replicate][w] for w in ann[replicate] if ann[replicate][w] not in ["control", "normal"]})
             normals+=len([w for w in ann[0] if ann[0][w]=='normal'])
 
     true_pos=len([el for el in exp_hit if el in truth])
@@ -37,8 +38,11 @@ def evalWorkflowOutput(folder, exp_hit,num_replicates=[1,2,3]):
     precision=float(true_pos)/(true_pos+false_pos)
     print "Accuracy ", accuracy
     print "Precision ", precision
+    
     #retourne les faux negatifs et les faux positifs
-    return [el for el in truth if el not in exp_hit], [el for el in exp_hit if el not in truth]
+    print Counter((types[el] for el in truth if el not in exp_hit)), Counter((types[el] for el in exp_hit if el not in truth))
+    
+    return [(el, types[el]) for el in truth if el not in exp_hit], [(el, types[el]) for el in exp_hit if el not in truth]
     
 
 def generateQCFile(num_plates=None, num_replicates=[1,2,3]):
