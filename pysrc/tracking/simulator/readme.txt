@@ -1,6 +1,6 @@
 To apply the workflow to simulated trajectories
 i. Produce the simulated trajectories AND the extra controls that are needed
-		p=simulator.PlateSimulator(settings_filename='tracking/simulator/simulation_settings_2014_01_16.py')
+		p=simulator.PlateSimulator(settings_filename='tracking/settings/settings_simulator_14_10_20.py')
 		p()
 		
 ii. Extract the features of those trajectories

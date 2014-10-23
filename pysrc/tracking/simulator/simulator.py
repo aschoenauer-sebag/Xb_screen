@@ -13,8 +13,12 @@ from util.settings import Settings
 import pdb
 import plotter_stats
 
-def evalWorkflowOutput(folder, exp_hit,num_replicates=[1,2,3]):
-    annotations = os.listdir(os.path.join(folder, 'annotations'))
+from util.sandbox import accuracy_precision
+
+def evalWorkflowOutput(exp_hit,siRNA_hit,folder='../resultData/simulated_traj/simres',  num_replicates=[1,2,3]):
+#Evaluating the workflow at the level of the experiment
+    
+    annotations = sorted(os.listdir(os.path.join(folder, 'annotations')))
     truth=[]; types={}; normals=0
     for annotation in annotations:
         f=open(os.path.join(folder, "annotations", annotation))
@@ -31,42 +35,44 @@ def evalWorkflowOutput(folder, exp_hit,num_replicates=[1,2,3]):
                 continue
             else:
                 normals+=len([w for w in ann[0] if ann[0][w]=='normal'])
+    accuracy_precision(normals, truth, exp_hit)
 
-    true_pos=len([el for el in exp_hit if el in truth])
-    
-    false_pos=len(exp_hit) - true_pos
-    
-    false_neg=len([el for el in truth if el not in exp_hit])
-    true_neg= normals - false_neg
-    
-    accuracy = float(true_pos+true_neg)/(len(exp_hit)+normals)
-    precision=float(true_pos)/(true_pos+false_pos)
-    print "Accuracy ", accuracy
-    print "Precision ", precision
-    
     #retourne les faux negatifs et les faux positifs
     print Counter((types[el] for el in truth if el not in exp_hit)), Counter((types[el] for el in exp_hit if el not in truth))
+
+#Evaluating the workflow at the level of the siRNA
+
+    f=open(os.path.join(folder,"siRNA_hit_truth.pkl"), 'r')
+    siRNA_hit_truth=pickle.load(f); f.close()
+    
+    f=open('../data/siRNA_simulated.pkl', 'r')
+    normal_siRNAs=len(pickle.load(f)); f.close()
+    
+    accuracy_precision(normal_siRNAs, siRNA_hit_truth, siRNA_hit)
     
     return [(el, types[el]) for el in truth if el not in exp_hit], [(el, types[el]) for el in exp_hit if el not in truth]
     
 
-def generateQCFile(num_plates=None, num_replicates=[1,2,3]):
-    dataFolder = '../resultData/simulated_traj/simres/plates'
+def generateQCFile(num_plates=None, num_replicates=[1,2,3], rename=False,
+                   dataFolder = '../resultData/simulated_traj/simres/plates'):
     plates=filter(lambda x: 'LT' in x, os.listdir(dataFolder))
     
     f=open('../data/qc_simulated.txt', 'w')
     f.write('Id\tsirnaId\ttype\tlabtekQC\tmanualSpotQC\tautoSpotQC\taccepted\tremark\n')
     siRNAid=1
-    
+    siRNA_hits=[]
     if num_plates is None:
         num_plates = range(1, len(plates)/3+1)
     
     for plate in num_plates:
+        print plate, ' starting at siRNA ', siRNAid
         l=len(os.listdir(os.path.join(dataFolder, 'LT{:>04}_01'.format(plate))))
         if l <50:
             wells = [15, 26, 63, 74, 304, 315, 352]
         else:
             wells = range(1,385)
+            f=open(os.path.join(dataFolder, 'annotations', 'annotation_LT{:>04}.pickle'.format(plate)))
+            ann=pickle.load(f); f.close()
         for well in wells:
             if well in [15, 26, 63, 74, 304, 315, 352]:
                 experiment_type='scrambled'
@@ -74,14 +80,18 @@ def generateQCFile(num_plates=None, num_replicates=[1,2,3]):
             else:
                 experiment_type='marker'
                 s=siRNAid
+                if ann[0][well] not in ['control', "normal"]:
+                    siRNA_hits.append(s)
                 siRNAid+=1
+                
             for replicate in num_replicates:
-                f.write('LT{:>04}_{:>02}--{:>03}\t{}\t{}\tpass\tpass\tpass\tTrue\tok\n'.format(plate, replicate, well, s, experiment_type) )
-                try:
-                    os.rename(os.path.join(dataFolder, 'LT{:>04}_{:>02}'.format(plate, replicate), 'hist_tabFeatures_{:>03}.pkl'.format(well) ), 
-                              os.path.join(dataFolder, 'LT{:>04}_{:>02}'.format(plate, replicate), 'hist_tabFeatures_{:>05}_01.pkl'.format(well)))
-                except:
-                    print 'LT{:>04}_{:>02}'.format(plate, replicate), well
+                f.write('LT{:>04}_{:>02}--{:>03}\t{}\t{}\tpass\tpass\tpass\tTrue\tok\n'.format(plate, replicate, well, s, experiment_type) )                
+                if rename:
+                    try:
+                        os.rename(os.path.join(dataFolder, 'LT{:>04}_{:>02}'.format(plate, replicate), 'hist_tabFeatures_{:>03}.pkl'.format(well) ), 
+                                  os.path.join(dataFolder, 'LT{:>04}_{:>02}'.format(plate, replicate), 'hist_tabFeatures_{:>05}_01.pkl'.format(well)))
+                    except:
+                        print 'LT{:>04}_{:>02}'.format(plate, replicate), well
                 
                 
     f.close()
@@ -90,6 +100,11 @@ def generateQCFile(num_plates=None, num_replicates=[1,2,3]):
     print 'Saving siRNA list in ', '../data/siRNA_simulated.pkl'
     f=open('../data/siRNA_simulated.pkl', 'w')
     pickle.dump(range(1, siRNAid), f); f.close()
+    
+    print 'Saving siRNA hit list in ', '../resultData/simulated_traj/simres/siRNA_hit_truth.pkl'
+    f=open('../resultData/simulated_traj/simres/siRNA_hit_truth.pkl', 'w')
+    pickle.dump(siRNA_hits, f); f.close()
+    
     
     return 1
     

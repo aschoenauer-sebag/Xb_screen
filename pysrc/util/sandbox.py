@@ -15,6 +15,19 @@ from tracking.histograms import *
 from util.listFileManagement import expSi
 #from histograms.k_means_transportation import WEIGHTS
 
+def accuracy_precision(normals, truth, predicted):
+    true_pos=len([el for el in predicted if el in truth])
+    
+    false_pos=len(predicted) - true_pos
+    
+    false_neg=len([el for el in truth if el not in predicted])
+    true_neg= normals - false_neg
+    
+    accuracy = float(true_pos+true_neg)/(len(predicted)+normals)
+    precision=float(true_pos)/(true_pos+false_pos)
+    print "Accuracy ", accuracy
+    print "Precision ", precision
+
 def countingFluoAlamar(rawFolder="/media/lalil0u/FREECOM HDD/Alice/300714_wells", 
                         filename= "P300714--W%05i--P0001_t%05i_c00002.tif"):
     nb_wells = 47; blanc=None
