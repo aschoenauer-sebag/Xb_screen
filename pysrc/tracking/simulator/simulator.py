@@ -888,7 +888,7 @@ class TrajectorySimulator(object):
 
 
 if __name__ == '__main__':
-    p=PlateSimulator(settings_filename="../settings/settings_simulator_14_10_20.py")
+    p=PlateSimulator(settings_filename="tracking/settings/settings_simulator_14_10_20.py")
     
     p()
                 
