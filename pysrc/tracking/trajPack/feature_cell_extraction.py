@@ -827,7 +827,9 @@ class cellExtractor():
         histDict = defaultdict(list)
         
         _,r, _, self.expList,_, length, _, _, _ = histConcatenation(self.settings.data_folder, self.expList, self.settings.mitocheck_file,
-                                        self.settings.quality_control_file, verbose=self.verbose, perMovie=True)
+                                        self.settings.quality_control_file,
+                                        #filename=self.settings.filename, 
+                                        verbose=self.verbose, perMovie=True)
                     
         for i in range(len(length)):
             for k,feature in enumerate(self.currInterestFeatures):
@@ -880,7 +882,9 @@ class cellExtractor():
     #DONC LES CONTROLES SONT LOADED SANS LES nan POUR TOUTES LES FEATURES POUR 5Ctrl1 je relance 5Ctrl2 AVEC les nan pour les features ou ils ne sont pas nan
             try:
                 _,curr_r, _, _,_, curr_length, _, _, _ = histConcatenation(self.settings.data_folder, ctrlExpList, self.settings.mitocheck_file,
-                                            self.settings.quality_control_file, verbose=self.verbose, perMovie=True)
+                                            self.settings.quality_control_file,
+                                            #filename=self.settings.filename, 
+                                            verbose=self.verbose, perMovie=True)
             except:
                 print "Problem with controls from plate {}".format(plate)
                 length.append(np.nan)

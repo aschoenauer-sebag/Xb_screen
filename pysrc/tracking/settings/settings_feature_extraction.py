@@ -5,6 +5,12 @@ data_folder = '/share/data20T/mitocheck/tracking_results'
 mitocheck_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens75.txt'
 quality_control_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt'
 
+##filename for trajectory features
+#filename='hist_tabFeatures_{:>03}.pkl'
+
+##filename format for the wells
+#format_='{:>05}_01'
+
 #Option to say that we're only dealing with numerical features for the moment
 histDataAsWell=False
 

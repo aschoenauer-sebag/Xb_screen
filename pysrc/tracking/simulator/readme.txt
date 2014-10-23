@@ -6,7 +6,7 @@ i. Produce the simulated trajectories AND the extra controls that are needed
 ii. Extract the features of those trajectories
 		%run tracking/trajPack/features_script -b simFeat -d ../resultData/simulated_traj/simres/plates/ --simulated 1
 		
-iii. If never done before, generate the false Quality Control file
+iii. If never done before, generate the false Quality Control file and change the name of feature files
 		simulator.generateQC()
 		
 iv. Do the jobs for the simulated traj, controls first

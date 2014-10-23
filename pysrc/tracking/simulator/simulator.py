@@ -15,13 +15,14 @@ import plotter_stats
 
 def generateQCFile(num_plates=None, num_replicates=[1,2,3]):
     dataFolder = '../resultData/simulated_traj/simres/plates'
+    plates=filter(lambda x: 'LT' in x, os.listdir(dataFolder))
     
     f=open('../data/qc_simulated.txt', 'w')
     f.write('Id\tsirnaId\ttype\tlabtekQC\tmanualSpotQC\tautoSpotQC\taccepted\tremark\n')
     siRNAid=1
     
     if num_plates is None:
-        num_plates = range(1, len(os.listdir(dataFolder))/3+1)
+        num_plates = range(1, len(plates)/3+1)
     
     for plate in num_plates:
         l=len(os.listdir(os.path.join(dataFolder, 'LT{:>03}_01'.format(plate))))
@@ -39,6 +40,13 @@ def generateQCFile(num_plates=None, num_replicates=[1,2,3]):
                 siRNAid+=1
             for replicate in num_replicates:
                 f.write('LT{:>04}_{:>02}--{:>03}\t{}\t{}\tpass\tpass\tpass\tTrue\tok\n'.format(plate, replicate, well, s, experiment_type) )
+                try:
+                    os.rename(os.path.join(dataFolder, 'LT{:>03}_{:>02}'.format(plate, replicate), 'hist_tabFeatures_{:>03}.pkl'.format(well) ), 
+                              os.path.join(dataFolder, 'LT{:>03}_{:>02}'.format(plate, replicate), 'hist_tabFeatures_{:>05}_01.pkl'.format(well)))
+                except:
+                    print 'LT{:>03}_{:>02}'.format(plate, replicate), well
+                
+                
     f.close()
     
     print 'Maximum siRNA', siRNAid
