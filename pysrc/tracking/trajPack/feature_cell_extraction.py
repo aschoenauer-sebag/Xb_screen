@@ -1079,6 +1079,6 @@ if __name__ == '__main__':
         
     else:
         extractor=cellExtractor(options.siRNA, options.settings_file,options.testCtrl, options.div_name, options.bins_type,
-                                iter_=options.iter_,
+                                iter_=options.iter,
                      bin_size=options.bin_size,lambda_=options.lambda_, verbose=options.verbose)
         extractor()
