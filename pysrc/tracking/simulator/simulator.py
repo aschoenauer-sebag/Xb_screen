@@ -47,7 +47,7 @@ def evalWorkflowOutput(exp_hit,siRNA_hit,folder='../resultData/simulated_traj/si
     
     f=open('../data/siRNA_simulated.pkl', 'r')
     normal_siRNAs=len(pickle.load(f)); f.close()
-    
+    pdb.set_trace()
     accuracy_precision(normal_siRNAs, siRNA_hit_truth, siRNA_hit)
     
     return [(el, types[el]) for el in truth if el not in exp_hit], [(el, types[el]) for el in exp_hit if el not in truth]
