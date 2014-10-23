@@ -37,7 +37,7 @@ def evalWorkflowOutput(folder, exp_hit,num_replicates=[1,2,3]):
     precision=float(true_pos)/(true_pos+false_pos)
     print "Accuracy ", accuracy
     print "Precision ", precision
-    #retourne les faux négatifs et les faux positifs
+    #retourne les faux negatifs et les faux positifs
     return [el for el in truth if el not in exp_hit], [el for el in exp_hit if el not in truth]
     
 
