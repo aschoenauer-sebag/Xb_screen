@@ -366,7 +366,7 @@ def collectingDistances(filename, folder,
             if long_version:
                 f=open(usable_file)
                 usable=pickle.load(f); f.close()
-            
+            parameters=parameters
         else:
             parameters=parameters[:1]
             files = filter(lambda x: key_name in x and 'CTRL' in x  and 'all' not in x, os.listdir(folder))
