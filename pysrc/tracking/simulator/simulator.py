@@ -25,7 +25,7 @@ def evalWorkflowOutput(folder, exp_hit,num_replicates=[1,2,3]):
         for replicate in num_replicates:
             truth.extend(['{}_{:>02}--{:>03}'.format(plate,replicate, w) for w in ann[0] if ann[0][w] not in ["control", "normal"]])
             normals+=len([w for w in ann[0] if ann[0][w]=='normal'])
-            
+    pdb.set_trace()
     true_pos=len([el for el in exp_hit if el in truth])
     
     false_pos=len(exp_hit) - true_pos
