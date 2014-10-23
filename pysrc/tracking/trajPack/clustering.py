@@ -10,6 +10,7 @@ from math import sqrt
 from numpy.linalg import inv
 from optparse import OptionParser
 from warnings import warn
+from collections import Counter
 
 from peach import FuzzyCMeans
 from sklearn.metrics import silhouette_score
@@ -46,7 +47,8 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
     if mitocheck is not None:
         dictSiEntrez=siEntrez(mitocheck)
     else:
-        dictSiEntrez = {k:"Sim" for k in range(1,1153)}
+        a=sorted(np.array(Counter(yqualDict.values()).keys(), dtype=int))
+        dictSiEntrez = {k:"Sim" for k in range(1,a[-2]+1)}
 
     for i, exp in enumerate(exp_list):
         print i,
