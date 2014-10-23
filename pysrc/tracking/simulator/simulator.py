@@ -54,7 +54,8 @@ def evalWorkflowOutput(exp_hit,siRNA_hit,folder='../resultData/simulated_traj/si
     
 
 def generateQCFile(num_plates=None, num_replicates=[1,2,3], rename=False,
-                   dataFolder = '../resultData/simulated_traj/simres/plates'):
+                   folder = '../resultData/simulated_traj/simres'):
+    dataFolder = os.path.join(folder, 'plates')
     plates=filter(lambda x: 'LT' in x, os.listdir(dataFolder))
     
     f=open('../data/qc_simulated.txt', 'w')
