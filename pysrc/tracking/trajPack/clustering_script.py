@@ -125,7 +125,7 @@ python tracking/histograms/k_means_transportation.py --only_dataprep %i --sim %i
     return 1
 
 
-def generationScript(baseName,outputname='halfM_max_05', algo=None, data=None, debut=None, fin=None, neighbours=None, sigma=None, density=None, covar=None, fuzzifier=None, num_samp=None):
+def generationScript(baseName,outputname='halfM_max_05', simulated=0, algo=None, data=None, debut=None, fin=None, neighbours=None, sigma=None, density=None, covar=None, fuzzifier=None, num_samp=None):
     jobCount = 10
 #    nb_jobs = fin-debut+1
 #    if algo==0:
@@ -138,11 +138,12 @@ cd %s""" %progFolder
         cmd = ''
         # command to be executed on the cluster
         temp_cmd = """
-python tracking/trajPack/clustering.py --action clustering --outputname %s -n %i
+python tracking/trajPack/clustering.py --action clustering --outputname %s -n %i --simulated %i
 """
         temp_cmd %= (
                      outputname,
-                     i
+                     i,
+                     simulated
                 )
 
         cmd += temp_cmd

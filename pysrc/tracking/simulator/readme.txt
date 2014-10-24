@@ -31,12 +31,14 @@ viii. STUDY RESULTS
 	a. Compare with planned hits: this will give accuracy and precision in comparison with the groundtruth
 		simulator.evalWorkflowOutput(exp_hit,siRNA_HC)
 		
-	b. 
+	b. Trajectory clusters:
 		* Collect the data + PCA
-			sandbox.generic_single_script('sim_collectTraj', 'python tracking/trajPack/clustering.py --action collectingTrajectories --simulated 1 --output_name sim_traj')
+			from util import sandbox
+			sandbox.generic_single_script('sim_collectTraj', 'python tracking/trajPack/clustering.py --action collectingTrajectories --simulated 1 --outputname sim_traj')
 		
-		**. Cluster number 
-			sandbox.generic_single_script('sim_KM', 'python tracking/trajPack/clustering.py --action collectingTrajectories --simulated 1 --output_name sim_traj')
+		**. Cluster number
+			from tracking.trajPack import clustering_script
+			clustering_script.generationScript('sim_KM',outputname='sim_KM', simulated=True)
 		
 		
 To apply the workflow to real trajectories
@@ -72,6 +74,17 @@ ii. Workflow jobs, controls first
 iii. For the experiments
 	for k in range(5):
 		%run tracking/trajPack/feature_cell_extraction_script -b wholeDistances --div_name KS --iter $k --siRNA ../data/siRNA_targeted_Mitocheck_2014.pkl
+		
+iv. Extract collected distances TODO
+	r=feature_cell_extraction.collectingDistances('dist_whole_CTRL.pkl', 
+		'../resultData/features_on_films', qc_filename='../data/qc_export.txt',mapping_filename=, testCtrl=True, redo=True,long_version=False, key_name='dist_sim')
+		
+	r=feature_cell_extraction.collectingDistances('dist_sim.pkl', 
+		'../resultData/simulated_traj/simres', qc_filename='../data/qc_simulated.txt',mapping_filename= None, testCtrl=False, redo=True,long_version=False, key_name='dist_sim')
+v. Compute hits
+	empirical_qval,siRNAL, exp_hit, siRNA_HC, exp_of_highconfsiRNAs, gene_highconf=feature_cell_extraction.multipleHitDistances('../resultData/simulated_traj/simres','dist_sim', 
+		qc_filename='../data/qc_simulated.txt', mapping_filename=None, filename='all_dist_sim', combination='max', redo=False, trad=False, without_mean_persistence=True,
+		save=True)
 
 
 
