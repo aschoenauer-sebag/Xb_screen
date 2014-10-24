@@ -1196,9 +1196,11 @@ You can in particular set up the noise level
         f=open(os.path.join(output_folder, options.outputname+'_hit_exp.pkl'))
         l=pickle.load(f)
         f.close()
-#    #DECIDE if strToTuple necessary, sinon
-#        l=strToTuple(l, os.listdir('/share/data20T/mitocheck/tracking_results'))
-#        ctrl = appendingCtrl(l)
+        
+        if len(l[0])==1:
+            #meaning it's under the form LT**--0**
+            l=strToTuple(l, os.listdir(data_folder))
+
         print 'this is launched'
         _, r, _,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation(folder = data_folder, 
                                                                                       exp_list = l, 
