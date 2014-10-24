@@ -1200,8 +1200,10 @@ You can in particular set up the noise level
 #        l=strToTuple(l, os.listdir('/share/data20T/mitocheck/tracking_results'))
 #        ctrl = appendingCtrl(l)
         print 'this is launched'
-        _, r, _,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation(data_folder, 
-                                l, mapping_filename, qc_filename, hist=False, perMovie=False)
+        _, r, _,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation(folder = data_folder, 
+                                                                                      exp_list = l, 
+                                                                                      mitocheck = mapping_filename, 
+                                                                                      qc=qc_filename, hist=False, perMovie=False)
         
         f=open(os.path.join(output_folder, options.outputname+'_hit_exp_data.pkl'), 'w')
         pickle.dump([r,  who,ctrlStatus, length, genes, sirna, time_length], f)
