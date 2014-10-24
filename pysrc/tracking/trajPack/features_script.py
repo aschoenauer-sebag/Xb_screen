@@ -216,10 +216,10 @@ if __name__ == '__main__':
     dataFolder = options.dataFolder#"/cbio/donnees/aschoenauer/data/tracking/migration"
 
     if options.simulated:
-        processedPlates = filter(lambda x: int(x[2:6])>3, os.listdir(dataFolder))
+        processedPlates = os.listdir(dataFolder)
         toProcess=[]
         for plate in processedPlates:
-            toProcess.extend([(plate, '{:>03}'.format(k)) for k in [15, 26, 63, 74, 304, 315, 352]])
+            toProcess.extend([(plate, '{:>03}'.format(k)) for k in range(1,385)])
         scriptCible(toProcess, dataFolder, options.baseName, simulated=True)
         
     elif options.trajToDo is not None:

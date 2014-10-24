@@ -39,8 +39,8 @@ viii. STUDY RESULTS
 		
 		**. Cluster number
 			from tracking.trajPack import clustering_script
-			clustering_script.generationScript('sim_KM',outputname='sim_KM', simulated=True)
-		
+			clustering_script.generationScript('sim_KM',outputname='all_dist_sim', simulated=True)
+
 		
 To apply the workflow to real trajectories
 i. Check if there's hdf5/traj/features left to compute
