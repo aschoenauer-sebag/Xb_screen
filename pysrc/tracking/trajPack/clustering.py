@@ -1218,6 +1218,10 @@ You can in particular set up the noise level
         print r.shape
 
         pca=PCA(n_components=r.shape[1])
+        if np.any(np.std(r,0)==0):
+            print "Deleting components that have std deviation 0"
+            r=np.delete(r,np.where(np.std(r,0)==0),1)
+            print r.shape
         nr=(r-np.mean(r,0))/np.std(r,0)
         pcaed=pca.fit_transform(nr)
         pcaed=pcaed/np.std(pcaed,0)
