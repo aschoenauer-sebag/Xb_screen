@@ -272,11 +272,11 @@ def finding_hit(curr_qval,threshold, siRNAL, geneL, expL,trad=True, without_mito
     print 'Genes high conf', len(gene_highconf), 'out of', len(gene_count), 'ie ', len(gene_highconf)/float(len(gene_count))
 
     exp_of_highconfsiRNAs=[]
+    for siRNA in siRNA_highconf:
+        experiments = np.array(expL)[np.where(np.array(siRNAL)==siRNA)]
+        exp_of_highconfsiRNAs.extend([experiment for experiment in experiments if experiment in exp_hit])
+    
     if trad:
-        for siRNA in siRNA_highconf:
-            experiments = np.array(expL)[np.where(np.array(siRNAL)==siRNA)]
-            exp_of_highconfsiRNAs.extend([experiment for experiment in experiments if experiment in exp_hit])
-        
         trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
         gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
         gene_Ensembl = [trad[el] for el in gene_count]

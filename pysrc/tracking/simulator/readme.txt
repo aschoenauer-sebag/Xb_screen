@@ -35,7 +35,7 @@ viii. STUDY RESULTS
 	b. Trajectory clusters:
 		* Collect the data + PCA
 			from util import sandbox
-			sandbox.generic_single_script('sim_collectTraj', 'python tracking/trajPack/clustering.py --action collectingTrajectories --simulated 1 --outputname sim_traj')
+			sandbox.generic_single_script('sim_collectTraj', 'python tracking/trajPack/clustering.py --action collectingTrajectories --simulated 1 --outputname all_dist_sim')
 		
 		**. Cluster number
 			from tracking.trajPack import clustering_script
