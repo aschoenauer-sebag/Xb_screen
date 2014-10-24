@@ -1,18 +1,9 @@
 import os, pdb
 from optparse import OptionParser
 import numpy as np
-jobSize = 10
-progFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc'
-scriptFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/scripts'
-path_command = """setenv PATH /cbio/donnees/nvaroquaux/.local/bin:${PATH}
-setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/cbio/donnees/nvaroquaux/.local/lib
-setenv LIBRARY_PATH /cbio/donnees/nvaroquaux/.local/lib
-setenv PYTHONPATH /cbio/donnees/aschoenauer/workspace2/cecog/pysrc:/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc
-setenv DRMAA_LIBRARY_PATH /opt/gridengine/lib/lx26-amd64/libdrmaa.so
-"""
-pbsOutDir = '/cbio/donnees/aschoenauer/PBS/OUT'
-pbsErrDir = '/cbio/donnees/aschoenauer/PBS/ERR'
-pbsArrayEnvVar = 'SGE_TASK_ID'
+
+#env variables without the need for R
+from util import progFolder, jobSize, scriptFolder, path_command, pbsOutDir, pbsArrayEnvVar, pbsErrDir
 
 def generationTrsport(baseName,algo,simulated, debut, fin, only_dataprep,
             div_name, lambda_, datasize, weight, iter_, 

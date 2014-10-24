@@ -23,24 +23,33 @@ vi. Extract collected distances
 	r=feature_cell_extraction.collectingDistances('dist_sim.pkl', 
 		'../resultData/simulated_traj/simres', qc_filename='../data/qc_simulated.txt',mapping_filename= None, testCtrl=False, redo=True,long_version=False, key_name='dist_sim')
 vii. Compute hits
-	r=feature_cell_extraction.multipleHitDistances('../resultData/simulated_traj/simres','dist_sim', 
-	qc_filename='../data/qc_simulated.txt', mapping_filename=None, filename='all_dist_sim', combination='max', redo=False, trad=False, without_mean_persistence=True)
+	empirical_qval,siRNAL, exp_hit, siRNA_HC, exp_of_highconfsiRNAs, gene_highconf=feature_cell_extraction.multipleHitDistances('../resultData/simulated_traj/simres','dist_sim', 
+		qc_filename='../data/qc_simulated.txt', mapping_filename=None, filename='all_dist_sim', combination='max', redo=False, trad=False, without_mean_persistence=True,
+		save=True)
 	
-viii. Compare with planned hits
-
+viii. STUDY RESULTS
+	a. Compare with planned hits: this will give accuracy and precision in comparison with the groundtruth
+		simulator.evalWorkflowOutput(exp_hit,siRNA_HC)
+		
+	b. 
+		* Collect the data + PCA
+			sandbox.generic_single_script('sim_collectTraj', 'python tracking/trajPack/clustering.py --action collectingTrajectories --simulated 1 --output_name sim_traj')
+		
+		**. Cluster number 
+			sandbox.generic_single_script('sim_KM', 'python tracking/trajPack/clustering.py --action collectingTrajectories --simulated 1 --output_name sim_traj')
 		
 		
 To apply the workflow to real trajectories
 i. Check if there's hdf5/traj/features left to compute
-	
-	f=open('../data/expL_targeted_Mitocheck_2014.pkl')
-	import cPickle as pickle
-	l=pickle.load(f)
-	f.close()
-	from util.listFileManagement import countingDone, appendingControl, expSi, strToTuple
-	ctrl=appendingControl(l)
-	l.extend(ctrl)
-	raw,tracking,feat=countingDone(l, featlistonly=False, featureTabName='hist_tabFeatures_{}.pkl')
+
+f=open('../data/expL_targeted_Mitocheck_2014.pkl')
+import cPickle as pickle
+l=pickle.load(f)
+f.close()
+from util.listFileManagement import countingDone, appendingControl, expSi, strToTuple
+ctrl=appendingControl(l)
+l.extend(ctrl)
+raw,tracking,feat=countingDone(l, featlistonly=False, featureTabName='hist_tabFeatures_{}.pkl')
 	
 	** HDF5 left
 		f=open('../mitocheck_hdf5_left.pkl', 'w')

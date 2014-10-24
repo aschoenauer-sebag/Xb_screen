@@ -13,7 +13,38 @@ from tracking.trajPack import sdFeatures1, logTrsf, featuresSaved, histLogTrsf,\
 from tracking.plots import plotTraj3d
 from tracking.histograms import *
 from util.listFileManagement import expSi
-#from histograms.k_means_transportation import WEIGHTS
+from util import progFolder, jobSize, scriptFolder, path_command, pbsOutDir, pbsArrayEnvVar, pbsErrDir
+
+def generic_single_script(name, text,folder='../scripts', *args):
+    '''
+    This enables one to generate scripts with or without custom arguments. *args can be None
+    
+    '''
+    print text%args
+    
+    main_content = """#!/bin/sh
+%s
+#$ -o %s
+#$ -e %s
+    """ % (path_command,
+           pbsOutDir,  
+           pbsErrDir)
+    main_content+= """cd %s""" %progFolder
+    cmd = text%args
+    
+    script_name = os.path.join(scriptFolder, name+'.sh')
+    script_file = file(script_name, "w")
+    script_file.write(main_content + cmd)
+    script_file.close()
+    
+            # make the script executable (without this, the cluster node cannot call it)
+    os.system('chmod a+x %s' % script_name)
+    
+    sub_cmd = 'qsub ~/workspace2/Xb_screen/scripts/%s' % (name+'.sh')
+    
+    return
+
+    
 
 def accuracy_precision(normals, truth, predicted):
     true_pos=len([el for el in predicted if el in truth])

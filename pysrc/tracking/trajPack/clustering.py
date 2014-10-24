@@ -35,6 +35,7 @@ from util.plots import basic_colors, couleurs
 
 from tracking.histograms import *
 from util.kkmeans import KernelKMeans
+from debian.debtags import output
 
 #from joblib import Parallel, delayed, Memory
 
@@ -1174,23 +1175,36 @@ You can in particular set up the noise level
                          description=description)
     
     parser.add_option('--action', type=str, default=None)
-    parser.add_option('--outputname', type=str, default='halfM_median_05')
+    parser.add_option('--outputname', type=str)
     parser.add_option("-n", "--n_iter", dest="n_iter", default = 0, 
                       help="Nb de fois")
+    parser.add_option("-s", "--simulated", dest="simulated", default = 0, type=int, 
+                      help="Use of simulated trajectories or no")
     (options, args) = parser.parse_args()
-
+    
+    if options.simulated:
+        output_folder = '../resultData/simulated_traj/simres'
+        data_folder = os.path.join(output_folder, 'plates')
+        qc_filename = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_simulated.txt'
+        mapping_filename=None
+    else:
+        output_folder = '../resultData/features_on_films/'
+        data_folder = '/share/data20T/mitocheck/tracking_results/'
+        qc_filename='../data/qc_export.txt'
+        mapping_filename = '../data/mitocheck_siRNAs_target_genes_Ens75.txt'
     
     if options.action=='collectingTrajectories':
-        f=open(os.path.join('../resultData/features_on_films/', options.outputname+'_hit_exp.pkl'))
+        f=open(os.path.join(output_folder, options.outputname+'_hit_exp.pkl'))
         l=pickle.load(f)
         f.close()
 #    #DECIDE if strToTuple necessary, sinon
 #        l=strToTuple(l, os.listdir('/share/data20T/mitocheck/tracking_results'))
 #        ctrl = appendingCtrl(l)
         print 'this is launched'
-        _, r, _,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation('/share/data20T/mitocheck/tracking_results/', 
-                                l, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt', hist=False, perMovie=False)
-        f=open(os.path.join('../resultData/features_on_films/', options.outputname+'_hit_exp_data.pkl'), 'w')
+        _, r, _,  who,ctrlStatus, length, genes, sirna, time_length=histConcatenation(data_folder, 
+                                l, mapping_filename, qc_filename, hist=False, perMovie=False)
+        
+        f=open(os.path.join(output_folder, options.outputname+'_hit_exp_data.pkl'), 'w')
         pickle.dump([r,  who,ctrlStatus, length, genes, sirna, time_length], f)
         f.close()
         
@@ -1204,17 +1218,19 @@ You can in particular set up the noise level
         nr=(r-np.mean(r,0))/np.std(r,0)
         pcaed=pca.fit_transform(nr)
         pcaed=pcaed/np.std(pcaed,0)
-        f=open(os.path.join('../resultData/features_on_films/', options.outputname+'_pcaed.pkl'), 'w')
+        f=open(os.path.join(output_folder, options.outputname+'_pcaed.pkl'), 'w')
         pickle.dump((pca, pcaed),f); f.close()
         
     elif options.action=='clustering':
-        f=open(os.path.join('../resultData/features_on_films/',options.outputname+'_pcaed.pkl'),'r')
+        print "CAREFUL HERE WE TAKE THE SEVEN FIRST PRINCIPAL COMPONENTS BY DEFAULT"
+        
+        f=open(os.path.join(output_folder,options.outputname+'_pcaed.pkl'),'r')
         pca, narr=pickle.load(f)
         f.close()
     
         print 'BatchKMeans'
         silhouette_r, cohesion_r = BatchKmeans(narr[:,:7], 2, 30, N=10)
-        f=open('../resultData/features_on_films/{}_batchKM_{}.pkl'.format(options.outputname, options.n_iter), 'w')
+        f=open(os.path.join(output_folder, '{}_batchKM_{}.pkl'.format(options.outputname, options.n_iter)), 'w')
         pickle.dump([silhouette_r, cohesion_r], f); f.close()
     
 #    parser.add_option("-f", "--folder", dest="folder", default='/cbio/donnees/aschoenauer/workspace2/Tracking/resultData/',
