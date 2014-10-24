@@ -1197,7 +1197,7 @@ You can in particular set up the noise level
         l=pickle.load(f)
         f.close()
         
-        if len(l[0])==1:
+        if len(l[0])!=2:
             #meaning it's under the form LT**--0**
             l=strToTuple(l, os.listdir(data_folder))
 
