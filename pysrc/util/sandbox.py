@@ -29,7 +29,8 @@ def generic_single_script(name, text,folder='../scripts', *args):
     """ % (path_command,
            pbsOutDir,  
            pbsErrDir)
-    main_content+= """cd %s""" %progFolder
+    main_content+= """cd %s
+""" %progFolder
     cmd = text%args
     
     script_name = os.path.join(scriptFolder, name+'.sh')
@@ -41,7 +42,7 @@ def generic_single_script(name, text,folder='../scripts', *args):
     os.system('chmod a+x %s' % script_name)
     
     sub_cmd = 'qsub ~/workspace2/Xb_screen/scripts/%s' % (name+'.sh')
-    
+    print sub_cmd
     return
 
     
