@@ -22,6 +22,7 @@ vi. Extract collected distances
 		
 	r=feature_cell_extraction.collectingDistances('dist_sim.pkl', 
 		'../resultData/simulated_traj/simres', qc_filename='../data/qc_simulated.txt',mapping_filename= None, testCtrl=False, redo=True,long_version=False, key_name='dist_sim')
+
 vii. Compute hits
 	empirical_qval,siRNAL, exp_hit, siRNA_HC, exp_of_highconfsiRNAs, gene_highconf=feature_cell_extraction.multipleHitDistances('../resultData/simulated_traj/simres','dist_sim', 
 		qc_filename='../data/qc_simulated.txt', mapping_filename=None, filename='all_dist_sim', combination='max', redo=False, trad=False, without_mean_persistence=True,
