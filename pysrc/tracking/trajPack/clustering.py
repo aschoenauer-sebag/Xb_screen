@@ -35,7 +35,6 @@ from util.plots import basic_colors, couleurs
 
 from tracking.histograms import *
 from util.kkmeans import KernelKMeans
-from debian.debtags import output
 
 #from joblib import Parallel, delayed, Memory
 
