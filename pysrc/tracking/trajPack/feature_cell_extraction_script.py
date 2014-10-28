@@ -112,7 +112,6 @@ def globalSummaryScript(baseName, siRNAFile,div_name,iter, bins_type, bin_size, 
     
     jobCount = 0
     i=0
-    
     if simulated:
         settings_file = 'tracking/settings/settings_feature_extraction_SIMULATED_DATA.py'
         folder = '../resultData/simulated_traj/simres/plates'
@@ -143,6 +142,7 @@ cd %s""" %progFolder
     baseName = baseName+'{}{}'.format(div_name, iter)
 
     for siRNA in siRNAList:
+        print i,
         i+=1; jobCount +=1
         
         cour_cmd= cmd%(

@@ -185,7 +185,7 @@ cd %s""" %progFolder
     #sub_cmd = 'qsub -o %s -e %s -t 1-%i %s' % (self.oBatchSettings.pbsOutDir,  
     #                                           self.oBatchSettings.pbsErrDir, 
     #                                           jobCount, array_script_name)
-    sub_cmd = 'qsub -t 1-%i -l mem_free=1G %s' % (jobCount, array_script_name)
+    sub_cmd = 'qsub -t 1-%i -l mem_free=10G %s' % (jobCount, array_script_name)
 
     print 'array containing %i jobs' % jobCount
     print sub_cmd
