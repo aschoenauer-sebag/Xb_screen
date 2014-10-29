@@ -61,51 +61,48 @@ cd %s""" %progFolder
     
     return 1
 
-#def script_usable(outFolder='../scripts', baseName='usable'):
-#    cmd ="""
-#python util/listFileManagement.py --plate %s
-#"""
-#    head = """#!/bin/sh
-#cd %s""" %progFolder
-#
-#    f=open('../data/wrong_trajectories_plates.pkl')
-#    plates = pickle.load(f); f.close()
-#
-#    for k,plate in enumerate(plates):
-#        cour_cmd= cmd%plate        
-#        # this is now written to a script file (simple text file)
-#        # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
-#        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(k+1))
-#        script_file = file(script_name, "w")
-#        script_file.write(head + cour_cmd)
-#        script_file.close()
-#
-#        # make the script executable (without this, the cluster node cannot call it)
-#        os.system('chmod a+x %s' % script_name)
-#
-#
-#            # write the main script
-#    array_script_name = '%s.sh' % os.path.join(scriptFolder, baseName)
-#    main_script_file = file(array_script_name, 'w')
-#    main_content = """#!/bin/sh
-#%s
-##$ -o %s
-##$ -e %s
-#%s$%s.sh
-#""" % (path_command,
-#       pbsOutDir,  
-#       pbsErrDir, 
-#       os.path.join(scriptFolder, baseName),
-#       pbsArrayEnvVar)
-#
-#    main_script_file.write(main_content)
-#    main_script_file.close()
-#    os.system('chmod a+x %s' % array_script_name)
-#    sub_cmd = 'qsub -t 1-%i %s' % (len(plates), array_script_name)
-#
-#    print sub_cmd
-#    
-#    return 1
+def script_usable(outFolder='../scripts', baseName='usable'):
+    cmd ="""
+python util/listFileManagement.py -s %i
+"""
+    head = """#!/bin/sh
+cd %s""" %progFolder
+
+    for k in range(1000):
+        cour_cmd= cmd%k        
+        # this is now written to a script file (simple text file)
+        # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
+        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(k+1))
+        script_file = file(script_name, "w")
+        script_file.write(head + cour_cmd)
+        script_file.close()
+
+        # make the script executable (without this, the cluster node cannot call it)
+        os.system('chmod a+x %s' % script_name)
+
+
+            # write the main script
+    array_script_name = '%s.sh' % os.path.join(scriptFolder, baseName)
+    main_script_file = file(array_script_name, 'w')
+    main_content = """#!/bin/sh
+%s
+#$ -o %s
+#$ -e %s
+%s$%s.sh
+""" % (path_command,
+       pbsOutDir,  
+       pbsErrDir, 
+       os.path.join(scriptFolder, baseName),
+       pbsArrayEnvVar)
+
+    main_script_file.write(main_content)
+    main_script_file.close()
+    os.system('chmod a+x %s' % array_script_name)
+    sub_cmd = 'qsub -t 1-%i %s' % (1000, array_script_name)
+
+    print sub_cmd
+    
+    return 1
     
 
 def globalSummaryScript(baseName, siRNAFile,div_name,iter, bins_type, bin_size, testCtrl=False, simulated=False):

@@ -911,37 +911,41 @@ class ArffReader(object):
 
     
 if __name__ == '__main__':
-    f=open('../resultData/features_on_films/halfM_max_05_hit_exp.pkl')
-    l=pickle.load(f)
-    f.close()
-    
-    result=returnInfo( '/share/data20T/mitocheck/tracking_results', l, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt',which_info='coord')
-    f=open('../resultData/features_on_films/halfM_max_05_coord.pkl', 'w')
-    pickle.dump(result,f); f.close()
-    
-#    description ='%prog - Checking usable control experiments for all plates'
-#    parser = OptionParser(usage="usage: %prog [options]",
-#                         description=description)
-#
-#    parser.add_option("-p", "--plate", dest="plate", type=str,
-#                      help="The slice of the list which we're going to deal with")
+#    f=open('../resultData/features_on_films/halfM_max_05_hit_exp.pkl')
+#    l=pickle.load(f)
+#    f.close()
 #    
-#    (options, args) = parser.parse_args()    
+#    result=returnInfo( '/share/data20T/mitocheck/tracking_results', l, '../data/mitocheck_siRNAs_target_genes_Ens75.txt', '../data/qc_export.txt',which_info='coord')
+#    f=open('../resultData/features_on_films/halfM_max_05_coord.pkl', 'w')
+#    pickle.dump(result,f); f.close()
+    
+    description ='%prog - Checking usable control experiments for all plates'
+    parser = OptionParser(usage="usage: %prog [options]",
+                         description=description)
+
+    parser.add_option("-p", "--plate", dest="plate", type=str,
+                      help="The plate which we're going to deal with")
+    
+    parser.add_option("-s", "--slice", dest="slice", type=int,
+                      help="The slice of the list which we're going to deal with")
+    
+    (options, args) = parser.parse_args()    
 #    ctrl = appendingControl([options.plate])
 #    
 #    result = usable('/share/data20T/mitocheck/tracking_results', ctrl, qc='../data/qc_export.txt', mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt')
 #    f=open('usable_{}.pkl'.format(options.plate), 'w')
 #    pickle.dump(result,f); f.close()
     
-#    f=open('../data/siRNA_targeted_Mitocheck_2014.pkl','r')
-#    siRNAL=pickle.load(f); f.close()
-#    
-#    l=len(siRNAL)/100
-#    if options.slice==100:
-#        end=len(siRNAL)
-#    else:
-#        end=(options.slice+1)*l
-#    siRNAL=siRNAL[options.slice*l:end]
-#    print len(siRNAL), options.slice*l, end
-#    countingUsable(siRNAL, result_file='usable_experiments_whole_mitocheck{}.pkl'.format(options.slice), qc_file='../data/qc_export.txt', 
-#                   tracking_folder='/share/data20T/mitocheck/tracking_results', resultFolder='../resultData/features_on_films')
+    f=open('../data/siRNA_targeted_Mitocheck_2014.pkl','r')
+    siRNAL=pickle.load(f); f.close()
+    
+    l=len(siRNAL)/1000
+    if options.slice==1000:
+        end=len(siRNAL)
+    else:
+        end=(options.slice+1)*l
+        
+    siRNAL=siRNAL[options.slice*l:end]
+    print len(siRNAL), options.slice*l, end
+    countingUsable(siRNAL, result_file='usable_experiments_whole_mitocheck{}.pkl'.format(options.slice), qc_file='../data/qc_export.txt', 
+                   tracking_folder='/share/data20T/mitocheck/tracking_results', resultFolder='../resultData/features_on_films')

@@ -1182,7 +1182,7 @@ You can in particular set up the noise level
     (options, args) = parser.parse_args()
     
     if options.simulated:
-        output_folder = '../resultData/simulated_traj/simres_1'
+        output_folder = '../resultData/simulated_traj/simres'
         data_folder = os.path.join(output_folder, 'plates')
         qc_filename = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_simulated.txt'
         mapping_filename=None
