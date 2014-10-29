@@ -19,6 +19,8 @@ def generic_single_script(name, text,folder='../scripts', *args):
     '''
     This enables one to generate scripts with or without custom arguments. *args can be None
     
+    Warning!! One should be careful: no blanks before the first line, and one line between PBS/OUT PBS/ERR directory declaration
+    and the rest of the instructions
     '''
     print text%args
     
@@ -26,7 +28,8 @@ def generic_single_script(name, text,folder='../scripts', *args):
 %s
 #$ -o %s
 #$ -e %s
-    """ % (path_command,
+
+""" % (path_command,
            pbsOutDir,  
            pbsErrDir)
     main_content+= """cd %s

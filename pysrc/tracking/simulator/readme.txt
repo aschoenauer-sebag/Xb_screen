@@ -89,7 +89,18 @@ v. Compute hits
 	empirical_qval,siRNAL, exp_hit, siRNA_HC, exp_of_highconfsiRNAs, gene_highconf=feature_cell_extraction.multipleHitDistances('../resultData/features_on_films','distances_whole_5CtrlC', 
 		qc_filename='../data/qc_export.txt',
 		mapping_filename='../data/mitocheck_siRNAs_target_genes_Ens75.txt', 
-		filename='all_distances_whole', combination='max', redo=False, trad=True, without_mean_persistence=True,save=True)
+		filename='all_distances_whole', combination='max', redo=False, trad=True, without_mean_persistence=True,save=True, threshold=0.02)
+		
+vi. Study results
+	from util import sandbox
+	sandbox.generic_single_script('real_collectTraj', 'python tracking/trajPack/clustering.py --action collectingTrajectories --outputname all_distances_whole')
+	
+	PUIS
+	
+	from tracking.trajPack import clustering_script
+	clustering_script.generationScript('real_distances_KM',outputname='all_distances_whole', simulated=False)
+	
+	
 
 
 
