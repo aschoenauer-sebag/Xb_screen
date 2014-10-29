@@ -10,6 +10,7 @@ from optparse import OptionParser
 
 from tracking.trajPack import featuresNumeriques, featuresHisto
 from util import typeD, typeD2
+import getpass
 
 
 def correct_from_Nan(arr, perMovie):
@@ -561,12 +562,20 @@ def countingUsable(siRNAL, result_file, qc_file='../data/qc_export.txt',
     yqualDict=expSi(qc_file, sens=0)
     
     for siRNA in siRNAL:
-        expList = np.array(strToTuple(yqualDict[siRNA], os.listdir(tracking_folder)))
+        print siRNA
         
-        result[siRNA] =np.where(usable(tracking_folder, 
+        if getpass.getuser()=='aschoenauer':
+            expList = np.array(strToTuple(yqualDict[siRNA], os.listdir(tracking_folder)))
+            print expList
+            result[siRNA] =np.where(usable(tracking_folder, 
                                        expList,
                                        qc=qc_file,
-                                       mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0] 
+                                       mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt'))[0]
+        else:
+            f=open('../data/listePlaques.pkl')
+            l=pickle.load(f); f.close()
+            expList = np.array(strToTuple(yqualDict[siRNA], l))
+            print expList 
     
     f=open(os.path.join(resultFolder, result_file), 'w')
     pickle.dump(result, f)
