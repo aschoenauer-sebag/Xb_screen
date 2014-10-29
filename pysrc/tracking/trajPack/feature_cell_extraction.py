@@ -353,6 +353,7 @@ def collectingDistances(filename, folder,
     
         result={param:[[], [], [], None] for param in parameters}
         for file_ in files:
+            print files.index(file_),
             f=open(os.path.join(folder, file_))
             d=pickle.load(f)
             f.close()
