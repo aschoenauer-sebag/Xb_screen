@@ -77,11 +77,11 @@ iii. For the experiments
 		%run tracking/trajPack/feature_cell_extraction_script -b wholeDistances --div_name KS --iter $k --siRNA ../data/siRNA_targeted_Mitocheck_2014.pkl
 		
 iv. Extract collected distances
-	r=feature_cell_extraction.collectingDistances('all_dist_whole_CTRL.pkl', 
+	r=feature_cell_extraction.collectingDistances('all_distances_whole_CTRL.pkl', 
 		'../resultData/features_on_films', qc_filename='../data/qc_export.txt',
 		mapping_filename='../data/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl=True, redo=True,long_version=False, key_name='distances_whole_5CtrlC')
 		
-	r=feature_cell_extraction.collectingDistances('all_dist_whole.pkl', 
+	r=feature_cell_extraction.collectingDistances('all_distances_whole.pkl', 
 		'../resultData/simulated_traj/simres', qc_filename='../data/qc_export.txt',
 		mapping_filename='../data/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl=False, redo=True,long_version=False, key_name='distances_whole_5CtrlC')
 		
@@ -89,7 +89,7 @@ v. Compute hits
 	empirical_qval,siRNAL, exp_hit, siRNA_HC, exp_of_highconfsiRNAs, gene_highconf=feature_cell_extraction.multipleHitDistances('../resultData/features_on_films','distances_whole_5CtrlC', 
 		qc_filename='../data/qc_export.txt',
 		mapping_filename='../data/mitocheck_siRNAs_target_genes_Ens75.txt', 
-		filename='all_dist_whole', combination='max', redo=False, trad=True, without_mean_persistence=True,save=True)
+		filename='all_distances_whole', combination='max', redo=False, trad=True, without_mean_persistence=True,save=True)
 
 
 

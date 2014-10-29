@@ -133,6 +133,7 @@ def multipleHitDistances(folder, key_name,
                     key_name = key_name, 
                     filename='{}.pkl'.format(filename), 
                     qc_filename=qc_filename,
+                    mapping_filename=mapping_filename,
                     redo=redo,
                      without_mean_persistence=True, features=features)
             
@@ -211,7 +212,7 @@ def multipleHitDistances(folder, key_name,
     ctrl = collectingDistances("{}_CTRL.pkl".format(filename), folder,key_name =key_name,
                                testCtrl=True, qc_filename=qc_filename,mapping_filename=mapping_filename,
                                redo=redo)
-    param = ctrl.keys()[0] 
+    param = (('div_name', 'KS'),('iter', 0))
     ctrl_pval=ctrl[param][-1]
     if without_mean_persistence:
         ctrl_pval=np.delete(ctrl_pval, features.index('mean persistence'),1)
@@ -232,7 +233,8 @@ def multipleHitDistances(folder, key_name,
 
     empirical_qval=np.array(empirical_qval)
     exp_hit, gene_hit, gene_highconf, exp_of_highconfsiRNAs, siRNA_highconf=finding_hit(empirical_qval, threshold=threshold, siRNAL=list(siRNAL), geneL=list(geneL), expL=list(expL),
-                                                                     trad=trad, without_mitotic_hits=without_mitotic_hits)
+                                                                    mapping_filename=mapping_filename,
+                                                                    trad=trad, without_mitotic_hits=without_mitotic_hits)
     if save:
         f=open(os.path.join(folder, '{}_hit_exp.pkl'.format(filename)), 'w')
         pickle.dump(exp_of_highconfsiRNAs,f)
@@ -240,7 +242,7 @@ def multipleHitDistances(folder, key_name,
         
     return empirical_qval,siRNAL, exp_hit,siRNA_highconf, exp_of_highconfsiRNAs, gene_highconf
 
-def finding_hit(curr_qval,threshold, siRNAL, geneL, expL,trad=True, without_mitotic_hits=False):
+def finding_hit(curr_qval,threshold, siRNAL, geneL, expL,mapping_filename,trad=True, without_mitotic_hits=False):
     exp_hit=[]
     siRNA_hit=[]
     gene_hit=[]
@@ -277,7 +279,7 @@ def finding_hit(curr_qval,threshold, siRNAL, geneL, expL,trad=True, without_mito
         exp_of_highconfsiRNAs.extend([experiment for experiment in experiments if experiment in exp_hit])
     
     if trad:
-        trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+        trad = EnsemblEntrezTrad(mapping_filename)
         gene_highconf_Ensembl=[trad[el] for el in gene_highconf]
         gene_Ensembl = [trad[el] for el in gene_count]
         
