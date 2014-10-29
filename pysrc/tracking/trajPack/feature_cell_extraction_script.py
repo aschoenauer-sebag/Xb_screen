@@ -61,18 +61,27 @@ cd %s""" %progFolder
     
     return 1
 
-def script_usable(outFolder='../scripts', baseName='usable'):
-    cmd ="""
+def script_usable(outFolder='../scripts', baseName='usable', plates=True):
+    if plates:
+        range_=os.listdir('/share/data20T/mitocheck/tracking_results')
+        cmd="""
+python util/listFileManagement.py -p %s
+"""
+    else:
+        range_=range(1000)
+        cmd ="""
 python util/listFileManagement.py -s %i
 """
+
     head = """#!/bin/sh
 cd %s""" %progFolder
-
-    for k in range(1000):
+    i=1
+    for k in range_:
         cour_cmd= cmd%k        
         # this is now written to a script file (simple text file)
         # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
-        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(k+1))
+        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
+        i+=1
         script_file = file(script_name, "w")
         script_file.write(head + cour_cmd)
         script_file.close()
