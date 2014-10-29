@@ -107,7 +107,7 @@ cd %s""" %progFolder
     main_script_file.write(main_content)
     main_script_file.close()
     os.system('chmod a+x %s' % array_script_name)
-    sub_cmd = 'qsub -t 1-%i %s' % (1000, array_script_name)
+    sub_cmd = 'qsub -t 1-%i %s' % (len(range_), array_script_name)
 
     print sub_cmd
     

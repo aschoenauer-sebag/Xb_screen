@@ -943,7 +943,7 @@ if __name__ == '__main__':
         ctrl = appendingControl([options.plate])
         
         result = usable('/share/data20T/mitocheck/tracking_results', ctrl, qc='../data/qc_export.txt', mitocheck='../data/mitocheck_siRNAs_target_genes_Ens75.txt')
-        f=open('usable_{}.pkl'.format(options.plate), 'w')
+        f=open('../resultData/features_on_films/usable_{}.pkl'.format(options.plate), 'w')
         pickle.dump(result,f); f.close()
     else:
         f=open('../data/siRNA_targeted_Mitocheck_2014.pkl','r')
