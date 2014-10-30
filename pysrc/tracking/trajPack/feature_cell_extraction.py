@@ -121,14 +121,14 @@ def multipleHitDistances(folder, key_name,
                          combination='min', redo=False,
                          trad=True,
                          without_mitotic_hits=False,
-                         without_mean_persistence=True, filtering_lonely_siRNAs=False,
+                         without_mean_persistence=True,
                          save=False):
     features = list(featuresNumeriques)
     features.append('mean persistence')
     features.append('mean straight')
     
     expL=None
-    if 'all_distances_{}{}.pkl'.format(filtering_lonely_siRNAs, without_mean_persistence) not in os.listdir(folder) or redo:
+    if 'all_distances_{}.pkl'.format(without_mean_persistence) not in os.listdir(folder) or redo:
         expL, geneL, siRNAL, global_result = hitDistances(folder,
                     key_name = key_name, 
                     filename='{}.pkl'.format(filename), 
@@ -193,10 +193,10 @@ def multipleHitDistances(folder, key_name,
 #                    global_result[np.where(expL==redone_exp),k]=new_arr[np.where(new_expL==redone_exp)]
         print 'Everything together'        
                 
-        f=open(os.path.join(folder, 'all_distances_{}{}.pkl'.format(filtering_lonely_siRNAs, without_mean_persistence)), 'w')
+        f=open(os.path.join(folder, 'all_distances_{}.pkl'.format(without_mean_persistence)), 'w')
         pickle.dump([expL, siRNAL, geneL, global_result], f);f.close()
     else:
-        f=open(os.path.join(folder, 'all_distances_{}{}.pkl'.format(filtering_lonely_siRNAs, without_mean_persistence)))
+        f=open(os.path.join(folder, 'all_distances_{}.pkl'.format(without_mean_persistence)))
         expL, siRNAL, geneL, global_result=pickle.load(f); f.close()
             
             
@@ -218,17 +218,17 @@ def multipleHitDistances(folder, key_name,
         ctrl_pval=np.delete(ctrl_pval, features.index('mean persistence'),1)
         #ctrl_pval=np.delete(ctrl_pval, features.index('diffusion coefficient'),1)
     
-    if 'comb_empirical_p_qval{}{}{}.pkl'.format(combination,filtering_lonely_siRNAs, without_mean_persistence) not in os.listdir(folder) or redo:
+    if 'comb_empirical_p_qval{}{}.pkl'.format(combination,without_mean_persistence) not in os.listdir(folder) or redo:
         stat = -2*np.sum(np.log(ctrl_pval),1) 
         ctrl_combined_pval = stat[:,np.newaxis]
 
         ctrl_qval = empiricalPvalues(ctrl_combined_pval, ctrl_combined_pval, folder, name='ctrlCombStatC', sup=True)
         empirical_qval = empiricalPvalues(ctrl_combined_pval,global_pval[:,np.newaxis], folder, name='expCombStat{}'.format(combination), sup=True)
         
-        f = open(os.path.join(folder, 'comb_empirical_p_qval{}{}{}.pkl'.format(combination,filtering_lonely_siRNAs, without_mean_persistence)), 'w')
+        f = open(os.path.join(folder, 'comb_empirical_p_qval{}{}.pkl'.format(combination,without_mean_persistence)), 'w')
         pickle.dump((ctrl_qval, empirical_qval),f); f.close()
     else:
-        f = open(os.path.join(folder, 'comb_empirical_p_qval{}{}{}.pkl'.format(combination,filtering_lonely_siRNAs, without_mean_persistence)), 'r')
+        f = open(os.path.join(folder, 'comb_empirical_p_qval{}{}.pkl'.format(combination,without_mean_persistence)), 'r')
         ctrl_qval, empirical_qval=pickle.load(f); f.close()
 
     empirical_qval=np.array(empirical_qval)

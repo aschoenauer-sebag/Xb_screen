@@ -1230,7 +1230,7 @@ You can in particular set up the noise level
         
     elif options.action=='clustering':
         print "CAREFUL HERE WE TAKE THE EIGHT FIRST PRINCIPAL COMPONENTS BY DEFAULT"
-        
+        print 'Opening ', os.path.join(output_folder,options.outputname+'_pcaed.pkl')
         f=open(os.path.join(output_folder,options.outputname+'_pcaed.pkl'),'r')
         pca, narr=pickle.load(f)
         f.close()
