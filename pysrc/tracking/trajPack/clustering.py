@@ -1236,7 +1236,7 @@ You can in particular set up the noise level
         f.close()
     
         print 'BatchKMeans'
-        silhouette_r, cohesion_r = BatchKmeans(narr[:,:6], 2, 30, N=10)
+        silhouette_r, cohesion_r = BatchKmeans(narr[:,:7], 2, 30, N=10)
         f=open(os.path.join(output_folder, '{}2_batchKM_{}.pkl'.format(options.outputname, options.n_iter)), 'w')
         pickle.dump([silhouette_r, cohesion_r], f); f.close()
     
