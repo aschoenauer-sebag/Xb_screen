@@ -3,17 +3,60 @@ import cPickle as pickle
 import numpy as np
 from collections import Counter
 import matplotlib
+from tracking.trajPack.exploiting_clustering import exploitingKMeans
 matplotlib.use('Agg')
-
+from optparse import OptionParser
 import matplotlib.pyplot as plt
-#from PyPack.fHacktrack2 import ensTraj, trajectoire
-#from trajPack.trajFeatures import histogramPreparationFromTracklets
+from sklearn.decomposition import PCA
+
+from tracking.trajPack import featuresSaved, featuresNumeriques
+from tracking.PyPack.fHacktrack2 import ensTraj, trajectoire
+from tracking.trajPack.trajFeatures import histogramPreparationFromTracklets
 from util.settings import Settings
+from util.sandbox import histLogTrsforming
 
 import pdb
 import plotter_stats
 
 from util.sandbox import accuracy_precision
+
+def evalTrajectoryClustering(filename, folder='../resultData/simulated_traj/trajectories_for_clustering', cluster_num=6):
+    if 'pcaed_data.pkl' not in os.listdir(folder):
+        length=[]
+        result=None
+        for k in range(cluster_num):
+            f=open(os.path.join(folder, filename.format(k)),'r')
+            r=pickle.load(f); f.close()
+            length.append(r.shape[0])
+            
+            result=r if result is None else np.vstack((result,r))
+            
+        result=(result-np.mean(result,0))/np.std(result,0)
+        pca=PCA(n_components=r.shape[1])
+        presult = pca.fit_transform(result)
+        presult/=np.std(presult,0)
+        print np.cumsum(pca.explained_variance_ratio_)
+        
+        f=open(os.path.join(folder, 'pcaed_data.pkl'), 'w')
+        pickle.dump((pca, presult, length),f)
+        f.close()
+        return
+    else:
+        f=open(os.path.join(folder, 'pcaed_data.pkl'), 'r')
+        pca, presult, length=pickle.load(f); f.close()
+        
+        cross=np.zeros(shape=(cluster_num, cluster_num), dtype=float)
+        labels = exploitingKMeans(presult[:,:8], None, None,None, 6, None, None, None, iteration=False, show=False)
+        for k in range(cluster_num):
+            curr_labels = labels[np.sum(length[:k]):np.sum(length[:(k+1)])]
+            for label in curr_labels:
+                cross[k,label]+=1
+            cross[k]/=length[k]
+            
+        print cross
+        return cross
+
+
 
 def evalWorkflowOutput(exp_hit,siRNA_hit,folder='../resultData/simulated_traj/simres',  num_replicates=[1,2,3]):
 #Evaluating the workflow at the level of the experiment
@@ -650,13 +693,17 @@ class TrajectorySimulator(object):
         return 2*np.pi * alpha / 360
     
     def make_trajectories(self, simulator_settings=None, 
-                          traj_length_from_file=True):
+                          traj_length_from_file=True, movement_type_index=None):
 
         if simulator_settings is None:
-            simumlator_settings = self.settings.simulator_settings
+            simulator_settings = self.settings.simulator_settings
             
         trajectories = {}
-        for movement_type in simulator_settings:
+        movement_type_list=simulator_settings.keys()
+        if movement_type_index is not None:
+            movement_type_list=movement_type_list[movement_type_index:movement_type_index+1]
+        
+        for movement_type in movement_type_list:
             
             trajectories[movement_type] = []
             
@@ -787,9 +834,9 @@ class TrajectorySimulator(object):
 
         return trajectories
 
-    def export_trajectories(self, trajectories, filename):
+    def export_trajectories(self, trajectories, filename, movement_type_index=None):
         filename = os.path.join(self.settings.out_folder, '%s.pkl' % filename)
-        plate="PL0"; well="WO"
+        plate="PL0"; well="W0" if movement_type_index == None else "W{}".format(movement_type_index)
         dict_={plate:{well:ensTraj()}}
         cour = dict_[plate][well]
         num=0
@@ -809,6 +856,9 @@ class TrajectorySimulator(object):
                 longueurFilm=max(longueurFilm, frame)
         movie_length={plate:{well:longueurFilm}}
         connexions= {plate: {well: {}}}
+        if not os.path.isdir(self.settings.out_folder):
+            os.mkdir(self.settings.out_folder)
+        
         fp = open(filename, 'w')
         pickle.dump(dict(zip(['tracklets dictionary', 'connexions between tracklets', 'movie_length'], [dict_, connexions, movie_length])), fp)
         fp.close()
@@ -855,43 +905,59 @@ class TrajectorySimulator(object):
 
         return
     
-#    def extractFeatures(self, filename, verbose):
-#        fp = open(os.path.join(self.settings.out_folder, "{}.pkl".format(filename)))
-#        data=pickle.load(fp); fp.close()
-#        d,c, movie_length = data['tracklets dictionary'], data['connexions between tracklets'], data['movie_length']
-#        res = histogramPreparationFromTracklets(d, c, self.settings.out_folder, True, verbose, movie_length)
+    def extractFeatures(self, filename, verbose):
+        fp = open(os.path.join(self.settings.out_folder, "{}.pkl".format(filename)))
+        data=pickle.load(fp); fp.close()
+        d,c, movie_length = data['tracklets dictionary'], data['connexions between tracklets'], data['movie_length']
+        res = histogramPreparationFromTracklets(d, c, self.settings.out_folder, True, verbose, movie_length, name="hist_tabFeatures_{}.pkl")
         
-    def __call__(self, filename, verbose):
+    def __call__(self, filename, verbose, movement_type_index):
         print 'doing trajectories'
-        trajectories = self.make_trajectories()
+        trajectories = self.make_trajectories(movement_type_index=movement_type_index)
         print 'exporting trajectories'
-        self.export_trajectories(trajectories, filename)
+        self.export_trajectories(trajectories, filename,movement_type_index=movement_type_index)
         self.plot_trajectories(trajectories)
         print 'extracting trajectories features'
         self.extractFeatures(filename, verbose)
         return
     
-    #SCRIPT UTILISE POUR FAIRE LES FEATURES
-#    simulateur = TrajectorySimulator(settings_filename='simulator/simulation_settings_2014_01_16.py')
-#    simulateur('simulated_trajectories', 0)
-#
-#    f=open('../resultData/simulated_traj/hist_tabFeatures_WO.pkl')
-#    tabFeatures, _, histNC, _, _, _ = pickle.load(f)
-#    r2 = histLogTrsforming(tabFeatures)  
-#    print r2.shape, 'not normalized'
-#    r2=r2[:,:-1]; r2=(r2-np.mean(r2,0))/np.std(r2,0)
-#    print 'computing bins'
-#    histogrammeMatrix = computingBins(histNC, mat_hist_sizes[0])
-#    print 'saving'
-#    f=open('../resultData/simulated_traj/histogramsNtotSim.pkl', 'w')
-#    pickle.dump(np.hstack((r2, histogrammeMatrix)), f); f.close()
-
-
 if __name__ == '__main__':
-    p=PlateSimulator(settings_filename="tracking/settings/settings_simulator_14_10_20.py")
+    #SCRIPT UTILISE POUR FAIRE LES FEATURES
     
-    p()
-                
+    parser = OptionParser(usage="usage: %prog [options]")
+    parser.add_option("-m", dest="movement_type_index", type=int,default=None)
+    (options, args) = parser.parse_args()
+    
+     
+    simulateur = TrajectorySimulator(settings_filename='tracking/settings/settings_simulator_14_10_20.py')
+    simulateur('simulated_trajectories', 0, options.movement_type_index)
+
+    f=open('../resultData/simulated_traj/trajectories_for_clustering/hist_tabFeatures_W{}.pkl'.format(options.movement_type_index))
+    tabFeatures, _, _ = pickle.load(f)
+    r2 = histLogTrsforming(tabFeatures)  
+    print r2.shape, 'not normalized'
+    r2=r2[:,:-1]
+    
+    if np.any(np.isnan(r2)):
+        print 'Deleting nan values'
+        r2=np.delete(r2, np.where(np.isnan(r2))[0], 0)
+    
+    #r=(r2-np.mean(r2,0))/np.std(r2,0)
+    
+    r=np.hstack((r2[:,:len(featuresNumeriques)], r2[:, featuresSaved.index('mean straight'), np.newaxis]))
+    print r.shape
+    #print 'computing bins'
+    #histogrammeMatrix = computingBins(histNC, mat_hist_sizes[0])
+    print 'saving'
+    f=open('../resultData/simulated_traj/trajectories_for_clustering/data_sim_traj{}.pkl'.format(options.movement_type_index), 'w')
+    pickle.dump(r, f); f.close()
+
+#
+#if __name__ == '__main__':
+#    p=PlateSimulator(settings_filename="tracking/settings/settings_simulator_14_10_20.py")
+#    
+#    p()
+#                
 
             
                  

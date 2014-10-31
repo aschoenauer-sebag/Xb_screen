@@ -1229,14 +1229,14 @@ You can in particular set up the noise level
         pickle.dump((pca, pcaed),f); f.close()
         
     elif options.action=='clustering':
-        print "CAREFUL HERE WE TAKE THE EIGHT FIRST PRINCIPAL COMPONENTS BY DEFAULT"
+        print "CAREFUL HERE WE TAKE THE SEVEN FIRST PRINCIPAL COMPONENTS BY DEFAULT"
         print 'Opening ', os.path.join(output_folder,options.outputname+'_pcaed.pkl')
         f=open(os.path.join(output_folder,options.outputname+'_pcaed.pkl'),'r')
         pca, narr=pickle.load(f)
         f.close()
     
         print 'BatchKMeans'
-        silhouette_r, cohesion_r = BatchKmeans(narr[:,:8], 2, 30, N=10)
+        silhouette_r, cohesion_r = BatchKmeans(narr[:,:7], 2, 30, N=10)
         f=open(os.path.join(output_folder, '{}_batchKM_{}.pkl'.format(options.outputname, options.n_iter)), 'w')
         pickle.dump([silhouette_r, cohesion_r], f); f.close()
     

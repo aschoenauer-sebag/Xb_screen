@@ -1,5 +1,5 @@
 import os
-out_folder = '../resultData/simulated_traj'
+out_folder = '../resultData/simulated_traj/trajectories_for_clustering'
 plot_folder = '../resultData/simulated_traj/plots'
 real_data_folder = '../resultData/simulated_traj'
 
@@ -16,20 +16,20 @@ L = {
     }
 
 simulator_settings = {
-'movement_normal': {'N': 1,
+'movement_normal': {'N': 500,
                     'radius': {'distribution': 'Normal', 'mean': 15, 'stdev': 3},
                     'angle': {'distribution': 'Uniform', 'min': 0, 'max': 360},
                     },
-'movement_fast': {'N': 1,
+'movement_fast': {'N': 500,
                   'radius': {'distribution': 'Normal', 'mean': 25, 'stdev': 8},
                   'angle': {'distribution': 'Uniform', 'min': 0, 'max': 360},
                   },
-'directional': {'N': 1,
+'directional': {'N': 500,
                 'angle_0': {'distribution': 'Uniform', 'min': 0, 'max': 360}, # mean value
                 'angle': {'distribution': 'Normal', 'stdev': 25.0},
                 'radius': {'distribution': 'Normal', 'mean': 15, 'stdev': 3},
                 },
-'directional_bended': {'N': 20,
+'directional_bended': {'N': 500,
                        'angle_0': {'distribution': 'Uniform', 'min': 0, 'max': 360}, # start value
                        'angle': {'distribution': 'Normal_Moving_Mean', 'stdev': 25.0},
                        'angle_delta': {'distribution': 'Normal', 'mean': 50.0, 'stdev': 1.0},
@@ -47,7 +47,7 @@ simulator_settings = {
 #                  },
 
 # indicates directed movement in +- 180 degrees.
-'angle_switch': {'N': 1,
+'angle_switch': {'N': 500,
                  'radius': {'distribution': 'Normal', 'mean': 15, 'stdev': 3},
                  'angle_0': {'distribution': 'Uniform', 'min': 0, 'max': 360}, # mean value
                  'angle': {'distribution': 'Normal', 'stdev': 25.0, 
@@ -56,7 +56,7 @@ simulator_settings = {
                   },                                    
 
 # mode_switch indicates the presence of 2 movements, one directed, the other random, with different speeds respectively.
-'mode_switch': {'N': 1,
+'mode_switch': {'N': 500,
                 'common_switch': {'trans_count_0_1': {'min': 8, 'max': 15},
                                   'trans_count_1_0': {'min': 3, 'max': 5}},     
                 'radius1': {'distribution': 'Normal', 'mean': 15, 'stdev': 3},
