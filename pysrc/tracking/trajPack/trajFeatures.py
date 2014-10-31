@@ -12,7 +12,7 @@ from scipy.spatial import cKDTree, ConvexHull
 from tracking.plots import plot, plotComparison, plotBoth, plotFeaturesTraj
 from tracking.PyPack import fHacktrack2
 from tracking.trajPack import moments, rayon, densities, windows,\
-    TIMEDEPTH, features1, featuresHisto, featuresSaved
+    TIMEDEPTH, featuresHisto, featuresSaved
     
 from util.plots import couleurs, makeColorRamp
 

@@ -8,7 +8,7 @@ from scipy.stats import ks_2samp
 import vigra.impex as vi
 
 
-from tracking.trajPack import sdFeatures1, logTrsf, featuresSaved, histLogTrsf,\
+from tracking.trajPack import featuresSaved, histLogTrsf,\
     histLogTrsf_meanHistFeat
 from tracking.plots import plotTraj3d
 from tracking.histograms import *
@@ -297,10 +297,10 @@ def histLogTrsforming(r, plus=1.0, verbose=0):
     print r.shape
     allLogTrsf = histLogTrsf; allLogTrsf.extend(histLogTrsf_meanHistFeat)
     if verbose>0:
-        print "We suppose that the first {} features are ".format(len(featuresSaved[:18])), featuresSaved[:18]
+        print "Dealing with {} features".format(len(featuresSaved[:19]))
 #    if r.shape[1]>len(histLogTrsf)+1:
 #        raise AttributeError
-    for k in range(len(featuresSaved[:18])):
+    for k in range(len(featuresSaved[:19])):
         plus_=plus
         if allLogTrsf[k]==1:
             if np.min(r[:,k])<0:

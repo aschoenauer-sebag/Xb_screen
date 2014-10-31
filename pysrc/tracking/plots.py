@@ -8,10 +8,10 @@ from scipy.stats import linregress, pearsonr
 
 import numpy as np
 
-from trajPack import features1, featuresSaved, featuresNumeriques
+from trajPack import featuresSaved, featuresNumeriques
 from PyPack import fHacktrack2
 from dataPack.joining import FeatureException
-from trajPack import featuresListArray, featuresHisto
+from trajPack import featuresHisto
 
 from util.plots import makeColorRamp, basic_colors, markers
 

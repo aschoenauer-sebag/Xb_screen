@@ -24,11 +24,13 @@ simulator_settings = {
                   'radius': {'distribution': 'Normal', 'mean': 25, 'stdev': 8},
                   'angle': {'distribution': 'Uniform', 'min': 0, 'max': 360},
                   },
-'directional': {'N': 500,
-                'angle_0': {'distribution': 'Uniform', 'min': 0, 'max': 360}, # mean value
-                'angle': {'distribution': 'Normal', 'stdev': 25.0},
-                'radius': {'distribution': 'Normal', 'mean': 15, 'stdev': 3},
-                },
+                      
+#commented because not used in PlateSimulator
+#'directional': {'N': 500,
+#                'angle_0': {'distribution': 'Uniform', 'min': 0, 'max': 360}, # mean value
+#                'angle': {'distribution': 'Normal', 'stdev': 25.0},
+#                'radius': {'distribution': 'Normal', 'mean': 15, 'stdev': 3},
+#                },
 'directional_bended': {'N': 500,
                        'angle_0': {'distribution': 'Uniform', 'min': 0, 'max': 360}, # start value
                        'angle': {'distribution': 'Normal_Moving_Mean', 'stdev': 25.0},

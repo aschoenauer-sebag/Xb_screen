@@ -30,7 +30,7 @@ def evalTrajectoryClustering(filename, folder='../resultData/simulated_traj/traj
             length.append(r.shape[0])
             
             result=r if result is None else np.vstack((result,r))
-            
+        print np.std(result,0), featuresNumeriques.index('entropy2'), np.std(result,0)[featuresNumeriques.index('entropy2')]
         result=(result-np.mean(result,0))/np.std(result,0)
         pca=PCA(n_components=r.shape[1])
         presult = pca.fit_transform(result)
@@ -47,14 +47,15 @@ def evalTrajectoryClustering(filename, folder='../resultData/simulated_traj/traj
         
         cross=np.zeros(shape=(cluster_num, cluster_num), dtype=float)
         labels = exploitingKMeans(presult[:,:8], None, None,None, 6, None, None, None, iteration=False, show=False)
+        m=0
         for k in range(cluster_num):
             curr_labels = labels[np.sum(length[:k]):np.sum(length[:(k+1)])]
             for label in curr_labels:
                 cross[k,label]+=1
-            cross[k]/=length[k]
-            
-        print cross
-        return cross
+            cross[k]=cross[k]/length[k]
+            m+=np.max(cross[k])
+        print float(m)/cluster_num
+        return m
 
 
 
@@ -699,7 +700,7 @@ class TrajectorySimulator(object):
             simulator_settings = self.settings.simulator_settings
             
         trajectories = {}
-        movement_type_list=simulator_settings.keys()
+        movement_type_list=sorted(simulator_settings.keys())
         if movement_type_index is not None:
             movement_type_list=movement_type_list[movement_type_index:movement_type_index+1]
         
@@ -905,34 +906,35 @@ class TrajectorySimulator(object):
 
         return
     
-    def extractFeatures(self, filename, verbose):
-        fp = open(os.path.join(self.settings.out_folder, "{}.pkl".format(filename)))
+    def extractFeatures(self, traj_filename,feat_filename, verbose):
+        fp = open(os.path.join(self.settings.out_folder, "{}.pkl".format(traj_filename)))
         data=pickle.load(fp); fp.close()
         d,c, movie_length = data['tracklets dictionary'], data['connexions between tracklets'], data['movie_length']
-        res = histogramPreparationFromTracklets(d, c, self.settings.out_folder, True, verbose, movie_length, name="hist_tabFeatures_{}.pkl")
+        res = histogramPreparationFromTracklets(d, c, self.settings.out_folder, True, verbose, movie_length, name=feat_filename)
         
-    def __call__(self, filename, verbose, movement_type_index):
+    def __call__(self, filename, verbose, movement_type_index, feat_filename):
         print 'doing trajectories'
         trajectories = self.make_trajectories(movement_type_index=movement_type_index)
         print 'exporting trajectories'
         self.export_trajectories(trajectories, filename,movement_type_index=movement_type_index)
         self.plot_trajectories(trajectories)
         print 'extracting trajectories features'
-        self.extractFeatures(filename, verbose)
+        self.extractFeatures(filename,feat_filename, verbose)
         return
     
 if __name__ == '__main__':
     #SCRIPT UTILISE POUR FAIRE LES FEATURES
     
     parser = OptionParser(usage="usage: %prog [options]")
+    parser.add_option("--iter", dest="iter", type=int,default=0)
     parser.add_option("-m", dest="movement_type_index", type=int,default=None)
     (options, args) = parser.parse_args()
     
      
     simulateur = TrajectorySimulator(settings_filename='tracking/settings/settings_simulator_14_10_20.py')
-    simulateur('simulated_trajectories', 0, options.movement_type_index)
+    simulateur('simulated_trajectories', 0, options.movement_type_index, "hist_tabFeatures{}_W{}.pkl".format(options.iter, options.movement_type_index))
 
-    f=open('../resultData/simulated_traj/trajectories_for_clustering/hist_tabFeatures_W{}.pkl'.format(options.movement_type_index))
+    f=open('../resultData/simulated_traj/trajectories_for_clustering/hist_tabFeatures{}_W{}.pkl'.format(options.iter, options.movement_type_index))
     tabFeatures, _, _ = pickle.load(f)
     r2 = histLogTrsforming(tabFeatures)  
     print r2.shape, 'not normalized'
@@ -949,7 +951,7 @@ if __name__ == '__main__':
     #print 'computing bins'
     #histogrammeMatrix = computingBins(histNC, mat_hist_sizes[0])
     print 'saving'
-    f=open('../resultData/simulated_traj/trajectories_for_clustering/data_sim_traj{}.pkl'.format(options.movement_type_index), 'w')
+    f=open('../resultData/simulated_traj/trajectories_for_clustering/data_sim_traj{}{}.pkl'.format(options.iter, options.movement_type_index), 'w')
     pickle.dump(r, f); f.close()
 
 #
