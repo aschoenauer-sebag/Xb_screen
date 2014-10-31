@@ -1229,7 +1229,7 @@ You can in particular set up the noise level
         pickle.dump((pca, pcaed),f); f.close()
         
     elif options.action=='clustering':
-        print "CAREFUL HERE WE TAKE THE SIX FIRST PRINCIPAL COMPONENTS BY DEFAULT"
+        print "CAREFUL HERE WE TAKE THE SEVEN FIRST PRINCIPAL COMPONENTS BY DEFAULT"
         print 'Opening ', os.path.join(output_folder,options.outputname+'_pcaed.pkl')
         f=open(os.path.join(output_folder,options.outputname+'_pcaed.pkl'),'r')
         pca, narr=pickle.load(f)
@@ -1237,7 +1237,7 @@ You can in particular set up the noise level
     
         print 'BatchKMeans'
         silhouette_r, cohesion_r = BatchKmeans(narr[:,:6], 2, 30, N=10)
-        f=open(os.path.join(output_folder, '{}_batchKM_{}.pkl'.format(options.outputname, options.n_iter)), 'w')
+        f=open(os.path.join(output_folder, '{}2_batchKM_{}.pkl'.format(options.outputname, options.n_iter)), 'w')
         pickle.dump([silhouette_r, cohesion_r], f); f.close()
     
 #    parser.add_option("-f", "--folder", dest="folder", default='/cbio/donnees/aschoenauer/workspace2/Tracking/resultData/',
