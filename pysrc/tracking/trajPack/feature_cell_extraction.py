@@ -354,29 +354,28 @@ def collectingDistances(filename, folder,
         print len(files)
         files.sort()
         result={param:[[], [], [], None] for param in parameters}
+        bad_si=[]
         for file_ in files:
             f=open(os.path.join(folder, file_))
             d=pickle.load(f)
             f.close()
-            
+            if not testCtrl:
+                siRNA = file_.split('_')[-1][:-4]
+            else:
+                siRNA=file_[-13:-4]
+            if siRNAFilterList is not None and siRNA not in siRNAFilterList:
+                continue
             if len(d.keys())!=len(pp):
-                print 'Ignoring this ', file_
+                bad_si.append(siRNA)
                 continue
 #            if np.any(np.array([Counter(np.where(~np.isnan(d[param]))[0]).keys() for param in pp])==[]):
 #                print 'Some NaN ', file_
 #                continue
-            
-            for param in pp:
-                if not testCtrl:
-                    siRNA = file_.split('_')[-1][:-4]
-                else:
-                    siRNA=file_[-13:-4]
-                if siRNAFilterList is not None and siRNA not in siRNAFilterList:
-                    continue
-                
+
+            for param in pp:                
                 l= Counter(np.where(~np.isnan(d[param]))[0]).keys()
                 if l==[]:
-                    pdb.set_trace()
+                    bad_si.append(siRNA)
                     continue
                 else:
 #                    if len(l)==1 and not testCtrl:
@@ -413,7 +412,7 @@ def collectingDistances(filename, folder,
         f=open(os.path.join(folder, filename))
         result=pickle.load(f); f.close()
     
-    return result
+    return bad_si, result
 def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False):
     empirical_pval = np.zeros(shape = (dist_exp.shape[0], dist_exp.shape[1]), dtype=float)
     empirical_qval = np.zeros(shape = (dist_exp.shape[0], dist_exp.shape[1]), dtype=float)
