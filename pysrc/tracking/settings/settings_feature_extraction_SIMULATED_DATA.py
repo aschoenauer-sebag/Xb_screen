@@ -15,4 +15,4 @@ quality_control_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_s
 histDataAsWell=False
 
 #Option to say if we want to redo experiments anyway
-redo=False
+redo=True
