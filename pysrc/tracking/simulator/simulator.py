@@ -20,8 +20,8 @@ import plotter_stats
 
 from util.sandbox import accuracy_precision
 
-def evalTrajectoryClustering(filename, folder='../resultData/simulated_traj/trajectories_for_clustering', cluster_num=6):
-    if 'pcaed_data.pkl' not in os.listdir(folder):
+def evalTrajectoryClustering(filename,iter_, folder='../resultData/simulated_traj/trajectories_for_clustering', cluster_num=5, iterations=10):
+    if 'pcaed_data{}.pkl'.format(iter_) not in os.listdir(folder):
         length=[]
         result=None
         for k in range(cluster_num):
@@ -37,25 +37,36 @@ def evalTrajectoryClustering(filename, folder='../resultData/simulated_traj/traj
         presult/=np.std(presult,0)
         print np.cumsum(pca.explained_variance_ratio_)
         
-        f=open(os.path.join(folder, 'pcaed_data.pkl'), 'w')
+        f=open(os.path.join(folder, 'pcaed_data{}.pkl'.format(iter_)), 'w')
         pickle.dump((pca, presult, length),f)
         f.close()
         return
     else:
-        f=open(os.path.join(folder, 'pcaed_data.pkl'), 'r')
+        f=open(os.path.join(folder, 'pcaed_data{}.pkl'.format(iter_)), 'r')
         pca, presult, length=pickle.load(f); f.close()
-        
-        cross=np.zeros(shape=(cluster_num, cluster_num), dtype=float)
-        labels = exploitingKMeans(presult[:,:8], None, None,None, 6, None, None, None, iteration=False, show=False)
-        m=0
-        for k in range(cluster_num):
-            curr_labels = labels[np.sum(length[:k]):np.sum(length[:(k+1)])]
-            for label in curr_labels:
-                cross[k,label]+=1
-            cross[k]=cross[k]/length[k]
-            m+=np.max(cross[k])
-        print float(m)/cluster_num
-        return m
+        rr=[]; pp=[]
+        for j in range(iterations):
+            print 'Iteration ', j
+            cross=np.zeros(shape=(cluster_num, cluster_num), dtype=float)
+            recall = np.zeros(shape=(cluster_num, cluster_num), dtype=float)
+            precision = np.zeros(shape=(cluster_num, cluster_num), dtype=float)
+            labels = exploitingKMeans(presult[:,:8], None, None,None, 5, None, None, None, iteration=False, show=False)
+            r=0; p=0
+            for k in range(cluster_num):
+                curr_labels = labels[np.sum(length[:k]):np.sum(length[:(k+1)])]
+                for label in curr_labels:
+                    cross[k,label]+=1
+                recall[k]=cross[k]/length[k]
+            #i gives the predicted cluster that is the more similar to the real cluster 
+                i = np.argmax(recall[k])
+                
+                precision[k]=cross[k,i]/np.sum(cross[:,i])
+                r+=np.max(recall[k])
+                p+=np.max(precision[k])
+                
+            rr.append(float(r)/cluster_num)
+            pp.append(float(p)/cluster_num)
+        return rr, pp
 
 
 
