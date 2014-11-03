@@ -362,9 +362,9 @@ def collectingDistances(filename, folder,
             if len(d.keys())!=len(pp):
                 print 'Ignoring this ', file_
                 continue
-            if np.any(np.array([Counter(np.where(~np.isnan(d[param]))[0]).keys() for param in pp])==[]):
-                print 'Some NaN ', file_
-                continue
+#            if np.any(np.array([Counter(np.where(~np.isnan(d[param]))[0]).keys() for param in pp])==[]):
+#                print 'Some NaN ', file_
+#                continue
             
             for param in pp:
                 if not testCtrl:
@@ -376,6 +376,7 @@ def collectingDistances(filename, folder,
                 
                 l= Counter(np.where(~np.isnan(d[param]))[0]).keys()
                 if l==[]:
+                    pdb.set_trace()
                     continue
                 else:
 #                    if len(l)==1 and not testCtrl:
