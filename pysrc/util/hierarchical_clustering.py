@@ -48,14 +48,14 @@ from util.listFileManagement import EnsemblEntrezTrad, multipleGeneListsToFile
 from tracking.trajPack import featuresNumeriques, featuresSaved
 
 def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchical', level=0.4,trad=False,
-                  num_clusters=8, labels_filename='labelsKM_k{}_halfM.pkl', pcaed_filename='halfM_max_05_pcaed.pkl',
+                  num_clusters=8, labels_filename='labelsKM_whole_k{}.pkl', pcaed_filename='all_distances_whole2_pcaed.pkl',
                   with_timelength=False):
     
     #DONC FAIRE TOUT DANS LA MEME FONCTION
     
     features=list(featuresNumeriques); features.append('mean persistence'); features.append('mean straight')
     f=open(os.path.join(folder,data_filename))
-    r,  who,ctrlStatus, length, genes, sirna, time_length=pickle.load(f); f.close()
+    r, genes,time_length=pickle.load(f); f.close()
     
     r=np.hstack((r[:,:len(featuresNumeriques)], r[:,featuresSaved.index('mean persistence'), np.newaxis], r[:, featuresSaved.index('mean straight'), np.newaxis]))
     fL=list(features)
@@ -101,9 +101,10 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
     heatmap(small_nr.T,fL, range(small_nr.shape[0]), 'ward', None, 'euclidean', None, 
             color_gradient='red_white_blue', filename=outputfile+'TRAJ', trad=False, save=False)
     if action=='kmeans':
-        heatmap(percentages[:1723], genes[:1723],range(begin_, num_clusters), None, 'ward', None, 'euclidean', 
+        num_experiments=np.where(np.array(genes)=='ctrl')[0][0]
+        heatmap(percentages[:num_experiments], genes[:num_experiments],range(begin_, num_clusters), None, 'ward', None, 'euclidean', 
             color_gradient='red_white_blue', filename=outputfile+'MOV', trad=False, save=False, level=level)
-        heatmap(percentages[1723:], genes[1723:],range(begin_, num_clusters), None, 'ward', None, 'euclidean', 
+        heatmap(percentages[num_experiments:], genes[num_experiments:],range(begin_, num_clusters), None, 'ward', None, 'euclidean', 
             color_gradient='red_white_blue', filename=outputfile+'CTRL', trad=False, save=False, level=level)
 
     

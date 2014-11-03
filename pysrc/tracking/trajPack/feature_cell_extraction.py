@@ -355,52 +355,52 @@ def collectingDistances(filename, folder,
         files.sort()
         result={param:[[], [], [], None] for param in parameters}
         for file_ in files:
-            print files.index(file_),
             f=open(os.path.join(folder, file_))
             d=pickle.load(f)
             f.close()
             
+            if len(d.keys())!=len(pp):
+                print 'Ignoring this ', file_
+                continue
+            
             for param in pp:
-                if param not in d:
-                    print "NO parameter sets ", file_, 'param ', parameters.index(param)
+                if not testCtrl:
+                    siRNA = file_.split('_')[-1][:-4]
                 else:
+                    siRNA=file_[-13:-4]
+                if siRNAFilterList is not None and siRNA not in siRNAFilterList:
+                    continue
+                
+                l= Counter(np.where(~np.isnan(d[param]))[0]).keys()
+                if l==[]:
+                    continue
+                else:
+#                    if len(l)==1 and not testCtrl:
+#                        #meaning it is an orphan siRNA with only one experiment. But do we really want to take them out? The experiment is real after all
+#                        continue 
+#                    
+                    result[param][0].extend([siRNA for k in range(len(l))])
                     if not testCtrl:
-                        siRNA = file_.split('_')[-1][:-4]
-                    else:
-                        siRNA=file_[-13:-4]
-                    if siRNAFilterList is not None and siRNA not in siRNAFilterList:
-                        continue
-                    
-                    l= Counter(np.where(~np.isnan(d[param]))[0]).keys()
-                    if l==[]:
-                        continue
-                    else:
-    #                    if len(l)==1 and not testCtrl:
-    #                        #meaning it is an orphan siRNA with only one experiment. But do we really want to take them out? The experiment is real after all
-    #                        continue 
-    #                    
-                        result[param][0].extend([siRNA for k in range(len(l))])
-                        if not testCtrl:
-                            gene = dictSiEntrez[siRNA]
-                            if gene!='Sim':
-                                expList = np.array(strToTuple(yqualDict[siRNA], os.listdir('/share/data20T/mitocheck/tracking_results')))
-                           
-                                if d[param].shape[0]==len(expList):
-                                    used_experiments = expList[l]
-                                else:
-                                    if long_version:
-                                        used_experiments = expList[usable[siRNA]]
-                                        used_experiments = used_experiments[l]
-                                    else:
-                                        used_experiments=expList[l]
-                                    
-                                result[param][1].extend([el[0][:9]+'--'+el[1][2:5] for el in used_experiments])
+                        gene = dictSiEntrez[siRNA]
+                        if gene!='Sim':
+                            expList = np.array(strToTuple(yqualDict[siRNA], os.listdir('/share/data20T/mitocheck/tracking_results')))
+                       
+                            if d[param].shape[0]==len(expList):
+                                used_experiments = expList[l]
                             else:
-                                result[param][1].extend(yqualDict[siRNA])
+                                if long_version:
+                                    used_experiments = expList[usable[siRNA]]
+                                    used_experiments = used_experiments[l]
+                                else:
+                                    used_experiments=expList[l]
                                 
-                            result[param][2].extend([gene for k in range(len(l))])
-                        
-                        result[param][3]=np.vstack((result[param][3], d[param][l])) if result[param][3] is not None else d[param][l]
+                            result[param][1].extend([el[0][:9]+'--'+el[1][2:5] for el in used_experiments])
+                        else:
+                            result[param][1].extend(yqualDict[siRNA])
+                            
+                        result[param][2].extend([gene for k in range(len(l))])
+                    
+                    result[param][3]=np.vstack((result[param][3], d[param][l])) if result[param][3] is not None else d[param][l]
 
         f=open(os.path.join(folder, filename), 'w')
         pickle.dump(result, f); f.close()

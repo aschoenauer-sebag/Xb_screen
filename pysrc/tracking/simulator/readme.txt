@@ -17,10 +17,10 @@ v. For the experiments
 		%run tracking/trajPack/feature_cell_extraction_script -b simDistances --div_name KS --simulated 1 --iter $k --simulated 1 --siRNA ../data/siRNA_simulated.pkl
 		
 vi. Extract collected distances
-	r=feature_cell_extraction.collectingDistances('dist_sim_CTRL.pkl', 
+	r=feature_cell_extraction.collectingDistances('all_dist_sim_CTRL.pkl', 
 		'../resultData/simulated_traj/simres', qc_filename='../data/qc_simulated.txt',mapping_filename= None, testCtrl=True, redo=True,long_version=False, key_name='dist_sim')
 		
-	r=feature_cell_extraction.collectingDistances('dist_sim.pkl', 
+	r=feature_cell_extraction.collectingDistances('all_dist_sim.pkl', 
 		'../resultData/simulated_traj/simres', qc_filename='../data/qc_simulated.txt',mapping_filename= None, testCtrl=False, redo=True,long_version=False, key_name='dist_sim')
 
 vii. Compute hits
@@ -99,6 +99,14 @@ vi. Study results
 	
 	from tracking.trajPack import clustering_script
 	clustering_script.generationScript('real_distances_KM',outputname='all_distances_whole', simulated=False)
+	
+vii. Cluster trajectories
+	from tracking.trajPack import exploiting_clustering
+	exploitingKMeans(data,ctrldata, length,ctrlStatus,8, who, genes,sirna, iteration=False, Td=True, show=True)
+	f=open('../resultData/features_on_films/labels.pkl', 'w')
+	pickle.dump(labels,f); f.close()
+	
+	
 	
 	
 
