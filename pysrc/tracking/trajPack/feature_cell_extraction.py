@@ -352,7 +352,7 @@ def collectingDistances(filename, folder,
             files = filter(lambda x: key_name in x and 'CTRL' in x  and 'all' not in x, os.listdir(folder))
             
         print len(files)
-    
+        files.sort()
         result={param:[[], [], [], None] for param in parameters}
         for file_ in files:
             print files.index(file_),
