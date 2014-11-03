@@ -399,6 +399,8 @@ def collectingDistances(filename, folder,
                                 
                             result[param][1].extend([el[0][:9]+'--'+el[1][2:5] for el in used_experiments])
                         else:
+                            if len(l)!=3:
+                                bad_si.append(siRNA)
                             result[param][1].extend(yqualDict[siRNA])
                             
                         result[param][2].extend([gene for k in range(len(l))])
@@ -413,6 +415,7 @@ def collectingDistances(filename, folder,
         result=pickle.load(f); f.close()
     
     return bad_si, result
+
 def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False):
     empirical_pval = np.zeros(shape = (dist_exp.shape[0], dist_exp.shape[1]), dtype=float)
     empirical_qval = np.zeros(shape = (dist_exp.shape[0], dist_exp.shape[1]), dtype=float)
