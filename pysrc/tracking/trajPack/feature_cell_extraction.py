@@ -414,7 +414,7 @@ def collectingDistances(filename, folder,
         f=open(os.path.join(folder, filename))
         result=pickle.load(f); f.close()
     
-    return bad_si, result
+    return result
 
 def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False):
     empirical_pval = np.zeros(shape = (dist_exp.shape[0], dist_exp.shape[1]), dtype=float)
