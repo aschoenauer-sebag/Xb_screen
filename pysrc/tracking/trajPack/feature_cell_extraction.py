@@ -37,33 +37,6 @@ from rpy2.robjects.packages import importr
 from rpy2.robjects.vectors import FloatVector
 
 stats = importr('stats')
-#redone experiments after hdf5 catastrophe
-#redone_experiments =np.array([['123438', 'LT0061_03--233'],
-#       ['123438', 'LT0061_05--233'],
-#       ['148427', 'LT0061_03--284'],
-#       ['148427', 'LT0061_05--284'],
-#       ['122325', 'LT0061_03--295'],
-#       ['122325', 'LT0061_05--295'],
-#       ['28902', 'LT0079_05--131'],
-#       ['28902', 'LT0079_13--131']], 
-#      dtype='|S14')
-##experiments for which hdf5 are fine but the controls on the same plate are not
-#tofilter_experiments=['LT0007_26--001',
-# 'LT0003_15--194',
-# 'LT0003_15--270',
-# 'LT0003_15--271',
-# 'LT0006_44--234',
-# 'LT0006_44--236',
-# 'LT0006_44--252',
-# 'LT0007_26--152',
-# 'LT0007_26--174',
-# 'LT0010_27--080',
-# 'LT0010_27--096',
-# 'LT0010_27--097',
-# 'LT0010_27--098',
-# 'LT0010_27--099',
-# 'LT0015_22--039']
-
 
 nb_exp_list=[100, 500, 1000, 2000]
 parameters=[
@@ -128,97 +101,63 @@ def multipleHitDistances(folder, key_name,
     features.append('mean straight')
     
     expL=None
-    if 'all_distances_{}.pkl'.format(without_mean_persistence) not in os.listdir(folder) or redo:
-        expL, geneL, siRNAL, global_result = hitDistances(folder,
-                    key_name = key_name, 
-                    filename='{}.pkl'.format(filename), 
-                    qc_filename=qc_filename,
-                    mapping_filename=mapping_filename,
-                    redo=redo,
-                     without_mean_persistence=True, features=features)
-            
-#            curr_expL=curr_result[:,0]
-#            curr_pval=np.array(curr_result[:,-1],dtype=np.float_)
-#            result.append((np.array(curr_expL), np.array(curr_pval)))
-#            if expL is None:
-#                expL=sorted(curr_expL) 
-#                siRNAL=np.array(curr_result[:,2])
-#                geneL=np.array(curr_result[:,1])
-#                
-#            elif expL !=sorted(curr_expL):
-#                print '######################## different experiment list - need to recompute siRNA list'
-#                pdb.set_trace()
-#                expL=filter(lambda x: x in expL, curr_expL)
-#            else:
-#                print 'Same experiment list ', k
-                
-        expL=np.array(expL)
-        print 'combination of iterations done ', len(expL)
-#    
-#        global_result = np.zeros(shape=(len(expL), len(iterations)))
-#        for k in range(len(iterations)):
-#            curr_expL, curr_pval = result[k]
-#            global_result[:,k]=curr_pval
-#                
-#        if filtering_bad_hdf5:
-#            f=open(os.path.join('../data/wrong_trajectories.pkl'))
-#            wrong_hdf5_files=pickle.load(f); f.close()
-#            
-#            wrong_hdf5_files=['{}--{}'.format(el[0][:9], el[1][2:5]) for el in wrong_hdf5_files]
-#            wrong_hdf5_files.extend(tofilter_experiments)
-#            #filtering bad hdf5 files
-#            toDel=[np.where(expL==wrong_file)[0][0] for wrong_file in wrong_hdf5_files if wrong_file in expL]
-#
-#            siRNAL=np.delete(siRNAL, toDel,0)            
-#            expL=np.delete(expL, toDel, 0)
-#            geneL=np.delete(geneL, toDel, 0)
-#            global_result=np.delete(global_result, toDel,0)
-#            
-#            l=Counter(siRNAL)
-#            if filtering_lonely_siRNAs:
-#                toDel=[np.where(np.array(siRNAL)==sirna)[0][0] for sirna in filter(lambda x: l[x]==1,l)]
-#                siRNAL=np.delete(siRNAL, toDel,0)
-#                expL=np.delete(expL, toDel, 0)
-#                geneL=np.delete(geneL, toDel, 0)
-#                global_result=np.delete(global_result, toDel,0)
-#
-#    
-#            #changing values for redone experiments
-#            f=open('../resultData/features_on_films/all_distances_whole_5CtrlC.pkl')
-#            redone=pickle.load(f)[parameters[0]];f.close()
-#            new_expL = np.array(redone[1])
-#            new_arr=-2*np.sum(np.log(redone[-1]),1)
-#            for redone_exp in redone_experiments[:,1]:
-#                for k in range(global_result.shape[1]):
-#                    global_result[np.where(expL==redone_exp),k]=new_arr[np.where(new_expL==redone_exp)]
-        print 'Everything together'        
-                
-        f=open(os.path.join(folder, 'all_distances_{}.pkl'.format(without_mean_persistence)), 'w')
-        pickle.dump([expL, siRNAL, geneL, global_result], f);f.close()
-    else:
-        f=open(os.path.join(folder, 'all_distances_{}.pkl'.format(without_mean_persistence)))
-        expL, siRNAL, geneL, global_result=pickle.load(f); f.close()
-            
-            
-    if combination=='min':
-        global_pval=np.min(global_result,1)
-    elif combination=="median":
-        global_pval=np.median(global_result,1)
-    elif combination=="max":
-        global_pval=np.max(global_result,1)
-    elif combination=='mean':
-        global_pval=np.mean(global_result,1)
-    
-    ctrl = collectingDistances("{}_CTRL.pkl".format(filename), folder,key_name =key_name,
-                               testCtrl=True, qc_filename=qc_filename,mapping_filename=mapping_filename,
-                               redo=redo)
-    param = (('div_name', 'KS'),('iter', 0))
-    ctrl_pval=ctrl[param][-1]
-    if without_mean_persistence:
-        ctrl_pval=np.delete(ctrl_pval, features.index('mean persistence'),1)
-        #ctrl_pval=np.delete(ctrl_pval, features.index('diffusion coefficient'),1)
-    
     if 'comb_empirical_p_qval{}{}.pkl'.format(combination,without_mean_persistence) not in os.listdir(folder) or redo:
+        if 'all_distances_{}.pkl'.format(without_mean_persistence) not in os.listdir(folder) or redo:
+            expL, geneL, siRNAL, global_result = hitDistances(folder,
+                        key_name = key_name, 
+                        filename='{}.pkl'.format(filename), 
+                        qc_filename=qc_filename,
+                        mapping_filename=mapping_filename,
+                        redo=redo,
+                         without_mean_persistence=True, features=features)
+                
+    #            curr_expL=curr_result[:,0]
+    #            curr_pval=np.array(curr_result[:,-1],dtype=np.float_)
+    #            result.append((np.array(curr_expL), np.array(curr_pval)))
+    #            if expL is None:
+    #                expL=sorted(curr_expL) 
+    #                siRNAL=np.array(curr_result[:,2])
+    #                geneL=np.array(curr_result[:,1])
+    #                
+    #            elif expL !=sorted(curr_expL):
+    #                print '######################## different experiment list - need to recompute siRNA list'
+    #                pdb.set_trace()
+    #                expL=filter(lambda x: x in expL, curr_expL)
+    #            else:
+    #                print 'Same experiment list ', k
+                    
+            expL=np.array(expL)
+            print 'combination of iterations done ', len(expL)
+    #    
+    #        global_result = np.zeros(shape=(len(expL), len(iterations)))
+    #        for k in range(len(iterations)):
+    #            curr_expL, curr_pval = result[k]
+    #            global_result[:,k]=curr_pval
+    #                
+            print 'Everything together'        
+                    
+            f=open(os.path.join(folder, 'all_distances_{}.pkl'.format(without_mean_persistence)), 'w')
+            pickle.dump([expL, siRNAL, geneL, global_result], f);f.close()
+
+        if combination=='min':
+            global_pval=np.min(global_result,1)
+        elif combination=="median":
+            global_pval=np.median(global_result,1)
+        elif combination=="max":
+            global_pval=np.max(global_result,1)
+        elif combination=='mean':
+            global_pval=np.mean(global_result,1)
+        
+        ctrl = collectingDistances("{}_CTRL.pkl".format(filename), folder,key_name =key_name,
+                                   testCtrl=True, qc_filename=qc_filename,mapping_filename=mapping_filename,
+                                   redo=redo)
+        param = (('div_name', 'KS'),('iter', 0))
+        ctrl_pval=ctrl[param][-1]
+        if without_mean_persistence:
+            ctrl_pval=np.delete(ctrl_pval, features.index('mean persistence'),1)
+            #ctrl_pval=np.delete(ctrl_pval, features.index('diffusion coefficient'),1)
+    
+    
         stat = -2*np.sum(np.log(ctrl_pval),1) 
         ctrl_combined_pval = stat[:,np.newaxis]
 
@@ -228,6 +167,9 @@ def multipleHitDistances(folder, key_name,
         f = open(os.path.join(folder, 'comb_empirical_p_qval{}{}.pkl'.format(combination,without_mean_persistence)), 'w')
         pickle.dump((ctrl_qval, empirical_qval),f); f.close()
     else:
+        f=open(os.path.join(folder, 'all_distances_{}.pkl'.format(without_mean_persistence)))
+        expL, siRNAL, geneL, global_result=pickle.load(f); f.close()
+        
         f = open(os.path.join(folder, 'comb_empirical_p_qval{}{}.pkl'.format(combination,without_mean_persistence)), 'r')
         ctrl_qval, empirical_qval=pickle.load(f); f.close()
 
@@ -446,6 +388,8 @@ def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False):
     ax.set_xlim(0,1)
     p.savefig(os.path.join(folder, 'pvalParamKS_{}.png'.format(name)))
     p.close('all')
+    
+    f=open('pval_exp_sim.pkl', 'w'); pickle.dump(empirical_pval,f); f.close()
         
     return empirical_qval
 
@@ -1077,3 +1021,63 @@ if __name__ == '__main__':
                                 iter_=options.iter,
                      bin_size=options.bin_size,lambda_=options.lambda_, verbose=options.verbose)
         extractor()
+        
+#redone experiments after hdf5 catastrophe
+#redone_experiments =np.array([['123438', 'LT0061_03--233'],
+#       ['123438', 'LT0061_05--233'],
+#       ['148427', 'LT0061_03--284'],
+#       ['148427', 'LT0061_05--284'],
+#       ['122325', 'LT0061_03--295'],
+#       ['122325', 'LT0061_05--295'],
+#       ['28902', 'LT0079_05--131'],
+#       ['28902', 'LT0079_13--131']], 
+#      dtype='|S14')
+##experiments for which hdf5 are fine but the controls on the same plate are not
+#tofilter_experiments=['LT0007_26--001',
+# 'LT0003_15--194',
+# 'LT0003_15--270',
+# 'LT0003_15--271',
+# 'LT0006_44--234',
+# 'LT0006_44--236',
+# 'LT0006_44--252',
+# 'LT0007_26--152',
+# 'LT0007_26--174',
+# 'LT0010_27--080',
+# 'LT0010_27--096',
+# 'LT0010_27--097',
+# 'LT0010_27--098',
+# 'LT0010_27--099',
+# 'LT0015_22--039']
+
+
+    #        if filtering_bad_hdf5:
+    #            f=open(os.path.join('../data/wrong_trajectories.pkl'))
+    #            wrong_hdf5_files=pickle.load(f); f.close()
+    #            
+    #            wrong_hdf5_files=['{}--{}'.format(el[0][:9], el[1][2:5]) for el in wrong_hdf5_files]
+    #            wrong_hdf5_files.extend(tofilter_experiments)
+    #            #filtering bad hdf5 files
+    #            toDel=[np.where(expL==wrong_file)[0][0] for wrong_file in wrong_hdf5_files if wrong_file in expL]
+    #
+    #            siRNAL=np.delete(siRNAL, toDel,0)            
+    #            expL=np.delete(expL, toDel, 0)
+    #            geneL=np.delete(geneL, toDel, 0)
+    #            global_result=np.delete(global_result, toDel,0)
+    #            
+    #            l=Counter(siRNAL)
+    #            if filtering_lonely_siRNAs:
+    #                toDel=[np.where(np.array(siRNAL)==sirna)[0][0] for sirna in filter(lambda x: l[x]==1,l)]
+    #                siRNAL=np.delete(siRNAL, toDel,0)
+    #                expL=np.delete(expL, toDel, 0)
+    #                geneL=np.delete(geneL, toDel, 0)
+    #                global_result=np.delete(global_result, toDel,0)
+    #
+    #    
+    #            #changing values for redone experiments
+    #            f=open('../resultData/features_on_films/all_distances_whole_5CtrlC.pkl')
+    #            redone=pickle.load(f)[parameters[0]];f.close()
+    #            new_expL = np.array(redone[1])
+    #            new_arr=-2*np.sum(np.log(redone[-1]),1)
+    #            for redone_exp in redone_experiments[:,1]:
+    #                for k in range(global_result.shape[1]):
+    #                    global_result[np.where(expL==redone_exp),k]=new_arr[np.where(new_expL==redone_exp)]

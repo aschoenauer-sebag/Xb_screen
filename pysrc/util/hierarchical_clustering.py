@@ -51,13 +51,18 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
                   num_clusters=8, labels_filename='labelsKM_whole_k{}.pkl', pcaed_filename='all_distances_whole2_pcaed.pkl',
                   with_timelength=False):
     
-    #DONC FAIRE TOUT DANS LA MEME FONCTION
-    
-    features=list(featuresNumeriques); features.append('mean persistence'); features.append('mean straight')
     f=open(os.path.join(folder,data_filename))
     r, genes,time_length=pickle.load(f); f.close()
     
-    r=np.hstack((r[:,:len(featuresNumeriques)], r[:,featuresSaved.index('mean persistence'), np.newaxis], r[:, featuresSaved.index('mean straight'), np.newaxis]))
+    featuresToKeep=['effective space length','mean squared displacement','diffusion adequation','movement type', 'mean persistence','corrected straightness index', 
+                    'mean straight']
+    if featuresToKeep is not None:
+        r=np.hstack((r[:,featuresSaved.index(feat), np.newaxis] for feat in featuresToKeep))
+        features=featuresToKeep
+    else:
+        features=list(featuresNumeriques); features.append('mean persistence'); features.append('mean straight')
+        r=np.hstack((r[:,:len(featuresNumeriques)], r[:,featuresSaved.index('mean persistence'), np.newaxis], r[:, featuresSaved.index('mean straight'), np.newaxis]))
+    
     fL=list(features)
     if with_timelength:
         r=np.hstack((r, np.array(time_length)[:,np.newaxis])); fL.append('time length')
@@ -91,14 +96,14 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
 #        indices = model.fit(pcaed_data[:,:7])
 #        indices=indices.labels_
 
-    for k in range(begin_, num_clusters):
+    for k in [7,0,3,5,4,2,6,1]:#range(begin_, num_clusters):
         where_=np.where(np.array(indices)==k)[0]
         np.random.shuffle(where_)
         small_nr = np.vstack((small_nr, nr[where_[:1000]])) if small_nr is not None else nr[where_[:1000]]
     print small_nr.shape
 
     print 'Showing trajectory clusters'
-    heatmap(small_nr.T,fL, range(small_nr.shape[0]), 'ward', None, 'euclidean', None, 
+    heatmap(small_nr.T,fL, range(small_nr.shape[0]), None, None, None, None, 
             color_gradient='red_white_blue', filename=outputfile+'TRAJ', trad=False, save=False)
     if action=='kmeans':
         num_experiments=np.where(np.array(genes)=='ctrl')[0][0]

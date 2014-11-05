@@ -20,7 +20,7 @@ import plotter_stats
 
 from util.sandbox import accuracy_precision
 
-def evalTrajectoryClustering(filename,iter_, folder='../resultData/simulated_traj/trajectories_for_clustering', cluster_num=5, iterations=10):
+def evalTrajectoryClustering(filename,iter_, folder='../resultData/simulated_traj/trajectories_for_clustering', cluster_num=5, iterations=1):
     if 'pcaed_data{}.pkl'.format(iter_) not in os.listdir(folder):
         length=[]
         result=None
