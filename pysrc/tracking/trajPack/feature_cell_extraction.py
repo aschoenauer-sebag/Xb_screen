@@ -138,6 +138,10 @@ def multipleHitDistances(folder, key_name,
                     
             f=open(os.path.join(folder, 'all_distances_{}.pkl'.format(without_mean_persistence)), 'w')
             pickle.dump([expL, siRNAL, geneL, global_result], f);f.close()
+        else:
+            f=open(os.path.join(folder, 'all_distances_{}.pkl'.format(without_mean_persistence)))
+            expL, siRNAL, geneL, global_result=pickle.load(f); f.close()
+
 
         if combination=='min':
             global_pval=np.min(global_result,1)
