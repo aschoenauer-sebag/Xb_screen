@@ -143,6 +143,20 @@ def emptyImagesDeletion(folder, debut, fin=192):
         images = os.listdir(os.path.join(folder, well))
         for image in filter(lambda x: int(x.split('_')[1][1:])>=debut and int(x.split('_')[1][1:])<=fin, images):
             os.remove(os.path.join(folder, well, image)) 
+            
+def shiftImages(folder, debut, shift, fin=200):
+    wells = filter(lambda x:'W0' in x, os.listdir(folder))
+    print 'Renaming images from timepoint ', debut, 'to timepoint ', fin, "INCLUSES, d'un shift de ", shift
+    print 'Is that what you want?'
+    pdb.set_trace()
+    
+    for well in wells:
+        print well
+        images = sorted(os.listdir(os.path.join(folder, well)))
+        for image in filter(lambda x: int(x.split('_')[1][1:])>=debut and int(x.split('_')[1][1:])<=fin, images):
+            index = int(image.split('_')[1][1:])-shift
+            new_name = (image.split('_')[0]+'_t{:>05}_'+image.split('_')[2]).format(index)
+            os.rename(os.path.join(folder,well, image), os.path.join(folder,well, new_name))
 
 
 def renameFromZeiss(inputFolder, plate, nb_wells):        

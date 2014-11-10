@@ -35,7 +35,6 @@ from scipy.stats import chi2
 
 from rpy2.robjects.packages import importr
 from rpy2.robjects.vectors import FloatVector
-
 stats = importr('stats')
 
 nb_exp_list=[100, 500, 1000, 2000]
@@ -127,13 +126,7 @@ def multipleHitDistances(folder, key_name,
     #                print 'Same experiment list ', k
                     
             expL=np.array(expL)
-            print 'combination of iterations done ', len(expL)
-    #    
-    #        global_result = np.zeros(shape=(len(expL), len(iterations)))
-    #        for k in range(len(iterations)):
-    #            curr_expL, curr_pval = result[k]
-    #            global_result[:,k]=curr_pval
-    #                
+            print 'combination of iterations done ', len(expL)           
             print 'Everything together'        
                     
             f=open(os.path.join(folder, 'all_distances_{}.pkl'.format(without_mean_persistence)), 'w')
@@ -393,8 +386,6 @@ def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False):
     p.savefig(os.path.join(folder, 'pvalParamKS_{}.png'.format(name)))
     p.close('all')
     
-    f=open('pval_exp_sim.pkl', 'w'); pickle.dump(empirical_pval,f); f.close()
-        
     return empirical_qval
 
 #def empiricalDistributions(dist_controls, dist_exp, folder,iteration=1, sup=False, union=False, redo=False, renorm_first_statistic=False, renorm_second_statistic=True,

@@ -44,6 +44,17 @@ couleurs.append('#d73027')
 #couleurs.append("#A50026")
 #couleurs.append("#D73027")
 
+def plotLabelDistributions(distributions, nb_experiments, nb_dist=8):
+    f,axes=p.subplots(1,nb_dist, sharey=True)
+    blist=[]
+    for k in range(nb_dist):
+        n,bins,patches=axes[k].hist(distributions[:nb_experiments,k], bins=50, color='#B20000', normed=True,alpha=1, label='Exp')
+        blist.append(bins); axes[k].set_ylim(0,0.4); axes[k].grid(True)
+    for k in range(nb_dist):
+        n,bins,patches=axes[k].hist(distributions[nb_experiments:,k], bins=blist[k], color='#13C528', normed=True,alpha=0.6,label='Ctrl')
+    axes[0].legend()
+    p.show()
+
 def plotBarPlot(means, ylabel, xlabels, xticklabels, title,name,target,  stds=None,folder=None, sh=True):    
     '''
     Xticklabels = sequence of labels for x ticks

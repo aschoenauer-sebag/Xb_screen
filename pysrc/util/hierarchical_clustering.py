@@ -104,13 +104,13 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
 
     print 'Showing trajectory clusters'
     heatmap(small_nr.T,fL, range(small_nr.shape[0]), None, None, None, None, 
-            color_gradient='red_white_blue', filename=outputfile+'TRAJ', trad=False, save=False)
-    if action=='kmeans':
-        num_experiments=np.where(np.array(genes)=='ctrl')[0][0]
-        heatmap(percentages[:num_experiments], genes[:num_experiments],range(begin_, num_clusters), None, 'ward', None, 'euclidean', 
-            color_gradient='red_white_blue', filename=outputfile+'MOV', trad=False, save=False, level=level)
-        heatmap(percentages[num_experiments:], genes[num_experiments:],range(begin_, num_clusters), None, 'ward', None, 'euclidean', 
-            color_gradient='red_white_blue', filename=outputfile+'CTRL', trad=False, save=False, level=level)
+            color_gradient='OrRd', filename=outputfile+'TRAJ', trad=False, save=False)
+#    if action=='kmeans':
+#        num_experiments=np.where(np.array(genes)=='ctrl')[0][0]
+#        heatmap(percentages[:num_experiments], genes[:num_experiments],range(begin_, num_clusters), None, 'ward', None, 'euclidean', 
+#            color_gradient='red_white_blue', filename=outputfile+'MOV', trad=False, save=False, level=level)
+#        heatmap(percentages[num_experiments:], genes[num_experiments:],range(begin_, num_clusters), None, 'ward', None, 'euclidean', 
+#            color_gradient='red_white_blue', filename=outputfile+'CTRL', trad=False, save=False, level=level)
 
     
     return
@@ -159,6 +159,8 @@ def heatmap(x, row_header, column_header, row_method,
         cmap=pylab.cm.bwr
     if color_gradient == 'red_black_sky':
         cmap=RedBlackSkyBlue()
+    if color_gradient=='OrRd':
+        cmap = pylab.cm.OrRd
     if color_gradient == 'red_black_blue':
         cmap=RedBlackBlue()
     if color_gradient == 'red_black_green':
