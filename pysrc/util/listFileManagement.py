@@ -159,16 +159,18 @@ def shiftImages(folder, debut, shift, fin=200):
             os.rename(os.path.join(folder,well, image), os.path.join(folder,well, new_name))
 
 
-def renameFromZeiss(inputFolder, plate, nb_wells):        
+def renameFromZeiss(inputFolder, plate):        
     #SI ON A DES IMAGES ZEISS PUREMENT ET SIMPLEMENT, noms des dossiers deja changes
-    for well in range(1,nb_wells+1):
-        w = "W%05i"%well
-        print w
-        for el in os.listdir(os.path.join(inputFolder, w)):
-            timep = int(el.split('_')[1][1:4])
-            ch = int(el.split('_')[1][-1])
-#            print el, '%s--%s--P0001_t%05i_c%05i.tif'%(plate, w, timep, ch)
-            os.rename(os.path.join(inputFolder, w, el), os.path.join(inputFolder,w, '%s--%s--P0001_t%05i_c%05i.tif'%(plate, w, timep, ch)))
+    for el in filter(lambda x: 'tif' in x and 'ORG' in x, os.listdir(inputFolder)):
+        well="W{:>05}".format(int(el.split('_')[1][1:3]))
+        timep = int(el.split('_')[1][4:7])
+        ch = int(el.split('_')[1][-1])
+        if timep>193:
+            continue
+        if not os.path.isdir(os.path.join(inputFolder, well)):
+            os.mkdir(os.path.join(inputFolder, well))
+        
+        os.rename(os.path.join(inputFolder, el), os.path.join(inputFolder,well, '%s--%s--P0001_t%05i_c%05i.tif'%(plate, well, timep, ch)))
     return
 
 def renameFromZeissExpDesigner(inputFolder, outputFolder):

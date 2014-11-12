@@ -46,14 +46,22 @@ RADIUS = 11
 pca_file = '../resultData/features_on_films/pca_hitSimpson.pkl'
 cluster_file = '../resultData/features_on_films/cluster_hitSimpson.pkl'
 #couleurs pour les clusters
-diverging_colors = [(118,42,131),#violet
-                    (27,120,55),#vert
-                    (215,48,39),#rouge
-                    (140,81,10),#marron
-                    (219,62,243),#violet pale
-                    (253,63,171),#rose
-                    (41,238,211),#bleu clair
-                    (69,117,180)]#bleu corresponding to l=['#762A83',"#1B7837", "#D73027", "#8C510A", "#DB3EF3","#FD3FAB", "#29EED3", "#4575B4"]
+diverging_colors = [[ 69, 117, 180],
+       [118,  42, 131],
+       [140,  81,  10],
+       [253,  63, 171],
+       [219,  62, 243],
+       [215,  48,  39],
+       [ 41, 238, 211],
+       [ 27, 120,  55]]
+#    [(118,42,131),#violet
+#                    (27,120,55),#vert
+#                    (215,48,39),#rouge
+#                    (140,81,10),#marron
+#                    (219,62,243),#violet pale
+#                    (253,63,171),#rose
+#                    (41,238,211),#bleu clair
+#                    (69,117,180)]#bleu corresponding to l=['#762A83',"#1B7837", "#D73027", "#8C510A", "#DB3EF3","#FD3FAB", "#29EED3", "#4575B4"]
 
 
 # colors 
@@ -256,7 +264,7 @@ class MovieMaker(object):
             for i,el in enumerate(coord):
                 if i not in toDel:
                     new_coord.append(el)
-            f=open('../resultData/features_on_films/labelsKM_k{}_halfM.pkl'.format(num_cluster))
+            f=open('../resultData/features_on_films/labelsKM_whole_k{}.pkl'.format(num_cluster))
             labels, perc, who, length=pickle.load(f); f.close()
 #            #i. logTrsforming
 #   pu         tab=histLogTrsforming(tab)

@@ -2,21 +2,21 @@
 
 ###DIRECTORY SETTINGS
 #where the images are
-raw_data_dir = "/media/lalil0u/New/data/Xb_screen/Screen_trials"
+raw_data_dir = "/media/lalil0u/XB SCREEN/images"
 base_result_dir = '/media/lalil0u/New/projects/Xb_screen'
 
 #where hdf5 files are
-raw_result_dir ="/media/lalil0u/FREECOM HDD/Alice/temp_hdf5/"#os.path.join(base_result_dir, 'plates')
+raw_result_dir ="/media/lalil0u/New/projects/Xb_screen/plates_new_seg"#os.path.join(base_result_dir, 'plates')
 
 #Where to save processed results
-result_dir = os.path.join(base_result_dir, 'results')
+result_dir = os.path.join(base_result_dir, 'dry_lab_results')
 
 #Where to save data to be put online
 plot_dir = os.path.join('/media/lalil0u/New/workspace2/interface_screen/plates/static', 'plots')
 movie_dir = os.path.join('/media/lalil0u/New/workspace2/interface_screen/plates/static', "movies")
 
 # Plate setups directory
-confDir = os.path.join(base_result_dir, 'plate_setups')
+confDir = os.path.join(base_result_dir, 'protocols_etal/plate_setups')
 
 ###DEFAULT PLATE
 plate = '230714'

@@ -45,15 +45,17 @@ def moyMultipleCenters(centers):
     return (np.mean(x), np.mean(y))
 
 def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False, secondary_outside=False):
-
-    pathObjects = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/object/primary__primary"
-    pathFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/primary__primary/object_features"
-    pathCenters = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/primary__primary/center"
-    pathOrientation = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/primary__primary/orientation"
+    primary_channel='primary__primary'
+    if filename.split('.')[-1]=='ch5':
+        primary_channel='primary__primary3'
+    pathObjects = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/object/%s"%primary_channel
+    pathFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/%s/object_features"%primary_channel
+    pathCenters = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/%s/center"%primary_channel
+    pathOrientation = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/%s/orientation"%primary_channel
     #not loading segmentation nor raw data since we only use the features that are computed by Cell Cognition
 
     try:
-        presentFeatures = importFeaturesNames(filename, featureNumberTotal=False)
+        presentFeatures = importFeaturesNames(filename,primary_channel, featureNumberTotal=False)
     except IOError:
         print "Access pbl to the file ", filename
         raise ValueError
@@ -184,9 +186,9 @@ def importSegOnly(filename, plaque, puits):
     
     return tabSeg
 
-def importFeaturesNames(filename, featureNumberTotal = True):
+def importFeaturesNames(filename, primary_channel='primary__primary', featureNumberTotal = True):
 #   
-    pathFeatures = "definition/feature/primary__primary/object_features"
+    pathFeatures = "definition/feature/%s/object_features"%primary_channel
     
     tabFeatures = vi.readHDF5(filename, pathFeatures)
     

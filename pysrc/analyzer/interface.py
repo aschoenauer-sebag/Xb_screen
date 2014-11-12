@@ -41,15 +41,15 @@ class HTMLGenerator():
         dataFolder = self.settings.raw_result_dir  
         print "Looking for features ", featureL
         for plate in plateL:
-            listW = filter(lambda x: '.hdf5' in x, os.listdir(os.path.join(dataFolder, plate, 'hdf5')))
+            listW = filter(lambda x: '.hdf5' in x or '.ch5' in x, os.listdir(os.path.join(dataFolder, plate, 'hdf5')))
             for filename in listW:
-                well=filename[:-5]
+                well=filename.split('.')[0]
                     
                 filename = os.path.join(dataFolder, plate,"hdf5", filename)
-                
                 try:
                     featureL, frameLotC= importTargetedFromHDF5(filename, plate, well,featureL, secondary=self.settings.secondaryChannel)
                 except ValueError:
+                    print "Error at loading from hdf5 ", plate, well
                     continue
                 if newFrameLot == None:
                     newFrameLot = frameLotC 
@@ -503,8 +503,10 @@ class ArrayPlotter():
             else:
                 label = -1
             hitData[np.where(where_wells==exp)]=label
-        
-        print np.min(hitData[np.where(hitData>-1)]), np.max(hitData)
+        try:
+            print np.min(hitData[np.where(hitData>-1)]), np.max(hitData)
+        except:
+            pass
         return hitData    
   
     def plotPlate(self, res,params, filename, where_wells, plotDir=None, title='', show=False):
