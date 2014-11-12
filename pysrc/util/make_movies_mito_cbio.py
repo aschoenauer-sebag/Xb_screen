@@ -379,7 +379,7 @@ class MovieMaker(object):
             movieName += ('--C%s' % gene)
         if not sirna is None:
             movieName += ('--%s' % sirna)
-        movieName += '_k{}.avi'.format(num_cluster)
+        movieName += '_k{}.mov'.format(num_cluster)
 
         # make output directory
         if outDir is None:
