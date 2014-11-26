@@ -29,7 +29,7 @@ from util.kkmeans import KernelKMeans
 from tracking.trajPack import featuresHisto, featuresNumeriques
 from tracking.plots import plotClustInd, makeColorRamp, plotMovies, plotKMeansPerFilm, markers
 from util.sandbox import cleaningLength, logTrsforming, subsampling, dist, histLogTrsforming, homeMadeGraphLaplacian
-from util.listFileManagement import gettingSiRNA, expSi, siEntrez, typeD, typeD2, is_ctrl,\
+from util.listFileManagement import gettingSiRNA, expSi, siEntrez, typeD, typeD2, is_ctrl_mitocheck,\
     strToTuple, correct_from_Nan
 from util.plots import basic_colors, couleurs
 
@@ -53,7 +53,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
 #i. checking if quality control passed
             sys.stderr.write("Quality control not passed {} {} \n".format(pl[:9], w[2:5]))
             continue   
-        elif not is_ctrl((pl,w)) and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
+        elif not is_ctrl_mitocheck((pl,w)) and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
 #ii.checking if siRNA corresponds to a single target in the current state of knowledge
             sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(pl[:9], w[2:5]))  
             continue

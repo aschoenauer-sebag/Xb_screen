@@ -12,7 +12,7 @@ import matplotlib.pyplot as p
 
 from trajPack.trajFeatures import trackletBuilder, ordonnancement
 if getpass.getuser()!='aschoenauer':
-    from analyzer.rough_analysis import featureEvolOverTime
+    from analyzer.xb_analysis import featureEvolOverTime
 #import PyPack
 
 count = 0
@@ -334,11 +334,11 @@ if __name__ == '__main__':
 
     now = datetime.datetime.now()
     
-    savingFolder = "/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions"
+    savingFolder = "/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2"
     hdf5Folder = "/media/lalil0u/New/projects/Xb_screen/plates_new_seg"
-    plate = '130814'
-    
-    well_groups=[['{:>05}_01'.format(k) for k in [1,2,3,5,7,8,9,10,11,12]], #endosulfan
+    plate = '071114'
+    well_groups={}
+    well_groups['1308144']=[['{:>05}_01'.format(k) for k in [1,2,3,5,7,8,9,10,11,12]], #endosulfan
                  ['{:>05}_01'.format(k) for k in [4,15,26]],                  #tgf beta
                  ['{:>05}_01'.format(k) for k in [13,14,16,17,19,20,21,22,23]], #tcdd
                  ['{:>05}_01'.format(k) for k in [6,29,48,52,55]], #dmso 
@@ -347,7 +347,17 @@ if __name__ == '__main__':
                  ['{:>05}_01'.format(k) for k in [37,38,39,40,42,43,44,45,46,47]], #pcb
                  ['{:>05}_01'.format(k) for k in [49,50,51,53, 54,56, 57,58,59]], #mehg
                  ]
-    well_groups=zip(well_groups, ['alpha-Endosulfan', 'TGF beta 1', 'TCDD', 'DMSO', 'Nonane', 'Bisphenol A', 'PCB 153', 'MeHg'])
+    well_groups['050914']=[['{:>05}_01'.format(k) for k in [8,14,16,32,52,61]],#nonane
+                           ['{:>05}_01'.format(k) for k in [15,17,18,19,21,22,23,24,1]]#tcdd
+                           ] #nonane
+    well_groups['071114']=[['{:>05}_01'.format(k) for k in [1,11,21]]]
+    well_groups['071114'].extend([['{:>05}_01'.format(k) for k in [1+i,11+i,21+i]] for i in range(1,8)])
+    well_groups['071114'].extend([['{:>05}_01'.format(k) for k in [1+i,11+i]] for i in range(8,10)])
+    if plate=='071114':
+        well_groups=zip(well_groups[plate], [ 'Nonane','TCDD_1', 'TCDD_2', 'TCDD_3', 'TCDD_4', 'TCDD_5', 'TCDD_6', 'TCDD_7', 'TCDD_8', 'TCDD_9'])
+    elif plate=='050914':
+        well_groups=zip(well_groups[plate], [ 'Nonane','TCDD'])
+    
     if not os.path.isdir(savingFolder):
         os.mkdir(savingFolder)
     loadingFolder = "../prediction/"
@@ -355,33 +365,34 @@ if __name__ == '__main__':
     print "TIME TIME TIME", time.clock()
 #    try:
     first=True
-    for wellL in well_groups[5:]:
-        sol = gettingSolu(loadingFolder, hdf5Folder, plate,wellL[0], xb_screen=True, first=first)
-        first=False
-        
-        print "TIME TIME TIME", time.clock()
-        print "classifying data from :", loadingFolder
-        
-        new_sol = sousProcessClassify(sol, loadingFolder)
-        
+#    for k in range(9):
+#        wg=[well_groups[0], well_groups[k+1]]
+    for i,wellL in enumerate(well_groups):
+        dicTraj={plate:{}}
+        m={plate:{}}
+
         print "TIME TIME TIME", time.clock()
         print "traj building"
         print "Building trajectories for predicted data"
-        if True:
-            dicTraj, conn, movie_length =trackletBuilder(new_sol, loadingFolder, training=True)
-            featureEvolOverTime(dicTraj, conn, savingFolder, verbose=True, movie_length=movie_length, name = wellL[-1])
-        else:
-            try:    
-                dicTraj =trajBuilder(new_sol)
-            except:
-                pass
-            else:
-                f = open(os.path.join(savingFolder, "dicTraj_{}_{}.pkl".format(plate, wellL[-1])), "w")
-                pickle.dump(dicTraj, f); f.close()
-        #    f = open(loadingFolder+"dicTraj_41_35.pkl", "r")
-        #    dicTraj = pickle.load(f); f.close()
-        #    
-            print "TIME TIME TIME", time.clock()
-            print "saving as xml in", loadingFolder
-            outputTrajXml(dicTraj, savingFolder)
-            print "TIME TIME TIME", time.clock()
+        for w in wellL[0]:
+            f=open(os.path.join(savingFolder, plate, 'traj_noF_densities_w{}.hdf5.pkl'.format(w)))
+            l=pickle.load(f);f.close()
+            dicTraj[plate].update(l['tracklets dictionary'][plate])
+            m[plate].update(l['movie_length'][plate])
+                
+        print dicTraj[plate].keys()
+        featureEvolOverTime(dicTraj, l['connexions between tracklets'], savingFolder, verbose=True, movie_length=m,plot=True,averagingOverWells=True, name = wellL[-1])
+    #         try:    
+#                dicTraj =trajBuilder(new_sol)
+#            except:
+#                pass
+#            else:
+#                f = open(os.path.join(savingFolder, "dicTraj_{}_{}.pkl".format(plate, wellL[-1])), "w")
+#                pickle.dump(dicTraj, f); f.close()
+#        #    f = open(loadingFolder+"dicTraj_41_35.pkl", "r")
+#        #    dicTraj = pickle.load(f); f.close()
+#        #    
+#            print "TIME TIME TIME", time.clock()
+#            print "saving as xml in", loadingFolder
+#            outputTrajXml(dicTraj, savingFolder)
+#            print "TIME TIME TIME", time.clock()

@@ -271,17 +271,17 @@ def sortiesAll(nomFichier, ensembleTraj):
     fichierX.write(initXml())
     
     for trajectoire in ensembleTraj.lstTraj:
-        txt, coord = ecrireXml(compteur,trajectoire, True)
+        txt, coord = ecrireXml(compteur,trajectoire.lstPoints, True)
         fichierX.write(txt);ecrites.append(coord)
         compteur+=1
+        if compteur>1600:
+            break
 
-        #except:
-         #   print keyList
     fichierX.write(finirXml())
     fichierX.close()
-    fichierCoordonnees3D=open(nomFichier[:-3]+'pkl', 'w')
-    pickle.dump(ecrites, fichierCoordonnees3D)
-    fichierCoordonnees3D.close()
+#    fichierCoordonnees3D=open(nomFichier[:-3]+'pkl', 'w')
+#    pickle.dump(ecrites, fichierCoordonnees3D)
+#    fichierCoordonnees3D.close()
     print 'finally ', compteur, 'trajectories'
     return ecrites
 
@@ -419,16 +419,16 @@ def initXml():
 def finirXml():
     return "\n    </Marker_Data>\n  </CellCounter_Marker_File> "
 
-def ecrireXml(ligne, trajectoire, sortie=False):
+def ecrireXml(ligne, lstPoints, sortie=False):
 #typiquement un truc qui devrait etre une methode de la class trajectoire haha
     coordonnees = {}
     result = "\n      <Marker_Type>\n        <Type>{0}</Type>".format(ligne)
 
-    for point in trajectoire.lstPoints:
-        coordonnees.update({point[0] :trajectoire.lstPoints[point]});
+    for point in lstPoints:
+        coordonnees.update({point[0] :lstPoints[point]});
         numFramePourXml = point[0]+1
         
-        result+="\n        <Marker>\n          <MarkerX>{1}</MarkerX>\n          <MarkerY>{2}</MarkerY>\n          <MarkerZ>{0}</MarkerZ>\n        </Marker>".format(numFramePourXml, trajectoire.lstPoints[point][0], trajectoire.lstPoints[point][1])
+        result+="\n        <Marker>\n          <MarkerX>{1}</MarkerX>\n          <MarkerY>{2}</MarkerY>\n          <MarkerZ>{0}</MarkerZ>\n        </Marker>".format(numFramePourXml, lstPoints[point][0], lstPoints[point][1])
         
     result+="\n      </Marker_Type>"
     if sortie:

@@ -6,7 +6,7 @@ raw_data_dir = "/media/lalil0u/XB SCREEN/images"
 base_result_dir = '/media/lalil0u/New/projects/Xb_screen'
 
 #where hdf5 files are
-raw_result_dir ="/media/lalil0u/New/projects/Xb_screen/plates_new_seg"#os.path.join(base_result_dir, 'plates')
+raw_result_dir ="/media/lalil0u/New/projects/Xb_screen/plates__all_features_2"#os.path.join(base_result_dir, 'plates')
 
 #Where to save processed results
 result_dir = os.path.join(base_result_dir, 'dry_lab_results')

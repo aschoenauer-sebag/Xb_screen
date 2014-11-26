@@ -2,9 +2,10 @@ import os, pdb, datetime
 from warnings import warn
 from collections import defaultdict
 import numpy as np
-
+from collections import Counter
 #ATTENTION ICI ON A UN PROBLEME D'IMPORT SI ON REGARDE CA DEPUIS FIJI POUR FAIRE L'EXTRACTION DES IMAGES. MAIS BON CA TOMBE BIEN ON VEUT PLUS TROP L'UTILISER
 from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Q
 from plates.models import Plate,Cond, Treatment, Well
 from analyzer import CONTROLS
 WELL_PARAMETERS = ['Medium', 'Serum', 'Xenobiotic', 'Dose']
@@ -131,6 +132,57 @@ def readPlateSetting(plateL, confDir, startAtZero = False,
         return result, WELL_PARAMETERS, well_lines, idL
     else:
         return result, WELL_PARAMETERS
+    
+def fromXBToWells(xb,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_etal/plate_setups',
+                   dose_filter=None, plate_filter=None):
+    '''
+    Getting information for which treatments are where in the data base
+    confDir is the folder where the plate setups are
+    '''
+    plates=[]; well_lines_dict = {}
+    #in the db the well numbers are recalculated: each well, even the empty ones, have a number.
+    result={xb:Wells.objects.filter(treatment__xb=xb)}
+    if dose_filter is not None:
+        if type(dose_filter)!=list:
+            result={xb:{dose_filter :np.array([(el.plate.cosydate(), el.num) for el in result[xb].filter(treatment__dose=dose_filter)])}}
+            plates=result[xb][dose_filter][:,0]
+        else:
+            r={xb:{}}
+            for dose in dose_filter:
+                r[xb][dose]=np.array([(el.plate.cosydate(), el.num) for el in result[xb].filter(treatment__dose=dose)])
+                plates.append(result[xb][dose][:,0])
+            result=r
+    else:
+        result[xb]=np.array([(el.plate.cosydate(), el.num) for el in result[xb]])
+        plates=result[xb][dose_filter][:,0]
+    plateL=Counter(plates).keys()
+    #so now we need to recalculate the well numbers according to hdf5 and Zeiss numbering
+    for plate in plateL:
+        #getting where the existing wells are
+        try:
+            file_ =open(os.path.join(confDir,  "%s_Wells.csv" % plate))
+            well_lines = file_.readlines(); file_.close()
+        except OSError:
+            nb_col = 12; nb_row=8
+            well_lines = np.reshape(range(1,97),(8,12))
+        else:
+            well_lines=np.array([line.strip("\n").split(",") for line in well_lines[1:]], dtype=int)
+            print well_lines
+            well_lines_dict[plate]=well_lines
+            
+            try:
+                a=int(well_lines[0][11])
+            except:
+                try:
+                    a = int(well_lines[0][7])
+                except:
+                    raise AttributeError("Can't find the number of rows")
+                else:
+                    nb_col=8
+            else:
+                nb_col=12
+            nb_row = len(well_lines)
+    
     
     
 def readNewPlateSetting(plateL, confDir, startAtZero = False,

@@ -47,7 +47,7 @@ def returnInfo(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.
 #i. checking if quality control passed
             sys.stderr.write("Quality control not passed {} {} \n".format(pl[:9], w[2:5]))
             continue   
-        elif not is_ctrl((pl,w)) and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
+        elif not is_ctrl_mitocheck((pl,w)) and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
 #ii.checking if siRNA corresponds to a single target in the current state of knowledge
             sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(pl[:9], w[2:5]))  
             continue
@@ -94,7 +94,7 @@ def usable(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../d
     #i. checking if quality control passed
             sys.stderr.write("Quality control not passed {} {} \n".format(pl[:9], w[2:5]))
             r.append(False)   
-        elif not is_ctrl(exp) and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
+        elif not is_ctrl_mitocheck(exp) and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
     #ii.checking if siRNA corresponds to a single target in the current state of knowledge
             sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(pl[:9], w[2:5]))
             r.append(False)  
@@ -122,7 +122,7 @@ def usable(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../d
     return np.array(r)
 
 
-def is_ctrl(experiment):
+def is_ctrl_mitocheck(experiment):
     id_ = int(experiment[0].split('_')[0][2:])
     if id_<50:
         if np.any(np.array([experiment[1][2:5] in l for l in typeD.values()])):
@@ -159,18 +159,19 @@ def shiftImages(folder, debut, shift, fin=200):
             os.rename(os.path.join(folder,well, image), os.path.join(folder,well, new_name))
 
 
-def renameFromZeiss(inputFolder, plate):        
+def renameFromZeiss(inputFolder, plate, shift=0):        
     #SI ON A DES IMAGES ZEISS PUREMENT ET SIMPLEMENT, noms des dossiers deja changes
-    for el in filter(lambda x: 'tif' in x and 'ORG' in x, os.listdir(inputFolder)):
-        well="W{:>05}".format(int(el.split('_')[1][1:3]))
-        timep = int(el.split('_')[1][4:7])
-        ch = int(el.split('_')[1][-1])
-        if timep>193:
-            continue
-        if not os.path.isdir(os.path.join(inputFolder, well)):
-            os.mkdir(os.path.join(inputFolder, well))
-        
-        os.rename(os.path.join(inputFolder, el), os.path.join(inputFolder,well, '%s--%s--P0001_t%05i_c%05i.tif'%(plate, well, timep, ch)))
+    for w in filter(lambda x: 'PIR1' in x and '03' not in x, os.listdir(inputFolder)):
+        well="W{:>05}".format(int(w.split('(')[1].split(')')[0]))
+        for el in filter(lambda x: 'tif' in x and 'ORG' in x, os.listdir(os.path.join(inputFolder, w))):
+            timep = int(el.split('_')[1][1:2])+shift
+            ch = int(el.split('_')[1][-1])
+#            if timep>193:
+#                continue
+#            if not os.path.isdir(os.path.join(inputFolder, well)):
+#                os.mkdir(os.path.join(inputFolder, well))
+            
+            os.rename(os.path.join(inputFolder, w, el), os.path.join(inputFolder,well, '%s--%s--P0001_t%05i_c%05i.tif'%(plate, well, timep, ch)))
     return
 
 def renameFromZeissExpDesigner(inputFolder, outputFolder):

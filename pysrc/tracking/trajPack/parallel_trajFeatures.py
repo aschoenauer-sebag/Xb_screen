@@ -5,6 +5,7 @@ import cPickle as pickle
 from optparse import OptionParser
 import matplotlib
 from tracking.PyPack.fHacktrack2 import trajectoire, ensTraj
+import getpass
 matplotlib.use('Agg')
 
 from tracking.importPack import FEATURE_NUMBER
@@ -46,7 +47,11 @@ def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = Fa
         else:
             filenameT = None
             #ajout du frameLot et du tabF
-        frameLotC, tabFC = gettingRaw(filename, filenameT, plate, well, name_primary_channel='primary__primary')
+        if 'LT' in plate:
+            name_primary_channel='primary__primary'
+        else:
+            name_primary_channel='primary__primary3'
+        frameLotC, tabFC = gettingRaw(filename, filenameT, plate, well, name_primary_channel=name_primary_channel)
         if newFrameLot == None:
             newFrameLot = frameLotC 
         else: newFrameLot.addFrameLot(frameLotC)
@@ -93,9 +98,13 @@ def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = Fa
 def output(plate,  well, allDataFolder, outputFolder, training_only=True):
     #listD = os.listdir('/media/lalil0u/New/workspace2/Tracking/data/raw')
     first = True; 
-    dataFolder = os.path.join(allDataFolder, plate, 'hdf5')##################################### 
-    loadingFolder = "/cbio/donnees/aschoenauer/workspace2/Xb_screen/prediction"########################################################################################"
-    tSol=gettingSolu(plate, well, loadingFolder, dataFolder, outputFolder, training_only, first)
+    dataFolder = os.path.join(allDataFolder, plate, 'hdf5')
+    loadingFolder = "../prediction"
+    if 'LT' in plate:
+        new_cecog_files= False
+    else:
+        new_cecog_files= True
+    tSol=gettingSolu(plate, well, loadingFolder, dataFolder, outputFolder, training_only, first, new_cecog_files = new_cecog_files)
     first=False
     new_sol = sousProcessClassify(tSol, loadingFolder)
     print "Building trajectories for predicted data"
@@ -141,7 +150,9 @@ Input:
     
     parser.add_option("-r", "--repeat", dest="repeat", default = False, 
                       help="False to do only videos that haven't been treated yet and true to compute features even if already computed")
-
+    
+    parser.add_option("--ff", type=int, dest="filtering_fusion", default = 1, 
+                      help="False to take into account all tracklets, even those resulting from a fusion")
     (options, args) = parser.parse_args()
     
     if options.well==None:
@@ -152,7 +163,10 @@ Input:
     predict = True
     TroisD = False
     if type(options.choice)!=bool: options.choice=int(options.choice)
-    outputFolder = os.path.join("/share/data20T/mitocheck/tracking_results", options.plate)#######################################################################################
+    if getpass.getuser()=='aschoenauer':
+        outputFolder = os.path.join("/share/data20T/mitocheck/tracking_results", options.plate)
+    elif getpass.getuser()=='lalil0u':
+        outputFolder = os.path.join("/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2", options.plate)
     fi = 'traj_noF_densities_w{}.pkl'.format(options.well)
     
     fi_trajfeatures = options.filename.format(options.well[:-5])
@@ -205,7 +219,8 @@ Input:
         else:
             if not options.simulated:
                 d,c, movie_length = dataDict['tracklets dictionary'], dataDict['connexions between tracklets'], dataDict['movie_length']
-                res = histogramPreparationFromTracklets(d, c, outputFolder, False, verbose, movie_length, name=options.filename)  #(d,c, outputFolder, False, verbose, tab=True, length=movie_length)
+                res = histogramPreparationFromTracklets(d, c, outputFolder, False, verbose, movie_length, name=options.filename,
+                                                        filtering_fusion=options.filtering_fusion) 
             else:
                 d=ensTraj()
                 for traj in dataDict:

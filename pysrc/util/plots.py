@@ -2,6 +2,8 @@ import numpy as np
 import matplotlib.pyplot as p
 import os
 
+import cPickle as pickle
+
 basic_colors = ["#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00" ]
 markers =('o', 'v','*', '^', '<','8', '>',  's', 'p',  'h', 'H', 'D', 'd', 'o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd')
 couleurs=[]
@@ -67,11 +69,12 @@ def plotBarPlot(means, ylabel, xlabels, xticklabels, title,name,target,  stds=No
     
     fig = p.figure(figsize=(14,8))
     ax = fig.add_subplot(111)
+
     for k in range(len(means)):
         if stds is None or (stds is not None and stds[k] is None):
             rects.append(ax.bar(ind+width*k, means[k], width, color=couleurs[k]))
         elif stds[k] is not None:
-            rects.append(ax.bar(ind+width*k, means[k], width, color=couleurs[k], yerr=stds[k][:,0]))
+            rects.append(ax.bar(ind+width*k, means[k], width, color=couleurs[k], yerr=stds[k]))
             
     # add some labels
     ax.set_ylabel(ylabel)

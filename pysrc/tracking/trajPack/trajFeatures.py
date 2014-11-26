@@ -5,6 +5,7 @@ import cPickle as pickle
 
 from math import sqrt, log, fabs
 from optparse import OptionParser
+from warnings import warn
 from scipy import odr
 from scipy.stats import linregress
 from scipy.spatial import cKDTree, ConvexHull
@@ -671,10 +672,15 @@ def computingDensity(track):
     
     return r
 
-def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, verbose, movie_length, name):
-    #r={}; 
+def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, verbose, movie_length, name, filtering_fusion=True):
     print 'histogram version'
     coord=[]; tabF={}
+
+    if filtering_fusion:
+        track_filter= (lambda x: x.fusion !=True and len(x.lstPoints)>11)
+    else:
+        warn("Taking into account all tracklets, even those resulting from a fusion")
+        track_filter= (lambda x: len(x.lstPoints)>11)
 
     for plate in dicT:
         if plate not in tabF:
@@ -709,7 +715,7 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
 #
             tabFeatures = None;
             i=0
-            for track in filter(lambda x: x.fusion !=True and len(x.lstPoints)>11 ,dicC.lstTraj):
+            for track in filter(track_filter,dicC.lstTraj):
                 t=track.lstPoints.keys(); t.sort(); 
                 #labelsSequence = [k[1] for k in t]
                 
