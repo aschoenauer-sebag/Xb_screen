@@ -6,6 +6,7 @@ import cPickle as pickle
 
 basic_colors = ["#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00" ]
 markers =('o', 'v','*', '^', '<','8', '>',  's', 'p',  'h', 'H', 'D', 'd', 'o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd')
+linestyles=['-', '--', '-.', ':']
 couleurs=[]
 couleurs.append("#9e0142")
 couleurs.append("#5e4fa2")
@@ -24,6 +25,13 @@ couleurs.append("#e6f598")
 
 couleurs.append('#a50026')
 couleurs.append('#d73027')
+
+couleurs.append("#9e0142")
+couleurs.append("#5e4fa2")
+couleurs.append("#9e0142")
+couleurs.append("#5e4fa2")
+
+
 #f46d43
 #fdae61
 #fee08b

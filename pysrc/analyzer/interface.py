@@ -3,6 +3,7 @@ from warnings import warn
 from collections import defaultdict
 
 from scipy.stats import nanmean, nanstd
+import vigra.impex as vi
 
 if getpass.getuser()=='aschoenauer':
     import matplotlib as mpl
@@ -35,6 +36,43 @@ class HTMLGenerator():
                                legendDir=self.settings.plot_dir) 
         self.wp = WellPlotter(plotDir=self.settings.plot_dir)
         
+    def intensity_qc(self, plateL):
+        result=defaultdict(dict)
+        for plate in plateL:
+            well_setup=self.well_lines_dict[plate].flatten()
+            result[plate]=defaultdict(dict)
+            for well in well_setup[np.where(well_setup>0)]:
+                #even if there are missing columns don't forget that the image directory uses Zeiss counting
+                imgDir= os.path.join(self.settings.raw_data_dir, plate, 'W{:>05}'.format(well))
+                try:
+                    l=os.listdir(imgDir)
+                except OSError:
+                    print "No image for well ", np.where(well_setup==well)[0][0]+1, 'plate ', plate
+                    continue
+                else:
+                    if l==[]:
+                        print "No image for well ", np.where(well_setup==well)[0][0]+1, 'plate ', plate
+                        continue
+                    else:
+                        mean_intensity=[np.mean(vi.readImage(os.path.join(imgDir, im))) for im in sorted(filter(lambda x: 'c00002' in x, l))]
+                        dev_intensity=np.std(mean_intensity)
+                        f=p.figure(); ax=f.add_subplot(111)
+                        ax.scatter(range(len(mean_intensity)), mean_intensity, color='green')
+                        ax.set_ylim((0,1000))
+                        p.axhline(y=(np.mean(mean_intensity)+2*dev_intensity), xmin=0, xmax=len(mean_intensity), linewidth=2, color = 'red')
+                        p.axhline(y=(np.mean(mean_intensity)-2*dev_intensity), xmin=0, xmax=len(mean_intensity), linewidth=2, color = 'red')
+                        p.savefig(os.path.join(self.settings.plot_dir, 'mean_intensity_{}{}.png'.format(plate, np.where(well_setup==well)[0][0]+1)))
+                        result[plate][well]=mean_intensity
+        if 'intensity_qc.pkl' in os.listdir(self.settings.result_dir):
+            f=open(os.path.join(self.settings.result_dir, 'intensity_qc.pkl'), 'r')
+            d=pickle.load(f);f.close()
+            d.update(result)
+        else:
+            d=result
+        f=open(os.path.join(self.settings.result_dir, 'intensity_qc.pkl'), 'w')
+        pickle.dump(d,f);f.close()
+        
+        return
         
     def targetedDataExtraction(self, plateL, featureL):
         newFrameLot = None
@@ -378,7 +416,7 @@ class HTMLGenerator():
                     continue
                 else:
                     makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=plate, well=np.where(well_setup==well)[0][0]+1, 
-                                           )
+                                           ranges=[(100,400),(300,1100)])
         return    
     
     def changeDBWellNumbers(self,plate, well_setup, idL):
@@ -431,6 +469,8 @@ class HTMLGenerator():
                                              )
 
         if not fillDBOnly:
+            print ' *** performing well intensity quality control ***'
+            self.intensity_qc(plateL)
             print ' *** get result dictionary ***'
             featureL, frameLot = self.targetedDataExtraction(plateL, featureL)
             self.formatData(frameLot, resD, featureL, featureChannels)

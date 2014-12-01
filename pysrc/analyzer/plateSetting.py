@@ -133,29 +133,44 @@ def readPlateSetting(plateL, confDir, startAtZero = False,
     else:
         return result, WELL_PARAMETERS
     
-def fromXBToWells(xb,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_etal/plate_setups',
-                   dose_filter=None, plate_filter=None):
+def fromXBToWells(xbL,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_etal/plate_setups',
+                   dose_filter=None, plate=None):
     '''
     Getting information for which treatments are where in the data base
     confDir is the folder where the plate setups are
+    dose_filter can be one dose (type int) or a list of int, or None in which case all doses are considered from 1 to 10
     '''
-    plates=[]; well_lines_dict = {}
+    plateL=[]; well_lines_dict = {}; result={}
     #in the db the well numbers are recalculated: each well, even the empty ones, have a number.
-    result={xb:Wells.objects.filter(treatment__xb=xb)}
-    if dose_filter is not None:
-        if type(dose_filter)!=list:
-            result={xb:{dose_filter :np.array([(el.plate.cosydate(), el.num) for el in result[xb].filter(treatment__dose=dose_filter)])}}
-            plates=result[xb][dose_filter][:,0]
+    for xb in xbL:
+        if plate is None:
+            result[xb]=Well.objects.filter(treatment__xb=xb, plate__date__gt=datetime.date(2014,11,10))
         else:
-            r={xb:{}}
-            for dose in dose_filter:
-                r[xb][dose]=np.array([(el.plate.cosydate(), el.num) for el in result[xb].filter(treatment__dose=dose)])
-                plates.append(result[xb][dose][:,0])
-            result=r
-    else:
-        result[xb]=np.array([(el.plate.cosydate(), el.num) for el in result[xb]])
-        plates=result[xb][dose_filter][:,0]
-    plateL=Counter(plates).keys()
+            p=datetime.date(2000+int(plate[-2:]), int(plate[2:4]), int(plate[:2]))
+            result[xb]=Well.objects.filter(treatment__xb=xb, plate__date=p)
+            
+        if dose_filter is not None:
+            if type(dose_filter)!=list:
+                result[xb]={dose_filter :np.array([(el.plate.cosydate(), el.num) for el in result[xb].filter(treatment__dose=dose_filter)])}
+                try:
+                    plateL=list(result[xb][dose_filter][:,0])
+                except IndexError:
+                    pass
+            else:
+                r={xb:{}}
+                for dose in dose_filter:
+                    r[xb][dose]=np.array([(el.plate.cosydate(), el.num) for el in result[xb].filter(treatment__dose=dose)])
+                    try:
+                        plateL.extend(list(r[xb][dose][:,0]))
+                    except IndexError:
+                        pass
+                result[xb]=r[xb]
+        else:
+            dose_filter = list(range(11)) if xbL[0]!='TGF' else [0,15]
+            return fromXBToWells(xbL, confDir, dose_filter, plate)
+
+    plateL=Counter(plateL).keys()
+    
     #so now we need to recalculate the well numbers according to hdf5 and Zeiss numbering
     for plate in plateL:
         #getting where the existing wells are
@@ -168,20 +183,15 @@ def fromXBToWells(xb,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_et
         else:
             well_lines=np.array([line.strip("\n").split(",") for line in well_lines[1:]], dtype=int)
             print well_lines
-            well_lines_dict[plate]=well_lines
+            well_lines_dict[plate]= {i+1:well_lines.ravel()[i] for i in range(well_lines.size)}
             
-            try:
-                a=int(well_lines[0][11])
-            except:
-                try:
-                    a = int(well_lines[0][7])
-                except:
-                    raise AttributeError("Can't find the number of rows")
-                else:
-                    nb_col=8
-            else:
-                nb_col=12
-            nb_row = len(well_lines)
+    r2={}
+    for xb in result:
+        r2[xb]={}
+        for dose in result[xb]:
+            r2[xb][dose]=[(plate, well_lines_dict[plate][int(num)]) for plate,num in result[xb][dose]]
+        
+    return r2
     
     
     

@@ -9,8 +9,12 @@ import datetime
 import matplotlib as mpl
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as p
+from collections import defaultdict
+from optparse import OptionParser
 
 from trajPack.trajFeatures import trackletBuilder, ordonnancement
+from analyzer.plateSetting import fromXBToWells
+from analyzer import CONTROLS
 if getpass.getuser()!='aschoenauer':
     from analyzer.xb_analysis import featureEvolOverTime
 #import PyPack
@@ -331,32 +335,49 @@ def outputTrajXml(dicTraj, savingFolder):
     return
 
 if __name__ == '__main__':
+    description =\
+'''
+%prog - To compute rough speed average for the xenobiotic screen
 
+Input:
+- plate: experiment of interest
+- xb: xenobiotic
+'''
     now = datetime.datetime.now()
+    parser = OptionParser(usage="usage: %prog [options]",
+                         description=description)
+    parser.add_option("-p", "--plate", dest="plate", default=None,
+                      help="The plate which you are interested in")
+    parser.add_option("-x", "--xb", dest="xenobiotic", default='Rien',
+                      help="The xenobiotic which you are interested in")
+    
+    
+    (options, args) = parser.parse_args()
     
     savingFolder = "/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2"
     hdf5Folder = "/media/lalil0u/New/projects/Xb_screen/plates_new_seg"
-    plate = '071114'
-    well_groups={}
-    well_groups['1308144']=[['{:>05}_01'.format(k) for k in [1,2,3,5,7,8,9,10,11,12]], #endosulfan
-                 ['{:>05}_01'.format(k) for k in [4,15,26]],                  #tgf beta
-                 ['{:>05}_01'.format(k) for k in [13,14,16,17,19,20,21,22,23]], #tcdd
-                 ['{:>05}_01'.format(k) for k in [6,29,48,52,55]], #dmso 
-                 ['{:>05}_01'.format(k) for k in [18,24,41,60,61]], #nonane
-                 ['{:>05}_01'.format(k) for k in [25,27,28,30,31,32,33,34,35,36]], #bpa
-                 ['{:>05}_01'.format(k) for k in [37,38,39,40,42,43,44,45,46,47]], #pcb
-                 ['{:>05}_01'.format(k) for k in [49,50,51,53, 54,56, 57,58,59]], #mehg
-                 ]
-    well_groups['050914']=[['{:>05}_01'.format(k) for k in [8,14,16,32,52,61]],#nonane
-                           ['{:>05}_01'.format(k) for k in [15,17,18,19,21,22,23,24,1]]#tcdd
-                           ] #nonane
-    well_groups['071114']=[['{:>05}_01'.format(k) for k in [1,11,21]]]
-    well_groups['071114'].extend([['{:>05}_01'.format(k) for k in [1+i,11+i,21+i]] for i in range(1,8)])
-    well_groups['071114'].extend([['{:>05}_01'.format(k) for k in [1+i,11+i]] for i in range(8,10)])
-    if plate=='071114':
-        well_groups=zip(well_groups[plate], [ 'Nonane','TCDD_1', 'TCDD_2', 'TCDD_3', 'TCDD_4', 'TCDD_5', 'TCDD_6', 'TCDD_7', 'TCDD_8', 'TCDD_9'])
-    elif plate=='050914':
-        well_groups=zip(well_groups[plate], [ 'Nonane','TCDD'])
+    xb=[options.xenobiotic, CONTROLS[options.xenobiotic]]
+    
+    well_groups=fromXBToWells(xb, plate=options.plate)
+#    well_groups['1308144']=[['{:>05}_01'.format(k) for k in [1,2,3,5,7,8,9,10,11,12]], #endosulfan
+#                 ['{:>05}_01'.format(k) for k in [4,15,26]],                  #tgf beta
+#                 ['{:>05}_01'.format(k) for k in [13,14,16,17,19,20,21,22,23]], #tcdd
+#                 ['{:>05}_01'.format(k) for k in [6,29,48,52,55]], #dmso 
+#                 ['{:>05}_01'.format(k) for k in [18,24,41,60,61]], #nonane
+#                 ['{:>05}_01'.format(k) for k in [25,27,28,30,31,32,33,34,35,36]], #bpa
+#                 ['{:>05}_01'.format(k) for k in [37,38,39,40,42,43,44,45,46,47]], #pcb
+#                 ['{:>05}_01'.format(k) for k in [49,50,51,53, 54,56, 57,58,59]], #mehg
+#                 ]
+#    well_groups['050914']=[['{:>05}_01'.format(k) for k in [8,14,16,32,52,61]],#nonane
+#                           ['{:>05}_01'.format(k) for k in [15,17,18,19,21,22,23,24,1]]#tcdd
+#                           ] #nonane
+#    well_groups['071114']=[['{:>05}_01'.format(k) for k in [1,11,21]]]
+#    well_groups['071114'].extend([['{:>05}_01'.format(k) for k in [1+i,11+i,21+i]] for i in range(1,8)])
+#    well_groups['071114'].extend([['{:>05}_01'.format(k) for k in [1+i,11+i]] for i in range(8,10)])
+#    if plate=='071114':
+#        well_groups=zip(well_groups[plate], [ 'Nonane','TCDD_1', 'TCDD_2', 'TCDD_3', 'TCDD_4', 'TCDD_5', 'TCDD_6', 'TCDD_7', 'TCDD_8', 'TCDD_9'])
+#    elif plate=='050914':
+#        well_groups=zip(well_groups[plate], [ 'Nonane','TCDD'])
     
     if not os.path.isdir(savingFolder):
         os.mkdir(savingFolder)
@@ -365,34 +386,48 @@ if __name__ == '__main__':
     print "TIME TIME TIME", time.clock()
 #    try:
     first=True
-#    for k in range(9):
-#        wg=[well_groups[0], well_groups[k+1]]
-    for i,wellL in enumerate(well_groups):
-        dicTraj={plate:{}}
-        m={plate:{}}
-
-        print "TIME TIME TIME", time.clock()
-        print "traj building"
-        print "Building trajectories for predicted data"
-        for w in wellL[0]:
-            f=open(os.path.join(savingFolder, plate, 'traj_noF_densities_w{}.hdf5.pkl'.format(w)))
-            l=pickle.load(f);f.close()
-            dicTraj[plate].update(l['tracklets dictionary'][plate])
-            m[plate].update(l['movie_length'][plate])
+    #we get a dictionary {xb:{dose:[(pl, well)]}} for a xb and its control
+    dicTraj={xb:{} for xb in well_groups}
+    m=defaultdict(dict)
+    
+    for xb in well_groups:
+        dicTraj[xb]=defaultdict(dict)
                 
-        print dicTraj[plate].keys()
-        featureEvolOverTime(dicTraj, l['connexions between tracklets'], savingFolder, verbose=True, movie_length=m,plot=True,averagingOverWells=True, name = wellL[-1])
-    #         try:    
-#                dicTraj =trajBuilder(new_sol)
-#            except:
-#                pass
-#            else:
-#                f = open(os.path.join(savingFolder, "dicTraj_{}_{}.pkl".format(plate, wellL[-1])), "w")
-#                pickle.dump(dicTraj, f); f.close()
-#        #    f = open(loadingFolder+"dicTraj_41_35.pkl", "r")
-#        #    dicTraj = pickle.load(f); f.close()
-#        #    
-#            print "TIME TIME TIME", time.clock()
-#            print "saving as xml in", loadingFolder
-#            outputTrajXml(dicTraj, savingFolder)
-#            print "TIME TIME TIME", time.clock()
+        for dose in well_groups[xb]:
+            dicTraj[xb][dose]=defaultdict(dict)
+            if well_groups[xb][dose]!=[]:
+                print "TIME TIME TIME", time.clock()
+                print "traj building"
+                print "Building trajectories for predicted data"
+                print well_groups[xb][dose]
+                for pl, w in well_groups[xb][dose]:
+                    try:
+                        f=open(os.path.join(savingFolder, pl, 'traj_noF_densities_w{:>05}_01.hdf5.pkl'.format(w)))
+                        l=pickle.load(f);f.close()
+                    except IOError:
+                        print "Pbl", pl, w
+                    else:
+                        m[pl].update(l['movie_length'][pl])
+                        if pl not in dicTraj[xb][dose]:
+                            dicTraj[xb][dose][pl]=l['tracklets dictionary'][pl]
+                        else:
+                            dicTraj[xb][dose][pl].update(l['tracklets dictionary'][pl])
+    if options.plate is not None:
+        xenobiotic='{}_{}'.format(options.xenobiotic, options.plate)
+    else:
+        xenobiotic =options.xenobiotic
+    featureEvolOverTime(dicTraj, savingFolder, verbose=True, movie_length=m,plot=True, xenobiotic = xenobiotic)
+        #         try:    
+    #                dicTraj =trajBuilder(new_sol)
+    #            except:
+    #                pass
+    #            else:
+    #                f = open(os.path.join(savingFolder, "dicTraj_{}_{}.pkl".format(plate, wellL[-1])), "w")
+    #                pickle.dump(dicTraj, f); f.close()
+    #        #    f = open(loadingFolder+"dicTraj_41_35.pkl", "r")
+    #        #    dicTraj = pickle.load(f); f.close()
+    #        #    
+    #            print "TIME TIME TIME", time.clock()
+    #            print "saving as xml in", loadingFolder
+    #            outputTrajXml(dicTraj, savingFolder)
+    #            print "TIME TIME TIME", time.clock()
