@@ -2,7 +2,7 @@
 
 ###DIRECTORY SETTINGS
 #where the images are
-raw_data_dir = "/media/lalil0u/FREECOM HDD/Alice/images2"
+raw_data_dir = "/media/lalil0u/FREECOM HDD/Alice/images"#"/media/lalil0u/New/data/Xb_screen/Images_Cecog"#
 base_result_dir = '/media/lalil0u/New/projects/Xb_screen'
 
 #where hdf5 files are

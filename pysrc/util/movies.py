@@ -106,7 +106,8 @@ def makeMovie(imgDir, outDir, plate, well,clef = lambda x:int(x.split('_')[2]), 
 
     return
 
-def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=None, doChannel1Only=True, ranges=None):
+def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=None, doChannel1Only=True, 
+                           ranges=None,secondary = True):
     '''
     From a list of images containing information for two channels in different images, make 
     a movie. It is assumed that the name of a file is something like
@@ -144,8 +145,7 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
     
 #If ranges is not provided I look at the min pixel values on all channels for subsequent background substraction
     
-    #I assume that the images for the second channel exist
-    secondary = True
+    
     if ranges == None:
         min_={ch : 500 for ch in channels}
         max_ = {ch : 0 for ch in channels}
@@ -158,14 +158,9 @@ def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=N
             for ch in channels[1:]:
                 imageName2 = os.path.basename(imageName).replace(suffix, 'c{:>05}.tif'.format(ch))
                 if secondary:
-                    try:
-                        im = vi.readImage(os.path.join(imgDir, imageName2))
-                    except RuntimeError:
-                        secondary = False
-                        print "No images on the {} channel for this well {}".format(ch, well)
-                    else:
-                        min_[ch]=min(np.min(im), min_[ch])
-                        max_[ch]=max(np.max(im), max_[ch])
+                    im = vi.readImage(os.path.join(imgDir, imageName2))
+                    min_[ch]=min(np.min(im), min_[ch])
+                    max_[ch]=max(np.max(im), max_[ch])
     else:
         min_={ch:ranges[channels.index(ch)][0] for ch in channels}
         max_={ch:ranges[channels.index(ch)][1] for ch in channels}

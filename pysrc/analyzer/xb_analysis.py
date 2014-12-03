@@ -378,10 +378,16 @@ def plotSpeedHistogramEvolution(plate, well, speed, name, outputFolder):
 
     return
 
-def writeTracks(plate, inputFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2', outputFolder='tracking_annotations/annotations', all_=False):
+def writeTracks(plate, inputFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2', 
+                outputFolder='tracking_annotations/annotations', all_=False, intensity_qc_file=None):
     '''
     To produce annotated tracklets, either all tracklets (option all_=True) or only those used for feature extraction (option all=False)
     '''
+    
+    if intensity_qc_file is not None:
+        f=open(intensity_qc_file, 'r')
+        intensity_qc_dict=pickle.load(f); f.close()
+        intensity_qc_dict=None if plate not in intensity_qc_dict else intensity_qc_dict[plate]
     
     if 'tracking_annotations' not in os.listdir(inputFolder):
         os.mkdir(os.path.join(inputFolder, 'tracking_annotations'))
@@ -395,15 +401,18 @@ def writeTracks(plate, inputFolder='/media/lalil0u/New/projects/Xb_screen/dry_la
         well_files = filter(lambda x: 'hist_tabFeatures' in x, os.listdir(os.path.join(inputFolder, plate)))
         rang=2
     for file_ in well_files:
-        well = '{:>05}_01'.format(int(file_.split('_')[rang][1:]))
+        well_num=int(file_.split('_')[rang][1:])
+        well = '{:>05}_01'.format(well_num)
+        
         nomFichier = "PL"+plate+"___P"+well+"___T00001.xml"
         nomFichier = os.path.join(inputFolder, outputFolder, nomFichier)
 
         if all_:
-            f=open(os.path.join(inputFolder, plate, file_), 'r')
-            d=pickle.load(f); f.close()
-            ensTraj = d[plate][well]
-            coord = sortiesAll(nomFichier, ensTraj)
+            raise
+#            f=open(os.path.join(inputFolder, plate, file_), 'r')
+#            d=pickle.load(f); f.close()
+#            ensTraj = d[plate][well]
+#            coord = sortiesAll(nomFichier, ensTraj)
         else:
             f=open(os.path.join(inputFolder, plate, file_), 'r')
             _,coord,_=pickle.load(f); f.close()
@@ -411,7 +420,9 @@ def writeTracks(plate, inputFolder='/media/lalil0u/New/projects/Xb_screen/dry_la
             compteur =1
             fichierX = open(nomFichier, "w")
             fichierX.write(initXml())
-            
+            if intensity_qc_dict is not None and well in intensity_qc_dict:
+                frames_to_skip = intensity_qc_dict[well]
+
             for lstPoints in coord:
                 frameL=lstPoints[0]; X=lstPoints[1]; Y=lstPoints[2]
                 d={(frameL[k],0):(X[k], Y[k]) for k in range(len(frameL))}

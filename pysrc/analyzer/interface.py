@@ -54,22 +54,29 @@ class HTMLGenerator():
                         print "No image for well ", np.where(well_setup==well)[0][0]+1, 'plate ', plate
                         continue
                     else:
-                        mean_intensity=[np.mean(vi.readImage(os.path.join(imgDir, im))) for im in sorted(filter(lambda x: 'c00002' in x, l))]
+                        mean_intensity=np.array([np.mean(vi.readImage(os.path.join(imgDir, im))) for im in sorted(filter(lambda x: 'c00002' in x, l))])
                         dev_intensity=np.std(mean_intensity)
+                        local_mean=[np.mean(mean_intensity[k:k+10]) for k in range(mean_intensity.shape[0]-10)]
+                        local_mean.extend(local_mean[-10:]); local_mean=np.array(local_mean)
+         #so here the images to delete are the ones where the intensity is high above the intensity before, or high below 
+         #the frame numbers go from 0 to the end of the movie
+                        toDel=np.where(np.abs(mean_intensity-local_mean)>3*dev_intensity)[0]
+                        toDelFin=toDel
+                        
                         f=p.figure(); ax=f.add_subplot(111)
-                        ax.scatter(range(len(mean_intensity)), mean_intensity, color='green')
-                        ax.set_ylim((0,1000))
-                        p.axhline(y=(np.mean(mean_intensity)+2*dev_intensity), xmin=0, xmax=len(mean_intensity), linewidth=2, color = 'red')
-                        p.axhline(y=(np.mean(mean_intensity)-2*dev_intensity), xmin=0, xmax=len(mean_intensity), linewidth=2, color = 'red')
-                        p.savefig(os.path.join(self.settings.plot_dir, 'mean_intensity_{}{}.png'.format(plate, np.where(well_setup==well)[0][0]+1)))
-                        result[plate][well]=mean_intensity
-        if 'intensity_qc.pkl' in os.listdir(self.settings.result_dir):
-            f=open(os.path.join(self.settings.result_dir, 'intensity_qc.pkl'), 'r')
+                        ax.scatter(range(len(mean_intensity)), mean_intensity, color='green', label='Mean frame intensity')
+                        ax.plot(range(len(mean_intensity)), local_mean+3*dev_intensity, color='red', label='Sliding average+3sigmas')
+                        ax.plot(range(len(mean_intensity)), local_mean-3*dev_intensity, color='red', label='Sliding average-3sigmas')
+                        ax.set_ylim((0,1000)); ax.legend()
+                        p.savefig(os.path.join(self.settings.plot_dir,plate, 'mean_intensity_{}--W{:>05}.png'.format(plate, np.where(well_setup==well)[0][0]+1)))
+                        result[plate][well]=toDelFin
+        if 'intensity_qc.pkl' in os.listdir('../data'):
+            f=open('../data/intensity_qc.pkl', 'r')
             d=pickle.load(f);f.close()
             d.update(result)
         else:
             d=result
-        f=open(os.path.join(self.settings.result_dir, 'intensity_qc.pkl'), 'w')
+        f=open('../data/intensity_qc.pkl', 'w')
         pickle.dump(d,f);f.close()
         
         return
@@ -415,8 +422,9 @@ class HTMLGenerator():
                     print "No image for well ", np.where(well_setup==well)[0][0]+1, 'plate ', plate
                     continue
                 else:
+                    secondary=np.any(np.array(['c00001' in el for el in l]))
                     makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=plate, well=np.where(well_setup==well)[0][0]+1, 
-                                           ranges=[(100,400),(300,1100)])
+                                           ranges=[(100,1000),(300,2500)], secondary=secondary)
         return    
     
     def changeDBWellNumbers(self,plate, well_setup, idL):
@@ -436,7 +444,7 @@ class HTMLGenerator():
         return
         
         
-    def __call__(self, plateL=None, featureL = None, featureChannels =None, saveDB=True, fillDBOnly=False):
+    def __call__(self, plateL=None, featureL = None, featureChannels =None, saveDB=True, fillDBOnly=False, doQC=False):
         
     #Getting plate list
         if plateL is None:
@@ -469,8 +477,9 @@ class HTMLGenerator():
                                              )
 
         if not fillDBOnly:
-            print ' *** performing well intensity quality control ***'
-            self.intensity_qc(plateL)
+            if doQC:
+                print ' *** performing well intensity quality control ***'
+                self.intensity_qc(plateL)
             print ' *** get result dictionary ***'
             featureL, frameLot = self.targetedDataExtraction(plateL, featureL)
             self.formatData(frameLot, resD, featureL, featureChannels)

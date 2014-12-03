@@ -128,7 +128,7 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False, se
         frameLot.append(newFrame)
     return featureL, frameLot
 
-def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, name_primary_channel='primary__primary'):
+def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, name_primary_channel='primary__primary', frames_to_skip=None):
 
     pathObjects = "/sample/0/plate/{}/experiment/{}/position/{}/object/{}".format(plaque, puits[:-3], puits[-1], name_primary_channel)
     pathFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/{}/object_features".format(name_primary_channel)
@@ -158,7 +158,22 @@ def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, 
     frameList = np.array(tabObjects, dtype=int)
     frameNumber = np.max(frameList)+1#otherwise we forget the last frame
     frameLot = frameLots()
+    
+#    if frames_to_skip is not None:
+#        l=np.array(range(frameNumber))
+#        for frame in frames_to_skip:
+#            ind = np.where(l==frame)
+#            l[ind:]+=1
+#            l=np.delete(l, ind)
+#        
+#    else:
+#        new_frame_numbers=
+    
     for i in range(frameNumber):
+        if frames_to_skip is not None and i in frames_to_skip:
+            continue
+        else:
+            new_frame_number=i-len(np.where(frames_to_skip<i)[0])
         try:
             cellsF = cells(i, frameList, tabObjects)
         except IndexError:
@@ -172,10 +187,9 @@ def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, 
             secondaryFeaturesF = tabSecondaryFeatures[cellsF.firstLine():cellsF.lastLine()+1]
             featuresF = np.hstack((featuresF, secondaryFeaturesF))
         
-        newFrame = frame(plaque, puits, i, #tabSeg[0][i][0][:][:], tabRaw[0][i][0][:][:],
+        newFrame = frame(plaque, puits, new_frame_number, #tabSeg[0][i][0][:][:], tabRaw[0][i][0][:][:],
                           cellsF, centersF, featuresF, orientationF)
-        #k=2;dmax=400
-        #newFrame.nearest_neighbors(k, dmax, False)
+
         frameLot.append(newFrame)
         
     return frameLot, tabFeatures

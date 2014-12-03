@@ -21,7 +21,7 @@ from tracking.trackingF import sousProcessClassify
 '''
 
     
-def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = False, first=True, new_cecog_files=False):
+def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = False, first=True, new_cecog_files=False, intensity_qc_dict=None):
     global FEATURE_NUMBER
     
     tabF = None
@@ -37,21 +37,30 @@ def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = Fa
         listP = [w] 
     for well in listP:
         well=well[:-5]
-        #print well
+        
         if not new_cecog_files:
             filename = os.path.join(dataFolder, well+".hdf5")
+            name_primary_channel='primary__primary'
         else:
             filename = os.path.join(dataFolder, well+".ch5")
+            name_primary_channel='primary__primary3'
+            
         if training:
             filenameT = '/media/lalil0u/New/workspace2/Tracking/data/trainingset/PL'+plate+"___P"+well+"___T00000.xml"
         else:
             filenameT = None
-            #ajout du frameLot et du tabF
-        if 'LT' in plate:
-            name_primary_channel='primary__primary'
-        else:
-            name_primary_channel='primary__primary3'
-        frameLotC, tabFC = gettingRaw(filename, filenameT, plate, well, name_primary_channel=name_primary_channel)
+        
+        if intensity_qc_dict is not None and well in intensity_qc_dict and intensity_qc_dict[well]!=[]:
+            pdb.set_trace()#just check how wells are numbered
+            frames_to_skip=intensity_qc_dict[well]
+            for el in frames_to_skip:
+                if el+1 in frames_to_skip:
+                    ind=np.where(frames_to_skip==el)
+                    print "Issue with {}, {} in frames_to_skip".format(el, el+1)
+                    frames_to_skip=np.delete(frames_to_skip, [ind, ind+1])
+            
+        
+        frameLotC, tabFC = gettingRaw(filename, filenameT, plate, well, name_primary_channel=name_primary_channel, frames_to_skip=frames_to_skip)
         if newFrameLot == None:
             newFrameLot = frameLotC 
         else: newFrameLot.addFrameLot(frameLotC)
@@ -102,9 +111,14 @@ def output(plate,  well, allDataFolder, outputFolder, training_only=True):
     loadingFolder = "../prediction"
     if 'LT' in plate:
         new_cecog_files= False
+        intensity_qc_file=None
     else:
         new_cecog_files= True
-    tSol=gettingSolu(plate, well, loadingFolder, dataFolder, outputFolder, training_only, first, new_cecog_files = new_cecog_files)
+        intensity_qc_file=open('../data/intensity_qc.pkl', 'r')
+        intensity_qc_dict=pickle.load(intensity_qc_file); intensity_qc_file.close()    
+        intensity_qc_dict=intensity_qc_dict[plate] if plate in intensity_qc_dict else None
+        
+    tSol=gettingSolu(plate, well, loadingFolder, dataFolder, outputFolder, training_only, first, new_cecog_files = new_cecog_files, intensity_qc_dict=intensity_qc_dict)
     first=False
     new_sol = sousProcessClassify(tSol, loadingFolder)
     print "Building trajectories for predicted data"
