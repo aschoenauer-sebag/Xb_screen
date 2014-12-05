@@ -70,13 +70,13 @@ class HTMLGenerator():
                         ax.set_ylim((0,1000)); ax.legend()
                         p.savefig(os.path.join(self.settings.plot_dir,plate, 'mean_intensity_{}--W{:>05}.png'.format(plate, np.where(well_setup==well)[0][0]+1)))
                         result[plate][well]=toDelFin
-        if 'intensity_qc.pkl' in os.listdir('../data'):
-            f=open('../data/intensity_qc.pkl', 'r')
+        try:
+            f=open(self.settings.intensity_qc_filename, 'r')
             d=pickle.load(f);f.close()
             d.update(result)
-        else:
+        except IOError:
             d=result
-        f=open('../data/intensity_qc.pkl', 'w')
+        f=open(self.settings.intensity_qc_filename, 'w')
         pickle.dump(d,f);f.close()
         
         return

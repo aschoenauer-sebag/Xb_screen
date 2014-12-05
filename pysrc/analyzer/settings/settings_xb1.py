@@ -2,7 +2,7 @@
 
 ###DIRECTORY SETTINGS
 #where the images are
-raw_data_dir = "/media/lalil0u/FREECOM HDD/Alice/images"#"/media/lalil0u/New/data/Xb_screen/Images_Cecog"#
+raw_data_dir = "/media/lalil0u/New/data/Xb_screen/Images_Cecog"#"/media/lalil0u/FREECOM HDD/Alice/images"#
 base_result_dir = '/media/lalil0u/New/projects/Xb_screen'
 
 #where hdf5 files are
@@ -10,6 +10,7 @@ raw_result_dir ="/media/lalil0u/New/projects/Xb_screen/plates__all_features_2"#o
 
 #Where to save processed results
 result_dir = os.path.join(base_result_dir, 'dry_lab_results')
+intensity_qc_filename='../data/xb_intensity_qc.pkl'
 
 #Where to save data to be put online
 plot_dir = os.path.join('/media/lalil0u/New/workspace2/interface_screen/plates/static', 'plots')

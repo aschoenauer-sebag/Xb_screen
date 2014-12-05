@@ -168,12 +168,15 @@ def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, 
 #        
 #    else:
 #        new_frame_numbers=
-    
     for i in range(frameNumber):
         if frames_to_skip is not None and i in frames_to_skip:
+            print "##########################################################Skipping frame {}".format(i)
             continue
-        else:
+        elif frames_to_skip is not None:
             new_frame_number=i-len(np.where(frames_to_skip<i)[0])
+        else:
+            new_frame_number=i
+
         try:
             cellsF = cells(i, frameList, tabObjects)
         except IndexError:

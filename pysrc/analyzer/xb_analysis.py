@@ -7,7 +7,7 @@ import numpy as np
 import vigra.impex as vi
 from warnings import warn
 from itertools import repeat
-from matplotlib.backends.backend_pdf import PdfPages
+from scipy.stats import ks_2samp
 
 from analyzer import cecog_features, CONTROLS
 #from interface import fromPlateToPython
@@ -23,51 +23,69 @@ from util.listFileManagement import expSi, siEntrez, correct_from_Nan
 from util.sandbox import histLogTrsforming
 from tracking.PyPack.fHacktrack2 import sortiesAll, initXml, ecrireXml, finirXml
 
-def plot_special_case(ll):
-    timep=(0,40,96,144,184)
-    timep1=(0,40,96,144)
-
-    if ll[2][0].shape[1]<140:
-        print "Modifying shapes"
-        ll[0][0]=np.hstack((ll[0][0][:,:77], np.zeros(shape=(ll[0][0].shape[0], 9)), ll[0][0][:,77:]))
-        ll[0][1]=np.hstack((ll[0][1][:,:77], np.zeros(shape=(ll[0][1].shape[0], 9)), ll[0][1][:,77:]))
+def testDistributions(x,who, length, xbL, xbInterest, plates=['201114', '271114']):
+    indices=np.where(np.array(xbL)==xbInterest)[0]
+    plateInd=[np.where(np.array(who)[:,0]==plate)[0] for plate in plates]
+    r=[x[np.sum(length[:plateInd[k][0]]):np.sum(length[:plateInd[k][0]+1])] for k in range(len(plates))]
+    
+    for i, plate in enumerate(plates):
+        print '-----',plate
+        local_indices =filter(lambda z: z in plateInd[i], indices)
+        for index in local_indices:
+            r[i]=np.vstack((r[i], x[np.sum(length[:index]):np.sum(length[:index+1])]))
+            print ks_2samp(x[np.sum(length[:local_indices[0]]):np.sum(length[:local_indices[0]+1])][:,0], x[np.sum(length[:index]):np.sum(length[:index+1])][:,0])
+            
+    for i,plate in enumerate(plates):
+        print '----', plate
+        print ks_2samp(r[0][:,0], r[i][:,0])
         
-        ll[2][0]=np.hstack((ll[2][0][:,:77], np.zeros(shape=(ll[2][0].shape[0], 9)), ll[2][0][:,77:]))
-        ll[2][1]=np.hstack((ll[2][1][:,:77], np.zeros(shape=(ll[2][1].shape[0], 9)), ll[2][1][:,77:]))
+    return
 
-    f=p.figure()
-    ax=f.add_subplot(111)
-    for k in range(5):
-        ax.scatter(range(4), ll[0][0][k,(0,40,96,144)], color = couleurs[0], label='130814')#label='050914__1')
-    for k in range(9):
-        ax.scatter(np.array(range(4))+(k+1)*0.05, ll[0][1][k,timep1], color = couleurs[k+1])
+#def plot_special_case(ll):
+#    timep=(0,40,96,144,184)
+#    timep1=(0,40,96,144)
+#
+#    if ll[2][0].shape[1]<140:
+#        print "Modifying shapes"
+#        ll[0][0]=np.hstack((ll[0][0][:,:77], np.zeros(shape=(ll[0][0].shape[0], 9)), ll[0][0][:,77:]))
+#        ll[0][1]=np.hstack((ll[0][1][:,:77], np.zeros(shape=(ll[0][1].shape[0], 9)), ll[0][1][:,77:]))
+#        
+#        ll[2][0]=np.hstack((ll[2][0][:,:77], np.zeros(shape=(ll[2][0].shape[0], 9)), ll[2][0][:,77:]))
+#        ll[2][1]=np.hstack((ll[2][1][:,:77], np.zeros(shape=(ll[2][1].shape[0], 9)), ll[2][1][:,77:]))
+#
+#    f=p.figure()
+#    ax=f.add_subplot(111)
+#    for k in range(5):
+#        ax.scatter(range(4), ll[0][0][k,(0,40,96,144)], color = couleurs[0], label='130814')#label='050914__1')
+#    for k in range(9):
+#        ax.scatter(np.array(range(4))+(k+1)*0.05, ll[0][1][k,timep1], color = couleurs[k+1])
+##    for k in range(3):
+##        ax.scatter(range(5), ll[1][0][k,timep], color = couleurs[0], label='071114__1')
+##    for i in range(7):
+##        for k in range(3):
+##            ax.scatter(np.array(range(5))+(i+1)*0.05, ll[1][i+1][k,timep], color = couleurs[i+1])
+##    for i in range(2):
+##        for k in range(2):
+##            ax.scatter(np.array(range(5))+(8+i)*0.05, ll[1][8+i][k,timep], color = couleurs[8+i])
+#    for k in range(5):
+#        ax.scatter(range(5), ll[1][0][k,timep], color = couleurs[0],  label='150814')
+#    for k in range(9):    
+#        ax.scatter(np.array(range(5))+(k+1)*0.05, ll[1][1][k,timep], color = couleurs[k+1])
+#    for k in range(6):    
+#        ax.scatter(range(4), ll[2][0][k,timep1], color = couleurs[0], marker='+', label='050914__1')
+#    for k in range(9):    
+#        ax.scatter(np.array(range(4))+(k+1)*0.05, ll[2][1][k,timep1], color = couleurs[k+1], marker='+')
 #    for k in range(3):
-#        ax.scatter(range(5), ll[1][0][k,timep], color = couleurs[0], label='071114__1')
+#        ax.scatter(range(5), ll[3][0][k,timep], color = couleurs[0], marker='+', label='071114__1')
 #    for i in range(7):
 #        for k in range(3):
-#            ax.scatter(np.array(range(5))+(i+1)*0.05, ll[1][i+1][k,timep], color = couleurs[i+1])
+#            ax.scatter(np.array(range(5))+(i+1)*0.05, ll[3][i+1][k,timep], color = couleurs[i+1], marker='+')
 #    for i in range(2):
 #        for k in range(2):
-#            ax.scatter(np.array(range(5))+(8+i)*0.05, ll[1][8+i][k,timep], color = couleurs[8+i])
-    for k in range(5):
-        ax.scatter(range(5), ll[1][0][k,timep], color = couleurs[0],  label='150814')
-    for k in range(9):    
-        ax.scatter(np.array(range(5))+(k+1)*0.05, ll[1][1][k,timep], color = couleurs[k+1])
-    for k in range(6):    
-        ax.scatter(range(4), ll[2][0][k,timep1], color = couleurs[0], marker='+', label='050914__1')
-    for k in range(9):    
-        ax.scatter(np.array(range(4))+(k+1)*0.05, ll[2][1][k,timep1], color = couleurs[k+1], marker='+')
-    for k in range(3):
-        ax.scatter(range(5), ll[3][0][k,timep], color = couleurs[0], marker='+', label='071114__1')
-    for i in range(7):
-        for k in range(3):
-            ax.scatter(np.array(range(5))+(i+1)*0.05, ll[3][i+1][k,timep], color = couleurs[i+1], marker='+')
-    for i in range(2):
-        for k in range(2):
-            ax.scatter(np.array(range(5))+(8+i)*0.05, ll[3][8+i][k,timep], color = couleurs[8+i], marker='+')
-            
-    ax.legend(); ax.grid(True)
-    p.show()
+#            ax.scatter(np.array(range(5))+(8+i)*0.05, ll[3][8+i][k,timep], color = couleurs[8+i], marker='+')
+#            
+#    ax.legend(); ax.grid(True)
+#    p.show()
 
 
 def comparDistributions(filename, labels,values, features=None, 
@@ -128,14 +146,29 @@ def comparDistributions(filename, labels,values, features=None,
             p.savefig(os.path.join(outputFolder, 'Time_{}_{}.png'.format(filename, features[k])))
     
 
-def xbConcatenation(folder, exp_list, xb_list='processedDictResult_P{}.pkl', qc=None, filename = 'hist_tabFeatures_{}.pkl', verbose=0, perMovie = False):
+def xbConcatenation(folder, exp_list=None, xb_list='processedDictResult_P{}.pkl', visual_qc=None, flou_qc=None, 
+                    filename = 'features_intQC_{}_01.pkl', verbose=0, perMovie = False, track_folder="track_predictions__settings2"):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; xb=[]
     time_length=[]
-    
     processed={}
 
-    if qc is not None:
-        yqualDict=expSi(qc)
+    if exp_list==None:
+        exp_list=[]
+        plates=filter(lambda x: os.path.isdir(os.path.join(folder, track_folder, x)) and '14'==x[-2:], os.listdir(os.path.join(folder, track_folder)))
+        for plate in plates:
+            exp_list.extend([(plate, el.split('_')[2]) for el in filter(lambda x: 'features' in x, os.listdir(os.path.join(folder, track_folder, plate)))])
+        print exp_list
+    if visual_qc is not None:
+        f=open(visual_qc, 'r')
+        visual_d=pickle.load(f); f.close()
+    else:
+        visual_d={}
+        
+    if flou_qc is not None:
+        f=open(flou_qc, 'r')
+        flou_d=pickle.load(f); f.close()
+    else:
+        flou_d={}
 
     for i, exp in enumerate(exp_list):
         print i,
@@ -143,14 +176,18 @@ def xbConcatenation(folder, exp_list, xb_list='processedDictResult_P{}.pkl', qc=
         if pl not in processed:
             f=open(os.path.join(folder, xb_list.format(pl)))
             processed[pl]=pickle.load(f); f.close()
-    #TO ADD WHEN THERE IS A QC
-#        if pl[:9]+'--'+w[2:5] not in yqualDict:
+
 ##i. checking if quality control passed
-#            sys.stderr.write("Quality control not passed {} {} \n".format(pl[:9], w[2:5]))
-#            continue   
+        if pl in visual_d and int(w) in visual_d[pl]:
+            sys.stderr.write("Visual quality control not passed {} {} \n".format(pl, w))
+            continue   
+        if pl in flou_d and int(w) in flou_d[pl]:
+            sys.stderr.write("Flou quality control not passed {} {} \n".format(pl, w))
+            continue   
+        
         try:
-#iii.loading data
-            f=open(os.path.join(folder, 'track_predictions', pl, filename.format(w)), 'r')
+#ii.loading data
+            f=open(os.path.join(folder, track_folder, pl, filename.format(w)), 'r')
             arr, coord, _= pickle.load(f)
             f.close()
         except IOError:
@@ -169,16 +206,12 @@ def xbConcatenation(folder, exp_list, xb_list='processedDictResult_P{}.pkl', qc=
                     arr, toDel = correct_from_Nan(arr, perMovie)
 
                     r= arr if r==[] else np.vstack((r, arr))
-#                    if hist:
-#                        for nom in featuresHisto:
-#                            histN[nom]=np.delete(np.array(histN[nom]), toDel)
-#                            histNtot[nom].extend(list(histN[nom]))
                     ll=arr.shape[0]
     
                 except (TypeError, ValueError, AttributeError):
                     sys.stderr.write("Probleme avec le fichier {}".format(os.path.join(pl, filename.format(w))))
                 else:   
-                    time_length.extend([coord[k][0][len(coord[k][0])/2] for k in filter(lambda x: x not in toDel, range(len(coord)))])
+                    time_length.extend([len(coord[k][0]) for k in filter(lambda x: x not in toDel, range(len(coord)))])
                     xbCourant = processed[pl][int(w.split('_')[0])]['Xenobiotic']
                     xb.append(xbCourant)
                     who.append((pl, w))
@@ -282,87 +315,87 @@ def plottingBar(folder, plate, xenobioticL, solvent,sh=True, target='speed', ave
                 stds = std, name='{}_{}'.format(plate,xenobiotic), folder=folder, sh=sh)
 
 
-def OLD_plottingBar(folder, plate, xenobioticL, solvent,sh=True, target='speed', average_over_xb=False):
-    timepoints={}
-    timepoints['050914']=(0,40,78,136)
-    timepoints['071114']=(0,40,96,144,184)
-    timepoints['150814']=(0,40,96,144,184)
-    timepoints['130814']=(0,40,96,144)
-    timecorres=[0,'10h', '24h', '36h','48h']
-    
-    saved=[]
-    
-    timepoints=timepoints[plate]; timecorres=timecorres[:len(timepoints)]
-    
-    if type(xenobioticL)==str:
-        OLD_plottingBar(folder, plate, [xenobioticL], solvent,sh, target)
-    else:
-        average_solv, proliferation_solv = featureEvolOverTime(None, None, folder, True, 192, solvent,True, True, False, [plate])
-        
-        if target=='proliferation':
-            average_solv=proliferation_solv
-        elif target !='speed':
-            raise AttributeError
-        
-        if plate !='130814':
-            av = np.mean(average_solv, 0)[np.newaxis, :]
-            std=np.std(average_solv, 0)[:,np.newaxis][timepoints,:]
-            saved.append(average_solv)
-            
-        for xenobiotic in xenobioticL:
-            average_xb, proliferation_xb = featureEvolOverTime(None, None, folder, True, 192, xenobiotic,True, True, False, [plate])
-            saved.append(average_xb)
-            if target=='proliferation':
-                average_xb=proliferation_xb
-            elif target !='speed':
-                raise AttributeError
-        
-            if plate == '130814':
-                arr=np.vstack((a[:149] for a in average_solv))
-                print arr.shape
-                saved=[arr]
-                av = np.mean(arr, 0)[np.newaxis, :]
-                
-                average_xb=np.vstack((a[:149] for a in average_xb))
-                saved.append(average_xb)
-                std=np.std(arr, 0)[:,np.newaxis][(0,40,96,144),:]
-                std=[std[:,0].T]
-                
-                
-                if xenobiotic == 'TGF beta 1':
-                    average_xb = np.mean(average_xb,0)[np.newaxis, :]
-                    std.append(np.vstack((np.std(average_xb, 0)[:,np.newaxis][(0,40,96,144),:], np.zeros(shape=(1,1)))))
-                else:
-                    std.extend([None for el in range(10)])
-                av = np.vstack((av, average_xb))
-                av = np.hstack((av, np.zeros(shape=(av.shape[0],100))))
-                
-            elif plate=='150814':
-                if xenobiotic == 'TGF beta 1':
-                    average_xb = np.mean(average_xb,0)[np.newaxis, :]
-                    std.append(np.std(average_xb, 0)[:,np.newaxis][(0,40,96,144, 184),:])
-                else:
-                    std=[std[:,0].T]
-                    std.extend([None for el in range(10)])
-        
-                av=np.vstack((av, average_xb))
-            else:
-                if average_over_xb:
-                    av=np.vstack((av, np.mean(average_xb,0)[np.newaxis, :]))
-                    std=np.hstack((std, np.std(average_xb, 0)[:,np.newaxis][timepoints,:]))
-                else:
-                    av=np.vstack((av, average_xb))
-                    zz=np.empty(shape=(len(timepoints),average_xb.shape[0])); zz.fill(None)
-                    std=np.hstack((std, zz))
-    if plate in ['071114', '050914']:
-        std=std.T
-    av=av[:,timepoints]
-                
-    f=open(os.path.join(folder, '{}_data{}_{}.pkl'.format(target, plate, xenobiotic)), 'w')
-    pickle.dump(saved,f); f.close()
-    plotBarPlot(av, '{} average per well'.format(target), ['D {}'.format(k) for k in range(av.shape[0])], timecorres, 
-                '{} average over time, {}, {}'.format(target, xenobiotic, plate), target=target,
-                stds = std, name='{}_{}'.format(plate,xenobiotic), folder=folder, sh=sh)
+#def OLD_plottingBar(folder, plate, xenobioticL, solvent,sh=True, target='speed', average_over_xb=False):
+#    timepoints={}
+#    timepoints['050914']=(0,40,78,136)
+#    timepoints['071114']=(0,40,96,144,184)
+#    timepoints['150814']=(0,40,96,144,184)
+#    timepoints['130814']=(0,40,96,144)
+#    timecorres=[0,'10h', '24h', '36h','48h']
+#    
+#    saved=[]
+#    
+#    timepoints=timepoints[plate]; timecorres=timecorres[:len(timepoints)]
+#    
+#    if type(xenobioticL)==str:
+#        OLD_plottingBar(folder, plate, [xenobioticL], solvent,sh, target)
+#    else:
+#        average_solv, proliferation_solv = featureEvolOverTime(None, None, folder, True, 192, solvent,True, True, False, [plate])
+#        
+#        if target=='proliferation':
+#            average_solv=proliferation_solv
+#        elif target !='speed':
+#            raise AttributeError
+#        
+#        if plate !='130814':
+#            av = np.mean(average_solv, 0)[np.newaxis, :]
+#            std=np.std(average_solv, 0)[:,np.newaxis][timepoints,:]
+#            saved.append(average_solv)
+#            
+#        for xenobiotic in xenobioticL:
+#            average_xb, proliferation_xb = featureEvolOverTime(None, None, folder, True, 192, xenobiotic,True, True, False, [plate])
+#            saved.append(average_xb)
+#            if target=='proliferation':
+#                average_xb=proliferation_xb
+#            elif target !='speed':
+#                raise AttributeError
+#        
+#            if plate == '130814':
+#                arr=np.vstack((a[:149] for a in average_solv))
+#                print arr.shape
+#                saved=[arr]
+#                av = np.mean(arr, 0)[np.newaxis, :]
+#                
+#                average_xb=np.vstack((a[:149] for a in average_xb))
+#                saved.append(average_xb)
+#                std=np.std(arr, 0)[:,np.newaxis][(0,40,96,144),:]
+#                std=[std[:,0].T]
+#                
+#                
+#                if xenobiotic == 'TGF beta 1':
+#                    average_xb = np.mean(average_xb,0)[np.newaxis, :]
+#                    std.append(np.vstack((np.std(average_xb, 0)[:,np.newaxis][(0,40,96,144),:], np.zeros(shape=(1,1)))))
+#                else:
+#                    std.extend([None for el in range(10)])
+#                av = np.vstack((av, average_xb))
+#                av = np.hstack((av, np.zeros(shape=(av.shape[0],100))))
+#                
+#            elif plate=='150814':
+#                if xenobiotic == 'TGF beta 1':
+#                    average_xb = np.mean(average_xb,0)[np.newaxis, :]
+#                    std.append(np.std(average_xb, 0)[:,np.newaxis][(0,40,96,144, 184),:])
+#                else:
+#                    std=[std[:,0].T]
+#                    std.extend([None for el in range(10)])
+#        
+#                av=np.vstack((av, average_xb))
+#            else:
+#                if average_over_xb:
+#                    av=np.vstack((av, np.mean(average_xb,0)[np.newaxis, :]))
+#                    std=np.hstack((std, np.std(average_xb, 0)[:,np.newaxis][timepoints,:]))
+#                else:
+#                    av=np.vstack((av, average_xb))
+#                    zz=np.empty(shape=(len(timepoints),average_xb.shape[0])); zz.fill(None)
+#                    std=np.hstack((std, zz))
+#    if plate in ['071114', '050914']:
+#        std=std.T
+#    av=av[:,timepoints]
+#                
+#    f=open(os.path.join(folder, '{}_data{}_{}.pkl'.format(target, plate, xenobiotic)), 'w')
+#    pickle.dump(saved,f); f.close()
+#    plotBarPlot(av, '{} average per well'.format(target), ['D {}'.format(k) for k in range(av.shape[0])], timecorres, 
+#                '{} average over time, {}, {}'.format(target, xenobiotic, plate), target=target,
+#                stds = std, name='{}_{}'.format(plate,xenobiotic), folder=folder, sh=sh)
         
 def plotSpeedHistogramEvolution(plate, well, speed, name, outputFolder):
     if not os.path.isdir(os.path.join(outputFolder, name)):
@@ -379,7 +412,8 @@ def plotSpeedHistogramEvolution(plate, well, speed, name, outputFolder):
     return
 
 def writeTracks(plate, inputFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2', 
-                outputFolder='tracking_annotations/annotations', all_=False, intensity_qc_file=None):
+                outputFolder='tracking_annotations/annotations', all_=False, intensity_qc_file=None,
+                feature_filename='hist_tabFeatures'):
     '''
     To produce annotated tracklets, either all tracklets (option all_=True) or only those used for feature extraction (option all=False)
     '''
@@ -398,7 +432,7 @@ def writeTracks(plate, inputFolder='/media/lalil0u/New/projects/Xb_screen/dry_la
         well_files = filter(lambda x: 'traj_noF_densities' in x, os.listdir(os.path.join(inputFolder, plate)))
         rang=3
     else:
-        well_files = filter(lambda x: 'hist_tabFeatures' in x, os.listdir(os.path.join(inputFolder, plate)))
+        well_files = filter(lambda x: feature_filename in x, os.listdir(os.path.join(inputFolder, plate)))
         rang=2
     for file_ in well_files:
         well_num=int(file_.split('_')[rang][1:])
@@ -420,12 +454,14 @@ def writeTracks(plate, inputFolder='/media/lalil0u/New/projects/Xb_screen/dry_la
             compteur =1
             fichierX = open(nomFichier, "w")
             fichierX.write(initXml())
-            if intensity_qc_dict is not None and well in intensity_qc_dict:
-                frames_to_skip = intensity_qc_dict[well]
+            if intensity_qc_dict is not None and well_num in intensity_qc_dict:
+                frames_to_skip = intensity_qc_dict[well_num]
+            else:
+                frames_to_skip=None
 
             for lstPoints in coord:
                 frameL=lstPoints[0]; X=lstPoints[1]; Y=lstPoints[2]
-                d={(frameL[k],0):(X[k], Y[k]) for k in range(len(frameL))}
+                d={(frameL[k]+len(np.where(frames_to_skip<=frameL[k])[0]),0):(X[k], Y[k]) for k in range(len(frameL))}
                 txt, coord = ecrireXml(compteur,d, True)
                 fichierX.write(txt)
                 compteur+=1
@@ -576,266 +612,266 @@ def featureEvolOverTime(dicT, outputFolder, verbose, movie_length,xenobiotic, pl
     
     return tabF
 
-def OLD_featureEvolOverTime(dicT, outputFolder, verbose, movie_length, name, plot=False,
-                        load=False, averagingOverWells=False, plates=None):
-    tabF={}
-    filename='speedOverTime{}.pkl'.format(name)
-
-    if load:
-        f=open(os.path.join(outputFolder, filename), 'r')
-        tabF = pickle.load(f)
-        f.close()  
-        
-        platesL = tabF.keys()
-    else:
-        platesL = dicT.keys()
-        
-    if plates is not None:
-        platesL=plates
-        
-    if plot:
-        fig=p.figure(figsize=(24,13))
-        ax1=fig.add_subplot(121)
-        ax2 = fig.add_subplot(122)
-        
-    for plate in platesL:
-        averages=[]; proliferations=[]
-        average = None
-        proliferation = None
-        speedT=None; trajPerFrameT=None
-            
-        if plate not in tabF:
-            tabF[plate]={}
-            wells = sorted(dicT[plate].keys())
-        else:
-            wells = sorted(tabF[plate].keys())    
-            
-        if plate=='050914':
-            w=wells[0]; wells=wells[1:]; wells.append(w)        
-            
-        for k,well in enumerate(wells):
-            k=k%9
-            if well not in tabF[plate]:
-                tabF[plate][well]=None
-            print plate, well
-            
-            if not load:
-                dicC = dicT[plate][well]
-                allDisp, trajPerFrame = driftCorrection(movie_length[plate][well]-1, outputFolder, plate, well, dicC.lstTraj, just_average_speed=True)
-                X = allDisp[:,:,0]; Y=allDisp[:,:,1]
-                speed = np.sqrt(X**2+Y**2)
-                
-                tabF[plate][well]=(speed, trajPerFrame)
-            else:
-                speed, trajPerFrame = tabF[plate][well]
-            if plot and not averagingOverWells:
-                average = np.sum(speed,1)/trajPerFrame[:,0]
-                stds=np.sqrt((np.sum(speed**2,1)/trajPerFrame[:,0] - average**2))
-                
-                average = np.array([np.mean(average[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
-                stds = np.array([np.mean(stds[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
-                
-                ax1.plot(range(average.shape[0]), average, color=couleurs[k], label='D {}'.format(wells.index( well)%9))
-                #ax1.errorbar(range(average.shape[0]), average, stds,color=couleurs[k])
-                
-                proliferation = np.array([np.mean(trajPerFrame[frame:frame+6,0]) for frame in range(trajPerFrame.shape[0]-6)])
-                proliferation/=float(np.mean(trajPerFrame[:6,0]))
-                
-                ax2.plot(range(proliferation.shape[0]), proliferation,color=couleurs[k], label='D {}'.format(wells.index( well)%9))
-                
-                ax1.text(average.shape[0]+1, average[-1], 'D {}'.format(wells.index( well)%9))
-                ax2.text(average.shape[0]+1, proliferation[-1], 'D {}'.format(wells.index( well)%9))
-                
-                averages.append(average); proliferations.append(proliferation)
-                
-            if averagingOverWells:
-                averageCour = np.sum(speed,1)/trajPerFrame[:,0]
-                averageCour = np.array([np.mean(averageCour[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
-                speedT=speed if speedT is None else np.hstack((speedT, speed))    
-                trajPerFrameT=trajPerFrame if trajPerFrameT is None else trajPerFrameT+ trajPerFrame           
-                
-                average = averageCour if average is None else np.vstack((average, averageCour))
-
-                proliferationCour = np.array([np.mean(trajPerFrame[frame:frame+6,0]) for frame in range(trajPerFrame.shape[0]-6)])                
-
-                proliferationCour/=float(np.mean(trajPerFrame[:6,0]))
-                proliferation = proliferationCour if proliferation is None else np.vstack((proliferation, proliferationCour))
-            #plotSpeedHistogramEvolution(plate, well, speed,name,outputFolder)
-        
-        if plot and averagingOverWells:
-            average=average.T; 
-            proliferation=proliferation.T
-            average_pooling_cells = np.sum(speedT, 1)/trajPerFrameT[:,0]
-            #stds=np.sqrt((np.sum(speedT**2,1)/trajPerFrameT[:,0] - average**2))
-            
-            average_pooling_cells = np.array([np.mean(average_pooling_cells[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
-            #stds = np.array([np.mean(stds[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
-            
-            ax1.plot(range(average.shape[0]), average_pooling_cells, label=name)
-            ax1.errorbar(range(average.shape[0]), average_pooling_cells, np.std(average,1))
-            
-            ax2.plot(range(proliferation.shape[0]), np.mean(proliferation,1), label=name)
-            ax2.errorbar(range(proliferation.shape[0]), np.mean(proliferation,1), np.std(proliferation,1))
-            
+#def OLD_featureEvolOverTime(dicT, outputFolder, verbose, movie_length, name, plot=False,
+#                        load=False, averagingOverWells=False, plates=None):
+#    tabF={}
+#    filename='speedOverTime{}.pkl'.format(name)
+#
+#    if load:
+#        f=open(os.path.join(outputFolder, filename), 'r')
+#        tabF = pickle.load(f)
+#        f.close()  
+#        
+#        platesL = tabF.keys()
+#    else:
+#        platesL = dicT.keys()
+#        
+#    if plates is not None:
+#        platesL=plates
+#        
+#    if plot:
+#        fig=p.figure(figsize=(24,13))
+#        ax1=fig.add_subplot(121)
+#        ax2 = fig.add_subplot(122)
+#        
+#    for plate in platesL:
+#        averages=[]; proliferations=[]
+#        average = None
+#        proliferation = None
+#        speedT=None; trajPerFrameT=None
+#            
+#        if plate not in tabF:
+#            tabF[plate]={}
+#            wells = sorted(dicT[plate].keys())
+#        else:
+#            wells = sorted(tabF[plate].keys())    
+#            
+#        if plate=='050914':
+#            w=wells[0]; wells=wells[1:]; wells.append(w)        
+#            
+#        for k,well in enumerate(wells):
+#            k=k%9
+#            if well not in tabF[plate]:
+#                tabF[plate][well]=None
+#            print plate, well
+#            
+#            if not load:
+#                dicC = dicT[plate][well]
+#                allDisp, trajPerFrame = driftCorrection(movie_length[plate][well]-1, outputFolder, plate, well, dicC.lstTraj, just_average_speed=True)
+#                X = allDisp[:,:,0]; Y=allDisp[:,:,1]
+#                speed = np.sqrt(X**2+Y**2)
+#                
+#                tabF[plate][well]=(speed, trajPerFrame)
+#            else:
+#                speed, trajPerFrame = tabF[plate][well]
+#            if plot and not averagingOverWells:
+#                average = np.sum(speed,1)/trajPerFrame[:,0]
+#                stds=np.sqrt((np.sum(speed**2,1)/trajPerFrame[:,0] - average**2))
+#                
+#                average = np.array([np.mean(average[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
+#                stds = np.array([np.mean(stds[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
+#                
+#                ax1.plot(range(average.shape[0]), average, color=couleurs[k], label='D {}'.format(wells.index( well)%9))
+#                #ax1.errorbar(range(average.shape[0]), average, stds,color=couleurs[k])
+#                
+#                proliferation = np.array([np.mean(trajPerFrame[frame:frame+6,0]) for frame in range(trajPerFrame.shape[0]-6)])
+#                proliferation/=float(np.mean(trajPerFrame[:6,0]))
+#                
+#                ax2.plot(range(proliferation.shape[0]), proliferation,color=couleurs[k], label='D {}'.format(wells.index( well)%9))
+#                
+#                ax1.text(average.shape[0]+1, average[-1], 'D {}'.format(wells.index( well)%9))
+#                ax2.text(average.shape[0]+1, proliferation[-1], 'D {}'.format(wells.index( well)%9))
+#                
+#                averages.append(average); proliferations.append(proliferation)
+#                
+#            if averagingOverWells:
+#                averageCour = np.sum(speed,1)/trajPerFrame[:,0]
+#                averageCour = np.array([np.mean(averageCour[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
+#                speedT=speed if speedT is None else np.hstack((speedT, speed))    
+#                trajPerFrameT=trajPerFrame if trajPerFrameT is None else trajPerFrameT+ trajPerFrame           
+#                
+#                average = averageCour if average is None else np.vstack((average, averageCour))
+#
+#                proliferationCour = np.array([np.mean(trajPerFrame[frame:frame+6,0]) for frame in range(trajPerFrame.shape[0]-6)])                
+#
+#                proliferationCour/=float(np.mean(trajPerFrame[:6,0]))
+#                proliferation = proliferationCour if proliferation is None else np.vstack((proliferation, proliferationCour))
+#            #plotSpeedHistogramEvolution(plate, well, speed,name,outputFolder)
+#        
+#        if plot and averagingOverWells:
+#            average=average.T; 
+#            proliferation=proliferation.T
+#            average_pooling_cells = np.sum(speedT, 1)/trajPerFrameT[:,0]
+#            #stds=np.sqrt((np.sum(speedT**2,1)/trajPerFrameT[:,0] - average**2))
+#            
+#            average_pooling_cells = np.array([np.mean(average_pooling_cells[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
+#            #stds = np.array([np.mean(stds[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
+#            
+#            ax1.plot(range(average.shape[0]), average_pooling_cells, label=name)
+#            ax1.errorbar(range(average.shape[0]), average_pooling_cells, np.std(average,1))
+#            
+#            ax2.plot(range(proliferation.shape[0]), np.mean(proliferation,1), label=name)
+#            ax2.errorbar(range(proliferation.shape[0]), np.mean(proliferation,1), np.std(proliferation,1))
+#            
+##            ax1.plot(range(frames[1], frames[1]+average[frames[1]:].shape[0]), np.mean(average[frames[1]:],1))
+##            ax1.errorbar(range(frames[1], frames[1]+average[frames[1]:].shape[0]),np.mean(average[frames[1]:],1), np.std(average[frames[1]:],1))
+##            
+##            ax2.plot(range(frames[1], frames[1]+average[frames[1]:].shape[0]), np.mean(proliferation[frames[1]:],1))
+##            ax2.errorbar(range(frames[1], frames[1]+average[frames[1]:].shape[0]), np.mean(proliferation[frames[1]:],1), np.std(proliferation[frames[1]:],1))
+#            
+#        if not load:
+#            filename='speedOverTime{}.pkl'.format(name)
+#            if filename in os.listdir(outputFolder):
+#                f=open(os.path.join(outputFolder, filename), 'r')
+#                tab=pickle.load(f)
+#                tab.update(tabF)
+#            else:
+#                tab=tabF
+#                
+#            f=open(os.path.join(outputFolder, filename), 'w')
+#            pickle.dump(tab, f)
+#            f.close()  
+#    if plot:
+#        ax1.grid(True)
+#        ax2.grid(True)
+#        ax1.set_ylim(1.5,6.5)
+#        ax2.set_ylim(0.7, 1.7)
+#        ax1.set_xlim(-5, 200)
+#        ax2.set_xlim(-5, 200)
+#        ax1.legend(loc=2); ax1.set_title('Speed average over time {}'.format(name))
+#        #ax1.set_xticklabels(['24', '36.5', '49', '61.5', '74'])
+#        #ax2.set_xticklabels(['24', '36.5', '49', '61.5', '74'])
+#        ax2.set_title("Proliferation over time")
+#    if averagingOverWells:
+#        p.savefig(os.path.join(outputFolder, '{}_speed_{}.png'.format(plate,name+'_average')))
+#    else:
+#        p.savefig(os.path.join(outputFolder, '{}_speed_{}.png'.format(plate, name)))
+#    return np.array(averages), np.array(proliferations)
+#
+#
+#def featureEvolOverTime_august(dicT, connexions, outputFolder, verbose, movie_length, name, plot=False, load=False, averagingOverWells=False):
+#    tabF={}
+#    filename='speedOverTime{}.pkl'.format(name)
+#
+#    if load:
+#        f=open(os.path.join(outputFolder, filename), 'r')
+#        tabF = pickle.load(f)
+#        f.close()  
+#        
+#        platesL = tabF.keys()
+#    else:
+#        platesL = dicT.keys()
+#        
+#    for plate in platesL:
+#        averages=[]; proliferations=[]
+#        average = None
+#        proliferation = None
+#        
+#        if plate =='150814':
+#            frames=[41,129,185]
+#            
+#        elif plate=='130814':
+#            frames=[2,75,149]
+#            
+#        if plate not in tabF:
+#            tabF[plate]={}
+#            wells = sorted(dicT[plate].keys())
+#        else:
+#            wells = sorted(tabF[plate].keys())
+#
+#        if plot:
+#            import matplotlib.pyplot as p
+#            fig=p.figure(figsize=(24,13))
+#            ax1=fig.add_subplot(121)
+#            ax2 = fig.add_subplot(122)
+#            
+#            
+#        for k,well in enumerate(wells):
+#            if well not in tabF[plate]:
+#                tabF[plate][well]=None
+#            print plate, well
+#            
+#            if not load:
+#                dicC = dicT[plate][well]
+#                allDisp, trajPerFrame = driftCorrection(movie_length[plate][well]-1, outputFolder, plate, well, dicC.lstTraj, just_average_speed=True)
+#                X = allDisp[:,:,0]; Y=allDisp[:,:,1]
+#                speed = np.sqrt(X**2+Y**2)
+#                
+#                tabF[plate][well]=(speed, trajPerFrame)
+#            else:
+#                speed, trajPerFrame = tabF[plate][well]
+#                
+#            if plot and not averagingOverWells:
+#                average = np.sum(speed,1)/trajPerFrame[:,0]
+#                average = np.array([np.mean(average[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
+#                
+#                ax1.plot(range(frames[0]), average[:frames[0]], color=couleurs[k], label='D {}'.format(wells.index( well)))
+#                ax1.plot(range(frames[1],frames[1]+average[frames[1]:].shape[0]), average[frames[1]:], color=couleurs[k])
+#                
+#                proliferation = np.array([np.mean(trajPerFrame[frame:frame+6,0]) for frame in range(trajPerFrame.shape[0]-6)])
+#                proliferation/=float(np.mean(trajPerFrame[:6,0]))
+#                
+#                ax2.plot(range(frames[0]), proliferation[:frames[0]],color=couleurs[k], label='D {}'.format(wells.index( well)))
+#                ax2.plot(range(frames[1], frames[1]+average[frames[1]:].shape[0]), proliferation[frames[1]:],color=couleurs[k])
+#                
+#                ax1.text(frames[2]+2, average[-1], 'D {}'.format(wells.index( well)))
+#                ax2.text(frames[2]+2, proliferation[-1], 'D {}'.format(wells.index( well)))
+#                
+#                averages.append(average); proliferations.append(proliferation)
+#                
+#            if averagingOverWells:
+#                averageCour = np.sum(speed,1)/trajPerFrame[:,0]
+#                if plate=='130814':
+#                    averageCour = np.array([np.mean(averageCour[frame:frame+6]) for frame in range(149)], dtype=float)
+#                else:
+#                    averageCour = np.array([np.mean(averageCour[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
+#                average = averageCour if average is None else np.vstack((average, averageCour))
+#
+#                if plate=='130814':
+#                    proliferationCour = np.array([np.mean(trajPerFrame[frame:frame+6,0]) for frame in range(149)])
+#                else:
+#                    proliferationCour = np.array([np.mean(trajPerFrame[frame:frame+6,0]) for frame in range(trajPerFrame.shape[0]-6)])                
+#
+#                proliferationCour/=float(np.mean(trajPerFrame[:6,0]))
+#                proliferation = proliferationCour if proliferation is None else np.vstack((proliferation, proliferationCour))
+#            #plotSpeedHistogramEvolution(plate, well, speed,name,outputFolder)
+#        
+#        if plot and averagingOverWells:
+#            average=average.T; proliferation=proliferation.T
+#            ax1.plot(range(frames[0]), np.mean(average[:frames[0]],1), label=name)
+#            ax1.errorbar(range(frames[0]), np.mean(average[:frames[0]],1), np.std(average[:frames[0]],1))
+#            
+#            ax2.plot(range(frames[0]), np.mean(proliferation[:frames[0]],1), label=name)
+#            ax2.errorbar(range(frames[0]), np.mean(proliferation[:frames[0]],1), np.std(proliferation[:frames[0]],1))
+#            
 #            ax1.plot(range(frames[1], frames[1]+average[frames[1]:].shape[0]), np.mean(average[frames[1]:],1))
 #            ax1.errorbar(range(frames[1], frames[1]+average[frames[1]:].shape[0]),np.mean(average[frames[1]:],1), np.std(average[frames[1]:],1))
 #            
 #            ax2.plot(range(frames[1], frames[1]+average[frames[1]:].shape[0]), np.mean(proliferation[frames[1]:],1))
 #            ax2.errorbar(range(frames[1], frames[1]+average[frames[1]:].shape[0]), np.mean(proliferation[frames[1]:],1), np.std(proliferation[frames[1]:],1))
-            
-        if not load:
-            filename='speedOverTime{}.pkl'.format(name)
-            if filename in os.listdir(outputFolder):
-                f=open(os.path.join(outputFolder, filename), 'r')
-                tab=pickle.load(f)
-                tab.update(tabF)
-            else:
-                tab=tabF
-                
-            f=open(os.path.join(outputFolder, filename), 'w')
-            pickle.dump(tab, f)
-            f.close()  
-    if plot:
-        ax1.grid(True)
-        ax2.grid(True)
-        ax1.set_ylim(1.5,6.5)
-        ax2.set_ylim(0.7, 1.7)
-        ax1.set_xlim(-5, 200)
-        ax2.set_xlim(-5, 200)
-        ax1.legend(loc=2); ax1.set_title('Speed average over time {}'.format(name))
-        #ax1.set_xticklabels(['24', '36.5', '49', '61.5', '74'])
-        #ax2.set_xticklabels(['24', '36.5', '49', '61.5', '74'])
-        ax2.set_title("Proliferation over time")
-    if averagingOverWells:
-        p.savefig(os.path.join(outputFolder, '{}_speed_{}.png'.format(plate,name+'_average')))
-    else:
-        p.savefig(os.path.join(outputFolder, '{}_speed_{}.png'.format(plate, name)))
-    return np.array(averages), np.array(proliferations)
-
-
-def featureEvolOverTime_august(dicT, connexions, outputFolder, verbose, movie_length, name, plot=False, load=False, averagingOverWells=False):
-    tabF={}
-    filename='speedOverTime{}.pkl'.format(name)
-
-    if load:
-        f=open(os.path.join(outputFolder, filename), 'r')
-        tabF = pickle.load(f)
-        f.close()  
-        
-        platesL = tabF.keys()
-    else:
-        platesL = dicT.keys()
-        
-    for plate in platesL:
-        averages=[]; proliferations=[]
-        average = None
-        proliferation = None
-        
-        if plate =='150814':
-            frames=[41,129,185]
-            
-        elif plate=='130814':
-            frames=[2,75,149]
-            
-        if plate not in tabF:
-            tabF[plate]={}
-            wells = sorted(dicT[plate].keys())
-        else:
-            wells = sorted(tabF[plate].keys())
-
-        if plot:
-            import matplotlib.pyplot as p
-            fig=p.figure(figsize=(24,13))
-            ax1=fig.add_subplot(121)
-            ax2 = fig.add_subplot(122)
-            
-            
-        for k,well in enumerate(wells):
-            if well not in tabF[plate]:
-                tabF[plate][well]=None
-            print plate, well
-            
-            if not load:
-                dicC = dicT[plate][well]
-                allDisp, trajPerFrame = driftCorrection(movie_length[plate][well]-1, outputFolder, plate, well, dicC.lstTraj, just_average_speed=True)
-                X = allDisp[:,:,0]; Y=allDisp[:,:,1]
-                speed = np.sqrt(X**2+Y**2)
-                
-                tabF[plate][well]=(speed, trajPerFrame)
-            else:
-                speed, trajPerFrame = tabF[plate][well]
-                
-            if plot and not averagingOverWells:
-                average = np.sum(speed,1)/trajPerFrame[:,0]
-                average = np.array([np.mean(average[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
-                
-                ax1.plot(range(frames[0]), average[:frames[0]], color=couleurs[k], label='D {}'.format(wells.index( well)))
-                ax1.plot(range(frames[1],frames[1]+average[frames[1]:].shape[0]), average[frames[1]:], color=couleurs[k])
-                
-                proliferation = np.array([np.mean(trajPerFrame[frame:frame+6,0]) for frame in range(trajPerFrame.shape[0]-6)])
-                proliferation/=float(np.mean(trajPerFrame[:6,0]))
-                
-                ax2.plot(range(frames[0]), proliferation[:frames[0]],color=couleurs[k], label='D {}'.format(wells.index( well)))
-                ax2.plot(range(frames[1], frames[1]+average[frames[1]:].shape[0]), proliferation[frames[1]:],color=couleurs[k])
-                
-                ax1.text(frames[2]+2, average[-1], 'D {}'.format(wells.index( well)))
-                ax2.text(frames[2]+2, proliferation[-1], 'D {}'.format(wells.index( well)))
-                
-                averages.append(average); proliferations.append(proliferation)
-                
-            if averagingOverWells:
-                averageCour = np.sum(speed,1)/trajPerFrame[:,0]
-                if plate=='130814':
-                    averageCour = np.array([np.mean(averageCour[frame:frame+6]) for frame in range(149)], dtype=float)
-                else:
-                    averageCour = np.array([np.mean(averageCour[frame:frame+6]) for frame in range(trajPerFrame.shape[0]-6)], dtype=float)
-                average = averageCour if average is None else np.vstack((average, averageCour))
-
-                if plate=='130814':
-                    proliferationCour = np.array([np.mean(trajPerFrame[frame:frame+6,0]) for frame in range(149)])
-                else:
-                    proliferationCour = np.array([np.mean(trajPerFrame[frame:frame+6,0]) for frame in range(trajPerFrame.shape[0]-6)])                
-
-                proliferationCour/=float(np.mean(trajPerFrame[:6,0]))
-                proliferation = proliferationCour if proliferation is None else np.vstack((proliferation, proliferationCour))
-            #plotSpeedHistogramEvolution(plate, well, speed,name,outputFolder)
-        
-        if plot and averagingOverWells:
-            average=average.T; proliferation=proliferation.T
-            ax1.plot(range(frames[0]), np.mean(average[:frames[0]],1), label=name)
-            ax1.errorbar(range(frames[0]), np.mean(average[:frames[0]],1), np.std(average[:frames[0]],1))
-            
-            ax2.plot(range(frames[0]), np.mean(proliferation[:frames[0]],1), label=name)
-            ax2.errorbar(range(frames[0]), np.mean(proliferation[:frames[0]],1), np.std(proliferation[:frames[0]],1))
-            
-            ax1.plot(range(frames[1], frames[1]+average[frames[1]:].shape[0]), np.mean(average[frames[1]:],1))
-            ax1.errorbar(range(frames[1], frames[1]+average[frames[1]:].shape[0]),np.mean(average[frames[1]:],1), np.std(average[frames[1]:],1))
-            
-            ax2.plot(range(frames[1], frames[1]+average[frames[1]:].shape[0]), np.mean(proliferation[frames[1]:],1))
-            ax2.errorbar(range(frames[1], frames[1]+average[frames[1]:].shape[0]), np.mean(proliferation[frames[1]:],1), np.std(proliferation[frames[1]:],1))
-            
-            
-        if not load:
-            filename='speedOverTime{}.pkl'.format(name)
-            f=open(os.path.join(outputFolder, filename), 'w')
-            pickle.dump(tabF, f)
-            f.close()  
-        if plot:
-            ax1.grid(True)
-            ax2.grid(True)
-            ax1.set_ylim(1.5,6.5)
-            ax2.set_ylim(0.7, 1.7)
-            ax1.set_xlim(-5, 200)
-            ax2.set_xlim(-5, 200)
-            ax1.legend(loc=2); ax1.set_title('Speed average over time {}'.format(name))
-            #ax1.set_xticklabels(['24', '36.5', '49', '61.5', '74'])
-            #ax2.set_xticklabels(['24', '36.5', '49', '61.5', '74'])
-            ax2.set_title("Proliferation over time")
-            if averagingOverWells:
-                p.savefig(os.path.join(outputFolder, 'speed_{}.png'.format(name+'_average')))
-            else:
-                p.savefig(os.path.join(outputFolder, 'speed_{}.png'.format(name)))
-        return np.array(averages), np.array(proliferations)
+#            
+#            
+#        if not load:
+#            filename='speedOverTime{}.pkl'.format(name)
+#            f=open(os.path.join(outputFolder, filename), 'w')
+#            pickle.dump(tabF, f)
+#            f.close()  
+#        if plot:
+#            ax1.grid(True)
+#            ax2.grid(True)
+#            ax1.set_ylim(1.5,6.5)
+#            ax2.set_ylim(0.7, 1.7)
+#            ax1.set_xlim(-5, 200)
+#            ax2.set_xlim(-5, 200)
+#            ax1.legend(loc=2); ax1.set_title('Speed average over time {}'.format(name))
+#            #ax1.set_xticklabels(['24', '36.5', '49', '61.5', '74'])
+#            #ax2.set_xticklabels(['24', '36.5', '49', '61.5', '74'])
+#            ax2.set_title("Proliferation over time")
+#            if averagingOverWells:
+#                p.savefig(os.path.join(outputFolder, 'speed_{}.png'.format(name+'_average')))
+#            else:
+#                p.savefig(os.path.join(outputFolder, 'speed_{}.png'.format(name)))
+#        return np.array(averages), np.array(proliferations)
 
 def compaSegmentation(hdf5Folder, plate, sh=False, number=False): 
     '''

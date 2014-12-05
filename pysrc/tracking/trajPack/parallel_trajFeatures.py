@@ -30,7 +30,6 @@ def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = Fa
     fichier = open(os.path.join(loadingFolder,"featuresToDelete.pkl"), 'r')
     f = pickle.load(fichier)
     fichier.close()
-
     newFrameLot = None
     listP = os.listdir(dataFolder)
     if w is not None:
@@ -49,16 +48,16 @@ def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = Fa
             filenameT = '/media/lalil0u/New/workspace2/Tracking/data/trainingset/PL'+plate+"___P"+well+"___T00000.xml"
         else:
             filenameT = None
-        
-        if intensity_qc_dict is not None and well in intensity_qc_dict and intensity_qc_dict[well]!=[]:
-            pdb.set_trace()#just check how wells are numbered
-            frames_to_skip=intensity_qc_dict[well]
+        if intensity_qc_dict is not None and int(well[:-3]) in intensity_qc_dict and intensity_qc_dict[int(well[:-3])].shape[0]>0:
+            frames_to_skip=intensity_qc_dict[int(well[:-3])]
             for el in frames_to_skip:
                 if el+1 in frames_to_skip:
                     ind=np.where(frames_to_skip==el)
                     print "Issue with {}, {} in frames_to_skip".format(el, el+1)
-                    frames_to_skip=np.delete(frames_to_skip, [ind, ind+1])
-            
+                    pdb.set_trace()
+                    #frames_to_skip=np.delete(frames_to_skip, [ind, ind+1])
+        else:
+            frames_to_skip=None
         
         frameLotC, tabFC = gettingRaw(filename, filenameT, plate, well, name_primary_channel=name_primary_channel, frames_to_skip=frames_to_skip)
         if newFrameLot == None:
@@ -140,6 +139,12 @@ Input:
 - choice: if the goal is to extract trajectories or trajectory features
 - name: generic filename for trajectory features
 - repeat: if existing files should be overwritten
+
+Note: there is a strange thing with the way iPython parses options. If you say
+>>>ww="00020_01.hdf5"
+>>>%run tracking/trajPack/parallel_trajFeatures -p 271114 -w $ww -d /media/lalil0u/New/projects/Xb_screen/plates__all_features_2 -c 1 --ff 0 -n features_intQC_{}.pkl
+THEN it doesn't replace the first $ww with
+
 '''
     initTime=time.clock()
     parser = OptionParser(usage="usage: %prog [options]",
@@ -181,10 +186,9 @@ Input:
         outputFolder = os.path.join("/share/data20T/mitocheck/tracking_results", options.plate)
     elif getpass.getuser()=='lalil0u':
         outputFolder = os.path.join("/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2", options.plate)
-    fi = 'traj_noF_densities_w{}.pkl'.format(options.well)
+    fi = 'traj_intQC_w{}.pkl'.format(options.well)
     
     fi_trajfeatures = options.filename.format(options.well[:-5])
-    
     if options.simulated:
         training=True
         outputFolder = os.path.join('../resultData/simulated_traj/simres/plates', options.plate)

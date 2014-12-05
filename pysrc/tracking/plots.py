@@ -13,7 +13,7 @@ from PyPack import fHacktrack2
 from dataPack.joining import FeatureException
 from trajPack import featuresHisto
 
-from util.plots import makeColorRamp, basic_colors, markers
+from util.plots import makeColorRamp, basic_colors, markers, couleurs
 
 import brewer2mpl
 
@@ -615,12 +615,18 @@ def plotKMeansPerFilm(m, ctrlStatus,labls, colors, Td=False, ctrlcov=None, ctrlc
         ax.contour(X,Y, np.sqrt(robdist), cmap=p.cm.PuBu_r, linestyles='dashed')
         ax.imshow(np.rot90(np.sqrt(robdist)), cmap=p.cm.gist_earth_r,extent=[0, 100, 0, 100])
 #dealing with colors
-    cols = []
+    cols = []; xbL=[]
     if colors=='gene':
         for i,el in enumerate(labls):
             if el=='no target':cols.append("black")
             elif el=='ctrl': cols.append("red")
-            else: cols.append("green")
+            else: 
+                if 'ctrl' in labls:
+                    cols.append("green")
+                else:
+                    if el.split(' ')[0] not in xbL:
+                        xbL.append(el.split(' ')[0])
+                    cols.append(couleurs[xbL.index(el.split(' ')[0])])
     elif colors=='ctrlStatus':
         for i, el in enumerate(ctrlStatus):
             if el==0:
