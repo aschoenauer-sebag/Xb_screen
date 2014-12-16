@@ -351,6 +351,54 @@ def checkingAllHDF5(folder="/share/data20T/mitocheck/Alice/results",
     f=open('nb_Images2_raw_hdf5.pkl', 'w'); pickle.dump(result_arr, f); f.close()
     return 
 
+def countingCZI_images(folder_CBIO, folder_SHARE):
+    msg=defaultdict(dict)
+    platesL=[]; different=[]
+    for folder in [folder_CBIO, folder_SHARE]:
+#checking IMAGES
+        f=os.path.join(folder, 'raw_data')
+        plates=sorted(os.listdir(f))
+        platesL.extend(plates)
+        for plate in plates:
+            msg[folder][plate]=defaultdict(list)
+            wells=sorted(os.listdir(os.path.join(f, plate)))
+            msg[folder][plate].append(len(wells))
+            
+            for well in wells:
+                msg[folder][plate].append(len(filter(lambda x: 'c00002' in x, os.listdir(os.path.join(f, plate, well)))))
+                msg[folder][plate].append(len(filter(lambda x: 'c00001' in x, os.listdir(os.path.join(f, plate, well)))))
+                
+#CHECKING CZI files
+        f=os.path.join(folder, 'CZI_files')
+        plates=sorted(os.listdir(f))
+        platesL.extend(plates)
+        for plate in plates:
+            msg[folder][plate].append(len(os.listdir(os.path.join(f, plate))))
+            
+    
+    platesL=Counter(platesL).keys()
+    
+    for plate in platesL:
+        print "##### {}".format(plate)
+        if plate not in msg[folder_CBIO]:
+            print "{} not in ".format(plate),folder_CBIO
+            print "Number of wells ", msg[folder_SHARE][plate][0]
+            pdb.set_trace()
+            continue
+        elif plate not in msg[folder_SHARE]:
+            print "{} not in ".format(plate),folder_SHARE
+            print "Number of wells ", msg[folder_CBIO][plate][0]
+            pdb.set_trace()
+            continue
+        if msg[folder_CBIO][0]!=msg[folder_SHARE][0]:
+            print 'Not the same number of wells!'
+            different.append(plate)
+        arr1=np.array(msg[folder_CBIO][plate][1:]); arr2=np.array(msg[folder_SHARE][plate][1:])
+        if np.any(arr1!=arr2):
+            print np.where(arr1!=arr2)
+            different.append(plate)
+            
+
 def countingPNG(folder='/share/data20T/mitocheck/compressed_data'):
     '''
     Counts the number of PNG images of the raw data in the given folder
