@@ -380,32 +380,39 @@ def countingCZI_images(folder_CBIO, folder_SHARE):
     
     for plate in platesL:
         print "##### {}".format(plate)
-        print 'IMAGES CBIO '
+        print 'IMAGES CBIO ',
         try:
             print msg[folder_CBIO][plate][0]
         except:
             print 0
-        print 'IMAGES SHARE'
+        print 'IMAGES SHARE ',
         try:
             print msg[folder_SHARE][plate][0]
         except:
             print 0
         
         if plate in msg[folder_CBIO] and plate in msg[folder_SHARE]:
-            if msg[folder_CBIO][plate][0]!=msg[folder_SHARE][plate][0]:
-                print 'Not the same number of wells!'
-                different.append(plate)
-            arr1=np.array(msg[folder_CBIO][plate][1:]); arr2=np.array(msg[folder_SHARE][plate][1:])
-            if np.any(arr1!=arr2):
-                print 'Image numbers differences', np.where(arr1!=arr2)
-                different[0].append(plate)
+            try:
+                if msg[folder_CBIO][plate][0]!=msg[folder_SHARE][plate][0]:
+                    print 'Not the same number of wells!'
+                    different.append(plate)
+            except IndexError:
+                if msg[folder_CBIO][plate]==[]:
+                    print "Empty folders"
+                else:
+                    pdb.set_trace()
+            else:
+                arr1=np.array(msg[folder_CBIO][plate][1:]); arr2=np.array(msg[folder_SHARE][plate][1:])
+                if np.any(arr1!=arr2):
+                    print 'Image numbers differences', np.where(arr1!=arr2)
+                    different[0].append(plate)
                 
-        print 'CZI CBIO '
+        print 'CZI CBIO ',
         try:
             print czi[folder_CBIO][plate]
         except:
             print 0
-        print 'CZI SHARE'
+        print 'CZI SHARE ',
         try:
             print czi[folder_SHARE][plate]
         except:
