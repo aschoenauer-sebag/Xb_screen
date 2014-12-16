@@ -380,20 +380,18 @@ def countingCZI_images(folder_CBIO, folder_SHARE):
     
     for plate in platesL:
         print "##### {}".format(plate)
-        if plate not in msg[folder_CBIO]:
-            print "{} not in ".format(plate),folder_CBIO
-            try:
-                print "Number of wells ", msg[folder_SHARE][plate][0]
-            except IndexError:
-                print "{} not in ".format(plate),folder_SHARE
-                
-        elif plate not in msg[folder_SHARE]:
-            print "{} not in ".format(plate),folder_SHARE
-            try:
-                print "Number of wells ", msg[folder_CBIO][plate][0]
-            except IndexError:
-                print "{} not in ".format(plate),folder_CBIO
-        else:
+        print 'IMAGES CBIO '
+        try:
+            print msg[folder_CBIO][plate][0]
+        except:
+            print 0
+        print 'IMAGES SHARE'
+        try:
+            print msg[folder_SHARE][plate][0]
+        except:
+            print 0
+        
+        if plate in msg[folder_CBIO] and plate in msg[folder_SHARE]:
             if msg[folder_CBIO][plate][0]!=msg[folder_SHARE][plate][0]:
                 print 'Not the same number of wells!'
                 different.append(plate)
@@ -402,11 +400,17 @@ def countingCZI_images(folder_CBIO, folder_SHARE):
                 print 'Image numbers differences', np.where(arr1!=arr2)
                 different[0].append(plate)
                 
-        if plate not in czi[folder_CBIO]:
-            print "CZI files in share only ", czi[folder_SHARE][plate]
-        elif plate not in czi[folder_SHARE]:
-            print "CZI files in share only ", czi[folder_CBIO][plate]
-        elif czi[folder_CBIO][plate]!=czi[folder_SHARE][plate]:
+        print 'CZI CBIO '
+        try:
+            print czi[folder_CBIO][plate]
+        except:
+            print 0
+        print 'CZI SHARE'
+        try:
+            print czi[folder_SHARE][plate]
+        except:
+            print 0
+        if plate in czi[folder_CBIO] and plate in czi[folder_SHARE] and czi[folder_CBIO][plate]!=czi[folder_SHARE][plate]:
             print "Not the same numbers of czi files "
             different[1].append(plate)
             
