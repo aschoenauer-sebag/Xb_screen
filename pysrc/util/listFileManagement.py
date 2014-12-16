@@ -382,10 +382,17 @@ def countingCZI_images(folder_CBIO, folder_SHARE):
         print "##### {}".format(plate)
         if plate not in msg[folder_CBIO]:
             print "{} not in ".format(plate),folder_CBIO
-            print "Number of wells ", msg[folder_SHARE][plate][0]
+            try:
+                print "Number of wells ", msg[folder_SHARE][plate][0]
+            except IndexError:
+                print "{} not in ".format(plate),folder_SHARE
+                
         elif plate not in msg[folder_SHARE]:
             print "{} not in ".format(plate),folder_SHARE
-            print "Number of wells ", msg[folder_CBIO][plate][0]
+            try:
+                print "Number of wells ", msg[folder_CBIO][plate][0]
+            except IndexError:
+                print "{} not in ".format(plate),folder_CBIO
         else:
             if msg[folder_CBIO][plate][0]!=msg[folder_SHARE][plate][0]:
                 print 'Not the same number of wells!'
