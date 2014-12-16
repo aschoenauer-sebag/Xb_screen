@@ -361,7 +361,7 @@ def countingCZI_images(folder_CBIO, folder_SHARE):
         plates=filter(lambda x: os.path.isdir(os.path.join(f, x)), sorted(os.listdir(f)))
         platesL.extend(plates)
         for plate in plates:
-            wells=sorted(os.listdir(os.path.join(f, plate)))
+            wells=filter(lambda x: os.path.isdir(os.path.join(f, plate, x)), sorted(os.listdir(os.path.join(f, plate))))
             msg[folder][plate].append(len(wells))
             
             for well in wells:
