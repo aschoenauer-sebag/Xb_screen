@@ -404,6 +404,7 @@ def countingCZI_images(folder_CBIO, folder_SHARE):
                     pdb.set_trace()
             else:
                 arr1=np.array(msg[folder_CBIO][plate][1:]); arr2=np.array(msg[folder_SHARE][plate][1:])
+                pdb.set_trace()
                 if np.any(arr1!=arr2):
                     print '\n Image numbers differences', np.where(arr1!=arr2)
                     different[0].append(plate)
