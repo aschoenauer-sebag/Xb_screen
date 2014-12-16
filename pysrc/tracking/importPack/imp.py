@@ -52,6 +52,7 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False, se
     pathFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/%s/object_features"%primary_channel
     pathCenters = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/%s/center"%primary_channel
     pathOrientation = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/%s/orientation"%primary_channel
+    pathClassification=None; classes=None
     #not loading segmentation nor raw data since we only use the features that are computed by Cell Cognition
 
     try:
@@ -64,16 +65,31 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False, se
         try:
             whereToLookAt.append(np.where(presentFeatures==feature)[0][0])
         except:
-            print 'Feature {} not in Cell Cognition output'.format(feature)
-    #NB: this does not modify featureL in place.
-            featureL = np.delete(featureL, i)
-            continue
+            try:
+                classes = importClassNames(filename,primary_channel)
+            except:
+                print 'Feature {} not in Cell Cognition output'.format(feature)
+#NB: this does not modify featureL in place.
+                featureL = np.delete(featureL, i)
+                continue
+            else:
+                #meaning we are looking at the nuclei classification
+                if feature in classes:                  
+                    pathClassification = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/%s/object_classification/prediction"%primary_channel
+                
+                else:
+                    print 'Feature {} not in Cell Cognition output'.format(feature)
+                    #NB: this does not modify featureL in place.
+                    featureL = np.delete(featureL, i)
+                    continue
         
     print "Considering features ", featureL, 'for plate ', plaque, 'well ', puits
     tabObjects = vi.readHDF5(filename, pathObjects)
     tabFeatures = vi.readHDF5(filename, pathFeatures)
     tabCenters = vi.readHDF5(filename, pathCenters)
     tabOrientation = vi.readHDF5(filename, pathOrientation)
+    
+    tabClassification = None if pathClassification is None else np.array(vi.readHDF5(filename, pathClassification), dtype=int)
     
     if secondary:
         pathSecondaryObjects = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/object/secondary__propagate"
@@ -120,13 +136,13 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False, se
         if (secondary and secondary_success) or (secondary_outside and secondary_success):
             secondaryFeaturesF = tabSecondaryFeatures[cellsF.firstLine():cellsF.lastLine()+1, whereToLookAt]
             featuresF = np.hstack((featuresF, secondaryFeaturesF))
+        if tabClassification is not None:
+            currClassification=tabClassification[cellsF.firstLine():cellsF.lastLine()+1]
         
-        newFrame = frame(plaque, puits, i, #tabSeg[0][i][0][:][:], tabRaw[0][i][0][:][:],
-                          cellsF, centersF, featuresF, orientationF)
-        #k=2;dmax=400
-        #newFrame.nearest_neighbors(k, dmax, False)
+        newFrame = frame(plaque, puits, i, cellsF, centersF, featuresF, orientationF,
+                         classification=currClassification, secondary=secondary_success)
         frameLot.append(newFrame)
-    return featureL, frameLot
+    return featureL, classes, frameLot
 
 def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, name_primary_channel='primary__primary', frames_to_skip=None):
 
@@ -202,6 +218,14 @@ def importSegOnly(filename, plaque, puits):
     tabSeg = vi.readHDF5(filename, pathSeg)
     
     return tabSeg
+
+def importClassNames(filename, primary_channel='primary__primary'):
+#   
+    path = "definition/feature/%s/object_classification/class_labels"%primary_channel
+    
+    tab = vi.readHDF5(filename, path)
+    classes=np.array([el[1] for el in tab])  
+    return classes
 
 def importFeaturesNames(filename, primary_channel='primary__primary', featureNumberTotal = True):
 #   
@@ -279,7 +303,7 @@ class cells():
         
 
 class frame():
-    def __init__(self, plate, well, index, labels, centers, features, orientation):
+    def __init__(self, plate, well, index, labels, centers, features, orientation,classification=None, secondary=False):
         self.plate = plate
         self.well = well
         self.index = index
@@ -291,6 +315,10 @@ class frame():
         self.orientation = orientation
         self.source = []
         self.target = []
+    #in case the nuclei have been segmented
+        self.classification=classification
+    #saving if anything has been processed on the second channel
+        self.secondary=secondary
         
     def getFeatures(self, label):
         try:

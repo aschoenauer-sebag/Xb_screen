@@ -2,11 +2,11 @@
 
 ###DIRECTORY SETTINGS
 #where the images are
-raw_data_dir = "/media/lalil0u/FREECOM HDD/Alice/images"#"/media/lalil0u/XB SCREEN/ok cbio/images"#"/media/lalil0u/New/data/Xb_screen/Images_Cecog"#
+raw_data_dir = "/media/lalil0u/XB SCREEN/ok cbio/images"#"/media/lalil0u/New/data/Xb_screen/Images_Cecog"#
 base_result_dir = '/media/lalil0u/New/projects/Xb_screen'
 
 #where hdf5 files are
-raw_result_dir ="/media/lalil0u/New/projects/Xb_screen/plates__all_features_2bis"
+raw_result_dir ="/media/lalil0u/New/projects/Xb_screen/plates__all_features_2"
 
 #Where to save processed results
 result_dir = os.path.join(base_result_dir, 'dry_lab_results')
@@ -27,9 +27,9 @@ missing_cols = {'11414':(1,2)}
 ###FEATURES OF INTEREST
 #Plate features and channel of extraction
 featuresOfInterest = ['Flou']
-featureChannels = [0]
+featureChannels = [1]
 #Well features
-well_features = ["cell_count", 'Flou_ch1']
+well_features = ["cell_count", 'Flou']
 
 ###DATA BASE SETTINGS
 #Plate name
@@ -49,8 +49,6 @@ countEmpty = False
 density_plot_settings = {
     'min_count': 20,
     'max_count': 600,
-    'min_class': 0,
-    'max_class': 0.6,
     'min_circularity': 0.1,
     'max_circularity': 0.8,
     'min_proliferation': 0.5, 
@@ -61,8 +59,7 @@ density_plot_settings = {
 
 well_plot_settings={
                     'cell_count':(0, 600),
-                    'circularity':(0, 0.75),
-                    'Flou_ch1':(0,1)
+                    'circularity':(0, 0.75)
 }
 
 TRANSLATION_WHOLENAMED = {

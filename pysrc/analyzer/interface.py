@@ -54,6 +54,11 @@ class HTMLGenerator():
                         print "No image for well ", np.where(well_setup==well)[0][0]+1, 'plate ', plate
                         continue
                     else:
+                        if not os.path.isdir(os.path.join(self.settings.plot_dir, plate)):
+                            os.mkdir(os.path.join(self.settings.plot_dir, plate))
+                        if 'mean_intensity_{}--W{:>05}.png'.format(plate, np.where(well_setup==well)[0][0]+1) in os.listdir(os.path.join(self.settings.plot_dir,plate)):
+                            continue
+                        
                         mean_intensity=np.array([np.mean(vi.readImage(os.path.join(imgDir, im))) for im in sorted(filter(lambda x: 'c00002' in x, l))])
                         dev_intensity=np.std(mean_intensity)
                         local_mean=[np.mean(mean_intensity[k:k+10]) for k in range(mean_intensity.shape[0]-10)]
@@ -86,20 +91,21 @@ class HTMLGenerator():
         dataFolder = self.settings.raw_result_dir  
         print "Looking for features ", featureL
         for plate in plateL:
-            listW = filter(lambda x: '.hdf5' in x or '.ch5' in x, os.listdir(os.path.join(dataFolder, plate, 'hdf5')))
+            listW = sorted(filter(lambda x: '.hdf5' in x or '.ch5' in x, os.listdir(os.path.join(dataFolder, plate, 'hdf5'))))
             for filename in listW:
                 well=filename.split('.')[0]
                     
                 filename = os.path.join(dataFolder, plate,"hdf5", filename)
-                try:
-                    featureL, frameLotC= importTargetedFromHDF5(filename, plate, well,featureL, secondary=self.settings.secondaryChannel)
-                except ValueError:
-                    print "Error at loading from hdf5 ", plate, well
-                    continue
+           #     try:
+                featureL,classes, frameLotC= importTargetedFromHDF5(filename, plate, well,featureL, secondary=self.settings.secondaryChannel)
+#                except ValueError:
+#                    print "Error at loading from hdf5 ", plate, well
+#                    pdb.set_trace()
+#                    continue
                 if newFrameLot == None:
                     newFrameLot = frameLotC 
                 else: newFrameLot.addFrameLot(frameLotC)
-        return featureL, newFrameLot 
+        return featureL,classes, newFrameLot 
     
     def featureComparison(self, table, index):
         primary = table[:,index]; secondary =table[:,self.FEATURE_NUMBER+index]+0.00001
@@ -109,7 +115,7 @@ class HTMLGenerator():
         h1,_ = np.histogram(array, bins = bins)
         return h1[binOfInterest]/float(np.sum(h1))
         
-    def formatData(self, frameLot, resD, featureL, featureChannels):
+    def formatData(self, frameLot, resD, featureL,classes, featureChannels):
         featureL = list(featureL)
         
         for plate in frameLot.lstFrames:
@@ -118,14 +124,11 @@ class HTMLGenerator():
                 warn("Plate {} not in result dictionary from CSV file extraction".format(plate))
                 continue
             for well in frameLot.lstFrames[plate]:
-                #setting secondary=True for the well: by default we assume there's data for both channels (Cy3 and GFP)
-                secondary = True
+                secondary=frameLot.lstFrames[plate][well][0].secondary
+                
                 if int(well[:-3]) not in resD[plate]:
                     warn("Well {} not in result dictionary from CSV file extraction".format(well))
                     continue
-                if frameLot.lstFrames[plate][well][0].features.shape[1]==self.FEATURE_NUMBER:
-                    print "No secondary channel for plate ", plate, "well ", well
-                    secondary=False
                 
                 result={'cell_count':[], 'red_only':[], 'circularity':[]}
                 argL = zip(filter(lambda x: x != 'roisize', featureL), featureChannels)
@@ -147,6 +150,12 @@ class HTMLGenerator():
                         if arg[0]=='irregularity':
                             result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])]+1)
                             continue
+                        
+                        if arg[0]=='Flou' and classes is not None:
+                            bincount = np.bincount(frame.classification, minlength=len(classes))
+                            result['Flou_ch1'].append(bincount[np.where(classes=='Flou')]/float(np.sum(bincount)))
+                            continue
+                        
                         try:
                             result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])])
                         except:
@@ -165,19 +174,23 @@ class HTMLGenerator():
                 result["initCellCount"]=result["cell_count"][0]
                 result["endCellCount"]=result["cell_count"][-1]
                 result["proliferation"]=result["cell_count"][-1]/float(result["cell_count"][0])
-
+        #setting nan value if second channel not processed
                 result["initNucleusOnly"]=result["red_only"][0]
                 result["endNucleusOnly"]=result["red_only"][-1]
-                
-                result['initCircularity']= self.featureHist(result["circularity_ch2"][0], bins = [1, 1.4, 5], binOfInterest = 0)
-                result['endCircularity'] = self.featureHist(result["circularity_ch2"][-1], bins = [1, 1.4, 5], binOfInterest = 0)
-                
-                result['initCircMNucleus']= result['initCircularity']-result["initNucleusOnly"]
-                result['endCircMNucleus']= result['endCircularity']-result["endNucleusOnly"]
-                
-                result["death"]=result['endCircMNucleus']/float(result['initCircMNucleus']+0.0001)
+                try:
+                    result['initCircularity']= self.featureHist(result["circularity_ch2"][0], bins = [1, 1.4, 5], binOfInterest = 0)
+                    result['endCircularity'] = self.featureHist(result["circularity_ch2"][-1], bins = [1, 1.4, 5], binOfInterest = 0)
+                except KeyError:
+                    pass
+                else:
+                    result['initCircMNucleus']= result['initCircularity']-result["initNucleusOnly"]
+                    result['endCircMNucleus']= result['endCircularity']-result["endNucleusOnly"]            
+                    result["death"]=result['endCircMNucleus']/float(result['initCircMNucleus']+0.0001)
+                    
+                if classes is not None:
+            #computing the percentage of out of focus nuclei on the last image
+                    result['endFlou']=result['Flou_ch1'][-1]
                 resD[plate][int(well[:-3])].update(result)
-                        
         return 1
     
     def saveResults(self, plate, resD):
@@ -328,7 +341,8 @@ class HTMLGenerator():
             {'min': self.settings.density_plot_settings['min_circularity'], 'max': self.settings.density_plot_settings['max_circularity'], 'int_labels': False},
             
             {'min': self.settings.density_plot_settings['min_circularity'], 'max': self.settings.density_plot_settings['max_circularity'], 'int_labels': False},
-            {'min': self.settings.density_plot_settings['min_circularity'], 'max': self.settings.density_plot_settings['max_circularity'], 'int_labels': False}
+            {'min': self.settings.density_plot_settings['min_circularity'], 'max': self.settings.density_plot_settings['max_circularity'], 'int_labels': False},
+            {'min': self.settings.density_plot_settings['min_class'], 'max': self.settings.density_plot_settings['max_class'], 'int_labels': False}
             ]
         
         plotDir = os.path.join(self.settings.plot_dir, plate)
@@ -347,15 +361,19 @@ class HTMLGenerator():
         for pheno, setting in zip(['initCellCount', 'endCellCount', 'proliferation', 
                                    'initCircularity', 'endCircularity',  
                                    "initNucleusOnly", "endNucleusOnly",
-                                   'initCircMNucleus', 'endCircMNucleus'], settingL):
+                                   'initCircMNucleus', 'endCircMNucleus', 'endFlou'], settingL):
             print "working on ", pheno
             filename = '%s--%s.png' % (pheno, plate.split('_')[0])
             
             data = self.ap.prepareData(resCour, self.ap.getPhenoVal(pheno), self.well_lines_dict[plate])
+            try:
+                if np.isnan(data):
+                    continue
+            except:
+                pass
             #absent ce sont les puits ou on n'a pas de data mais on a des images, ie on devrait avoir des infos
             absent = np.where(data==-1)
             data[absent]=0
-            
             self.ap.plotArray(data, filename, plotDir=plotDir,
                 title='{} {}'.format(plate, pheno),
                 absent= absent,
@@ -401,8 +419,14 @@ class HTMLGenerator():
                     except KeyError:
                         max_=None; min_=None
                         
+                    if pheno=='cell_count':
+                        add_line=30
+                    elif pheno=='Flou_ch1':
+                        add_line=0.5
+                    else:
+                        add_line=None
                     self.wp.plotEvolution(final_well_num, data, filename,pheno, plotDir=plotDir,
-                    max_=max_, min_=min_, data2=data2,
+                    max_=max_, min_=min_, data2=data2,add_line=add_line,
                     title='Plate {}, well {}, evolution of {}'.format(plate, final_well_num, pheno))
         return
     
@@ -424,7 +448,7 @@ class HTMLGenerator():
                 else:
                     secondary=np.any(np.array(['c00001' in el for el in l]))
                     makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=plate, well=np.where(well_setup==well)[0][0]+1, 
-                                           ranges=[(100,1000),(300,2500)], secondary=secondary)
+                                           ranges=[(50,1000),(200,300)], secondary=secondary)
         return    
     
     def changeDBWellNumbers(self,plate, well_setup, idL):
@@ -481,8 +505,8 @@ class HTMLGenerator():
                 print ' *** performing well intensity quality control ***'
                 self.intensity_qc(plateL)
             print ' *** get result dictionary ***'
-            featureL, frameLot = self.targetedDataExtraction(plateL, featureL)
-            self.formatData(frameLot, resD, featureL, featureChannels)
+            featureL,classes, frameLot = self.targetedDataExtraction(plateL, featureL)
+            self.formatData(frameLot, resD, featureL,classes, featureChannels)
             for plate in plateL:
                 if True:
                     print ' *** generate density plots for %s: ***' % plate
@@ -555,7 +579,7 @@ class ArrayPlotter():
         try:
             print np.min(hitData[np.where(hitData>-1)]), np.max(hitData)
         except:
-            pass
+            return np.nan
         return hitData    
   
     def plotPlate(self, res,params, filename, where_wells, plotDir=None, title='', show=False):
@@ -736,8 +760,10 @@ class WellPlotter():
         
         
     def plotEvolution(self, well_num, data, filename,pheno, plotDir=None, max_=None, min_=None,data2=None,
+                      add_line=None,
                   title='', ctrl_data=None, show=False):
-        
+        if data is None:
+            return 
         if plotDir is None:
             plotDir = self.plotDir
         full_filename = os.path.join(plotDir, filename)
@@ -752,6 +778,8 @@ class WellPlotter():
             ax.scatter(range(data.shape[0]), data2, label="Fraction of cells simply marked", color = 'red')
         if min_ is not None:
             ax.set_ylim(min_, max_)
+        if add_line is not None:
+            p.axhline(add_line, color="red")
         ax.set_title(title)
         ax.legend()
         ax.grid(True)
