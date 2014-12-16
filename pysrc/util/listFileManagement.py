@@ -353,9 +353,10 @@ def checkingAllHDF5(folder="/share/data20T/mitocheck/Alice/results",
 
 def countingCZI_images(folder_CBIO, folder_SHARE):
     msg=defaultdict(dict)
-    platesL=[]; different=[]
+    czi=defaultdict(dict)
+    platesL=[]; different=[[],[]]
     for folder in [folder_CBIO, folder_SHARE]:
-        msg[folder]=defaultdict(list)
+        msg[folder]=defaultdict(list); czi[folder]=defaultdict(int)
 #checking IMAGES
         f=os.path.join(folder, 'raw_data')
         plates=filter(lambda x: os.path.isdir(os.path.join(f, x)), sorted(os.listdir(f)))
@@ -373,7 +374,7 @@ def countingCZI_images(folder_CBIO, folder_SHARE):
         plates=filter(lambda x: os.path.isdir(os.path.join(f,x)), sorted(os.listdir(f)))
         platesL.extend(plates)
         for plate in plates:
-            msg[folder][plate].append(len(os.listdir(os.path.join(f, plate))))
+            czi[folder][plate]=len(os.listdir(os.path.join(f, plate)))
             
     platesL=Counter(platesL).keys()
     
@@ -382,20 +383,27 @@ def countingCZI_images(folder_CBIO, folder_SHARE):
         if plate not in msg[folder_CBIO]:
             print "{} not in ".format(plate),folder_CBIO
             print "Number of wells ", msg[folder_SHARE][plate][0]
-            pdb.set_trace()
-            continue
         elif plate not in msg[folder_SHARE]:
             print "{} not in ".format(plate),folder_SHARE
             print "Number of wells ", msg[folder_CBIO][plate][0]
-            pdb.set_trace()
-            continue
-        if msg[folder_CBIO][0]!=msg[folder_SHARE][0]:
-            print 'Not the same number of wells!'
-            different.append(plate)
-        arr1=np.array(msg[folder_CBIO][plate][1:]); arr2=np.array(msg[folder_SHARE][plate][1:])
-        if np.any(arr1!=arr2):
-            print np.where(arr1!=arr2)
-            different.append(plate)
+        else:
+            if msg[folder_CBIO][plate][0]!=msg[folder_SHARE][plate][0]:
+                print 'Not the same number of wells!'
+                different.append(plate)
+            arr1=np.array(msg[folder_CBIO][plate][1:]); arr2=np.array(msg[folder_SHARE][plate][1:])
+            if np.any(arr1!=arr2):
+                print 'Image numbers differences', np.where(arr1!=arr2)
+                different[0].append(plate)
+                
+        if plate not in czi[folder_CBIO]:
+            print "CZI files in share only ", czi[folder_SHARE][plate]
+        elif plate not in czi[folder_SHARE]:
+            print "CZI files in share only ", czi[folder_CBIO][plate]
+        elif czi[folder_CBIO][plate]!=czi[folder_SHARE][plate]:
+            print "Not the same numbers of czi files "
+            different[1].append(plate)
+            
+    return msg, czi, different
             
 
 def countingPNG(folder='/share/data20T/mitocheck/compressed_data'):
