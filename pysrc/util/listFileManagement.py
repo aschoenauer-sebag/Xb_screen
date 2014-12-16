@@ -379,7 +379,7 @@ def countingCZI_images(folder_CBIO, folder_SHARE):
     platesL=sorted(Counter(platesL).keys())
     
     for plate in platesL:
-        print "##### {}".format(plate)
+        print "\n ########### {}".format(plate)
         print 'Images CBIO ',
         try:
             print msg[folder_CBIO][plate][0],
@@ -398,14 +398,14 @@ def countingCZI_images(folder_CBIO, folder_SHARE):
                     different.append(plate)
             except IndexError:
                 if msg[folder_CBIO][plate]==[] or msg[folder_SHARE][plate]==[]:
-                    print "on cbio ",msg[folder_CBIO][plate]
+                    print "\n on cbio ",msg[folder_CBIO][plate]
                     print "on share ",msg[folder_SHARE][plate]
                 else:
                     pdb.set_trace()
             else:
                 arr1=np.array(msg[folder_CBIO][plate][1:]); arr2=np.array(msg[folder_SHARE][plate][1:])
                 if np.any(arr1!=arr2):
-                    print 'Image numbers differences', np.where(arr1!=arr2)
+                    print '\n Image numbers differences', np.where(arr1!=arr2)
                     different[0].append(plate)
                 
         print 'CZI CBIO ',
@@ -419,7 +419,7 @@ def countingCZI_images(folder_CBIO, folder_SHARE):
         except:
             print 0,
         if plate in czi[folder_CBIO] and plate in czi[folder_SHARE] and czi[folder_CBIO][plate]!=czi[folder_SHARE][plate]:
-            print "Not the same numbers of czi files "
+            print "\n Not the same numbers of czi files "
             different[1].append(plate)
             
     return msg, czi, different
