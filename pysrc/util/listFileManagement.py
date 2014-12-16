@@ -375,7 +375,7 @@ def countingCZI_images(folder_CBIO, folder_SHARE):
         for plate in plates:
             msg[folder][plate].append(len(os.listdir(os.path.join(f, plate))))
             
-    
+    pdb.set_trace()
     platesL=Counter(platesL).keys()
     
     for plate in platesL:
