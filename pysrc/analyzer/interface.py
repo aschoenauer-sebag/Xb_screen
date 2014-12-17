@@ -96,12 +96,11 @@ class HTMLGenerator():
                 well=filename.split('.')[0]
                     
                 filename = os.path.join(dataFolder, plate,"hdf5", filename)
-           #     try:
-                featureL,classes, frameLotC= importTargetedFromHDF5(filename, plate, well,featureL, secondary=self.settings.secondaryChannel)
-#                except ValueError:
-#                    print "Error at loading from hdf5 ", plate, well
-#                    pdb.set_trace()
-#                    continue
+                try:
+                    featureL,classes, frameLotC= importTargetedFromHDF5(filename, plate, well,featureL, secondary=self.settings.secondaryChannel)
+                except ValueError:
+                    print "Error at loading from hdf5 ", plate, well
+                    continue
                 if newFrameLot == None:
                     newFrameLot = frameLotC 
                 else: newFrameLot.addFrameLot(frameLotC)
@@ -130,13 +129,23 @@ class HTMLGenerator():
                     warn("Well {} not in result dictionary from CSV file extraction".format(well))
                     continue
                 
-                result={'cell_count':[], 'red_only':[], 'circularity':[]}
+                result={'object_count':[], 'cell_count':[], 'red_only':[], 'circularity':[]}
                 argL = zip(filter(lambda x: x != 'roisize', featureL), featureChannels)
                 result.update({'{}_ch{}'.format(arg[0], arg[1]+1):[] for arg in argL})
                 
                 for frame_nb in frameLot.lstFrames[plate][well]:
                     frame = frameLot.lstFrames[plate][well][frame_nb]
-                    result["cell_count"].append(frame.centers.shape[0])
+                    
+                #for each frame, the object count = all objects = cells+out of focus objects + artefacts
+                    result["object_count"].append(frame.centers.shape[0])
+                    
+                #for each frame, the cell count = object count - [artefacts + out of focus objects]. Only possible if the classification was computed
+                    if classes is not None:
+                        bincount = np.bincount(frame.classification, minlength=len(classes))
+                        out_of_focus = bincount[np.where(classes=='Flou')]
+                        artefacts = bincount[np.where(classes=='Artefact')] + bincount[np.where(classes=='SmallUnidentified')] 
+                        result["cell_count"].append( frame.centers.shape[0] - (out_of_focus + artefacts))
+                #if second channel was processed, computing percentage of red only cells
                     try:
                         red_only_dist =self.featureComparison(frame.features, featureL.index("roisize"))
                         result["red_only"].append(self.featureHist(red_only_dist, bins = [0, 0.95, 1], binOfInterest = 1))
@@ -146,14 +155,14 @@ class HTMLGenerator():
                         else:
                             raise
                         
+                #other parameters are specified in the setting file    
                     for arg in argL:
                         if arg[0]=='irregularity':
                             result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])]+1)
                             continue
                         
                         if arg[0]=='Flou' and classes is not None:
-                            bincount = np.bincount(frame.classification, minlength=len(classes))
-                            result['Flou_ch1'].append(bincount[np.where(classes=='Flou')]/float(np.sum(bincount)))
+                            result['Flou_ch1'].append(out_of_focus/float(np.sum(bincount)))
                             continue
                         
                         try:
@@ -163,6 +172,8 @@ class HTMLGenerator():
                                 result['{}_ch{}'.format(arg[0], arg[1]+1)].append(np.nan)
                             else:
                                 raise
+                
+                #if the second channel was processed, looking at round cells from a cytoplasmic point of view because it's the cells that are dying (or dividing but here we neglect that)
                     if "circularity_ch2" in result:
                     #circularity at well level
                         if secondary:
@@ -171,8 +182,8 @@ class HTMLGenerator():
                             result['circularity'].append(np.nan)
 
                         
+                result["initObjectCount"]=result["object_count"][0]
                 result["initCellCount"]=result["cell_count"][0]
-                result["endCellCount"]=result["cell_count"][-1]
                 result["proliferation"]=result["cell_count"][-1]/float(result["cell_count"][0])
         #setting nan value if second channel not processed
                 result["initNucleusOnly"]=result["red_only"][0]
@@ -285,13 +296,13 @@ class HTMLGenerator():
                                             paramIntDict[legendName]=np.vstack((paramIntDict[legendName][:,:val.shape[0]], val))
                             else:                 
                                 if legend:
-                                    ax.scatter(range(len(resCour[well]['cell_count'])), val, 
+                                    ax.scatter(range(len(resCour[well]['object_count'])), val, 
                                         color=couleurs[paramIntVal.index(legendName)],
                                         label = legendName)
                                 else:
-                                    ax.scatter(range(len(resCour[well]['cell_count'])), val,
+                                    ax.scatter(range(len(resCour[well]['object_count'])), val,
                                         color=couleurs[paramIntVal.index(legendName)])
-                                ax.text(len(resCour[well]["cell_count"]), val[-1], 
+                                ax.text(len(resCour[well]["object_count"]), val[-1], 
                                         'p{} w{}'.format(plate, int(well)), fontsize=10)
 
             if plotMoy:
@@ -358,7 +369,7 @@ class HTMLGenerator():
         filename = '%s--%s.png' % ('plate', plate.split('_')[0])
         texts = self.ap.plotPlate(resCour,self.params, filename, where_wells = self.well_lines_dict[plate],plotDir=plotDir, title='{} {}'.format(plate, 'plate'))
         
-        for pheno, setting in zip(['initCellCount', 'endCellCount', 'proliferation', 
+        for pheno, setting in zip(['initObjectCount', 'initCellCount', 'proliferation', 
                                    'initCircularity', 'endCircularity',  
                                    "initNucleusOnly", "endNucleusOnly",
                                    'initCircMNucleus', 'endCircMNucleus', 'endFlou'], settingL):
@@ -412,6 +423,10 @@ class HTMLGenerator():
                 else:
                     if pheno =='circularity':
                         data2=self.wp.prepareData(resCour[well]['red_only'])
+                        label_data2="Fraction of cells simply marked"
+                    elif pheno=='cell_count':
+                        data2=self.wp.prepareData(resCour[well]['object_count'])
+                        label_data2='Object count'
                     else:
                         data2=None
                     try:
@@ -426,7 +441,7 @@ class HTMLGenerator():
                     else:
                         add_line=None
                     self.wp.plotEvolution(final_well_num, data, filename,pheno, plotDir=plotDir,
-                    max_=max_, min_=min_, data2=data2,add_line=add_line,
+                    max_=max_, min_=min_, data2=data2,add_line=add_line, label_data2=label_data2,
                     title='Plate {}, well {}, evolution of {}'.format(plate, final_well_num, pheno))
         return
     
@@ -448,7 +463,7 @@ class HTMLGenerator():
                 else:
                     secondary=np.any(np.array(['c00001' in el for el in l]))
                     makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=plate, well=np.where(well_setup==well)[0][0]+1, 
-                                           ranges=[(50,1000),(200,300)], secondary=secondary)
+                                           ranges=[(50,1000),(200,3000)], secondary=secondary)
         return    
     
     def changeDBWellNumbers(self,plate, well_setup, idL):
@@ -760,7 +775,7 @@ class WellPlotter():
         
         
     def plotEvolution(self, well_num, data, filename,pheno, plotDir=None, max_=None, min_=None,data2=None,
-                      add_line=None,
+                      add_line=None, label_data2="Fraction of cells simply marked",
                   title='', ctrl_data=None, show=False):
         if data is None:
             return 
@@ -771,11 +786,11 @@ class WellPlotter():
 
         fig, ax = p.subplots(1)
         if data is not None:
-            ax.scatter(range(data.shape[0]), data, label="{}".format(pheno), color = 'blue')
+            ax.scatter(range(data.shape[0]), data, label="{}".format(pheno), color = 'blue', s=10)
         if ctrl_data is not None:
-            ax.scatter(range(data.shape[0]), ctrl_data, label="Ctrl", color = 'black')
+            ax.scatter(range(data.shape[0]), ctrl_data, label="Ctrl", color = 'black', s=10)
         if data2 is not None:
-            ax.scatter(range(data.shape[0]), data2, label="Fraction of cells simply marked", color = 'red')
+            ax.scatter(range(data.shape[0]), data2, label=label_data2, color = 'red', s=10)
         if min_ is not None:
             ax.set_ylim(min_, max_)
         if add_line is not None:

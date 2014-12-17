@@ -60,7 +60,7 @@ density_plot_settings = {
 }
 
 well_plot_settings={
-                    'cell_count':(0, 600),
+                    'cell_count':(0, 300),
                     'circularity':(0, 0.75),
                     'Flou_ch1':(0,1)
 }

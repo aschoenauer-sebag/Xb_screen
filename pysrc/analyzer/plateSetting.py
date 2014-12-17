@@ -22,6 +22,7 @@ def readPlateSetting(plateL, confDir, startAtZero = False,
     
     result = {}
     idL = {}
+    well_lines=defaultdict(dict)
     for plate in plateL:
         result[plate]={}         
         idL[plate]={}
@@ -30,11 +31,12 @@ def readPlateSetting(plateL, confDir, startAtZero = False,
             f=open(filename)
             lines=f.readlines(); f.close()
         except IOError:
-            r, well_lines, iL= readNewPlateSetting([plate], confDir, startAtZero,
+            r, currWell_lines, iL= readNewPlateSetting([plate], confDir, startAtZero,
                      plateName, dateFormat, defaultMedium,
                      addPlateWellsToDB)
             result.update(r)
             idL.update(iL)
+            well_lines.update(currWell_lines)
         else:  
             lines=[line.strip("\n").split("\\") for line in lines]
             
