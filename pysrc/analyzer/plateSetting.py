@@ -8,7 +8,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from plates.models import Plate,Cond, Treatment, Well
 from analyzer import CONTROLS
-WELL_PARAMETERS = ['Medium', 'Serum', 'Xenobiotic', 'Dose']
+WELL_PARAMETERS = ['Name', 'Medium', 'Serum', 'Xenobiotic', 'Dose']
 
 def readPlateSetting(plateL, confDir, startAtZero = False,
                      plateName=None, dateFormat='%d%m%y', defaultMedium = "Complet",
@@ -32,8 +32,8 @@ def readPlateSetting(plateL, confDir, startAtZero = False,
             lines=f.readlines(); f.close()
         except IOError:
             r, currWell_lines, iL= readNewPlateSetting([plate], confDir, startAtZero,
-                     plateName, dateFormat, defaultMedium,
-                     addPlateWellsToDB)
+                     plateName=plateName, dateFormat=dateFormat,
+                     addPlateWellsToDB=addPlateWellsToDB)
             result.update(r)
             idL.update(iL)
             well_lines.update(currWell_lines)
@@ -168,7 +168,7 @@ def fromXBToWells(xbL,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_e
                         pass
                 result[xb]=r[xb]
         else:
-            dose_filter = list(range(11)) if xbL[0]!='TGF' else [0,15]
+            dose_filter = list(range(16))
             return fromXBToWells(xbL, confDir, dose_filter, plate)
 
     plateL=Counter(plateL).keys()
@@ -187,18 +187,23 @@ def fromXBToWells(xbL,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_e
             print well_lines
             well_lines_dict[plate]= {i+1:well_lines.ravel()[i] for i in range(well_lines.size)}
             
-    r2={}
+    r2={}; r1=defaultdict(dict)
     for xb in result:
         r2[xb]={}
-        for dose in result[xb]:
+        for dose in filter(lambda x: result[xb][x].shape[0]>0, result[xb]):
             r2[xb][dose]=[(plate, well_lines_dict[plate][int(num)]) for plate,num in result[xb][dose]]
+            
+            r1[xb][dose]=defaultdict(list)
+            for plate, num in result[xb][dose]:
+                r1[xb][dose][plate].append(well_lines_dict[plate][int(num)])
         
-    return r2
+    return r2,r1
     
     
     
 def readNewPlateSetting(plateL, confDir, startAtZero = False,
-                     plateName=None, dateFormat='%d%m%y', defaultMedium = "Complet",
+                     plateName=None, dateFormat='%d%m%y', 
+                     default={'Name':"Cl1", 'Medium': "Indtp", "Serum":10},
                      addPlateWellsToDB=False):
     '''
     Function to go from as many csv files as there are parameters describing plate setup, to a dictionary
@@ -208,7 +213,7 @@ def readNewPlateSetting(plateL, confDir, startAtZero = False,
     The file 'wells' should contain the information on where physically on the plate the wells with the numbers
     are located. The numbers are the numbers as the images are saved.
     '''
-    result = {}
+    result = defaultdict(dict)
     idL = {}
     well_lines_dict = {}
     for plate in plateL:
@@ -239,44 +244,41 @@ def readNewPlateSetting(plateL, confDir, startAtZero = False,
                 nb_col=12
             nb_row = len(well_lines) #dire le nb de lignes dans le fichier - mais en fait on a toujours huit colonnes
 
-        #opening file with well names (clone name usually)
-        filename = os.path.join(confDir, "%s_Name.csv" % plate)
-        
-        f=open(filename)
-        lines=f.readlines(); f.close()
-        
-        lines=np.array([line.strip("\n").split(",") for line in lines][1:]).ravel()
-        lines = np.delete(lines, np.where(lines==''))
+#        #opening file with well names (clone name usually)
+#        filename = os.path.join(confDir, "%s_Name.csv" % plate)
+#        
+#        f=open(filename)
+#        lines=f.readlines(); f.close()
+#        
+#        lines=np.array([line.strip("\n").split(",") for line in lines][1:]).ravel()
+#        lines = np.delete(lines, np.where(lines==''))
         
         if addPlateWellsToDB:
             p = Plate(name = plateName, date = datetime.datetime.strptime(plate.split('_')[0], dateFormat), nb_col=nb_col, nb_row=nb_row)
             p.save()
         
-        params=WELL_PARAMETERS
-        
         current_parameters = defaultdict(list)
-        for parameter in params:
+        for parameter in WELL_PARAMETERS:
             print 'Loading %s parameter'%parameter
-            f=open(os.path.join(confDir, "%s_%s.csv" % (plate, parameter)))
-            current_lines=f.readlines()[1:]; f.close()
-            current_parameters[parameter]=np.array([line.strip("\n").split(",") for line in current_lines]).ravel()
-            current_parameters[parameter] = np.delete(current_parameters[parameter], 
-                                    np.where(current_parameters[parameter]==''))
-        k=1
-        for el in lines:
-            result[plate][k]={'Name': el}
-            for i,param in enumerate(params):
-                result[plate][k][param]=current_parameters[param][k-1]
-                
+            try:
+                f=open(os.path.join(confDir, "%s_%s.csv" % (plate, parameter)))
+                current_lines=f.readlines()[1:]; f.close()
+            except IOError:
+                pass
+            else:
+                current_parameters[parameter]=np.array([line.strip("\n").split(",") for line in current_lines]).ravel()
+                current_parameters[parameter] = np.delete(current_parameters[parameter], 
+                                        np.where(current_parameters[parameter]==''))
+        for k in well_lines.ravel():
+            result[plate][k]=defaultdict(dict)
+            for i,param in enumerate(WELL_PARAMETERS):
+                try:
+                    result[plate][k][param]=current_parameters[param][k-1]
+                except IndexError:
+                    result[plate][k][param]=default[param]
             if addPlateWellsToDB:
-                try:
-                    medium = result[plate][k]['Medium']
-                except KeyError:
-                    medium=defaultMedium
-                try:
-                    serum = int(result[plate][k]['Serum'])
-                except KeyError:
-                    serum = None
+                medium = result[plate][k]['Medium']
+                serum = int(result[plate][k]['Serum'])
                 
                 conds = Cond.objects.filter(medium = medium)
                 if len(conds)==0:
@@ -295,7 +297,7 @@ def readNewPlateSetting(plateL, confDir, startAtZero = False,
                     else:
                         cond = conds[0]
 
-            if addPlateWellsToDB and 'Xenobiotic' in params:
+            if addPlateWellsToDB and 'Xenobiotic' in WELL_PARAMETERS:
                 xb = result[plate][k]['Xenobiotic']
                 dose = int(result[plate][k]['Dose'])
                 
@@ -317,17 +319,13 @@ def readNewPlateSetting(plateL, confDir, startAtZero = False,
                         treatment =treatments[0]
                     
             if addPlateWellsToDB:
-                try:
-                    clone = result[plate][k]['Name'].split("_")[0]
-                except:
-                    clone = None
+                clone = result[plate][k]['Name'].split("_")[0]
                 w=Well(num=k, plate=p, treatment = treatment, clone = clone)
                 w.save()
         #this is how to add many to many relations
                 w.cond.add(cond); w.save()
                 idL[plate][k]=w.id
                 
-            k+=1
     if addPlateWellsToDB:
         return result, well_lines_dict, idL
     else:

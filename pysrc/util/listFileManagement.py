@@ -161,14 +161,10 @@ def shiftImages(folder, debut, shift, fin=200):
 
 def renameFromZeiss(inputFolder, plate, shift=0):        
     #SI ON A DES IMAGES ZEISS PUREMENT ET SIMPLEMENT, noms des dossiers deja changes
-    for well in os.listdir(inputFolder):
+    for well in filter(lambda x: os.path.isdir(x), os.listdir(inputFolder)):
         for el in filter(lambda x: 'tif' in x and 'ORG' in x, os.listdir(os.path.join(inputFolder, well))):
             timep = int(el.split('_')[1][1:4])+shift
             ch = int(el.split('_')[1][-1])
-#            if timep>193:
-#                continue
-#            if not os.path.isdir(os.path.join(inputFolder, well)):
-#                os.mkdir(os.path.join(inputFolder, well))
             
             os.rename(os.path.join(inputFolder, well, el), os.path.join(inputFolder,well, '%s--%s--P0001_t%05i_c%05i.tif'%(plate, well, timep, ch)))
     return

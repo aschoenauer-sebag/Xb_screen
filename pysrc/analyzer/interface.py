@@ -75,14 +75,15 @@ class HTMLGenerator():
                         ax.set_ylim((0,1000)); ax.legend()
                         p.savefig(os.path.join(self.settings.plot_dir,plate, 'mean_intensity_{}--W{:>05}.png'.format(plate, np.where(well_setup==well)[0][0]+1)))
                         result[plate][well]=toDelFin
-        try:
-            f=open(self.settings.intensity_qc_filename, 'r')
-            d=pickle.load(f);f.close()
-            d.update(result)
-        except IOError:
-            d=result
-        f=open(self.settings.intensity_qc_filename, 'w')
-        pickle.dump(d,f);f.close()
+        if result[plateL[0]]!={}:
+            try:
+                f=open(self.settings.intensity_qc_filename, 'r')
+                d=pickle.load(f);f.close()
+                d.update(result)
+            except IOError:
+                d=result
+            f=open(self.settings.intensity_qc_filename, 'w')
+            pickle.dump(d,f);f.close()
         
         return
         
@@ -515,10 +516,11 @@ class HTMLGenerator():
                                              dateFormat= self.settings.date_format,
                                              )
 
+        if doQC:
+            print ' *** performing well intensity quality control ***'
+            self.intensity_qc(plateL)
+
         if not fillDBOnly:
-            if doQC:
-                print ' *** performing well intensity quality control ***'
-                self.intensity_qc(plateL)
             print ' *** get result dictionary ***'
             featureL,classes, frameLot = self.targetedDataExtraction(plateL, featureL)
             self.formatData(frameLot, resD, featureL,classes, featureChannels)
@@ -590,7 +592,10 @@ class ArrayPlotter():
                 label = getLabel(resD[id])
             else:
                 label = -1
-            hitData[np.where(where_wells==exp)]=label
+            try:
+                hitData[np.where(where_wells==exp)]=label
+            except TypeError:
+                hitData[np.where(where_wells==exp)]=-1
         try:
             print np.min(hitData[np.where(hitData>-1)]), np.max(hitData)
         except:
@@ -642,8 +647,8 @@ class ArrayPlotter():
             a,b=np.where(where_wells==well)
             #restricting the name to max 6 char otherwise it's not lisible
             txt = res[well]['Name'][:6]
-            txt+='\n'+res[well]['Xenobiotic'][:6]+' '+res[well]['Dose']
-            txt+='\n'+res[well]['Medium'][:6]+' '+res[well]['Serum']
+            txt+='\n{} {}'.format(res[well]['Xenobiotic'][:6],res[well]['Dose'])
+            txt+='\n{} {}'.format(res[well]['Medium'][:6],res[well]['Serum'])
             ax.text(b+0.1, nrow-a-1+0.1, txt, fontsize=10)
             texts.append((b, nrow-a-1, txt))
         if show:

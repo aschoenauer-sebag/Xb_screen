@@ -113,7 +113,20 @@ def output(plate,  well, allDataFolder, outputFolder, training_only=True):
         intensity_qc_file=None
     else:
         new_cecog_files= True
-        intensity_qc_file=open('../data/intensity_qc.pkl', 'r')
+        print "Loading manual and out of focus qc files"
+        f=open('../data/xb_manual_qc.pkl', 'r')
+        d1=pickle.load(f); f.close()
+        if plate in d1 and well in d1[plate]:
+            print "This well failed the manual quality control."
+            return
+        f=open('../data/xb_focus_qc.pkl', 'r')
+        d2=pickle.load(f); f.close()
+        if plate in d2 and well in d2[plate]:
+            print "This well failed the focus/cell count quality control."
+            return
+        
+        print 'Loading intensity qc file'
+        intensity_qc_file=open('../data/xb_intensity_qc.pkl', 'r')
         intensity_qc_dict=pickle.load(intensity_qc_file); intensity_qc_file.close()    
         intensity_qc_dict=intensity_qc_dict[plate] if plate in intensity_qc_dict else None
         
@@ -161,7 +174,7 @@ THEN it doesn't replace the first $ww with
     parser.add_option("-c", "--choice", dest="choice", default = False, 
                       help="False to build trajectories and true to compute features from existing trajectories")
 
-    parser.add_option("-n", "--name", dest="filename", default = 'hist_tabFeatures_{}.pkl', 
+    parser.add_option("-n", "--name", dest="filename", default = 'features_intQC_{}.pkl', 
                       help="Filename for trajectory features")
     
     parser.add_option("-s", "--simulated", dest="simulated", default = 0, type=int, 
