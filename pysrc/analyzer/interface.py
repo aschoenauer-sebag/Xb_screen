@@ -441,9 +441,12 @@ class HTMLGenerator():
                         add_line=0.5
                     else:
                         add_line=None
-                    self.wp.plotEvolution(final_well_num, data, filename,pheno, plotDir=plotDir,
+                    try:
+                        self.wp.plotEvolution(final_well_num, data, filename,pheno, plotDir=plotDir,
                     max_=max_, min_=min_, data2=data2,add_line=add_line, label_data2=label_data2,
                     title='Plate {}, well {}, evolution of {}'.format(plate, final_well_num, pheno))
+                    except IndexError:
+                        pass
         return
     
     def generateMovies(self, plate, well_setup):

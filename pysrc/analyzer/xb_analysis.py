@@ -8,11 +8,12 @@ import vigra.impex as vi
 from warnings import warn
 from itertools import repeat
 from scipy.stats import ks_2samp
+from sklearn.decomposition import PCA
 
 from analyzer import cecog_features, CONTROLS
 #from interface import fromPlateToPython
 from tracking import test
-from tracking.trajPack import featuresSaved
+from tracking.trajPack import featuresSaved, featuresNumeriques
 from tracking.importPack import FEATURE_NUMBER
 from tracking.plots import markers
 from tracking.trajPack.trajFeatures import driftCorrection
@@ -22,6 +23,56 @@ from util.plots import plotBarPlot, couleurs, linestyles
 from util.listFileManagement import expSi, siEntrez, correct_from_Nan
 from util.sandbox import histLogTrsforming
 from tracking.PyPack.fHacktrack2 import sortiesAll, initXml, ecrireXml, finirXml
+
+def comparTrajectoriesMitoXB():
+    f=open('../resultData/features_on_films/labelsKM_whole_k8.pkl')
+    labels=pickle.load(f)
+    f.close()
+    f=open('../resultData/features_on_films/all_distances_whole_dataonly.pkl')
+    data=pickle.load(f)
+    f.close()
+    
+    r=np.hstack((data[0][:,:len(featuresNumeriques)], data[0][:,featuresSaved.index('mean straight'), np.newaxis]))
+    r.shape
+    m=np.mean(r,0); std=np.std(r,0)
+    nr=(r-m)/std
+    pca=PCA(n_components=15)
+    pnr=pca.fit_transform(nr)
+    pcaed_std=np.std(pnr,0)
+    pnr=pnr/pcaed_std
+    ll=labels[0]; centers=[]
+    for k in range(8):
+        where_=np.where(np.array(ll)==k)[0]
+        centers.append(np.mean(pnr[where_],0))
+        
+    distances=[]
+    for k in range(8):
+        where_=np.where(np.array(ll)==k)[0]
+        distances.append([np.linalg.norm(centers[k][:7]-el[:7]) for el in pnr[where_]])
+        
+    xb_data, xb_who,xb_ctrlStatus, xb_length, xb, xb_time_length=xbConcatenation('../../../projects/Xb_screen/dry_lab_results', 
+                visual_qc='../data/xb_manual_qc.pkl', flou_qc='../data/xb_focus_qc.pkl')
+    xb_data=np.hstack((xb_data[:,:len(featuresNumeriques)], xb_data[:,featuresSaved.index('mean straight'), np.newaxis]))
+    xb_data=(xb_data-np.mean(xb_data, 0))/np.std(xb_data, 0)
+    pxb_data=pca.transform(xb_data)
+    pxb_data/=pcaed_std
+    
+    xb_labels = [np.argmin([np.linalg.norm(el[:7]-center[:7]) for center in centers]) for el in pxb_data]
+    xb_distances=[]
+    for k in range(8):
+        where_=np.where(np.array(xb_labels)==k)[0]
+        xb_distances.append([np.linalg.norm(centers[k][:7]-el[:7]) for el in pxb_data[where_]])
+    
+    f,axes=p.subplots(1,8, sharey=True, figsize=(24,13))
+    for k in range(8):
+        axes[k].boxplot([distances[k], xb_distances[k]])
+        xtickNames = p.setp(axes[k], xticklabels=('Mitocheck', 'Xb screen'))
+        p.setp(xtickNames, rotation=45, fontsize=8)
+    p.title('Comparison of distance distributions, between cluster members and cluster center, for each cluster (determined on the Mitocheck dataset)')
+    p.show()
+    
+    return pxb_data, xb_who,xb_length, xb, distances, xb_distances, xb_labels, pnr, ll
+
 
 def testDistributions(x,who, length, xbL, xbInterest, plates=['201114', '271114']):
     indices=np.where(np.array(xbL)==xbInterest)[0]
@@ -157,7 +208,7 @@ def xbConcatenation(folder, exp_list=None, xb_list='processedDictResult_P{}.pkl'
         plates=filter(lambda x: os.path.isdir(os.path.join(folder, track_folder, x)) and '14'==x[-2:], os.listdir(os.path.join(folder, track_folder)))
         for plate in plates:
             exp_list.extend([(plate, el.split('_')[2]) for el in filter(lambda x: 'features' in x, os.listdir(os.path.join(folder, track_folder, plate)))])
-        print exp_list
+    exp_list.sort()
     if visual_qc is not None:
         f=open(visual_qc, 'r')
         visual_d=pickle.load(f); f.close()

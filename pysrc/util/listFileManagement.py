@@ -159,9 +159,17 @@ def shiftImages(folder, debut, shift, fin=200):
             os.rename(os.path.join(folder,well, image), os.path.join(folder,well, new_name))
 
 
-def renameFromZeiss(inputFolder, plate, shift=0):        
+def renameFromZeiss(inputFolder, plate, shift=0):       
+    wells = filter(lambda x: os.path.isdir(x), os.listdir(inputFolder))
+     
     #SI ON A DES IMAGES ZEISS PUREMENT ET SIMPLEMENT, noms des dossiers deja changes
-    for well in filter(lambda x: os.path.isdir(x), os.listdir(inputFolder)):
+    for well in wells:
+        if well[:3]=='W00':
+            pass
+        else:
+            os.rename(os.path.join(inputFolder, well), os.path.join(inputFolder, 'W{:>05}'.format(int(well.split('(')[1].split(')')[0]))))
+    wells = filter(lambda x: os.path.isdir(x), os.listdir(inputFolder))
+    for well in wells:
         for el in filter(lambda x: 'tif' in x and 'ORG' in x, os.listdir(os.path.join(inputFolder, well))):
             timep = int(el.split('_')[1][1:4])+shift
             ch = int(el.split('_')[1][-1])
