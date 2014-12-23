@@ -50,7 +50,7 @@ def comparTrajectoriesMitoXB():
         where_=np.where(np.array(ll)==k)[0]
         distances.append([np.linalg.norm(centers[k][:7]-el[:7]) for el in pnr[where_]])
         
-    xb_data, xb_who,xb_ctrlStatus, xb_length, xb, xb_time_length=xbConcatenation('../../../projects/Xb_screen/dry_lab_results', 
+    xb_data, xb_who,xb_ctrlStatus, xb_length, xb, other_infos, xb_time_length=xbConcatenation('../../../projects/Xb_screen/dry_lab_results', 
                 visual_qc='../data/xb_manual_qc.pkl', flou_qc='../data/xb_focus_qc.pkl')
     xb_data=np.hstack((xb_data[:,:len(featuresNumeriques)], xb_data[:,featuresSaved.index('mean straight'), np.newaxis]))
     xb_data=(xb_data-np.mean(xb_data, 0))/np.std(xb_data, 0)
@@ -71,7 +71,7 @@ def comparTrajectoriesMitoXB():
     p.title('Comparison of distance distributions, between cluster members and cluster center, for each cluster (determined on the Mitocheck dataset)')
     p.show()
     
-    return pxb_data, xb_who,xb_length, xb, distances, xb_distances, xb_labels, pnr, ll
+    return pxb_data, xb_who, xb_ctrlStatus, xb_length, xb, other_infos, distances, xb_distances, xb_labels, pnr, ll
 
 
 def testDistributions(x,who, length, xbL, xbInterest, plates=['201114', '271114']):
@@ -199,7 +199,7 @@ def comparDistributions(filename, labels,values, features=None,
 
 def xbConcatenation(folder, exp_list=None, xb_list='processedDictResult_P{}.pkl', visual_qc=None, flou_qc=None, 
                     filename = 'features_intQC_{}_01.pkl', verbose=0, perMovie = False, track_folder="track_predictions__settings2"):
-    who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; xb=[]
+    who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; xb=[]; others=[]
     time_length=[]
     processed={}
 
@@ -263,8 +263,10 @@ def xbConcatenation(folder, exp_list=None, xb_list='processedDictResult_P{}.pkl'
                     sys.stderr.write("Probleme avec le fichier {}".format(os.path.join(pl, filename.format(w))))
                 else:   
                     time_length.extend([len(coord[k][0]) for k in filter(lambda x: x not in toDel, range(len(coord)))])
-                    xbCourant = processed[pl][int(w.split('_')[0])]['Xenobiotic']
+                    xbCourant = '{}'.format( processed[pl][int(w.split('_')[0])]['Xenobiotic'])
+                    other_info = '{}_{}_{}'.format( processed[pl][int(w.split('_')[0])]['Dose'], pl[:-2], int(w.split('_')[0]))
                     xb.append(xbCourant)
+                    others.append(other_info)
                     who.append((pl, w))
                     length.append(ll)
                     
@@ -281,7 +283,7 @@ def xbConcatenation(folder, exp_list=None, xb_list='processedDictResult_P{}.pkl'
 
     warn('The data was not normalized. Please check that it will be done before applying any algorithm.')
     
-    return r2[:,:-1], who,ctrlStatus, length, xb, time_length
+    return r2[:,:-1], who,ctrlStatus, length, xb, others, time_length
 
 def plottingBar(folder, plate, xenobioticL, solvent,sh=True, target='speed', average_over_xb=False):
     timepoints={}

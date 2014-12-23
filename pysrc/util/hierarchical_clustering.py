@@ -52,7 +52,7 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
                   with_timelength=False):
     
     f=open(os.path.join(folder,data_filename))
-    r, genes,time_length=pickle.load(f); f.close()
+    data=pickle.load(f); f.close(); r=data[0]
     
     featuresToKeep=['effective space length','mean squared displacement','diffusion adequation','movement type', 'mean persistence','corrected straightness index', 
                     'mean straight']
@@ -65,6 +65,7 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
     
     fL=list(features)
     if with_timelength:
+        time_length=r[-1]
         r=np.hstack((r, np.array(time_length)[:,np.newaxis])); fL.append('time length')
     
     mean_=np.mean(r,0)
@@ -83,7 +84,7 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
         print 'Going for mini batch k-means with {} clusters'.format(num_clusters); begin_=0
         try:
             f=open(os.path.join(folder, labels_filename.format(num_clusters)), 'r')
-            labels,percentages, who, length=pickle.load(f); f.close()
+            labels, percentages, who, length=pickle.load(f); f.close()
         except OSError:
             print 'File Error ', os.path.join(folder, labels_filename.format(num_clusters))
         else:
@@ -96,7 +97,7 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
 #        indices = model.fit(pcaed_data[:,:7])
 #        indices=indices.labels_
 
-    for k in [7,0,3,5,4,2,6,1]:#range(begin_, num_clusters):
+    for k in range(begin_, num_clusters):#ORDRE UTILISE POUR LE PAPIER ISBI [7,0,3,5,4,2,6,1]:#
         where_=np.where(np.array(indices)==k)[0]
         np.random.shuffle(where_)
         small_nr = np.vstack((small_nr, nr[where_[:1000]])) if small_nr is not None else nr[where_[:1000]]
@@ -105,10 +106,10 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
     print 'Showing trajectory clusters'
     heatmap(small_nr.T,fL, range(small_nr.shape[0]), None, None, None, None, 
             color_gradient='OrRd', filename=outputfile+'TRAJ', trad=False, save=False)
-#    if action=='kmeans':
+    if action=='kmeans':
 #        num_experiments=np.where(np.array(genes)=='ctrl')[0][0]
-#        heatmap(percentages[:num_experiments], genes[:num_experiments],range(begin_, num_clusters), None, 'ward', None, 'euclidean', 
-#            color_gradient='red_white_blue', filename=outputfile+'MOV', trad=False, save=False, level=level)
+        heatmap(percentages, who,range(begin_, num_clusters), 'ward', 'ward', 'euclidean', 'euclidean', 
+            color_gradient='red_white_blue', filename=outputfile+'MOV', trad=False, save=False, level=level)
 #        heatmap(percentages[num_experiments:], genes[num_experiments:],range(begin_, num_clusters), None, 'ward', None, 'euclidean', 
 #            color_gradient='red_white_blue', filename=outputfile+'CTRL', trad=False, save=False, level=level)
 
@@ -313,20 +314,20 @@ def heatmap(x, row_header, column_header, row_method,
     new_column_header=[]
     for i in range(x.shape[0]):
         if row_method != None:
-            if len(row_header)<100: ### Don't visualize gene associations when more than 100 rows
+            if len(row_header)<200: ### Don't visualize gene associations when more than 100 rows
                 axm.text(x.shape[1]-0.5, i, '  {}'.format(row_header[idx1[i]]))
             new_row_header.append(row_header[idx1[i]])
         else:
-            if len(row_header)<100: ### Don't visualize gene associations when more than 100 rows
+            if len(row_header)<200: ### Don't visualize gene associations when more than 100 rows
                 axm.text(x.shape[1]-0.5, i, ' {}'.format(row_header[i])) ### When not clustering rows
             new_row_header.append(row_header[i])
     for i in range(x.shape[1]):
         if column_method != None:
-            if len(column_header)<100:
+            if len(column_header)<200:
                 axm.text(i, -0.9, '{}'.format(column_header[idx2[i]]), rotation=270, verticalalignment="top") # rotation could also be degrees
             new_column_header.append(column_header[idx2[i]])
         else: ### When not clustering columns
-            if len(column_header)<100:
+            if len(column_header)<200:
                 axm.text(i, -0.9, '{}'.format(column_header[i]), rotation=270, verticalalignment="top")
             new_column_header.append(column_header[i])
 

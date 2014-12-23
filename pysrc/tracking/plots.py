@@ -652,6 +652,9 @@ def plotKMeansPerFilm(m, ctrlStatus,labls, colors, Td=False, ctrlcov=None, ctrlc
     #                ax.text(m[k,0], m[k,1], labels[k], ha='center', va='bottom')
         else:
             ax.scatter(m[:,0], m[:,1], m[:,2], color=cols, picker=True)
+            for i, label in enumerate(labls):
+                ax.text(m[i,0], m[i,1], m[i,2], label)
+            
     f.canvas.mpl_connect('pick_event', onpick)
     p.show()
 
