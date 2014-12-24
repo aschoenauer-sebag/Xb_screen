@@ -1,6 +1,7 @@
 import getpass, os,pdb, operator, sys
 import numpy as np
 import cPickle as pickle
+from analyzer.plateSetting import fromXBToWells
 
 if getpass.getuser()=='aschoenauer':
     import matplotlib as mpl
@@ -9,7 +10,8 @@ if getpass.getuser()=='aschoenauer':
 elif getpass.getuser()=='lalil0u':
     import matplotlib as mpl
     show=True
-
+    
+from sklearn.decomposition import PCA
 from optparse import OptionParser
 from operator import itemgetter
 from itertools import combinations
@@ -24,9 +26,11 @@ from tracking.trajPack.clustering import histConcatenation,outputBin, correct_fr
 from tracking.PyPack.fHacktrack2 import initXml, finirXml
 from tracking.histograms.k_means_transportation import DIVERGENCES, _distances
 from tracking.histograms.transportation import costMatrix, computingBins
-from util.listFileManagement import expSi, strToTuple, siEntrez, EnsemblEntrezTrad, geneListToFile, usable
+from util.listFileManagement import expSi, strToTuple, siEntrez, EnsemblEntrezTrad, geneListToFile, usable_MITO
 from util.sandbox import concatCtrl
-from sklearn.decomposition import PCA
+from analyzer import CONTROLS
+from analyzer.xb_analysis import xbConcatenation
+from analyzer.quality_control import usable_XBSC
 
 from util import settings
 from scipy.stats.stats import ks_2samp, spearmanr, scoreatpercentile, percentileofscore,\
@@ -742,11 +746,51 @@ class cellExtractor():
         '''
         Purpose : find experiments that are related to this siRNA
         '''
-        yqualDict=expSi(self.settings.quality_control_file, sens=0)
-        l= strToTuple(yqualDict[self.siRNA], os.listdir(self.settings.data_folder))
+        if self.settings.xb_screen==False:
+            yqualDict=expSi(self.settings.quality_control_file, sens=0)
+            l= strToTuple(yqualDict[self.siRNA], os.listdir(self.settings.data_folder))
+        else:
+            xb=self.siRNA.split('_')[0]; dose=self.siRNA.split('_')[1]
+            info_dict, _=fromXBToWells([xb], dose_filter=dose)
+            l=info_dict[xb][dose]
+            
         if self.verbose>0:
             print l
         return l
+    
+    def _concatenation(self, expList):
+        '''
+        This function returns the matrix of trajectory features of a given experiment list
+        '''
+        if self.settings.xb_screen==False:
+            return histConcatenation(self.settings.data_folder, expList, self.settings.mitocheck_file,
+                                            self.settings.quality_control_file,
+                                            #filename=self.settings.filename, 
+                                            verbose=self.verbose, perMovie=True)
+        else:
+            return xbConcatenation(self.settings.data_folder, expList, xb_list='processedDictResult_P{}.pkl', 
+                                   visual_qc=self.settings.visual_qc,
+                                   flou_qc=self.settings.flou_qc, 
+                                   filename = self.settings.filename, 
+                                   verbose=self.verbose, perMovie = True, 
+                                   track_folder="track_predictions__settings2")
+            
+    def _usableControl(self):
+        '''
+        This function returns the list of control experiment for a given plate, that have passed the quality control.
+        For the xb screen data, it will probably be here that we are going to add the simulated control experiments
+        '''
+        if self.settings.xb_screen==False:
+            ctrl = np.array(appendingControl([self.plate]))
+            return ctrl[np.where(usable_MITO(self.settings.data_folder, 
+                                ctrl, 
+                                qc=self.settings.quality_control_file, 
+                                mitocheck=self.settings.mitocheck_file))]
+        else:
+            xb=self.siRNA.split('_')[0]
+            control=CONTROLS[xb]
+            return usable_XBSC(control, 0, self.plate)
+        
     
     def getData(self, histDataAsWell):
         '''
@@ -756,10 +800,7 @@ class cellExtractor():
         '''
         histDict = defaultdict(list)
         
-        _,r, _, self.expList,_, length, _, _, _ = histConcatenation(self.settings.data_folder, self.expList, self.settings.mitocheck_file,
-                                        self.settings.quality_control_file,
-                                        #filename=self.settings.filename, 
-                                        verbose=self.verbose, perMovie=True)
+        r, self.expList,_, length, _, _, _ = self._concatenation(self.expList)
                     
         for i in range(len(length)):
             for k,feature in enumerate(self.currInterestFeatures):
@@ -783,7 +824,6 @@ class cellExtractor():
         histDict = defaultdict(list)
         length=[]
         for plate in plates:
-            
             #meaning we are dealing with control control tests
             if len(toDel)>0:
                 if self.verbose:
@@ -811,10 +851,7 @@ class cellExtractor():
                     ctrlExpList=None
     #DONC LES CONTROLES SONT LOADED SANS LES nan POUR TOUTES LES FEATURES POUR 5Ctrl1 je relance 5Ctrl2 AVEC les nan pour les features ou ils ne sont pas nan
             try:
-                _,curr_r, _, _,_, curr_length, _, _, _ = histConcatenation(self.settings.data_folder, ctrlExpList, self.settings.mitocheck_file,
-                                            self.settings.quality_control_file,
-                                            #filename=self.settings.filename, 
-                                            verbose=self.verbose, perMovie=True)
+                curr_r, _,_, curr_length, _, _, _ = self._concatenation(ctrlExpList)
             except:
                 print "Problem with controls from plate {}".format(plate)
                 length.append(np.nan)
@@ -926,8 +963,7 @@ class cellExtractor():
             
             
         else:
-            ctrl = np.array(appendingControl([self.plate]))
-            usable_ctrl = ctrl[np.where( usable(self.settings.data_folder, ctrl, qc=self.settings.quality_control_file, mitocheck=self.settings.mitocheck_file))]
+            usable_ctrl = self._usableControl() 
             
             if len(usable_ctrl)<2:
                 return
@@ -970,7 +1006,6 @@ class cellExtractor():
                 print distances
                 #v. save results
                 self.saveResults(distances)
-                                 
         
         return
     

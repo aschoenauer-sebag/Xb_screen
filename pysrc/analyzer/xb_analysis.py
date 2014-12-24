@@ -263,9 +263,10 @@ def xbConcatenation(folder, exp_list=None, xb_list='processedDictResult_P{}.pkl'
                     sys.stderr.write("Probleme avec le fichier {}".format(os.path.join(pl, filename.format(w))))
                 else:   
                     time_length.extend([len(coord[k][0]) for k in filter(lambda x: x not in toDel, range(len(coord)))])
-                    xbCourant = '{}'.format( processed[pl][int(w.split('_')[0])]['Xenobiotic'])
-                    other_info = '{}_{}_{}'.format( processed[pl][int(w.split('_')[0])]['Dose'], pl[:-2], int(w.split('_')[0]))
+                    xbCourant = '{}'.format(processed[pl][int(w.split('_')[0])]['Xenobiotic'])
+                    other_info = '{}_{}'.format(processed[pl][int(w.split('_')[0])]['Xenobiotic'], processed[pl][int(w.split('_')[0])]['Dose'])
                     xb.append(xbCourant)
+                #others plays the role of siRNA: indeed it's the combination of xb+dose that is our condition
                     others.append(other_info)
                     who.append((pl, w))
                     length.append(ll)

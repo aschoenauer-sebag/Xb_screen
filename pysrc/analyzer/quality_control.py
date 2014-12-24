@@ -35,6 +35,29 @@ def intensity_qc(input_folder, output_folder, plateL=['201114', '271114', '12121
     f.close()
     return
 
+def usable_XBSC(compound, dose, plate, input_folder='../data'):
+    _, info_dict=fromXBToWells([compound], dose_filter=dose, plate=plate)
+    
+    print "Loading manual quality control results"
+    f=open(os.path.join(input_folder, 'xb_manual_qc.pkl'), 'r')
+    d_manual=pickle.load(f)
+    f.close()
+    print "Loading automatic out of focus and cell count quality control results"
+    f=open(os.path.join(input_folder, 'xb_focus_qc.pkl'), 'r')
+    flou_qc=pickle.load(f)
+    f.close()
+    
+    expL=[]
+    wells=info_dict[compound][dose][plate]
+    for well in wells:
+        if ((plate not in flou_qc) or (plate in flou_qc and well not in flou_qc[plate])):
+            if ((plate not in d_manual) or (plate in d_manual and well not in d_manual[plate])):
+                expL.append((plate, well))
+                
+    return expL         
+    
+    
+
 def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_control_count=3,
                     input_folder='../data', 
                     compoundL=['TCDD', 'MeHg', 'BPA', 'PCB', 'Endo','DMSO', 'Nonane', 'Rien', 'TGF'],

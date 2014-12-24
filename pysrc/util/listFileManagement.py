@@ -81,7 +81,7 @@ def returnInfo(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.
 
     return result
 
-def usable(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', 
+def usable_MITO(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', 
            filename='hist_tabFeatures_{}.pkl'):
     
     yqualDict=expSi(qc)

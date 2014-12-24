@@ -1,9 +1,9 @@
-result_folder = '../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2/features_on_films'
-outputFile = 'distances_XbScr_5CtrlC_{}.pkl'
+result_folder = '../resultData/features_on_films'
+outputFile = 'distances_whole_5CtrlC_{}.pkl'
 ctrl_exp_filename = 'ctrl_exp_{}.pkl'
-data_folder = '../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2'
-mitocheck_file = '../data/xb_target.txt'
-quality_control_file = '../data/qc_export.txt'
+data_folder = '/share/data20T/mitocheck/tracking_results'
+mitocheck_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens75.txt'
+quality_control_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt'
 
 ##filename for trajectory features
 #filename='hist_tabFeatures_{:>03}.pkl'
@@ -16,3 +16,5 @@ histDataAsWell=False
 
 #Option to say if we want to redo experiments anyway
 redo=True
+#to tell it's not the xb screen
+xb_screen=False
