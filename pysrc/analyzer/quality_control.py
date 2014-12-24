@@ -6,7 +6,9 @@ from collections import defaultdict
 
 from plateSetting import fromXBToWells
 
-def intensity_qc(input_folder, output_folder, plateL=['201114', '271114', '121214']):
+def intensity_qc(input_folder, output_folder, plateL=['201114', '271114', '121214', '201214']):
+    print 'Doing quality control text file for plates ', plateL
+    
     print "Loading automatic intensity quality control results"
     f=open(os.path.join(input_folder, 'xb_intensity_qc.pkl'), 'r')
     d_intensity=pickle.load(f)
@@ -23,7 +25,6 @@ def intensity_qc(input_folder, output_folder, plateL=['201114', '271114', '12121
     
     f=open(os.path.join(output_folder, 'qc_xbscreen.txt'), 'w')
     f.write('{}\t{}\t{}\t{}\t{}\n'.format('Plate', 'Well', 'WellQC', 'ImageQC', 'ManualQC'))
-    pdb.set_trace()
     line_type='{}\t{}\t{}\t{}\t{}\n'
     for plate in plateL:
         for well in d_intensity[plate]:
@@ -37,7 +38,7 @@ def intensity_qc(input_folder, output_folder, plateL=['201114', '271114', '12121
 def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_control_count=3,
                     input_folder='../data', 
                     compoundL=['TCDD', 'MeHg', 'BPA', 'PCB', 'Endo','DMSO', 'Nonane', 'Rien', 'TGF'],
-                     plateL=['201114', '271114', '121214'],
+                     plateL=['201114', '271114', '121214', '201214'],
                      hdf5Folder = "/media/lalil0u/New/projects/Xb_screen/plates__all_features_2bis",
                      savingFolder = "/media/lalil0u/New/projects/Xb_screen/dry_lab_results"):
     '''
@@ -50,6 +51,8 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
     ALSO
     normally there are five controls/solvent/plate. There should not be less than three otherwise the plate is to be discarded (oh god)
     '''
+    print 'Computing experiments to redo starting with plates ', plateL
+    
     failed=defaultdict(dict)
     number_failed=0; total_number=0
     flou_qc_dict=defaultdict(list)
@@ -65,7 +68,6 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
         resCour=pickle.load(f)
         f.close()
         result[plate]=resCour
-    
     for compound in compoundL:
         print "################### Loading wells for xenobiotic ", compound
         #by default this function returns all wells with this xenobiotic starting on the 20th of Nov
@@ -73,8 +75,9 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
         failed[compound]=defaultdict(list)
         for dose in curr_well_groups:
             print "----DOSE ", dose
-            
+            total_bio_replicates=0
             for plate in curr_well_groups[dose]:
+                usable_plate=False
                 for well in curr_well_groups[dose][plate]:
                     total_number+=1
                     #i.checking if the well is in the manual qc failed list
@@ -94,13 +97,19 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
                             
                         #iii. checking if the percentage of out of focus objects in the last frames is ok
                         else:
-                            end_flou_perc=np.mean(np.array(result[plate][well]['Flou_ch1'])[190:200])
+                            flou_arr=np.array(result[plate][well]['Flou_ch1'])
+                            end_flou_perc=np.mean(flou_arr[min(190, flou_arr.shape[0]-10):min(200, flou_arr.shape[0])])
                             if end_flou_perc>threshold_flou:
                                 print 'Out of focus count failed', plate, well
                                 failed[compound][dose].append((plate, well))
                                 number_failed+=1
                                 
                                 flou_qc_dict[plate].append(well)
+                            else:
+                                usable_plate=True
+                if usable_plate:
+                    total_bio_replicates+=1
+            print '******total number of biological replicates for this condition ', total_bio_replicates
     print 'Saving list of failed wells in ', os.path.join(input_folder, 'xb_focus_qc.pkl')
     f=open(os.path.join(input_folder, 'xb_focus_qc.pkl'), 'w')
     pickle.dump(flou_qc_dict, f); f.close()

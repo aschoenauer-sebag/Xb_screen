@@ -79,7 +79,9 @@ class HTMLGenerator():
             try:
                 f=open(self.settings.intensity_qc_filename, 'r')
                 d=pickle.load(f);f.close()
-                d.update(result)
+                for plate in result:
+        #doing this on a per plate basis because otherwise if we have already done some of the wells for a given plate it is going to be erased in a global update command
+                    d[plate].update(result[plate])
             except IOError:
                 d=result
             f=open(self.settings.intensity_qc_filename, 'w')
