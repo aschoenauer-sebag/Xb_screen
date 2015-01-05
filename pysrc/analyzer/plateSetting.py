@@ -191,7 +191,7 @@ def fromXBToWells(xbL,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_e
     for xb in result:
         r2[xb]={}
         for dose in filter(lambda x: result[xb][x].shape[0]>0, result[xb]):
-            r2[xb][dose]=[(plate, well_lines_dict[plate][int(num)]) for plate,num in result[xb][dose]]
+            r2[xb][dose]=[(plate, '{:>05}'.format( well_lines_dict[plate][int(num)])) for plate,num in result[xb][dose]]
             
             r1[xb][dose]=defaultdict(list)
             for plate, num in result[xb][dose]:

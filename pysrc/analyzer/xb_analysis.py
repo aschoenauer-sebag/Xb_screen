@@ -208,7 +208,6 @@ def xbConcatenation(folder, exp_list=None, xb_list='processedDictResult_P{}.pkl'
         plates=filter(lambda x: os.path.isdir(os.path.join(folder, track_folder, x)) and '14'==x[-2:], os.listdir(os.path.join(folder, track_folder)))
         for plate in plates:
             exp_list.extend([(plate, el.split('_')[2]) for el in filter(lambda x: 'features' in x, os.listdir(os.path.join(folder, track_folder, plate)))])
-    exp_list.sort()
     if visual_qc is not None:
         f=open(visual_qc, 'r')
         visual_d=pickle.load(f); f.close()
@@ -225,8 +224,12 @@ def xbConcatenation(folder, exp_list=None, xb_list='processedDictResult_P{}.pkl'
         print i,
         pl,w=exp
         if pl not in processed:
-            f=open(os.path.join(folder, xb_list.format(pl)))
-            processed[pl]=pickle.load(f); f.close()
+            try:
+                f=open(os.path.join(folder, xb_list.format(pl)))
+                processed[pl]=pickle.load(f); f.close()
+            except IOError:
+                sys.stderr.write('Plate {} not processed yet'.format(pl))
+                continue
 
 ##i. checking if quality control passed
         if pl in visual_d and int(w) in visual_d[pl]:

@@ -713,10 +713,9 @@ def plotDistanceDist(folder = '../resultData/features_on_films',siRNA_folder = '
 class cellExtractor():
     def __init__(self, siRNA, settings_file,
                  testCtrl = False,
-                 div_name='total_variation', bin_type = 'quantile', 
+                 div_name='total_variation', 
                  iter_=0,
-                 cost_type = 'number',
-                 bin_size=50,lambda_=10,M=None, verbose=0):
+                 verbose=0):
         
         '''
 MITOCHECK data: if doing ctrl-ctrl p-values, the plate that is under study is in testCtrl. In this case, self.siRNA takes values CTRL_plate 
@@ -733,6 +732,7 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
             self.plate = None
             if self.settings.xb_screen:
                 self.ctrl = CONTROLS[siRNA.split('_')[0]]
+                print "Control ", self.ctrl
         else:
             if self.verbose:
                 print "Testing controls for plate {}".format(testCtrl)
@@ -747,10 +747,10 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
                 self.siRNA = 'CTRL_{}'.format(testCtrl)
             
         self.div_name =div_name
-        self.cost_type=cost_type
-        self.bins_type = bin_type
-        self.bin_size = bin_size
-        self.lambda_=lambda_   
+#        self.cost_type=cost_type
+#        self.bins_type = bin_type
+#        self.bin_size = bin_size
+#        self.lambda_=lambda_   
         self.iter=iter_     
         
         self.currInterestFeatures = list(featuresNumeriques)
@@ -784,7 +784,7 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
                                             #filename=self.settings.filename, 
                                             verbose=self.verbose, perMovie=True)
         else:
-            return xbConcatenation(self.settings.data_folder, expList, xb_list='processedDictResult_P{}.pkl', 
+            return xbConcatenation(os.path.abspath(os.path.join(self.settings.data_folder, os.pardir)), expList, xb_list='processedDictResult_P{}.pkl', 
                                    visual_qc=self.settings.visual_qc,
                                    flou_qc=self.settings.flou_qc, 
                                    filename = self.settings.filename, 
@@ -873,7 +873,7 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
                     ctrlExpList=None
     #DONC LES CONTROLES SONT LOADED SANS LES nan POUR TOUTES LES FEATURES POUR 5Ctrl1 je relance 5Ctrl2 AVEC les nan pour les features ou ils ne sont pas nan
             try:
-                curr_r, _,_, curr_length, _, _, _ = self._concatenation(ctrlExpList)
+                curr_r, _,_, curr_length, _, _, _ = self._concatenation(np.array(ctrlExpList))
             except:
                 print "Problem with controls from plate {}".format(plate)
                 length.append(np.nan)
@@ -907,7 +907,6 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
             for k, feature in enumerate(self.currInterestFeatures):
                 h1 = histogrammes[feature][i]
                 h2 = ctrl_histogrammes[feature][corresponding_ctrl]
-                    
                 if self.div_name =='KS':
                     if not (type(h2)==float and np.isnan(h2)):
                 #taking the p-value because the distance does not take into account the sample sizes explicitly
@@ -920,6 +919,8 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
                         distances[i,k]=mannwhitneyu(h1[~np.isnan(h1)], h2[~np.isnan(h2)])[1]*2
                     else:
                         distances[i,k]=np.nan
+                else:
+                    raise AttributeError
                     
         return distances
     
@@ -1081,9 +1082,9 @@ if __name__ == '__main__':
         else:
             testCtrl=options.testCtrl
             
-        extractor=cellExtractor(options.siRNA, options.settings_file,testCtrl, options.div_name, options.bins_type,
+        extractor=cellExtractor(options.siRNA, options.settings_file,testCtrl, options.div_name,
                                 iter_=options.iter,
-                     bin_size=options.bin_size,lambda_=options.lambda_, verbose=options.verbose)
+                                verbose=options.verbose)
         extractor()
         
 #redone experiments after hdf5 catastrophe

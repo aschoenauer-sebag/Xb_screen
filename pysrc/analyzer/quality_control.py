@@ -52,7 +52,7 @@ def usable_XBSC(compound, dose, plate, input_folder='../data'):
     for well in wells:
         if ((plate not in flou_qc) or (plate in flou_qc and well not in flou_qc[plate])):
             if ((plate not in d_manual) or (plate in d_manual and well not in d_manual[plate])):
-                expL.append((plate, well))
+                expL.append((plate, '{:>05}'.format(well)))
                 
     return expL         
     

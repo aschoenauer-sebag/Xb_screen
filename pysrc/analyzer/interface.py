@@ -79,11 +79,16 @@ class HTMLGenerator():
             try:
                 f=open(self.settings.intensity_qc_filename, 'r')
                 d=pickle.load(f);f.close()
-                for plate in result:
-        #doing this on a per plate basis because otherwise if we have already done some of the wells for a given plate it is going to be erased in a global update command
-                    d[plate].update(result[plate])
             except IOError:
                 d=result
+            else:
+                for plate in result:
+        #doing this on a per plate basis because otherwise if we have already done some of the wells for a given plate it is going to be erased in a global update command
+                    try:
+                        d[plate].update(result[plate])
+                    except KeyError:
+                        d.update(result)
+
             f=open(self.settings.intensity_qc_filename, 'w')
             pickle.dump(d,f);f.close()
         
