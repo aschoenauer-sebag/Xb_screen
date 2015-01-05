@@ -113,15 +113,16 @@ def output(plate,  well, allDataFolder, outputFolder, training_only=True):
         intensity_qc_file=None
     else:
         new_cecog_files= True
+        w=int(well.split('_')[0])
         print "Loading manual and out of focus qc files"
         f=open('../data/xb_manual_qc.pkl', 'r')
         d1=pickle.load(f); f.close()
-        if plate in d1 and well in d1[plate]:
+        if plate in d1 and w in d1[plate]:
             print "This well failed the manual quality control."
             return
         f=open('../data/xb_focus_qc.pkl', 'r')
         d2=pickle.load(f); f.close()
-        if plate in d2 and well in d2[plate]:
+        if plate in d2 and w in d2[plate]:
             print "This well failed the focus/cell count quality control."
             return
         

@@ -715,6 +715,7 @@ class cellExtractor():
                  testCtrl = False,
                  div_name='total_variation', bin_type = 'quantile', 
                  iter_=0,
+                 ctrl_product=None,
                  cost_type = 'number',
                  bin_size=50,lambda_=10,M=None, verbose=0):
 
@@ -723,12 +724,20 @@ class cellExtractor():
         self.verbose=verbose
         if not testCtrl:
             self.plate = None
+            if self.settings.xb_screen:
+                self.ctrl = CONTROLS[siRNA.split('_')[0]]
         else:
             if self.verbose:
                 print "Testing controls for plate {}".format(testCtrl)
-            assert (testCtrl in os.listdir(self.settings.data_folder))
-            self.plate = testCtrl
-            self.siRNA = 'CTRL_{}'.format(self.plate[:9])
+            if self.settings.xb_screen==False:
+                assert (testCtrl in os.listdir(self.settings.data_folder))
+                self.plate = testCtrl
+                self.siRNA = 'CTRL_{}'.format(self.plate[:9])
+            else:
+                self.ctrl=ctrl_product
+                self.plate=testCtrl
+                assert (self.plate in os.listdir(self.settings.data_folder))
+                self.siRNA = 'CTRL_{}_{}'.format(self.plate, ctrl_product)
             
         self.div_name =div_name
         self.cost_type=cost_type
@@ -787,9 +796,8 @@ class cellExtractor():
                                 qc=self.settings.quality_control_file, 
                                 mitocheck=self.settings.mitocheck_file))]
         else:
-            xb=self.siRNA.split('_')[0]
-            control=CONTROLS[xb]
-            return usable_XBSC(control, 0, self.plate)
+            #we have put in self.siRNA CTRL_plate_control because there is DMSO and Nonane for the different xbs
+            return usable_XBSC(self.ctrl, 0, self.plate)
         
     
     def getData(self, histDataAsWell):
@@ -836,15 +844,22 @@ class cellExtractor():
                     
             #saving the controls that are usable, and five permutations of range(len(usable_ctrl)) for the experiments
                 permutations = [np.random.permutation(len(usable_ctrl))[:min(len(usable_ctrl)-1,5)] for k in range(5)]
-             
-                f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate)), 'w')
-                pickle.dump([np.array(usable_ctrl), permutations], f); f.close()
+                if self.ctrl is None:
+                    f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate)), 'w')
+                    pickle.dump([np.array(usable_ctrl), permutations], f); f.close()
+                else:
+                    f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate, self.ctrl)), 'w')
+                    pickle.dump([np.array(usable_ctrl), permutations], f); f.close()
                 
             else:
             #loading the controls that were used to compute control control p-values
                 try:
-                    f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate)))
-                    usable_ctrl, permutations = pickle.load(f); f.close()
+                    if self.ctrl is None:
+                        f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate)))
+                        usable_ctrl, permutations = pickle.load(f); f.close()
+                    else:
+                        f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate, self.ctrl)))
+                        usable_ctrl, permutations = pickle.load(f); f.close()
                     ctrlExpList=usable_ctrl[permutations[self.iter]]
                 except IOError:
                     sys.stderr.write('No file registering used ctrls for plate {}'.format(plate))
@@ -1014,20 +1029,26 @@ if __name__ == '__main__':
     Idea here is to calculate the distance of an experiment histogram to its control, for each numerical feature
     nb_exp should be the minimum number of experiments to get a stable distribution of the feature among
     considered experiments, so that the calculation is parallelizable
+    
+    -siRNA: the experimental condition, real siRNA for Mitocheck data, or xb_dose for xb screen data
+    - plate: indicate the plate for sutyding ctrl-ctrl relations on this plate, else leave at None
+    - ctrl: if dealing with xb screen data, indicate the control solvent between DMSO and Nonane
+    
+    
     '''
     parser = OptionParser(usage="usage: %prog [options]") 
-    parser.add_option('--settings_file', type=str, default='tracking/settings/settings_feature_extraction.py')   
+    parser.add_option('--settings_file', type=str, default='tracking/settings/settings_feature_extraction_XBSC.py')   
     parser.add_option('--action', type=str, default=None)
     parser.add_option('--siRNA', type=str, dest='siRNA', default=None)
     parser.add_option('--testCtrl', type=str, dest='testCtrl', default=0)
-
+    parser.add_option('--solvent', type=str, dest='ctrl', default='Nonane')
     parser.add_option('--div_name', type=str, dest='div_name', default='total_variation')
-    parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
-    parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
-    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
+#    parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
+#    parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
+#    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
     parser.add_option('--iter', type=int, dest="iter", default=0)
     
-    parser.add_option("-l",type=int, dest="lambda_", default=10)
+#    parser.add_option("-l",type=int, dest="lambda_", default=10)
     parser.add_option("--verbose", dest="verbose", type=int,default=0)
     (options, args) = parser.parse_args()
     

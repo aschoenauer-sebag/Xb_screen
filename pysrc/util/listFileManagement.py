@@ -355,16 +355,21 @@ def checkingAllHDF5(folder="/share/data20T/mitocheck/Alice/results",
     f=open('nb_Images2_raw_hdf5.pkl', 'w'); pickle.dump(result_arr, f); f.close()
     return 
 
-def countingCZI_images(folder_CBIO, folder_SHARE):
+def countingCZI_images(folder_CBIO, folder_SHARE, restrict_recent_plates=False, detail_image_count=False):
     msg=defaultdict(dict)
     czi=defaultdict(dict)
-    platesL=[]; different=[[],[]]
+    different=[[],[]]
+    
+#in case we just want to check the recent plates
+    platesL=['201114', '271114', '121214', '201214', '271214'] if restrict_recent_plates else []
+    
     for folder in [folder_CBIO, folder_SHARE]:
         msg[folder]=defaultdict(list); czi[folder]=defaultdict(int)
 #checking IMAGES
         f=os.path.join(folder, 'raw_data')
         plates=filter(lambda x: os.path.isdir(os.path.join(f, x)), sorted(os.listdir(f)))
-        platesL.extend(plates)
+        if platesL is not None:
+            platesL.extend(plates)
         for plate in plates:
             wells=filter(lambda x: os.path.isdir(os.path.join(f, plate, x)), sorted(os.listdir(os.path.join(f, plate))))
             msg[folder][plate].append(len(wells))
@@ -401,15 +406,14 @@ def countingCZI_images(folder_CBIO, folder_SHARE):
                     print 'Not the same number of wells!'
                     different.append(plate)
             except IndexError:
-                if msg[folder_CBIO][plate]==[] or msg[folder_SHARE][plate]==[]:
+                if detail_image_count and (msg[folder_CBIO][plate]==[] or msg[folder_SHARE][plate]==[]):
                     print "\n on cbio ",msg[folder_CBIO][plate]
                     print "on share ",msg[folder_SHARE][plate]
-                else:
+                elif detail_image_count:
                     pdb.set_trace()
             else:
                 arr1=np.array(msg[folder_CBIO][plate][1:]); arr2=np.array(msg[folder_SHARE][plate][1:])
-                pdb.set_trace()
-                if np.any(arr1!=arr2):
+                if np.any(arr1!=arr2) and detail_image_count:
                     print '\n Image numbers differences', np.where(arr1!=arr2)
                     different[0].append(plate)
                 
