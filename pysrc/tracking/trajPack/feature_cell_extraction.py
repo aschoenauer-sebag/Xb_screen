@@ -715,9 +715,16 @@ class cellExtractor():
                  testCtrl = False,
                  div_name='total_variation', bin_type = 'quantile', 
                  iter_=0,
-                 ctrl_product=None,
                  cost_type = 'number',
                  bin_size=50,lambda_=10,M=None, verbose=0):
+        
+        '''
+MITOCHECK data: if doing ctrl-ctrl p-values, the plate that is under study is in testCtrl. In this case, self.siRNA takes values CTRL_plate 
+Otherwise testCtrl is 0 and self.siRNA is the siRNA under study
+
+XB SCREEN data: if doing ctrl-ctrl p-values, the plate that is under study is in testCtrl. In this case self.siRNA takes values CTRL_plate_solvent
+Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
+    '''
 
         self.siRNA = siRNA
         self.settings = settings.Settings(settings_file, globals())
@@ -734,10 +741,10 @@ class cellExtractor():
                 self.plate = testCtrl
                 self.siRNA = 'CTRL_{}'.format(self.plate[:9])
             else:
-                self.ctrl=ctrl_product
-                self.plate=testCtrl
+                self.ctrl=testCtrl.split('_')[1]
+                self.plate=testCtrl.split('_')[0]
                 assert (self.plate in os.listdir(self.settings.data_folder))
-                self.siRNA = 'CTRL_{}_{}'.format(self.plate, ctrl_product)
+                self.siRNA = 'CTRL_{}'.format(testCtrl)
             
         self.div_name =div_name
         self.cost_type=cost_type
@@ -844,7 +851,7 @@ class cellExtractor():
                     
             #saving the controls that are usable, and five permutations of range(len(usable_ctrl)) for the experiments
                 permutations = [np.random.permutation(len(usable_ctrl))[:min(len(usable_ctrl)-1,5)] for k in range(5)]
-                if self.ctrl is None:
+                if not self.settings.xb_screen:
                     f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate)), 'w')
                     pickle.dump([np.array(usable_ctrl), permutations], f); f.close()
                 else:
@@ -854,7 +861,7 @@ class cellExtractor():
             else:
             #loading the controls that were used to compute control control p-values
                 try:
-                    if self.ctrl is None:
+                    if not self.settings.xb_screen:
                         f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate)))
                         usable_ctrl, permutations = pickle.load(f); f.close()
                     else:
@@ -1041,7 +1048,7 @@ if __name__ == '__main__':
     parser.add_option('--action', type=str, default=None)
     parser.add_option('--siRNA', type=str, dest='siRNA', default=None)
     parser.add_option('--testCtrl', type=str, dest='testCtrl', default=0)
-    parser.add_option('--solvent', type=str, dest='ctrl', default='Nonane')
+    parser.add_option('--solvent', type=str, dest='solvent', default=None)
     parser.add_option('--div_name', type=str, dest='div_name', default='total_variation')
 #    parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
 #    parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
@@ -1068,7 +1075,13 @@ if __name__ == '__main__':
                             siRNAFilterList=siRNAFilterList)
         
     else:
-        extractor=cellExtractor(options.siRNA, options.settings_file,options.testCtrl, options.div_name, options.bins_type,
+        if options.solvent is not None and options.testCtrl:
+#in case we're dealing with xb screen data we need to specify which solvent we want to study
+            testCtrl='{}_{}'.format(options.testCtrl, options.solvent)
+        else:
+            testCtrl=options.testCtrl
+            
+        extractor=cellExtractor(options.siRNA, options.settings_file,testCtrl, options.div_name, options.bins_type,
                                 iter_=options.iter,
                      bin_size=options.bin_size,lambda_=options.lambda_, verbose=options.verbose)
         extractor()

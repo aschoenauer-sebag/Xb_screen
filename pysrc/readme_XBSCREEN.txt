@@ -18,10 +18,12 @@
 5. Copy the data to Olympia and save the images and CZI files to CBIO
 
 6. Compute the cell trajectories
-	wells=range(1,66)
+	wells=range(1,[well_number])
 	for w in wells:
 		ww='{:>05}_01.hdf5'.format(w)
-		%run tracking/trajPack/parallel_trajFeatures -p 121214 -w $ww -d /media/lalil0u/New/projects/Xb_screen/plates__all_features_2bis -c 0
-		%run tracking/trajPack/parallel_trajFeatures -p 121214 -w $ww -d /media/lalil0u/New/projects/Xb_screen/plates__all_features_2bis -c 1 --ff 0 -n features_intQC_{{}}.pkl
+		%run tracking/trajPack/parallel_trajFeatures -p [plate name] -w $ww -d /media/lalil0u/New/projects/Xb_screen/plates__all_features_2bis -c 0
+		%run tracking/trajPack/parallel_trajFeatures -p [plate name] -w $ww -d /media/lalil0u/New/projects/Xb_screen/plates__all_features_2bis -c 1 --ff 0 -n features_intQC_{{}}.pkl
 		
+7. Launch hit detection step
+	i. Generate scripts 
 		

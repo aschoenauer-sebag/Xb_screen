@@ -425,7 +425,7 @@ def countingCZI_images(folder_CBIO, folder_SHARE, restrict_recent_plates=False, 
                     print '\n Image numbers differences', np.where(arr1!=arr2)
                     different[0].append(plate)
                 
-        print 'CZI CBIO ',
+        print '\n CZI CBIO ',
         try:
             print czi[folder_CBIO][plate],
         except:
