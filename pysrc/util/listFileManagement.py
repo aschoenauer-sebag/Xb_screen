@@ -371,12 +371,16 @@ def countingCZI_images(folder_CBIO, folder_SHARE, restrict_recent_plates=False, 
         if not restrict_recent_plates:
             platesL.extend(plates)
         for plate in plates:
-            wells=filter(lambda x: os.path.isdir(os.path.join(f, plate, x)), sorted(os.listdir(os.path.join(f, plate))))
-            msg[folder][plate].append(len(wells))
-            
-            for well in wells:
-                msg[folder][plate].append(len(filter(lambda x: 'c00002' in x, os.listdir(os.path.join(f, plate, well)))))
-                msg[folder][plate].append(len(filter(lambda x: 'c00001' in x, os.listdir(os.path.join(f, plate, well)))))
+            try:
+                wells=filter(lambda x: os.path.isdir(os.path.join(f, plate, x)), sorted(os.listdir(os.path.join(f, plate))))
+            except OSError:
+                pass
+            else:
+                msg[folder][plate].append(len(wells))
+                
+                for well in wells:
+                    msg[folder][plate].append(len(filter(lambda x: 'c00002' in x, os.listdir(os.path.join(f, plate, well)))))
+                    msg[folder][plate].append(len(filter(lambda x: 'c00001' in x, os.listdir(os.path.join(f, plate, well)))))
                 
 #CHECKING CZI files
         f=os.path.join(folder, 'CZI_files')
