@@ -388,7 +388,10 @@ def countingCZI_images(folder_CBIO, folder_SHARE, restrict_recent_plates=False, 
         if not restrict_recent_plates:
             platesL.extend(plates)
         for plate in plates:
-            czi[folder][plate]=len(os.listdir(os.path.join(f, plate)))
+            try:
+                czi[folder][plate]=len(os.listdir(os.path.join(f, plate)))
+            except OSError:
+                pass
             
     platesL=sorted(Counter(platesL).keys())
     
