@@ -120,7 +120,9 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
 
 def heatmap(x, row_header, column_header, row_method,
             column_method, row_metric, column_metric,
-            color_gradient, filename, log=False, trad=False, level=0.4, save=True):
+            color_gradient, filename, log=False, trad=False, level=0.4,
+            range_normalization=(-2,2),
+             save=True):
     
     print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric),
     if numpy.any(numpy.isnan(x)):
@@ -186,7 +188,7 @@ def heatmap(x, row_header, column_header, row_method,
 #        norm = mpl.colors.Normalize(10**(-70), 1)
 #    else:
     if numpy.any(x<0):
-        norm = mpl.colors.Normalize(-2,2)
+        norm = mpl.colors.Normalize(range_normalization[0], range_normalization[1])
     else:
         norm = mpl.colors.Normalize(0,50)
     ### Scale the Matplotlib window size

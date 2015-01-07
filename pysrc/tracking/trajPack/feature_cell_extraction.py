@@ -28,7 +28,7 @@ from tracking.histograms.k_means_transportation import DIVERGENCES, _distances
 from tracking.histograms.transportation import costMatrix, computingBins
 from util.listFileManagement import expSi, strToTuple, siEntrez, EnsemblEntrezTrad, geneListToFile, usable_MITO
 from util.sandbox import concatCtrl
-from analyzer import CONTROLS
+from analyzer import CONTROLS, compoundL
 from analyzer.xb_analysis import xbConcatenation
 from analyzer.quality_control import usable_XBSC
 
@@ -275,11 +275,42 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl{}', filename='all_dist
 #    result.sort(key=itemgetter(0))
     return expL, geneL, siRNAL, combined_pval#np.array(result) 
 
+def collectingDistances_XB(folder, filename='distances_XbScr_5CtrlC_', iter_range=range(1,6)):
+    '''
+    This function aims at collecting p-values from the xenobiotic screen. No need to look again for the experiments that are involved since it's saved in
+    the file
+    '''
+    files=os.listdir(folder)
+    result=[None for k in iter_range]
+    who=[]; siRNA=[]
+    for compound in compoundL:
+    #we get the list of files from dose 1 to dose max
+        cFiles=sorted(filter(lambda x: filename in x and compound in x, files))
+        for file_ in cFiles:
+            try:
+                f=open(os.path.join(folder, file_), 'r')
+                d=pickle.load(f); f.close()
+            except:
+                pdb.set_trace()
+            else:
+                for param_set in d:
+                    currParams=dict(param_set)
+                    iter_ = currParams['iter']
+                    who.extend(currParams['wells'])
+                    siRNA.extend(['{}_{}'.format(file_.split('_')[-2], cFiles.index(file_)) for k in range(len(currParams['wells']))])
+                    result[iter_]= d[param_set] if result[iter_] is None else np.vstack((result[iter_], d[param_set]))
+            
+    return result, who, siRNA
     
 def collectingDistances(filename, folder, 
                         key_name = 'distances_whole_5Ctrl3',
                         qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl =False,
                         redo=False, siRNAFilterList=None,long_version=False, usable_file='../resultData/features_on_films/usable_experiments_whole_mitocheck.pkl'):
+    '''
+    Function to collect p-values from applying CellExtractor to the Mitocheck data, hardly generalizing to the xenobiotic screen data (sorry Will) 
+    '''
+    
+    
     global parameters
     if filename not in os.listdir(folder) or redo:
         if not testCtrl:
@@ -754,7 +785,7 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
         self.iter=iter_     
         
         self.currInterestFeatures = list(featuresNumeriques)
-        self.currInterestFeatures.extend(['mean persistence',  'mean straight'])
+        self.currInterestFeatures.extend(['mean straight'])
         if self.settings.histDataAsWell:
             raise AttributeError
     
@@ -891,7 +922,8 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
     def parameters(self):
         r={
            'div_name':self.div_name,
-           'iter':self.iter
+           'iter':self.iter,
+           'wells':tuple(self.expList)
            }
         return tuple(sorted(zip(r.keys(), r.values()), key=itemgetter(0)))
     

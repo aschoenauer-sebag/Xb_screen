@@ -4,9 +4,10 @@ import numpy as np
 import vigra.impex as vi
 from collections import defaultdict
 
+from analyzer import compoundL
 from plateSetting import fromXBToWells
 
-def intensity_qc(input_folder, output_folder, plateL=['201114', '271114', '121214', '201214']):
+def intensity_qc(input_folder, output_folder, plateL=['201114', '271114', '121214', '201214', '271214']):
     print 'Doing quality control text file for plates ', plateL
     
     print "Loading automatic intensity quality control results"
@@ -60,8 +61,7 @@ def usable_XBSC(compound, dose, plate, input_folder='../data'):
 
 def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_control_count=3,
                     input_folder='../data', 
-                    compoundL=['TCDD', 'MeHg', 'BPA', 'PCB', 'Endo','DMSO', 'Nonane', 'Rien', 'TGF'],
-                     plateL=['201114', '271114', '121214', '201214'],
+                     plateL=['201114', '271114', '121214', '201214', '271214'],
                      hdf5Folder = "/media/lalil0u/New/projects/Xb_screen/plates__all_features_2bis",
                      savingFolder = "/media/lalil0u/New/projects/Xb_screen/dry_lab_results"):
     '''
@@ -84,7 +84,6 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
     f=open(os.path.join(input_folder, 'xb_manual_qc.pkl'), 'r')
     d_manual=pickle.load(f)
     f.close()
-    
     result=defaultdict(dict)
     for plate in plateL:
         f=open(os.path.join(savingFolder, 'processedDictResult_P{}.pkl'.format(plate)))

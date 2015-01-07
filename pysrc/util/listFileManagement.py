@@ -145,7 +145,7 @@ def emptyImagesDeletion(folder, debut, fin=192):
             os.remove(os.path.join(folder, well, image)) 
             
 def shiftImages(folder, debut, shift, fin=200):
-    wells = filter(lambda x:'W0' in x, os.listdir(folder))
+    wells = ['W00096']#filter(lambda x:'W0' in x, os.listdir(folder))
     print 'Renaming images from timepoint ', debut, 'to timepoint ', fin, "INCLUSES, d'un shift de ", shift
     print 'Is that what you want?'
     pdb.set_trace()

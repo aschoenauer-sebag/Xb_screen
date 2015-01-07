@@ -2,7 +2,9 @@ import os, sys, pdb
 import numpy as np
 import cPickle as pickle
 
-CONTROLS = {'TCDD':'Nonane', 'PCB':'DMSO', 'PFOS':'Water', 'Endo':'DMSO', 'MeHg':'DMSO', 'BPA':'DMSO', 'TGF':'DMSO', 'Rien':'Nonane'}
+compoundL=['TCDD', 'MeHg', 'BPA', 'PCB', 'Endo','DMSO', 'Nonane', 'Rien', 'TGF']
+
+CONTROLS = {'TCDD':'Nonane', 'PCB':'DMSO', 'Endo':'DMSO', 'MeHg':'DMSO', 'BPA':'DMSO', 'TGF':'DMSO', 'Rien':'Nonane'}#'PFOS':'Water'
 
 cecog_features = ['ch_acd',
                  'ch_area_ratio',
