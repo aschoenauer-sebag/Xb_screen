@@ -2,7 +2,7 @@ import os, sys, pdb
 import numpy as np
 import cPickle as pickle
 
-compoundL=['TCDD', 'MeHg', 'BPA', 'PCB', 'Endo','DMSO', 'Nonane', 'Rien', 'TGF']
+compoundL=['TCDD', 'MeHg', 'BPA', 'PCB', 'Endo', 'Rien', 'TGF','DMSO', 'Nonane']
 
 CONTROLS = {'TCDD':'Nonane', 'PCB':'DMSO', 'Endo':'DMSO', 'MeHg':'DMSO', 'BPA':'DMSO', 'TGF':'DMSO', 'Rien':'Nonane'}#'PFOS':'Water'
 

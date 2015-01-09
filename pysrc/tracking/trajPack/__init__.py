@@ -96,6 +96,12 @@ histLogTrsf = [1,1,0,
                1, 1, 1, 1, 0]
 histLogTrsf_meanHistFeat=[0,1,0,1,0]
 
+featuresForPlots=['Englobing ball number 1', 'Englobing ball number 2',
+                  'Convex hull area', 'Straightness index', 'Diffusion coefficient', 
+                  'Effective space length', 'Effective speed', 'Entropy 1', 'Entropy 2', 'Largest move',
+                  'Mean squared displacement', 'Movement type', 'Signed turning angle',
+                  'Diffusion adequation', 'Mean curvature']
+
 #RSS window 6, 8, 10 : oui oui oui
 
 d_ctrl={'LT0007_26': ['00074_01', '00015_01'],

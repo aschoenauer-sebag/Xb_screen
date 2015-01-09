@@ -700,7 +700,7 @@ def featureTimeCorrelation(time_length, data, feature_names, sh=True):
     '''
     f=p.figure(figsize=(24,13))
     for i,feature in enumerate(feature_names):
-        ax=f.add_subplot(3,3,i)
+        ax=f.add_subplot(4,4,i)
         zou=zip(time_length, data[:,featuresSaved.index(feature)])
         zou=np.array(sorted(zou, key=operator.itemgetter(0)))
         ax.scatter(zou[:,0], zou[:,1])

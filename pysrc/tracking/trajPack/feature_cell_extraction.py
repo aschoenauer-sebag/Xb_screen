@@ -56,38 +56,38 @@ parameters=[
   (('div_name', 'KS'),
   ('iter', k)) for k in range(5)]
 
-def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all_distances_whole_CTRL.pkl", sigma=0.1, binSize=10,texts=None):
-    f=open(os.path.join(folder, filename))
-    distances = pickle.load(f);f.close()
-    
-    f=open(os.path.join(folder, ctrl_filename))
-    ctrl_distances = pickle.load(f); f.close()
-    
-    for param in parameters:
-        _,_,_, ctrl_arr=ctrl_distances[param]
-        _,expList,_, exp_arr =distances[param]
-        if texts is not None:
-            assert(len(expList)==len(texts))
-        
-        print parameters.index(param), ctrl_arr.shape
-        pca = PCA(n_components=16)
-        moy=np.mean(ctrl_arr,0); std=np.std(ctrl_arr, 0)
-        ctrl_arr=pca.fit_transform((ctrl_arr-moy)/std) #six premieres composantes pour garder le gros ~94% 
-        exp_arr=pca.transform((exp_arr-moy)/std)[:,:6]
-        f=p.figure(); ax=f.add_subplot(111)
-        ax.scatter(exp_arr[:,0], exp_arr[:,1], color='red', alpha=0.5)
-        if texts is not None:
-            for k in range(exp_arr.shape[0]):
-                ax.text(exp_arr[k,0], exp_arr[k,1], texts[k])
-        ax.scatter(ctrl_arr[:,0], ctrl_arr[:,1], color='green', alpha=0.5)
-        p.show()
-        
-        outputBin(np.vstack((ctrl_arr[:,:2], exp_arr[:,:2])), ctrl_arr.shape[0], 1, [exp_arr.shape[0]], binSize, sigma)
-        
-#        p.plot(np.cumsum(pca.explained_variance_ratio_), label=param[3][1])
-#    p.grid(True)
-#    p.legend()
-#    p.show()
+#def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all_distances_whole_CTRL.pkl", sigma=0.1, binSize=10,texts=None):
+#    f=open(os.path.join(folder, filename))
+#    distances = pickle.load(f);f.close()
+#    
+#    f=open(os.path.join(folder, ctrl_filename))
+#    ctrl_distances = pickle.load(f); f.close()
+#    
+#    for param in parameters:
+#        _,_,_, ctrl_arr=ctrl_distances[param]
+#        _,expList,_, exp_arr =distances[param]
+#        if texts is not None:
+#            assert(len(expList)==len(texts))
+#        
+#        print parameters.index(param), ctrl_arr.shape
+#        pca = PCA(n_components=16)
+#        moy=np.mean(ctrl_arr,0); std=np.std(ctrl_arr, 0)
+#        ctrl_arr=pca.fit_transform((ctrl_arr-moy)/std) #six premieres composantes pour garder le gros ~94% 
+#        exp_arr=pca.transform((exp_arr-moy)/std)[:,:6]
+#        f=p.figure(); ax=f.add_subplot(111)
+#        ax.scatter(exp_arr[:,0], exp_arr[:,1], color='red', alpha=0.5)
+#        if texts is not None:
+#            for k in range(exp_arr.shape[0]):
+#                ax.text(exp_arr[k,0], exp_arr[k,1], texts[k])
+#        ax.scatter(ctrl_arr[:,0], ctrl_arr[:,1], color='green', alpha=0.5)
+#        p.show()
+#        
+#        outputBin(np.vstack((ctrl_arr[:,:2], exp_arr[:,:2])), ctrl_arr.shape[0], 1, [exp_arr.shape[0]], binSize, sigma)
+#        
+##        p.plot(np.cumsum(pca.explained_variance_ratio_), label=param[3][1])
+##    p.grid(True)
+##    p.legend()
+##    p.show()
 
 def multipleHitDistances(folder, key_name,
                          threshold=0.05, 
@@ -275,33 +275,129 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl{}', filename='all_dist
 #    result.sort(key=itemgetter(0))
     return expL, geneL, siRNAL, combined_pval#np.array(result) 
 
-def collectingDistances_XB(folder, filename='distances_XbScr_5CtrlC_', iter_range=range(1,6)):
+def collectingDistances_XB(folder, filename='distances_XbScr_5CtrlC_', iter_range=range(5)):
     '''
     This function aims at collecting p-values from the xenobiotic screen. No need to look again for the experiments that are involved since it's saved in
     the file
     '''
     files=os.listdir(folder)
     result=[None for k in iter_range]
-    who=[]; siRNA=[]
+    who=[]; compounds=[]; doses=[]
+    
     for compound in compoundL:
     #we get the list of files from dose 1 to dose max
         cFiles=sorted(filter(lambda x: filename in x and compound in x, files))
-        for file_ in cFiles:
-            try:
-                f=open(os.path.join(folder, file_), 'r')
-                d=pickle.load(f); f.close()
-            except:
-                pdb.set_trace()
-            else:
-                for param_set in d:
-                    currParams=dict(param_set)
-                    iter_ = currParams['iter']
-                    who.extend(currParams['wells'])
-                    siRNA.extend(['{}_{}'.format(file_.split('_')[-2], cFiles.index(file_)) for k in range(len(currParams['wells']))])
-                    result[iter_]= d[param_set] if result[iter_] is None else np.vstack((result[iter_], d[param_set]))
-            
-    return result, who, siRNA
+        if compound in CONTROLS.values():
+            tag=(lambda x:x.split('_')[-2])
+            for file_ in cFiles:
+                try:
+                    f=open(os.path.join(folder, file_), 'r')
+                    d=pickle.load(f); f.close()
+                except:
+                    pdb.set_trace()
+                else:
+                    for param_set in d:
+                        print param_set
+                        currParams=dict(param_set)
+                        try:
+                            who.extend(currParams['wells'])
+                        except KeyError:
+                            who.extend(['{}_{}'.format(compound, tag(file_)) for k in range(d[param_set].shape[0])])
+                        compounds.extend([compound for k in range(d[param_set].shape[0])])
+                        doses.extend([tag(file_) for k in range(d[param_set].shape[0])])
+                    #deleting mean persistence if it is still there
+                        if d[param_set].shape[1]==16:
+                            d[param_set]=np.delete(d[param_set], 15, 1)
+                        for iter_ in iter_range:
+                            result[iter_]= d[param_set] if result[iter_] is None else np.vstack((result[iter_], d[param_set]))
+        else:
+            for file_ in cFiles:
+                print file_
+                tag = lambda x: cFiles.index(x)
+                
+                try:
+                    f=open(os.path.join(folder, file_), 'r')
+                    d=pickle.load(f); f.close()
+                except:
+                    pdb.set_trace()
+                else:
+                    for param_set in d:
+                        print param_set
+                        currParams=dict(param_set)
+                        iter_ = currParams['iter']
+                        if iter_==0:
+                            try:
+                                who.extend(currParams['wells'])
+                            except KeyError:
+                                pdb.set_trace()
+                            compounds.extend([compound for k in range(d[param_set].shape[0])])
+                            doses.extend([tag(file_) for k in range(d[param_set].shape[0])])
+                    #deleting mean persistence if it is still there
+                        if d[param_set].shape[1]==16:
+                            d[param_set]=np.delete(d[param_set], 15, 1)
+                        result[iter_]= d[param_set] if result[iter_] is None else np.vstack((result[iter_], d[param_set]))
+    print result[0].shape
+    result=np.vstack((-np.log(result[k])[np.newaxis] for k in range(5)))
+    result2=2*np.sum(result,2)
+    return result, result2, np.array(who), np.array(compounds), np.array(doses)
+
+def finding_hit_XB(result, who, compounds, doses, combination=(lambda x: np.max(x,0)), 
+                   outputFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2/features_on_films'):
+    '''
+    Working on min(stat)=working on max(pval) == CONSERVATIVE approach
+    Working on max(stat)=working on min(pval) == OPTIMISTIC APPROACH
+    '''
+    result = np.array(combination(result))[:,np.newaxis]
     
+    #do the comparison with DMSO distribution
+    control_stat=result[np.where(compounds=='DMSO')]
+    stat=result[np.where(np.array([compound not in ['Nonane', 'DMSO', 'TCDD'] for compound in compounds]))]
+    pval_DMSO, qval_DMSO = empiricalPvalues(control_stat, stat, outputFolder, 'DMSO_compared', sup=True, also_pval=True)
+    
+    #now with Nonane for TCDD
+    control_stat=result[np.where(compounds=='Nonane')]
+    stat=result[np.where(compounds=='TCDD')]
+    pval_Nonane, qval_Nonane = empiricalPvalues(control_stat, stat, outputFolder, 'Nonane_compared', sup=True, also_pval=True)
+    
+    return pval_DMSO, qval_DMSO, pval_Nonane,  qval_Nonane
+    
+
+def plotDistances_XB(result, compounds, doses, combination=(lambda x: np.min(x,0)), cmap=mpl.cm.bwr, norm=2):
+    '''
+    So just plot-wise we look at the different -log(pvalues) for all features for the different conditions,
+    normalizing with the mean,std of the controls from all plates.
+    
+    It seems though that some plates have a wide range of pvalues for control-control comparisons,
+    which is not the case on other plates... So it might be interesting to look at things plate-wise
+    
+    By the way, if the combination here is min, it means it's max(pval) because result is supposed to be -log(pval),
+    so it's just the other way around with all mitocheck results. We chose in the latter to use max(pval) ie most
+    conservative approach.
+    '''
+    f, axes=p.subplots(6,10,sharex=True, sharey=True)
+    result=np.array(combination(result))
+    k=0
+    for i,compound in enumerate(compoundL):
+        subR = result[np.where(compounds==compound)]
+        if compound in CONTROLS.keys():
+            subR=(subR-np.mean(result[np.where(compounds==CONTROLS[compound])],0))/np.std(result[np.where(compounds==CONTROLS[compound])],0)
+        else:
+            subR=(subR-np.mean(subR,0))/np.std(subR,0)
+        if compound in ['BPA', 'TCDD', 'Endo', 'MeHg', 'PCB']:
+            subD = np.array(doses[np.where(compounds==compound)], dtype=int)    
+            for dose in range(np.max(subD)+1):
+                axes[i,dose].matshow(subR[np.where(subD==dose)[0]], cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
+                axes[i,dose].set_xlim(0,6)
+            axes[i,0].set_title(compound)
+        else:
+            axes[5,k].set_xlim(0,15)
+            axes[5,k].pcolor(subR, cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
+            axes[5,k].set_title(compound); k+=1
+        
+    #p.colorbar(f,cmap=mpl.cm.OrRd, ax=list(axes))
+    p.show()
+        
+        
 def collectingDistances(filename, folder, 
                         key_name = 'distances_whole_5Ctrl3',
                         qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl =False,
@@ -390,7 +486,7 @@ def collectingDistances(filename, folder,
     
     return result
 
-def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False):
+def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False, also_pval=False):
     empirical_pval = np.zeros(shape = (dist_exp.shape[0], dist_exp.shape[1]), dtype=float)
     empirical_qval = np.zeros(shape = (dist_exp.shape[0], dist_exp.shape[1]), dtype=float)
 
@@ -420,6 +516,8 @@ def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False):
     ax.set_xlim(0,1)
     p.savefig(os.path.join(folder, 'pvalParamKS_{}.png'.format(name)))
     p.close('all')
+    if also_pval:
+        return empirical_pval, empirical_qval
     
     return empirical_qval
 

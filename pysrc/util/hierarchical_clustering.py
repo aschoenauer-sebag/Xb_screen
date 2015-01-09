@@ -121,7 +121,9 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
 def heatmap(x, row_header, column_header, row_method,
             column_method, row_metric, column_metric,
             color_gradient, filename, log=False, trad=False, level=0.4,
-            range_normalization=(-2,2),
+            range_normalization=(-2,2), colorbar_ticks=[-2, 0, 2],
+            colorbar_ticklabels=['$ <\mu-2 \sigma$', '$\mu$', '$> \mu+2 \sigma$'],
+            colorbar_title='Feature range',
              save=True):
     
     print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric),
@@ -317,20 +319,20 @@ def heatmap(x, row_header, column_header, row_method,
     for i in range(x.shape[0]):
         if row_method != None:
             if len(row_header)<200: ### Don't visualize gene associations when more than 100 rows
-                axm.text(x.shape[1]-0.5, i, '  {}'.format(row_header[idx1[i]]))
+                axm.text(x.shape[1]-0.5, i, '  {}'.format(row_header[idx1[i]]), fontsize=10)
             new_row_header.append(row_header[idx1[i]])
         else:
             if len(row_header)<200: ### Don't visualize gene associations when more than 100 rows
-                axm.text(x.shape[1]-0.5, i, ' {}'.format(row_header[i])) ### When not clustering rows
+                axm.text(x.shape[1]-0.5, i, ' {}'.format(row_header[i]), fontsize=10) ### When not clustering rows
             new_row_header.append(row_header[i])
     for i in range(x.shape[1]):
         if column_method != None:
             if len(column_header)<200:
-                axm.text(i, -0.9, '{}'.format(column_header[idx2[i]]), rotation=270, verticalalignment="top") # rotation could also be degrees
+                axm.text(i, -0.9, '{}'.format(column_header[idx2[i]]), rotation=270, verticalalignment="top", fontsize=10) # rotation could also be degrees
             new_column_header.append(column_header[idx2[i]])
         else: ### When not clustering columns
             if len(column_header)<200:
-                axm.text(i, -0.9, '{}'.format(column_header[i]), rotation=270, verticalalignment="top")
+                axm.text(i, -0.9, '{}'.format(column_header[i]), rotation=270, verticalalignment="top", fontsize=10)
             new_column_header.append(column_header[i])
 
 #    # Plot colside colors
@@ -358,10 +360,10 @@ def heatmap(x, row_header, column_header, row_method,
 
     # Plot color legend
     axcb = fig.add_axes([axcb_x, axcb_y, axcb_w, axcb_h], frame_on=False)  # axes for colorbar
-    axcb.set_title("Feature range", fontsize=15)
+    axcb.set_title(colorbar_title, fontsize=15)
     cb = mpl.colorbar.ColorbarBase(axcb, cmap=cmap,norm=norm, orientation='horizontal',
-                                   ticks=[-2, 0, 2])
-    cb.ax.set_xticklabels(['$ <\mu-2 \sigma$', '$\mu$', '$> \mu+2 \sigma$'], fontsize=15)
+                                   ticks=colorbar_ticks)
+    cb.ax.set_xticklabels(colorbar_ticklabels, fontsize=15)
     
     filename = 'Clustering-%s-hierarchical_%s_%s.pdf' % (filename[:10],column_metric,column_method)
     exportFlatClusterData(filename, new_row_header,new_column_header,xt,ind1,ind2)

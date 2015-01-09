@@ -494,7 +494,7 @@ class HTMLGenerator():
         return
         
         
-    def __call__(self, plateL=None, featureL = None, featureChannels =None, saveDB=True, fillDBOnly=False, doQC=False):
+    def __call__(self, plateL=None, featureL = None, featureChannels =None, saveDB=True, fillDBOnly=False, doQC=False, moviesOnly=False):
         
     #Getting plate list
         if plateL is None:
@@ -531,11 +531,12 @@ class HTMLGenerator():
             self.intensity_qc(plateL)
 
         if not fillDBOnly:
-            print ' *** get result dictionary ***'
-            featureL,classes, frameLot = self.targetedDataExtraction(plateL, featureL)
-            self.formatData(frameLot, resD, featureL,classes, featureChannels)
+            if not moviesOnly:
+                print ' *** get result dictionary ***'
+                featureL,classes, frameLot = self.targetedDataExtraction(plateL, featureL)
+                self.formatData(frameLot, resD, featureL,classes, featureChannels)
             for plate in plateL:
-                if True:
+                if not moviesOnly:
                     print ' *** generate density plots for %s: ***' % plate
                     #well_setup is an array representing the plate with the Zeiss well numbers
                     #on the plate. So well_setup.flatten() gives the following: on absolute position
@@ -554,8 +555,8 @@ class HTMLGenerator():
                         print ' *** changing well numbers in db, plate ', plate
                         self.changeDBWellNumbers(plate, self.well_lines_dict[plate], idL)
     
-                    print ' *** generate movies ***'
-                    self.generateMovies(plate, self.well_lines_dict[plate])
+                print ' *** generate movies ***'
+                self.generateMovies(plate, self.well_lines_dict[plate])
          
                 else: 
                     print ' ERROR while working for %s' % plate
