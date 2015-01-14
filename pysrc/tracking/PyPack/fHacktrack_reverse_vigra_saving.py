@@ -3,9 +3,7 @@ import vigra as v
 import vigra.impex as vi
 import numpy as n
 from tracking.PyPack import dossierSauvegarde as ds
-from fHacktrack2 import ensTraj
-from fHacktrack2 import trajectoire
-from fHacktrack2 import coord
+from fHacktrack2 import ensTraj, trajectoire,coord
 import fHacktrack2
 
 LENGTH=None

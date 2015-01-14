@@ -471,7 +471,7 @@ if __name__ == '__main__':
     #global loadingFolder
     #pdb.set_trace()
     parser = argparse.ArgumentParser(description = "Structured learning for cell tracking")
-    parser.add_argument('-r', '--reloading',default=0, type=int, dest ='reloading')#possible values : 0 to load data ab inition, 1 to load data from /results, s 
+    parser.add_argument('-r', '--reloading',default=0, type=int, dest ='reloading')#possible values : 0 to load data ab initio, 1 to load data from /results, s 
     #to load data from /results_small et b to load data from /results_big
     
 #    parser.add_argument('-init', nargs = 1, default = -1, type = int, dest='c0')

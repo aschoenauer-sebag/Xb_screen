@@ -180,7 +180,9 @@ def plotRecall():
     p.show()
     
 def plotPrecision():
+    events=('Move', 'Appear', 'Disappear', 'Merge', 'Split')
     N = 5
+#PLOTTING PRECISION
     menMeans = ( 98.0884032 ,  22.7184466 ,  29.17933131,  83.78947368,80.11283498)
     #womenMeans = np.array([ 99.13367628,  99.95802186,  99.35100496,  99.38597358,  96.97432128]) #premiere fois
     #womenMeans= np.array([98.31, 27.85, 66.33, 80.55, 91.74]) #seconde fois m60_80_s100_140
@@ -190,23 +192,37 @@ def plotPrecision():
     width = 0.3       # the width of the bars
     
     fig = p.figure(figsize=(14,8))
-    ax = fig.add_subplot(111)
-    rects1 = ax.bar(ind, menMeans, width, color='grey')
-    rects2 = ax.bar(ind+width, womenMeans, width, color='blue')
+    ax = fig.add_subplot(121)
+    rects1 = ax.bar(ind, menMeans, width, color='grey', alpha=0.8)
+    rects2 = ax.bar(ind+width, womenMeans, width, color='blue', alpha=0.8)
     #me = (99.50220874,  90.69767442,  82.20858896,  89.88439306, 93.40909091) chiffres ms lesquels ? regarder ds le cahier probablement dist_inc2 et class_weights
     #me =( 99.42394417,  92.96875   ,  88.,  92.31927711, 94.38116932)#chiffres avec dist_inc3 et class_wieghts avec loss modifiee
      #chiffres avec double cross-validation, class_weights ??
     me=np.array([ 99.41557363,  86.875     ,  81.72043011,  94.44444444,  95.12779553])
-    rects3 = ax.bar(ind+2*width, me, width, color='red')
-    
+    rects3 = ax.bar(ind+2*width, me, width, color='red', alpha=0.8)
+    #fig.legend( (rects1[0], rects2[0], rects3[0]), ('CNN', 'LAP', 'MotIW') )
     # add some
     ax.set_ylabel('Precision')
     ax.set_title('Precision by event class')
-    ax.set_xticks(ind+width)
-    ax.set_xticklabels( ('move', 'appear', 'disappear', 'merge', 'split') )
+    ax.set_xticks(ind+width+0.1)
+    ax.set_xticklabels(events )
+#PLOTTING RECALL
+    menMeans = (98.9, 88.6, 70.1,57.5 ,48.3)
+    womenMeans= np.array([ 97.90629431,  61.49068323,  79.51807229,  84.93975904,  63.46456693])# m60_80_s100_120
+    me =np.array([ 99.70028972,  87.42138365,  91.01796407,  86.06060606,  91.25596184])
+    ax = fig.add_subplot(122)
+    rects1 = ax.bar(ind, menMeans, width, color='grey', alpha=0.8)
+    rects2 = ax.bar(ind+width, womenMeans, width, color='blue', alpha=0.8)
+    rects3 = ax.bar(ind+2*width, me, width, color='red', alpha=0.8)
     
-    fig.legend( (rects1[0], rects2[0], rects3[0]), ('Cell Cognition', 'Cell Profiler', 'Struct. learning') )
+    # add some
+    ax.set_ylabel('Recall')
+    ax.set_title('Recall by event class')
+    ax.set_xticks(ind+width+0.1)
+    ax.set_xticklabels( events)
     
+    fig.legend( (rects1[0], rects2[0], rects3[0]), ('CNN', 'Jaqaman et al.', 'MotIW'),loc=1)
+    #p.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
     p.show()
     
     #N = 1
