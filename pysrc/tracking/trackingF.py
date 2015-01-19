@@ -13,9 +13,9 @@ from collections import defaultdict
 from optparse import OptionParser
 
 from trajPack.trajFeatures import trackletBuilder, ordonnancement
-from analyzer.plateSetting import fromXBToWells
 from analyzer import CONTROLS
 if getpass.getuser()!='aschoenauer':
+    from analyzer.plateSetting import fromXBToWells
     from analyzer.xb_analysis import featureEvolOverTime
 #import PyPack
 

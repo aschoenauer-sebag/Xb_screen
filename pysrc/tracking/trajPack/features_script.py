@@ -14,8 +14,8 @@ setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/cbio/donnees/nvaroquaux/.local/lib
 setenv LIBRARY_PATH /cbio/donnees/nvaroquaux/.local/lib
 setenv PYTHONPATH /cbio/donnees/aschoenauer/workspace2/cecog/pysrc:/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc
 setenv DRMAA_LIBRARY_PATH /opt/gridengine/lib/lx26-amd64/libdrmaa.so
-setenv DJANGO_SETTINGS_MODULE interface_screen.settings
 """
+#possibly setenv DJANGO_SETTINGS_MODULE interface_screen.settings but other issues then
 pbsOutDir = '/cbio/donnees/aschoenauer/PBS/OUT'
 pbsErrDir = '/cbio/donnees/aschoenauer/PBS/ERR'
 pbsArrayEnvVar = 'SGE_TASK_ID'
