@@ -14,13 +14,14 @@ elif getpass.getuser()=='lalil0u':
 from sklearn.decomposition import PCA
 from optparse import OptionParser
 from operator import itemgetter
-from itertools import combinations
+from itertools import combinations, product
 from collections import Counter, defaultdict
 from random import sample
 from scipy.stats import pearsonr
 import matplotlib.pyplot as p
 import brewer2mpl
-from tracking.trajPack import featuresSaved, featuresHisto, featuresNumeriques
+from tracking.trajPack import featuresSaved, featuresHisto, featuresNumeriques,\
+    time_windows
 from util.listFileManagement import fromShareToCBIO, appendingControl, txtToList
 from tracking.trajPack.clustering import histConcatenation,outputBin, correct_from_Nan
 from tracking.PyPack.fHacktrack2 import initXml, finirXml
@@ -275,16 +276,23 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl{}', filename='all_dist
 #    result.sort(key=itemgetter(0))
     return expL, geneL, siRNAL, combined_pval#np.array(result) 
 
-def collectingDistances_XB(folder, filename='distances_XbScr_5CtrlC_', iter_range=range(5)):
+def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5), use_time_window=True, compL=None):
     '''
     This function aims at collecting p-values from the xenobiotic screen. No need to look again for the experiments that are involved since it's saved in
     the file
     '''
     files=os.listdir(folder)
-    result=[None for k in iter_range]
+    if use_time_window:
+        time_window_range=len(time_windows)
+        result={(i,j):None for (i,j) in product(iter_range, range(time_window_range))}
+    else:
+        result=[None for k in iter_range]
     who=[]; compounds=[]; doses=[]
     
-    for compound in compoundL:
+    if compL==None:
+        compL=compoundL
+    
+    for compound in compL:
     #we get the list of files from dose 1 to dose max
         cFiles=sorted(filter(lambda x: filename in x and compound in x, files))
         if compound in CONTROLS.values():
@@ -309,7 +317,11 @@ def collectingDistances_XB(folder, filename='distances_XbScr_5CtrlC_', iter_rang
                         if d[param_set].shape[1]==16:
                             d[param_set]=np.delete(d[param_set], 15, 1)
                         for iter_ in iter_range:
-                            result[iter_]= d[param_set] if result[iter_] is None else np.vstack((result[iter_], d[param_set]))
+                            if use_time_window:
+                                result[(iter_,currParams['time_window'])]= d[param_set] if result[(iter_,currParams['time_window'])] is None\
+                                     else np.vstack((result[(iter_,currParams['time_window'])], d[param_set]))
+                            else:
+                                raise AttributeError
         else:
             for file_ in cFiles:
                 print file_
@@ -335,7 +347,13 @@ def collectingDistances_XB(folder, filename='distances_XbScr_5CtrlC_', iter_rang
                     #deleting mean persistence if it is still there
                         if d[param_set].shape[1]==16:
                             d[param_set]=np.delete(d[param_set], 15, 1)
-                        result[iter_]= d[param_set] if result[iter_] is None else np.vstack((result[iter_], d[param_set]))
+                        if use_time_window:
+                                result[(iter_, currParams['time_window'])]= d[param_set] if result[(iter_, currParams['time_window'])] is None\
+                                     else np.vstack((result[(iter_, currParams['time_window'])], d[param_set]))
+                        else:
+                            raise AttributeError
+                        #result[iter_]= d[param_set] if result[iter_] is None else np.vstack((result[iter_], d[param_set]))
+    pdb.set_trace()
     print result[0].shape
     result=np.vstack((-np.log(result[k])[np.newaxis] for k in range(5)))
     result2=2*np.sum(result,2)
