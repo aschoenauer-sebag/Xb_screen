@@ -7,7 +7,7 @@ elif getpass.getuser()=='lalil0u':
     outputFolder = "/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2"
     dataFolder="/media/lalil0u/New/projects/Xb_screen/plates__all_features_2bis"
     
-traj_filename = 'traj_intQC_{}.pkl'
+traj_filename = 'traj_intQC_w{}.pkl'
 feature_filename='features_intQC_{}_t{}.pkl'
 
 predict = True

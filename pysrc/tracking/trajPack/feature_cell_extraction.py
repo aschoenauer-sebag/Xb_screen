@@ -843,6 +843,7 @@ class cellExtractor():
     def __init__(self, siRNA, settings_file,
                  testCtrl = False,
                  div_name='total_variation', 
+                 time_window=None,
                  iter_=0,
                  verbose=0):
         
@@ -856,6 +857,9 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
 
         self.siRNA = siRNA
         self.settings = settings.Settings(settings_file, globals())
+        inputFile = self.settings.filename if time_window is None else self.settings.filename_twindow.format(time_window=time_window)
+        
+        self.time_window = time_window
         self.verbose=verbose
         if not testCtrl:
             self.plate = None
@@ -909,14 +913,14 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
         '''
         if self.settings.xb_screen==False:
             return histConcatenation(self.settings.data_folder, expList, self.settings.mitocheck_file,
-                                            self.settings.quality_control_file,
-                                            #filename=self.settings.filename, 
-                                            verbose=self.verbose, perMovie=True)
+                                    self.settings.quality_control_file,
+                                    #filename=inputFile, 
+                                    verbose=self.verbose, perMovie=True)
         else:
             return xbConcatenation(os.path.abspath(os.path.join(self.settings.data_folder, os.pardir)), expList, xb_list='processedDictResult_P{}.pkl', 
                                    visual_qc=self.settings.visual_qc,
                                    flou_qc=self.settings.flou_qc, 
-                                   filename = self.settings.filename, 
+                                   filename = inputFile, 
                                    verbose=self.verbose, perMovie = True, 
                                    track_folder="track_predictions__settings2")
             
@@ -1023,6 +1027,8 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
            'iter':self.iter,
            'wells':tuple(self.expList)
            }
+        if self.time_window is not None:
+            r['time_window']=self.time_window
         return tuple(sorted(zip(r.keys(), r.values()), key=itemgetter(0)))
     
     def calculateDistances(self, plates, histogrammes, ctrl_histogrammes):
@@ -1185,7 +1191,7 @@ if __name__ == '__main__':
 #    parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
 #    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
     parser.add_option('--iter', type=int, dest="iter", default=0)
-    
+    parser.add_option('--time_window', type=int, dest="time_window", default=None)
 #    parser.add_option("-l",type=int, dest="lambda_", default=10)
     parser.add_option("--verbose", dest="verbose", type=int,default=0)
     (options, args) = parser.parse_args()
@@ -1213,6 +1219,7 @@ if __name__ == '__main__':
             testCtrl=options.testCtrl
             
         extractor=cellExtractor(options.siRNA, options.settings_file,testCtrl, options.div_name,
+                                time_window=options.time_window,
                                 iter_=options.iter,
                                 verbose=options.verbose)
         extractor()

@@ -210,6 +210,7 @@ def xbConcatenation(folder, exp_list=None, xb_list='processedDictResult_P{}.pkl'
             exp_list.extend([(plate, el.split('_')[2]) for el in filter(lambda x: 'features' in x, os.listdir(os.path.join(folder, track_folder, plate)))])
     else:
         print exp_list
+        
     if visual_qc is not None:
         f=open(visual_qc, 'r')
         visual_d=pickle.load(f); f.close()
