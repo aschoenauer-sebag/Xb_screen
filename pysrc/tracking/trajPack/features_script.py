@@ -19,7 +19,7 @@ pbsOutDir = '/cbio/donnees/aschoenauer/PBS/OUT'
 pbsErrDir = '/cbio/donnees/aschoenauer/PBS/ERR'
 pbsArrayEnvVar = 'SGE_TASK_ID'
 
-def scriptTrajFeat(trajDict, featOnly, dataFolder, baseName):
+def scriptTrajFeat(trajDict, featOnly, baseName):
     jobCount = 0
     fileNumber = int(ceil(len(trajDict)/float(jobSize)))
     head = """#!/bin/sh
@@ -34,12 +34,11 @@ cd %s""" %progFolder
         for pl, w in lstTraj:
     #FIRST if trajectories do not exist we do them
             temp_cmd = """
-    python tracking/trajPack/parallel_trajFeatures.py -p %s -w %s -c %i -d %s"""
+    python tracking/trajPack/parallel_trajFeatures.py -p %s -w %s -c %i"""
             temp_cmd %= (
                     pl,
                     w+'.hdf5',
-                    0,
-                    dataFolder
+                    0
                     )
     #        print temp_cmd
             cmd += temp_cmd
@@ -213,16 +212,17 @@ if __name__ == '__main__':
                       help="Give absolute path to the file where you have listed the experiments you're interested in")
     parser.add_option("-s", "--simulated", dest="simulated", default = 0, type=int, 
                       help="Use of simulated trajectories or no")
+    parser.add_option("--dataFolder", type=str, dest="dataFolder", 
+                       help="In case of using simulated data, indicate where it is")
 
     (options, args) = parser.parse_args()
-    dataFolder = options.dataFolder#"/cbio/donnees/aschoenauer/data/tracking/migration"
 
     if options.simulated:
-        processedPlates = os.listdir(dataFolder)
+        processedPlates = os.listdir(options.dataFolder)
         toProcess=[]
         for plate in processedPlates:
             toProcess.extend([(plate, '{:>03}'.format(k)) for k in range(1,385)])
-        scriptCible(toProcess, dataFolder, options.baseName, simulated=True)
+        scriptCible(toProcess, options.baseName, simulated=True)
         
     elif options.trajToDo is not None:
         f=open(options.trajToDo, 'r')
@@ -237,7 +237,7 @@ if __name__ == '__main__':
         for pl, w in featToDo:
             featOnlyDict[pl].append(w)
             
-        scriptTrajFeat(trajToDoDict, featOnlyDict, dataFolder, options.baseName)
+        scriptTrajFeat(trajToDoDict, featOnlyDict, options.baseName)
     else:
         f=open(options.featToDo, 'r')
         featToDo=pickle.load(f); f.close()
