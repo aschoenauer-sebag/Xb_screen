@@ -857,7 +857,7 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
 
         self.siRNA = siRNA
         self.settings = settings.Settings(settings_file, globals())
-        inputFile = self.settings.filename if time_window is None else self.settings.filename_twindow.format(time_window=time_window)
+        self.inputFile = self.settings.filename if time_window== None else self.settings.filename_twindow.format(time_window=time_window)
         
         self.time_window = time_window
         self.verbose=verbose
@@ -914,13 +914,13 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
         if self.settings.xb_screen==False:
             return histConcatenation(self.settings.data_folder, expList, self.settings.mitocheck_file,
                                     self.settings.quality_control_file,
-                                    #filename=inputFile, 
+                                    #filename=self.inputFile, 
                                     verbose=self.verbose, perMovie=True)
         else:
             return xbConcatenation(os.path.abspath(os.path.join(self.settings.data_folder, os.pardir)), expList, xb_list='processedDictResult_P{}.pkl', 
                                    visual_qc=self.settings.visual_qc,
                                    flou_qc=self.settings.flou_qc, 
-                                   filename = inputFile, 
+                                   filename=self.inputFile,
                                    verbose=self.verbose, perMovie = True, 
                                    track_folder="track_predictions__settings2")
             
