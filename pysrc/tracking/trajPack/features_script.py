@@ -201,7 +201,7 @@ if __name__ == '__main__':
                          description=description)
     parser.add_option("-b", "--base_name", dest="baseName",
                       help="Base name for script")
-    parser.add_option("-f", "--settings_file", dest="settings_file", type=str, default='../settings/settings_trajFeatures_XBSC.py',
+    parser.add_option("-f", "--settings_file", dest="settings_file", type=str, default='tracking/settings/settings_trajFeatures_XBSC.py',
                       help="Settings_file")
     parser.add_option("-t", "--use_time_windows", dest="use_time_windows", default=0, type=int,
                       help="Choose to use time windows index in settings file or all frames")
