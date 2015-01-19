@@ -123,8 +123,7 @@ def scriptCible(param_list, baseName, simulated=False,
     
     jobCount = 0
     fileNumber = int(ceil(len(param_list)/float(jobSize)))
-    head = """#!/bin/sh
-cd %s""" %progFolder
+    head = "#!/bin/sh \ncd {}\n" .format(progFolder)
 
     for i in range(fileNumber):
         lstJobPositions = [param_list[k] for k in range(i*jobSize, min(len(param_list), (i+1)*jobSize))]
