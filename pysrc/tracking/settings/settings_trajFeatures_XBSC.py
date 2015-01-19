@@ -14,7 +14,5 @@ predict = True
 repeat=False
 filtering_fusion=False
 
-#Indicating in hours the time windows under study
-time_windows=[(0, 48), (0,24), (12, 36), (24,48),(36, 60)] 
 #Indicating the number of frames per hour
 time_lapse=4

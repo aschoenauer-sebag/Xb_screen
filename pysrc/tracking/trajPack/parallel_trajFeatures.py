@@ -11,7 +11,7 @@ matplotlib.use('Agg')
 from tracking.importPack import FEATURE_NUMBER
 from tracking.test import gettingRaw, j
 from tracking.dataPack import treatments
-from tracking.trajPack import densities
+from tracking.trajPack import densities, time_windows
 from trajFeatures import trackletBuilder, histogramPreparationFromTracklets
 from tracking.trackingF import sousProcessClassify
 from util import settings
@@ -203,7 +203,7 @@ THEN it doesn't replace the first $ww with
     
     if options.time_window is not None:
         fi_trajfeatures = settings.feature_filename.format(options.well[:-5], options.time_window)
-        time_window=settings.time_windows[options.time_window]
+        time_window=time_windows[options.time_window]
     else:
         fi_trajfeatures = settings.feature_filename.format(options.well[:-5],'N')
         time_window=None

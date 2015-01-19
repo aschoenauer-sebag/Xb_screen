@@ -4,8 +4,9 @@ from math import ceil
 import cPickle as pickle
 import numpy as np
 from collections import Counter, defaultdict
+from tracking.trajPack import time_windows
 
-jobSize = 10
+jobSize = 2
 progFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc'
 scriptFolder = '/cbio/donnees/aschoenauer/data/features_scripts'
 path_command = """setenv PATH /cbio/donnees/nvaroquaux/.local/bin:${PATH}
@@ -118,7 +119,9 @@ cd %s""" %progFolder
     print sub_cmd
     return 1
 
-def scriptCible(param_list, dataFolder, baseName, simulated=False):
+def scriptCible(param_list, baseName, simulated=False, 
+                settings_file='tracking/settings/settings_trajFeatures_XBSC.py', time_window_range=[None]):
+    
     jobCount = 0
     fileNumber = int(ceil(len(param_list)/float(jobSize)))
     head = """#!/bin/sh
@@ -132,27 +135,26 @@ cd %s""" %progFolder
 #FIRST if trajectories do not exist we do them, if it's not simulated data of course
             if not simulated:
                 w+='.hdf5'
-                temp_cmd = """
-        python tracking/trajPack/parallel_trajFeatures.py -p %s -w %s -c %i -d %s"""
-                temp_cmd %= (
+                temp_cmd = "python tracking/trajPack/parallel_trajFeatures.py -p {} -w {} -f {} -c {} -s 0\n".format(
                         plate,
                         w,
-                        0,
-                        dataFolder
+                        settings_file,
+                        0
                         )
         #        print temp_cmd
                 cmd += temp_cmd
     #THEN we compute trajectories features anyway
-            temp_cmd = """
-    python tracking/trajPack/parallel_trajFeatures.py -p %s -w %s -c %i --simulated %i"""
-            temp_cmd %= (
-                    plate,
-                    w,
-                    1,
-                    int(simulated)
-                    )
+            for time_window in time_window_range:
+                temp_cmd = "python tracking/trajPack/parallel_trajFeatures.py -p {} -w {} -f {} -t {} -c {} -s {}\n".format(
+                        plate,
+                        w,
+                        settings_file,
+                        time_window,
+                        1,
+                        int(simulated)
+                        )
     
-            cmd += temp_cmd
+                cmd += temp_cmd
 
         # this is now written to a script file (simple text file)
         # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
@@ -201,10 +203,10 @@ if __name__ == '__main__':
                          description=description)
     parser.add_option("-b", "--base_name", dest="baseName",
                       help="Base name for script")
-#    parser.add_option("-t", "--three_d", dest="TroisD",
-#                      help="If you want plots in 3D True, else False")
-    parser.add_option("-d", "--data_folder", dest="dataFolder", type=str, default='/share/data20T/mitocheck/Alice/results',
-                      help="Give absolute path to hdf5 data")
+    parser.add_option("-f", "--settings_file", dest="settings_file", type=str, default='../settings/settings_trajFeatures_XBSC.py',
+                      help="Settings_file")
+    parser.add_option("-t", "--use_time_windows", dest="use_time_windows", default=0, type=int,
+                      help="Choose to use time windows index in settings file or all frames")
     parser.add_option("--traj", dest="trajToDo", type=str, default= None,
                       help="Give absolute path to the file where you have listed the experiments you're interested in")
     parser.add_option("--feat", dest="featToDo", type=str, default= None,
@@ -239,7 +241,10 @@ if __name__ == '__main__':
     else:
         f=open(options.featToDo, 'r')
         featToDo=pickle.load(f); f.close()
-        scriptCible(featToDo, dataFolder, options.baseName)
+        if not options.use_time_windows:
+            scriptCible(featToDo, options.baseName, settings_file=options.settings_file)
+        else:
+            scriptCible(featToDo, options.baseName, settings_file=options.settings_file, time_window_range=range(len(time_windows)))
     
     
     

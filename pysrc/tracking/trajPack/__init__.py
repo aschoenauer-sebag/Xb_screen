@@ -1,4 +1,5 @@
-
+#Indicating in hours the time windows under study
+time_windows=[(0, 48), (0,24), (12, 36), (24,48),(36, 60)] 
 
 #MOMENTS : nb de puissances des distances parcourues que l'on va regarder pour calculer movement type
 moments = range(1,7)
