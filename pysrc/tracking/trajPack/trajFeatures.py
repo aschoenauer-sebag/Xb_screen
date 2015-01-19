@@ -381,7 +381,7 @@ def simpleCorrection(listTraj, movie_start, average):
         newcoord.append([t,X,Y])
     return newcoord
 
-def computingHisto(traj, m_length, average, movie_start, verbose, a,d, training):
+def computingHisto(traj, average, movie_start, verbose, a,d, training):
 #FEATURES
     #Working with tracklets ie no split or merge in the lstPoints
     
@@ -621,7 +621,6 @@ def driftCorrection(m_length, outputFolder, plate, well, totalTracklets, just_av
     return avcum, movie_start #taille movie length, 2
 
 def app(track, connexions, m_start):
-    #check if track.lstPoints.keys() est sorted ou pas : non ils ne le sont pas
     #0 if the cell is there at the begining
     #2 if it comes from a division
     #1 if it just appeared
@@ -634,7 +633,7 @@ def app(track, connexions, m_start):
         except KeyError:
             return 1
         else:
-            if np.any([track.id in vv for vv in lC.values()]):
+            if np.any([track.id in vv for vv in lC.values()]):#your code could hardly be more obscure, good job!!
                 return 2
             return 1
 
@@ -672,7 +671,8 @@ def computingDensity(track):
     
     return r
 
-def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, verbose, movie_length, name, filtering_fusion=True):
+def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, verbose, movie_length, name, filtering_fusion=True,
+                                      time_window=None, time_lapse=4):
     print 'histogram version'
     coord=[]; tabF={}
 
@@ -711,18 +711,28 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
 #ATTENTION here we throw away tracklets whose length is smaller than 10 (otherwise we don't have diffusion info because
 #I use delta t in range (1, len(track)/3 +1) ie (1,2,3) if len(track)>9, and then do regression on it,
 #so if we have less than three points to do linear regression it seems a bit dubious to me)
+
+            if time_window is not None:
+                print "Filtering on time window ", time_window, "for a time-lapse of ", time_lapse, "frames per hour"
+                movie_end = min(time_window[1]*time_lapse, movie_length[plate][well] + movie_start-1)
+                movie_start = max(time_window[0]*time_lapse, movie_start)
+                print "Hence starting at ", movie_start, "and ending at ", movie_end
+            else:
+                movie_end = movie_length[plate][well] + movie_start-1
             print 'Second pass of all tracks to extract features of tracks longer than 11 frames'
-#
+
             tabFeatures = None;
-            i=0
             for track in filter(track_filter,dicC.lstTraj):
                 t=track.lstPoints.keys(); t.sort(); 
-                #labelsSequence = [k[1] for k in t]
+                if time_window is not None and (movie_start>min(t)[0] or movie_end<max(t)[0]+1):
+                    track=track.copyBetween(beginning=movie_start, end=movie_end)
+                    if not track_filter(track):
+                        continue
                 
                 if verbose>5:
                     print "debut de l'extrait de trajectoire", min(t)[0], "fin ", max(t)[0]
-                movie_end = movie_length[plate][well] + movie_start-1
-                        #completion info sur les trajectoires :
+                
+        #completion info sur les trajectoires :
 #            #app et disp
                 if not training:
                     a, d = app(track, connexions[plate][well], movie_start), disp(track, connexions[plate][well], movie_end)
@@ -731,7 +741,7 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
                 if a==None or d==None:
                     raise AttributeError
                 
-                f, coordC,rawCoordC, histN=computingHisto(track, movie_length[plate][well], average, movie_start, verbose, a, d, training)
+                f, coordC,rawCoordC, histN=computingHisto(track, average, movie_start, verbose, a, d, training)
                 arr=[f[k] for k in featuresSaved]
                 
             #densities
@@ -742,13 +752,10 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
                 tabFeatures = arr if tabFeatures==None else np.vstack((tabFeatures, arr))
                 for nom in histNC:
                     histNC[nom].append(histN[nom])
-                i+=1
 #remarque sur la fonction histogramme de numpy : si on met le keyword normed a True cela normalise la probability density function mais pas les bins, ie on n'a pas un
 #histogramme au sens de la these de Sven Siggelkow
                     #r[plate][well].append(featuredTraj(track.id, labelsSequence, min(t)[0], max(t)[0], track.numCellule, features=None))
-
     
-            name = name.format(well)
             f=open(os.path.join(outputFolder, name), 'w')
             pickle.dump([tabFeatures, coord, histNC], f)
             f.close()    

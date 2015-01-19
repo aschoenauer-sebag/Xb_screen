@@ -97,7 +97,7 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
 #        indices = model.fit(pcaed_data[:,:7])
 #        indices=indices.labels_
 
-    for k in range(begin_, num_clusters):#ORDRE UTILISE POUR LE PAPIER ISBI [7,0,3,5,4,2,6,1]:#
+    for k in [7,0,3,5,4,2,6,1]:#range(begin_, num_clusters):#ORDRE UTILISE POUR LE PAPIER ISBI mais pas la petite heatmap [7,0,3,5,4,2,6,1]:#
         where_=np.where(np.array(indices)==k)[0]
         np.random.shuffle(where_)
         small_nr = np.vstack((small_nr, nr[where_[:1000]])) if small_nr is not None else nr[where_[:1000]]

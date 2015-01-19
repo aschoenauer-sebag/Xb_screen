@@ -496,16 +496,23 @@ class trajectoire():
         newTraj.lstPoints = lstPoints
         newTraj.mitose=filter(lambda x: x<index, self.mitose) if self.mitose !=-1 else -1
         newTraj.fusion=filter(lambda x: x<index, self.fusion) if self.fusion !=-1 else -1
+        newTraj.density=self.density[:index-min(self.lstPoints)[0]]
+        pdb.set_trace()
         return newTraj
     
     def copyBetween(self, beginning, end):
-
-        newKeys = filter(lambda x: x[0]>beginning and x[0]<end+1, self.lstPoints)
+        '''
+        Function to copy a trajectory between beginning (included) to end (included)
+        '''
+        newKeys = filter(lambda x: x[0]>=beginning and x[0]<end+1, self.lstPoints)
         lstPoints = {k:self.lstPoints[k] for k in newKeys}
         newTraj = trajectoire(self.numCellule)
         newTraj.lstPoints = lstPoints
-        newTraj.mitose=filter(lambda x: x>beginning and x<end, self.mitose) if self.mitose !=-1 else -1
-        newTraj.fusion=filter(lambda x: x>beginning and x<end, self.fusion) if self.fusion!=-1 else -1
+        newTraj.mitose=self.mitose#filter(lambda x: x>beginning and x<end, self.mitose) if self.mitose !=-1 else -1
+        newTraj.fusion=self.fusion#filter(lambda x: x>beginning and x<end, self.fusion) if self.fusion!=-1 else -1
+        newTraj.density=self.density[max(0, beginning-min(self.lstPoints)[0]):end-min(self.lstPoints)[0]+1]
+        if min(self.lstPoints)[0]>=beginning and max(self.lstPoints)[0]<end:
+            pdb.set_trace()
         return newTraj
 
     def findFrame(self, frame, x=None, y = None):

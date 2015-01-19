@@ -46,15 +46,15 @@ RADIUS = 11
 pca_file = '../resultData/features_on_films/pca_hitSimpson.pkl'
 cluster_file = '../resultData/features_on_films/cluster_hitSimpson.pkl'
 #couleurs pour les clusters
-diverging_colors = [[ 27, 120,  55],
-       [ 69, 117, 180],
-       [253,  63, 171],
-       [215,  48,  39],
-       [219,  62, 243],
-       [140,  81,  10],
-       [ 41, 238, 211],
-       [118,  42, 131]]
-#    [(118,42,131),#violet
+diverging_colors = [[ 27, 120,  55],#vert
+       [ 69, 117, 180],#bleu
+       [253,  63, 171],#rose
+       [215,  48,  39],#rouge
+       [219,  62, 243], #violet pale
+       [140,  81,  10],#marron
+       [ 41, 238, 211],#bleu clair
+       [118,  42, 131]]#violet
+#                    [(118,42,131),#violet
 #                    (27,120,55),#vert
 #                    (215,48,39),#rouge
 #                    (140,81,10),#marron

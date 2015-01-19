@@ -1044,6 +1044,7 @@ def importBatchKMeans(folder, baseName, max_=31, sh=False):
             sil.append(s); coh.append(c)
         sil.append('Silhouette score'); coh.append("Intra-cluster cohesion")
         plotClustInd(folder, range(2,max_),baseName, None,sh, sil, coh)
+        return sil, coh
     else:
         sil=None; coh=None
         for k in range(50):

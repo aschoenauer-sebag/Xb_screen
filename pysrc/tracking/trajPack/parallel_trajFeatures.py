@@ -14,6 +14,7 @@ from tracking.dataPack import treatments
 from tracking.trajPack import densities
 from trajFeatures import trackletBuilder, histogramPreparationFromTracklets
 from tracking.trackingF import sousProcessClassify
+from util import settings
 
 '''
     To perform trajectory extraction and trajectory feature extraction on a cluster node.
@@ -163,46 +164,50 @@ THEN it doesn't replace the first $ww with
     initTime=time.clock()
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
+    
+    parser.add_option("-f", "--settings_file", dest="settings_file", default='../settings/settings_trajFeatures_XBSC.py',
+                      help="Settings_file")
+
     parser.add_option("-p", "--plate", dest="plate",
                       help="The plate which you are interested in")
     
     parser.add_option("-w", "--well", dest="well",
                       help="The well which you are interested in")
 
-    parser.add_option("-d", "--data_folder", dest="dataFolder", default='',
-                      help="Give absolute path to data")
+    parser.add_option("-t", "--time_window", dest="time_window", default=None, type=int,
+                      help="Choose time window index in settings file list")
     
     parser.add_option("-c", "--choice", dest="choice", default = False, 
                       help="False to build trajectories and true to compute features from existing trajectories")
 
-    parser.add_option("-n", "--name", dest="filename", default = 'features_intQC_{}.pkl', 
-                      help="Filename for trajectory features")
-    
     parser.add_option("-s", "--simulated", dest="simulated", default = 0, type=int, 
                       help="Use of simulated trajectories or no")
+#     parser.add_option("-n", "--name", dest="filename", default = 'features_intQC_{}.pkl', 
+#                       help="Filename for trajectory features")    
+#     parser.add_option("-r", "--repeat", dest="repeat", default = False, 
+#                       help="False to do only videos that haven't been treated yet and true to compute features even if already computed")
+#     
+#     parser.add_option("--ff", type=int, dest="filtering_fusion", default = 1, 
+#                       help="False to take into account all tracklets, even those resulting from a fusion")
     
-    parser.add_option("-r", "--repeat", dest="repeat", default = False, 
-                      help="False to do only videos that haven't been treated yet and true to compute features even if already computed")
-    
-    parser.add_option("--ff", type=int, dest="filtering_fusion", default = 1, 
-                      help="False to take into account all tracklets, even those resulting from a fusion")
     (options, args) = parser.parse_args()
     
     if options.well==None:
         print "You need to specify which well to treat. Pgm exiting"
         sys.exit()
-    
-    training=False
-    predict = True
-    TroisD = False
     if type(options.choice)!=bool: options.choice=int(options.choice)
-    if getpass.getuser()=='aschoenauer':
-        outputFolder = os.path.join("/share/data20T/mitocheck/tracking_results", options.plate)
-    elif getpass.getuser()=='lalil0u':
-        outputFolder = os.path.join("/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2", options.plate)
-    fi = 'traj_intQC_w{}.pkl'.format(options.well)
     
-    fi_trajfeatures = options.filename.format(options.well[:-5])
+    settings = settings.Settings(options.settings_file, globals())
+    outputFolder = os.path.join(settings.outputFolder, options.plate)
+    fi=settings.traj_filename.format(options.well)
+    
+    if options.time_window is not None:
+        fi_trajfeatures = settings.feature_filename.format(options.well[:-5], options.time_window)
+        time_window=settings.time_windows[options.time_window]
+    else:
+        fi_trajfeatures = settings.feature_filename.format(options.well[:-5],'N')
+        time_window=None
+        
     if options.simulated:
         training=True
         outputFolder = os.path.join('../resultData/simulated_traj/simres/plates', options.plate)
@@ -213,7 +218,7 @@ THEN it doesn't replace the first $ww with
     except OSError:
         print "Folder ", outputFolder, 'already created'
     
-    if not options.repeat:
+    if not settings.repeat:
         if not options.choice and fi in os.listdir(outputFolder):
             print "Trajectories already generated"
             sys.exit()
@@ -225,7 +230,7 @@ THEN it doesn't replace the first $ww with
         print '### \n # \n ###\n We are going to predict trajectories for plate {}, well {}'.format(options.plate, options.well)
         print 'Densities distance ', densities
 #FOR PREDICTED DATA
-        d, c, movie_length=output(options.plate,options.well, options.dataFolder,outputFolder, training); 
+        d, c, movie_length=output(options.plate,options.well, settings.dataFolder,outputFolder, training); 
 
         if d is not None:
             #saving results
@@ -251,8 +256,9 @@ THEN it doesn't replace the first $ww with
         else:
             if not options.simulated:
                 d,c, movie_length = dataDict['tracklets dictionary'], dataDict['connexions between tracklets'], dataDict['movie_length']
-                res = histogramPreparationFromTracklets(d, c, outputFolder, False, verbose, movie_length, name=options.filename,
-                                                        filtering_fusion=options.filtering_fusion) 
+                res = histogramPreparationFromTracklets(d, c, outputFolder, False, verbose, movie_length, name=fi_trajfeatures,
+                                                        filtering_fusion=settings.filtering_fusion,
+                                                        time_window=time_window) 
             else:
                 d=ensTraj()
                 for traj in dataDict:
@@ -260,7 +266,8 @@ THEN it doesn't replace the first $ww with
                     t.lstPoints = traj
                     d.lstTraj.append(t)
                 res=histogramPreparationFromTracklets({options.plate : {options.well : d}}, None, 
-                                                      outputFolder,training =True, verbose=verbose, movie_length={options.plate : {options.well :99}}, name=options.filename)  #(d,c, outputFolder, False, verbose, tab=True, length=movie_length)
+                                                      outputFolder,training =True, verbose=verbose, movie_length={options.plate : {options.well :99}}, 
+                                                      name=fi_trajfeatures)  #(d,c, outputFolder, False, verbose, tab=True, length=movie_length)
     
     final = time.clock() - initTime
     print "##################TEMPS FINAL {}".format(final)

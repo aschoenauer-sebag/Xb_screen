@@ -205,7 +205,7 @@ def plotPrecision():
     ax.set_ylabel('Precision')
     ax.set_title('Precision by event class')
     ax.set_xticks(ind+width+0.1)
-    ax.set_xticklabels(events )
+    ax.set_xticklabels(events, fontsize=15)
 #PLOTTING RECALL
     menMeans = (98.9, 88.6, 70.1,57.5 ,48.3)
     womenMeans= np.array([ 97.90629431,  61.49068323,  79.51807229,  84.93975904,  63.46456693])# m60_80_s100_120
@@ -219,7 +219,7 @@ def plotPrecision():
     ax.set_ylabel('Recall')
     ax.set_title('Recall by event class')
     ax.set_xticks(ind+width+0.1)
-    ax.set_xticklabels( events)
+    ax.set_xticklabels( events,  fontsize=15)
     
     fig.legend( (rects1[0], rects2[0], rects3[0]), ('CNN', 'Jaqaman et al.', 'MotIW'),loc=1)
     #p.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
@@ -565,7 +565,7 @@ def plotClustInd(folder, x, labels=None,neighbours=None,show=False, *args):
     #exemple d'appel : plots.plotClusteringIndices(range(2,16), [BIC, RBIC, 'BIC'], [PEC, RPEC, 'PEC'], [FS, RFS, 'FS'])
     n=len(args)
     f=p.figure(figsize=(24,13))
-    colors = fHacktrack2.couleurs
+    colors = [ 'red','blue', 'grey']#fHacktrack2.couleurs
     lignes = []
     for i, tab in enumerate(args):
         ax=f.add_subplot(1, n, i)
@@ -579,7 +579,6 @@ def plotClustInd(folder, x, labels=None,neighbours=None,show=False, *args):
                     print 'tab {} is None !'.format(k)
                     continue
                 t=np.array(t)
-
                 lab = '{}'.format(k)
                 if neighbours is not None:
                     lab ='{}, neighbours {}'.format(labels[k/len(neighbours)], neighbours[k%len(neighbours)])
@@ -592,8 +591,11 @@ def plotClustInd(folder, x, labels=None,neighbours=None,show=False, *args):
                 else:
 #                    ax.plot(x, np.mean(t, 0),  linestyle="dashed", marker=markers[k], color='#'+colors[k], label=lab)
                     #ax.plot(x, np.mean(t, 0),  linestyle="dashed", marker="o", color="red", label='10 neighbours')
-                    ax.errorbar(x, np.mean(t, 0), np.std(t, 0), linestyle="dashed", marker=markers[k], color='#'+colors[k], label=lab+', {} samples'.format(t.shape[0]))
-
+                    ax.errorbar(x, np.mean(t, 0), np.std(t, 0), linestyle="dashed", marker=markers[k], color=colors[k], label=lab+', {} iterations'.format(t.shape[0]))
+                from matplotlib.ticker import MultipleLocator
+                ax.xaxis.set_minor_locator(MultipleLocator(1))
+                ax.xaxis.grid(True,'minor')
+                ax.yaxis.grid(True,'minor')
 #                ax.plot(x, np.mean(Rt, 0),  linestyle="dashed", marker="o", color="black", label='all real data, only 13 features')
 #                #ax.plot(x, np.mean(Rt, 0),  linestyle="dashed", marker="o", color="black", label='random data (uniform)')
 #                #ax.plot(x, np.mean(Rt, 0),  linestyle="dashed", marker="o", color="black", label='15 neighbours')
@@ -607,7 +609,10 @@ def plotClustInd(folder, x, labels=None,neighbours=None,show=False, *args):
 #                
             if type(tab[-1])==str:
                 ax.set_title(tab[-1])
+#                 if 'Silhouette' in tab[-1]:
+#                     ax.set_ylim(0,0.4)
     legend = ax.legend();
+    #ax.set_ylim(0.3,1)
     for label in legend.get_texts():
         label.set_fontsize('small')
 
