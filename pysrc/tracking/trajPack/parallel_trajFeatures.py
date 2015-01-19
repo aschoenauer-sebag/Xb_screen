@@ -230,7 +230,7 @@ THEN it doesn't replace the first $ww with
         print '### \n # \n ###\n We are going to predict trajectories for plate {}, well {}'.format(options.plate, options.well)
         print 'Densities distance ', densities
 #FOR PREDICTED DATA
-        d, c, movie_length=output(options.plate,options.well, settings.dataFolder,outputFolder, training); 
+        d, c, movie_length=output(options.plate,options.well, settings.dataFolder,outputFolder, settings.training); 
 
         if d is not None:
             #saving results
