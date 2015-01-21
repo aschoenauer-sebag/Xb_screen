@@ -3,8 +3,10 @@ import numpy as np
 import cPickle as pickle
 
 compoundL=['TCDD', 'MeHg', 'BPA', 'PCB', 'Endo', 'Rien', 'TGF','DMSO', 'Nonane']
+xbL=['TCDD', 'MeHg', 'BPA', 'PCB', 'Endo']
+CONTROLS = {'TCDD':'Nonane', 'PCB':'DMSO', 'Endo':'DMSO', 'MeHg':'DMSO', 'BPA':'DMSO', 'TGF':'DMSO', 'Rien':'Nonane'}
+plates=['201114', '271114', '121214', '201214', '271214']
 
-CONTROLS = {'TCDD':'Nonane', 'PCB':'DMSO', 'Endo':'DMSO', 'MeHg':'DMSO', 'BPA':'DMSO', 'TGF':'DMSO', 'Rien':'Nonane'}#'PFOS':'Water'
 
 cecog_features = ['ch_acd',
                  'ch_area_ratio',

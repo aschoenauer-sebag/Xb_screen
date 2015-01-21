@@ -136,7 +136,7 @@ def readPlateSetting(plateL, confDir, startAtZero = False,
         return result, WELL_PARAMETERS
     
 def fromXBToWells(xbL,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_etal/plate_setups',
-                   dose_filter=None, plate=None):
+                   dose_filter=None, plate=None, verbose=False):
     '''
     Getting information for which treatments are where in the data base
     confDir is the folder where the plate setups are
@@ -184,7 +184,8 @@ def fromXBToWells(xbL,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_e
             well_lines = np.reshape(range(1,97),(8,12))
         else:
             well_lines=np.array([line.strip("\n").split(",") for line in well_lines[1:]], dtype=int)
-            print well_lines
+            if verbose:
+                print well_lines
             well_lines_dict[plate]= {i+1:well_lines.ravel()[i] for i in range(well_lines.size)}
             
     r2={}; r1=defaultdict(dict)

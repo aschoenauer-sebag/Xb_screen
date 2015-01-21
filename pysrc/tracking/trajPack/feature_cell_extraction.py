@@ -29,7 +29,8 @@ from tracking.histograms.k_means_transportation import DIVERGENCES, _distances
 from tracking.histograms.transportation import costMatrix, computingBins
 from util.listFileManagement import expSi, strToTuple, siEntrez, EnsemblEntrezTrad, geneListToFile, usable_MITO
 from util.sandbox import concatCtrl
-from analyzer import CONTROLS, compoundL
+from util.plots import couleurs, markers
+from analyzer import CONTROLS, compoundL, xbL, plates
 from analyzer.xb_analysis import xbConcatenation
 from analyzer.quality_control import usable_XBSC
 
@@ -55,7 +56,7 @@ parameters=[
 #  ('div_name', 'MW'),
 #  ('lambda', 10)),
   (('div_name', 'KS'),
-  ('iter', k)) for k in range(5)]
+  ('iter', z)) for z in range(5)]
 
 #def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all_distances_whole_CTRL.pkl", sigma=0.1, binSize=10,texts=None):
 #    f=open(os.path.join(folder, filename))
@@ -287,7 +288,7 @@ def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5)
         result={(i,j):None for (i,j) in product(iter_range, range(time_window_range))}
     else:
         result=[None for k in iter_range]
-    who=[]; compounds=[]; doses=[]
+    who=defaultdict(list); compounds=defaultdict(list); doses=defaultdict(list)
     
     if compL==None:
         compL=compoundL
@@ -305,19 +306,25 @@ def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5)
                     pdb.set_trace()
                 else:
                     for param_set in d:
-                        print param_set
                         currParams=dict(param_set)
                         try:
-                            who.extend(currParams['wells'])
+                            who[currParams['time_window']].extend(currParams['wells'])
                         except KeyError:
-                            who.extend(['{}_{}'.format(compound, tag(file_)) for k in range(d[param_set].shape[0])])
-                        compounds.extend([compound for k in range(d[param_set].shape[0])])
-                        doses.extend([tag(file_) for k in range(d[param_set].shape[0])])
+                            if not use_time_window:
+                                who.extend(['{}_{}'.format(compound, tag(file_)) for k in range(d[param_set].shape[0])])
+                            else:
+                                pdb.set_trace()
+                        compounds[currParams['time_window']].extend([compound for k in range(d[param_set].shape[0])])
+                        doses[currParams['time_window']].extend([tag(file_) for k in range(d[param_set].shape[0])])
                     #deleting mean persistence if it is still there
                         if d[param_set].shape[1]==16:
                             d[param_set]=np.delete(d[param_set], 15, 1)
                         for iter_ in iter_range:
                             if use_time_window:
+                                try:
+                                    assert(len(currParams['wells'])==d[param_set].shape[0] )
+                                except AssertionError:
+                                    pdb.set_trace()
                                 result[(iter_,currParams['time_window'])]= d[param_set] if result[(iter_,currParams['time_window'])] is None\
                                      else np.vstack((result[(iter_,currParams['time_window'])], d[param_set]))
                             else:
@@ -334,16 +341,15 @@ def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5)
                     pdb.set_trace()
                 else:
                     for param_set in d:
-                        print param_set
                         currParams=dict(param_set)
                         iter_ = currParams['iter']
                         if iter_==0:
                             try:
-                                who.extend(currParams['wells'])
+                                who[currParams['time_window']].extend(currParams['wells'])
                             except KeyError:
                                 pdb.set_trace()
-                            compounds.extend([compound for k in range(d[param_set].shape[0])])
-                            doses.extend([tag(file_) for k in range(d[param_set].shape[0])])
+                            compounds[currParams['time_window']].extend([compound for k in range(d[param_set].shape[0])])
+                            doses[currParams['time_window']].extend([tag(file_) for k in range(d[param_set].shape[0])])
                     #deleting mean persistence if it is still there
                         if d[param_set].shape[1]==16:
                             d[param_set]=np.delete(d[param_set], 15, 1)
@@ -353,11 +359,14 @@ def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5)
                         else:
                             raise AttributeError
                         #result[iter_]= d[param_set] if result[iter_] is None else np.vstack((result[iter_], d[param_set]))
-    pdb.set_trace()
-    print result[0].shape
-    result=np.vstack((-np.log(result[k])[np.newaxis] for k in range(5)))
-    result2=2*np.sum(result,2)
-    return result, result2, np.array(who), np.array(compounds), np.array(doses)
+    print result[(0,0)].shape
+    result={tw: np.vstack((-np.log(result[(el,tw)])[np.newaxis] for el in range(5))) for tw in range(5)}
+    result2={tw:2*np.sum(result[tw],2) for tw in result}
+    
+    doses={el:np.array(doses[el]) for el in who}
+    compounds={el:np.array(compounds[el]) for el in who}
+    who={el:np.array(who[el]) for el in who}
+    return result, result2, who, compounds, doses
 
 def finding_hit_XB(result, who, compounds, doses, combination=(lambda x: np.max(x,0)), 
                    outputFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2/features_on_films'):
@@ -380,7 +389,7 @@ def finding_hit_XB(result, who, compounds, doses, combination=(lambda x: np.max(
     return pval_DMSO, qval_DMSO, pval_Nonane,  qval_Nonane
     
 
-def plotDistances_XB(result, compounds, doses, combination=(lambda x: np.min(x,0)), cmap=mpl.cm.bwr, norm=2):
+def plotDistances_XB(result, compounds, doses, combination=(lambda x: np.max(x,0)), cmap=mpl.cm.bwr, norm=2, compL=None):
     '''
     So just plot-wise we look at the different -log(pvalues) for all features for the different conditions,
     normalizing with the mean,std of the controls from all plates.
@@ -392,28 +401,62 @@ def plotDistances_XB(result, compounds, doses, combination=(lambda x: np.min(x,0
     so it's just the other way around with all mitocheck results. We chose in the latter to use max(pval) ie most
     conservative approach.
     '''
-    f, axes=p.subplots(6,10,sharex=True, sharey=True)
-    result=np.array(combination(result))
+    if compL==None:
+        compL=compoundL
+    if compL[0] not in xbL:
+#second plot for the controls
+        f, axes=p.subplots(1,4,sharey=True)
+        L=compL
+    else:
+#first plot for the xenobiotics
+        f, axes=p.subplots(5,10,sharex=True, sharey=True)
+        L=filter(lambda x: x in xbL, compL)
+        result=np.array(combination(result))
     k=0
-    for i,compound in enumerate(compoundL):
+    for i,compound in enumerate(L):
         subR = result[np.where(compounds==compound)]
         if compound in CONTROLS.keys():
             subR=(subR-np.mean(result[np.where(compounds==CONTROLS[compound])],0))/np.std(result[np.where(compounds==CONTROLS[compound])],0)
         else:
             subR=(subR-np.mean(subR,0))/np.std(subR,0)
-        if compound in ['BPA', 'TCDD', 'Endo', 'MeHg', 'PCB']:
-            subD = np.array(doses[np.where(compounds==compound)], dtype=int)    
+        subD = np.array(doses[np.where(compounds==compound)], dtype=int)  
+        if compound in xbL:
             for dose in range(np.max(subD)+1):
-                axes[i,dose].matshow(subR[np.where(subD==dose)[0]], cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
-                axes[i,dose].set_xlim(0,6)
+                try:
+                    axes[i,dose].matshow(subR[np.where(subD==dose)[0]][:,np.newaxis], cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
+                except ValueError:
+                    axes[i,dose].matshow(subR[np.where(subD==dose)[0]], cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
+                axes[i,dose].set_ylim(0,6)
+                axes[i,dose].set_xlim(0,16)
             axes[i,0].set_title(compound)
         else:
-            axes[5,k].set_xlim(0,15)
-            axes[5,k].pcolor(subR, cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
-            axes[5,k].set_title(compound); k+=1
+            axes[k].set_ylim(0,27)
+            try:
+                axes[k].pcolor(subR[:,np.newaxis], cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
+            except ValueError:
+                axes[k].pcolor(subR, cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
+            axes[k].set_title(compound); k+=1
         
     #p.colorbar(f,cmap=mpl.cm.OrRd, ax=list(axes))
     p.show()
+    if L!=compL:
+        return plotDistances_XB(result, compounds, doses, combination, cmap, norm, compL=filter(lambda x: x not in xbL, compL))
+def plotDistances_TWEvol(result, who, doses, combination=(lambda x: np.max(x,0))):
+    
+    r_comb={el: combination(result[el],0) for el in result}
+    f,axes=p.subplots(1,5, sharex=True, sharey=True)
+    for k in range(5):
+        for i,el in enumerate(r_comb[k][49:]):
+            axes[k].scatter(i, el, color=couleurs[plates.index(who[k][49+i,0])], marker=markers[plates.index(who[k][49+i,0])], label=who[k][49+i,0])                                                                                      
+            axes[k].set_title(time_windows[k])
+            axes[k].text(i,el,int(doses[k][49+i]))
+    for k in range(5):
+        for i,el in enumerate(r_comb[k][24:49]):
+            axes[k].scatter(56, el, color='black', marker=markers[plates.index(who[k][24+i,0])], label='DMSO')                     
+    p.legend(fontsize=7)
+    p.show()
+
+    
         
         
 def collectingDistances(filename, folder, 
@@ -918,7 +961,7 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
             l= strToTuple(yqualDict[self.siRNA], os.listdir(self.settings.data_folder))
         else:
             xb=self.siRNA.split('_')[0]; dose=self.siRNA.split('_')[1]
-            info_dict, _=fromXBToWells([xb], dose_filter=dose)
+            info_dict, _=fromXBToWells([xb], dose_filter=dose, verbose=self.verbose)
             l=info_dict[xb][dose]
             
         if self.verbose>0:
@@ -1005,7 +1048,10 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
                 if not self.settings.xb_screen:
                     f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate)), 'w')
                     pickle.dump([np.array(usable_ctrl), permutations], f); f.close()
-                else:
+                elif self.settings.ctrl_exp_filename.format(plate, self.ctrl) not in os.listdir(self.settings.result_folder):
+            #this ensure that we use the same order of permutations for all control pvalue list across the different time windows.
+            #Hence we can directly compare the pvalue lists across time-windows
+                    print "Defining usable controls and permutations"
                     f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(plate, self.ctrl)), 'w')
                     pickle.dump([np.array(usable_ctrl), permutations], f); f.close()
                 
@@ -1047,6 +1093,8 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
            }
         if self.time_window is not None:
             r['time_window']=self.time_window
+        if self.verbose:
+            print "Parameters: iter", self.iter, "time window ", self.time_window 
         return tuple(sorted(zip(r.keys(), r.values()), key=itemgetter(0)))
     
     def calculateDistances(self, plates, histogrammes, ctrl_histogrammes):
@@ -1134,7 +1182,8 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
             
             #iv. calculate the distance from each experiment to its control
             distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes)
-            print distances
+            if self.verbose:
+                print distances
             #v. save results
             self.saveResults(distances)
             
@@ -1180,7 +1229,8 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
         
                 #iv. calculate the distance from each experiment to its control
                 distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes)
-                print distances
+                if self.verbose:
+                    print distances
                 #v. save results
                 self.saveResults(distances)
         
@@ -1214,7 +1264,7 @@ if __name__ == '__main__':
     parser.add_option("--verbose", dest="verbose", type=int,default=0)
     (options, args) = parser.parse_args()
     
-
+    print options.time_window
     if options.action=='collectDistances':
         collectingDistances('all_distances_whole_5Ctrl2.pkl', '../resultData/features_on_films/', 
                             '../data/qc_export.txt', '../data/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl=False, redo=True,
@@ -1235,11 +1285,11 @@ if __name__ == '__main__':
             testCtrl='{}_{}'.format(options.testCtrl, options.solvent)
         else:
             testCtrl=options.testCtrl
-            
+        print "TW, iter ", options.time_window, options.iter
         extractor=cellExtractor(options.siRNA, options.settings_file,testCtrl, options.div_name,
-                                time_window=options.time_window,
-                                iter_=options.iter,
-                                verbose=options.verbose)
+                                 time_window=options.time_window,
+                                 iter_=options.iter,
+                                 verbose=options.verbose)
         extractor()
         
 #redone experiments after hdf5 catastrophe

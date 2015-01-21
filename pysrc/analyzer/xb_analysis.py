@@ -208,7 +208,7 @@ def xbConcatenation(folder, exp_list=None, xb_list='processedDictResult_P{}.pkl'
         plates=filter(lambda x: os.path.isdir(os.path.join(folder, track_folder, x)) and '14'==x[-2:], os.listdir(os.path.join(folder, track_folder)))
         for plate in plates:
             exp_list.extend([(plate, el.split('_')[2]) for el in filter(lambda x: 'features' in x, os.listdir(os.path.join(folder, track_folder, plate)))])
-    else:
+    elif verbose:
         print exp_list
         
     if visual_qc is not None:
