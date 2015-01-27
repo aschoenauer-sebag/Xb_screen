@@ -1,4 +1,4 @@
-import getpass, os,pdb, operator, sys
+import getpass, os,pdb, operator, sys, datetime
 import numpy as np
 import cPickle as pickle
 from analyzer.plateSetting import fromXBToWells
@@ -331,8 +331,10 @@ def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5)
                                 raise AttributeError
         else:
             for file_ in cFiles:
-                print file_
-                tag = lambda x: cFiles.index(x)
+                #ATTENTION ca ne marche pas dans le cas ou les doses vont de 1 a 10 pcq ds ce cas l'ordre est 1 10 2 3 4 5 6 7 8 9
+                #tag = lambda x: cFiles.index(x)+1
+                tag = lambda x: x.split('_')[-1].split('.')[0]
+                print file_, tag(file_)
                 
                 try:
                     f=open(os.path.join(folder, file_), 'r')
@@ -354,22 +356,25 @@ def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5)
                         if d[param_set].shape[1]==16:
                             d[param_set]=np.delete(d[param_set], 15, 1)
                         if use_time_window:
-                                result[(iter_, currParams['time_window'])]= d[param_set] if result[(iter_, currParams['time_window'])] is None\
+#                             if np.any(np.isnan(d[param_set])):
+#                                 pdb.set_trace()
+                            result[(iter_, currParams['time_window'])]= d[param_set] if result[(iter_, currParams['time_window'])] is None\
                                      else np.vstack((result[(iter_, currParams['time_window'])], d[param_set]))
                         else:
                             raise AttributeError
-                        #result[iter_]= d[param_set] if result[iter_] is None else np.vstack((result[iter_], d[param_set]))
     print result[(0,0)].shape
     result={tw: np.vstack((-np.log(result[(el,tw)])[np.newaxis] for el in range(5))) for tw in range(5)}
     result2={tw:2*np.sum(result[tw],2) for tw in result}
     
-    doses={el:np.array(doses[el]) for el in who}
+    doses={el:np.array(doses[el], dtype=int) for el in who}
     compounds={el:np.array(compounds[el]) for el in who}
     who={el:np.array(who[el]) for el in who}
     return result, result2, who, compounds, doses
 
 def finding_hit_XB(result, who, compounds, doses, combination=(lambda x: np.max(x,0)), 
-                   outputFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2/features_on_films'):
+                   outputFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2/features_on_films',
+                   plot=True,
+                   saveTextFile=True):
     '''
     Working on min(stat)=working on max(pval) == CONSERVATIVE approach
     Working on max(stat)=working on min(pval) == OPTIMISTIC APPROACH
@@ -380,16 +385,69 @@ def finding_hit_XB(result, who, compounds, doses, combination=(lambda x: np.max(
     control_stat=result[np.where(compounds=='DMSO')]
     stat=result[np.where(np.array([compound not in ['Nonane', 'DMSO', 'TCDD'] for compound in compounds]))]
     pval_DMSO, qval_DMSO = empiricalPvalues(control_stat, stat, outputFolder, 'DMSO_compared', sup=True, also_pval=True)
+    compounds_DMSO=compounds[np.where(np.array([compound not in ['Nonane', 'DMSO', 'TCDD'] for compound in compounds]))]
+    who_DMSO=who[np.where(np.array([compound not in ['Nonane', 'DMSO', 'TCDD'] for compound in compounds]))]
+    doses_DMSO=doses[np.where(np.array([compound not in ['Nonane', 'DMSO', 'TCDD'] for compound in compounds]))]
+    
+    conditions_DMSO=["{} {} {}".format(a,b,c) for a,b,c in zip(compounds_DMSO, doses_DMSO, who_DMSO)]
+    
     
     #now with Nonane for TCDD
     control_stat=result[np.where(compounds=='Nonane')]
     stat=result[np.where(compounds=='TCDD')]
     pval_Nonane, qval_Nonane = empiricalPvalues(control_stat, stat, outputFolder, 'Nonane_compared', sup=True, also_pval=True)
     
-    return pval_DMSO, qval_DMSO, pval_Nonane,  qval_Nonane
+    conditions_Nonane=["{} {} {}".format(a,b,c) for a,b,c in zip(['TCDD' for k in range(len(pval_Nonane))], doses[np.where(compounds=='TCDD')],\
+                                                                 who[np.where(compounds=='TCDD')])]
+    l=len(pval_DMSO)
+    conditions_DMSO.extend(conditions_Nonane); pval_DMSO=np.vstack((pval_DMSO,pval_Nonane)); qval_DMSO=np.vstack((qval_DMSO[:,np.newaxis],qval_Nonane[:,np.newaxis])); 
+    result=zip(pval_DMSO, qval_DMSO, conditions_DMSO);result.sort(key=itemgetter(0))
+    
+    if plot:
+        qval_DMSO=np.array(qval_DMSO)
+        for compound in ['BPA', 'MeHg', 'PCB', 'Endo']:
+            zz=[]
+            f=p.figure(figsize=(24,16))
+            ax=f.add_subplot(111)
+            for i,el in enumerate(qval_DMSO[np.where(compounds_DMSO==compound)[0]]):
+                if plates.index(who_DMSO[np.where(compounds_DMSO==compound)][i,0]) not in zz:
+                    ax.scatter(i,el, marker=markers[plates.index(who_DMSO[np.where(compounds_DMSO==compound)][i,0])], \
+                               color=couleurs[plates.index(who_DMSO[np.where(compounds_DMSO==compound)][i,0])], label=who_DMSO[np.where(compounds_DMSO==compound)][i,0])
+                    zz.append(plates.index(who_DMSO[np.where(compounds_DMSO==compound)][i,0]))
+                else:
+                    ax.scatter(i,el, marker=markers[plates.index(who_DMSO[np.where(compounds_DMSO==compound)][i,0])],\
+                               color=couleurs[plates.index(who_DMSO[np.where(compounds_DMSO==compound)][i,0])])
+                ax.text(i,el,"{} {}".format(compounds_DMSO[np.where(compounds_DMSO==compound)][i][0],doses_DMSO[np.where(compounds_DMSO==compound)][i]))
+            ax.set_ylim(0,1)
+            p.legend(fontsize=7)
+            p.savefig(os.path.join(outputFolder, "pval_{}_comb_optimistic.png".format(compound)))
+            
+        who_Nonane=who[np.where(compounds=='TCDD')];zz=[]
+        f=p.figure(figsize=(24,16))
+        ax=f.add_subplot(111)
+        for i,el in enumerate(qval_Nonane):
+            if who_Nonane[i,0] not in zz:
+                ax.scatter(i,el, marker=markers[plates.index(who_Nonane[i,0])], color=couleurs[plates.index(who_Nonane[i,0])], label=who_Nonane[i,0])
+                zz.append(who_Nonane[i,0])
+            else:
+                ax.scatter(i,el, marker=markers[plates.index(who_Nonane[i,0])], color=couleurs[plates.index(who_Nonane[i,0])])
+            ax.text(i,el,"T {}".format(doses[np.where(compounds=='TCDD')][i]))
+        ax.set_ylim(0,1)
+        p.legend(fontsize=7)
+        p.savefig(os.path.join(outputFolder, "pval_TCDD_comb_optimistic.png"))
+    if saveTextFile:
+        f=open(os.path.join(outputFolder, 'ranking_pval_{}.txt'.format(datetime.date.today())), 'w')
+        f.write('P-val\t Q-val\t Xb\t Dose\t Plate\t Well\n')
+        for el in result:
+            f.write("{}\t {} \t {}\t {} \t {} \t {}\n".format(el[0][0], el[1][0], *el[2].split(" ")))
+        f.close()
+    return result, pval_DMSO[:l], qval_DMSO[:l], pval_Nonane,  qval_Nonane
     
 
-def plotDistances_XB(result, compounds, doses, combination=(lambda x: np.max(x,0)), cmap=mpl.cm.bwr, norm=2, compL=None):
+def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max(x,0)), cmap=mpl.cm.bwr, norm=2, compL=None, sh=True,
+                     outputFolder = '../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2/features_on_films',
+                     filename='TW0', length=None
+                     ):
     '''
     So just plot-wise we look at the different -log(pvalues) for all features for the different conditions,
     normalizing with the mean,std of the controls from all plates.
@@ -401,64 +459,129 @@ def plotDistances_XB(result, compounds, doses, combination=(lambda x: np.max(x,0
     so it's just the other way around with all mitocheck results. We chose in the latter to use max(pval) ie most
     conservative approach.
     '''
+    if result.shape[0] >500:
+        #It means we're dealing with feature tables and not statistic or pvalue tables.
+        if length ==None:
+            raise ValueError
+        else:
+            new_result=np.zeros(shape=(len(length), result.shape[1]))
+            for i in range(len(length)):
+                new_result[i]=np.mean(result[np.sum(length[:i]):np.sum(length[:i+1])],0)
+            combination=lambda x:x
+            
+            result=np.hstack((new_result[:,:len(featuresNumeriques)],new_result[:, featuresSaved.index('mean straight'), np.newaxis]))
+            
     if compL==None:
         compL=compoundL
     if compL[0] not in xbL:
 #second plot for the controls
-        f, axes=p.subplots(1,4,sharey=True)
+        f, axes=p.subplots(1,4,sharey=True, figsize=(15,16))
         L=compL
     else:
 #first plot for the xenobiotics
-        f, axes=p.subplots(5,10,sharex=True, sharey=True)
+        f, axes=p.subplots(5,10,sharex=True, sharey=True,figsize=(24,16))
         L=filter(lambda x: x in xbL, compL)
         result=np.array(combination(result))
     k=0
     for i,compound in enumerate(L):
+        print compound
         subR = result[np.where(compounds==compound)]
+        where_compound=np.where(compounds==compound)[0]
         if compound in CONTROLS.keys():
-            subR=(subR-np.mean(result[np.where(compounds==CONTROLS[compound])],0))/np.std(result[np.where(compounds==CONTROLS[compound])],0)
+            where_1=np.where(compounds==CONTROLS[compound])[0]
+            for el,j in enumerate(where_compound):
+                pl=who[j][0]
+                where_control=filter(lambda x:x in where_1, np.where(who[:,0]==pl)[0])
+                subR[el]=(subR[el]-np.mean(result[where_control],0))/np.std(result[where_control],0)
+                
         else:
-            subR=(subR-np.mean(subR,0))/np.std(subR,0)
-        subD = np.array(doses[np.where(compounds==compound)], dtype=int)  
+            for el,j in enumerate(where_compound):
+                pl=who[j][0]
+                where_control=filter(lambda x:x in where_compound, np.where(who[:,0]==pl)[0])
+                subR[el]=(subR[el]-np.mean(result[where_control],0))/np.std(result[where_control],0)
+                
+        subD = np.array(doses[np.where(compounds==compound)], dtype=int) 
+        
         if compound in xbL:
-            for dose in range(np.max(subD)+1):
+            dose_range=range(np.max(subD)-1) if (compound=='BPA' and np.max(subD)==10) else range(np.max(subD))
+            for dose in dose_range:
+                subW=who[np.where((compounds==compound) & (doses==dose+1))]
                 try:
-                    axes[i,dose].matshow(subR[np.where(subD==dose)[0]][:,np.newaxis], cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
+                    axes[i,dose].matshow(subR[np.where(subD==dose+1)[0]][:,np.newaxis], cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
                 except ValueError:
-                    axes[i,dose].matshow(subR[np.where(subD==dose)[0]], cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
+                    axes[i,dose].matshow(subR[np.where(subD==dose+1)[0]], cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
+                for j in range(subR[np.where(subD==dose+1)].shape[0]):
+                    axes[i,dose].text(0,j,subW[j],fontsize=7)
                 axes[i,dose].set_ylim(0,6)
                 axes[i,dose].set_xlim(0,16)
+                axes[i,dose].text(0,-5,"Dose {}".format(dose+1))
+                axes[i,dose].set_xticklabels([])
             axes[i,0].set_title(compound)
         else:
+            subW =  np.array(who[np.where(compounds==compound)])
             axes[k].set_ylim(0,27)
             try:
                 axes[k].pcolor(subR[:,np.newaxis], cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
             except ValueError:
                 axes[k].pcolor(subR, cmap=cmap, norm=mpl.colors.Normalize(-norm,norm))
+            for j in range(subR.shape[0]):
+                axes[k].text(0,j,subW[j])
             axes[k].set_title(compound); k+=1
         
-    #p.colorbar(f,cmap=mpl.cm.OrRd, ax=list(axes))
-    p.show()
+    if sh:
+        p.show()
+    else:
+        p.savefig(os.path.join(outputFolder, 'heatmaps_pval_comb_max_standardized_{}.png'.format(filename)))
     if L!=compL:
-        return plotDistances_XB(result, compounds, doses, combination, cmap, norm, compL=filter(lambda x: x not in xbL, compL))
-def plotDistances_TWEvol(result, who, doses, combination=(lambda x: np.max(x,0))):
+        return plotDistances_XB(result, compounds, who,doses, combination, cmap, norm, compL=filter(lambda x: x not in xbL, compL), sh=sh,\
+                                outputFolder=outputFolder, filename='controls{}'.format(filename))
     
-    r_comb={el: combination(result[el],0) for el in result}
-    f,axes=p.subplots(1,5, sharex=True, sharey=True)
-    for k in range(5):
-        for i,el in enumerate(r_comb[k][49:]):
-            axes[k].scatter(i, el, color=couleurs[plates.index(who[k][49+i,0])], marker=markers[plates.index(who[k][49+i,0])], label=who[k][49+i,0])                                                                                      
-            axes[k].set_title(time_windows[k])
-            axes[k].text(i,el,int(doses[k][49+i]))
-    for k in range(5):
-        for i,el in enumerate(r_comb[k][24:49]):
-            axes[k].scatter(56, el, color='black', marker=markers[plates.index(who[k][24+i,0])], label='DMSO')                     
-    p.legend(fontsize=7)
-    p.show()
+def plotDistances_TWEvol(result, who,compounds, doses, combination=(lambda x: np.max(x,0)), compL=None, sh=False,
+                    outputFolder = '../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2/features_on_films',
+                    filename='stat_comb_max_time_windows_{}',
+                    legend=True,
+                    CTRL_ONLY=False
+                     ):
+    if compL is None:
+        compL=compoundL
+        
+    r_comb={el: combination(result[el]) for el in result}
+    
+    for compound in filter(lambda x: x not in ['DMSO', 'Nonane'], compL):
+        print compound        
+        f,axes=p.subplots(1,5, sharex=True, sharey=True,figsize=(24,16))
+        control=CONTROLS[compound]
+        for k in range(len(time_windows)):
+            if not CTRL_ONLY:
+                ind=np.where(compounds[k]==compound)[0]
+                subR=r_comb[k][ind[0]:ind[-1]]
+                for i,el in enumerate(subR):
+                    if not np.isnan(el):
+        #This because there are wells for which some features gave nan pvalues : 'movement_type' for well 61 pl 201214
+        #It is due to util.listFileManagement.correct_Nan 
+                        axes[k].scatter(i, el, color=couleurs[plates.index(who[k][ind[0]+i,0])], marker=markers[plates.index(who[k][ind[0]+i,0])], label=who[k][ind[0]+i,0])                                                                                      
+                        axes[k].set_title(time_windows[k])
+                        axes[k].text(i,el,int(doses[k][ind[0]+i]))
+                        axes[k].set_ylim(0,max(1000, np.max(subR)))
+            
+                indC=np.where(compounds[k]==control)[0]
+                subR=r_comb[k][indC[0]:indC[-1]]
+                for i,el in enumerate(subR):
+                    axes[k].scatter(ind[-1]-ind[0]+4, el, color='black', marker=markers[plates.index(who[k][indC[0]+i,0])])
+            else:
+                indC=np.where(compounds[k]==control)[0]
+                subR=r_comb[k][indC[0]:indC[-1]]
+                for i,el in enumerate(subR):
+                    axes[k].scatter(i, el, color=couleurs[plates.index(who[k][indC[0]+i,0])], marker=markers[plates.index(who[k][indC[0]+i,0])],label=who[k][indC[0]+i,0])
+                    axes[k].text(i,el,int(who[k][indC[0]+i,1]))
+                axes[k].set_ylim(0,350)
+        if legend:
+            p.legend(fontsize=10)
+        if sh:
+            p.show()
+        else:
+            p.savefig(os.path.join(outputFolder, filename.format(compound)))
 
-    
-        
-        
 def collectingDistances(filename, folder, 
                         key_name = 'distances_whole_5Ctrl3',
                         qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl =False,
@@ -578,7 +701,7 @@ def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False, also_pval
     p.savefig(os.path.join(folder, 'pvalParamKS_{}.png'.format(name)))
     p.close('all')
     if also_pval:
-        return empirical_pval, empirical_qval
+        return np.array(empirical_pval), np.array(empirical_qval)
     
     return empirical_qval
 
@@ -1114,6 +1237,7 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
                 #taking the p-value because the distance does not take into account the sample sizes explicitly
                         distances[i,k]=ks_2samp(h1[~np.isnan(h1)], h2[~np.isnan(h2)])[1]
                     else:
+                        pdb.set_trace()
                         distances[i,k]=np.nan
                 elif self.div_name =='MW':
                     if not (type(h2)==float and np.isnan(h2)):
@@ -1123,7 +1247,7 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
                         distances[i,k]=np.nan
                 else:
                     raise AttributeError
-                    
+
         return distances
     
     def alreadyDone(self):
@@ -1164,13 +1288,13 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
     
     def __call__(self):
         
-    #before anything, testing for existence if not redo anyway
-        if not self.settings.redo and self.alreadyDone():
-            print 'Already done'
-            return
     #i. getting experiments corresponding to siRNA if we're not looking for control experiments only
         if self.plate is None:
             self.expList=self._findExperiment()
+            #before anything, testing for existence if not redo anyway
+            if not self.settings.redo and self.alreadyDone():
+                print 'Already done'
+                return
             if self.expList==[]:
                 sys.stderr.write("No experiments for siRNA {}".format(self.siRNA))
                 return
@@ -1210,6 +1334,11 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
 
             for false_experiments in different_controls:
                 self.expList = [usable_ctrl[i] for i in false_experiments]
+                if not self.settings.redo and self.alreadyDone():
+                    print 'Already done'
+                    return
+
+                
                 if self.verbose:
                     print 'false experiments', self.expList
 

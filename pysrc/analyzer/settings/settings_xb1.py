@@ -62,7 +62,8 @@ density_plot_settings = {
 well_plot_settings={
                     'cell_count':(0, 300),
                     'circularity':(0, 0.75),
-                    'Flou_ch1':(0,1)
+                    'Flou_ch1':(0,1),
+                    'Nuclear morphologies':(0,1)
 }
 
 TRANSLATION_WHOLENAMED = {
@@ -90,40 +91,22 @@ TRANSLATION_WHOLENAMED = {
     'subTrack_dist_mean_norm': 'Migration: Distance', 
     'frameToFrame_max': 'Migration: Speed'
     }
-    
+
 # color dictionnary for the time curve plots
-COLORD = {'Interphase': 'chocolate3',
-          'Large': 'darkgoldenrod1',
-          'Elongated': 'chocolate4',
-          'StrangeInterphase': 'cornsilk3',
-          
-          'Shape': 'blue',
-          'Shape1': 'blue',
-          'Shape3': 'deepskyblue',
-          'Grape': 'dodgerblue3',
+ 
+COLORD = {'Interphase_ch1': '#00d500',
+          'Amas_ch1': '#eee234',
+          'Polylobbed_ch1': '#457a0f',
+          'Metaphase_ch1': '#ff00ff',
+          'Anaphase_ch1': '#55ffff',
+          'Prometaphase_ch1': '#aa5500',
+          'Apoptosis_ch1': '#ff0000',
+          'WMicronuclei_ch1': '#59aa7d',
+          'Folded_ch1': '#ff895a',
 
-          #'MitosisPhenotype': 'green',
-          'MitosisPhenotype': 'chartreuse',          
-          'Metaphase': 'forestgreen',
-          'Anaphase': 'darkolivegreen1',
-          'MetaphaseAlignment': 'chartreuse',
-          'Prometaphase': 'palegreen2',
-          'ADCCM': 'lightgreen',
-          
-          'Apoptosis': 'red',
-          
-          'Dynamic': 'magenta',
-          'Hole': 'orchid1',
-          'Folded': 'purple',
-          'SmallIrregular': 'magenta3',
+          'Flou_ch1':'black',
+          'Artefact_ch1': 'black',
+          'SmallUnidentified_ch1': 'grey',
 
-          'Artefact': 'grey',
-          'UndefinedCondensed': 'red4',
-          
-          'proliferationDiff': 'cyan2',
-          'proliferation': 'cyan3',
-          
-          'subTrack_dist_mean_norm': 'yellow', 
-          'frameToFrame_max': 'orange'
 
           }

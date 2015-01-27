@@ -133,7 +133,7 @@ def readPlateSetting(plateL, confDir, startAtZero = False,
     if addPlateWellsToDB:
         return result, WELL_PARAMETERS, well_lines, idL
     else:
-        return result, WELL_PARAMETERS
+        return result, WELL_PARAMETERS, well_lines, idL
     
 def fromXBToWells(xbL,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_etal/plate_setups',
                    dose_filter=None, plate=None, verbose=False):
@@ -330,7 +330,7 @@ def readNewPlateSetting(plateL, confDir, startAtZero = False,
     if addPlateWellsToDB:
         return result, well_lines_dict, idL
     else:
-        return result, {}
+        return result,well_lines_dict, {}
 
 def addConds(medium, serum):
     cond = Cond(medium = medium, serum = serum)

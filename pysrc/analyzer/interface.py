@@ -122,8 +122,12 @@ class HTMLGenerator():
         h1,_ = np.histogram(array, bins = bins)
         return h1[binOfInterest]/float(np.sum(h1))
         
-    def formatData(self, frameLot, resD, featureL,classes, featureChannels):
+    def formatData(self, frameLot, resD, featureL,featureChannels):
         featureL = list(featureL)
+        if self.classes is not None:
+            featureChannels.extend([0 for k in range(len(filter(lambda x: x not in featureL, self.classes)))])
+            featureL.extend(filter(lambda x: x not in featureL, self.classes))
+            self.settings.well_features.append('Nuclear_morphologies')
         
         for plate in frameLot.lstFrames:
             if plate not in resD:
@@ -148,10 +152,10 @@ class HTMLGenerator():
                     result["object_count"].append(frame.centers.shape[0])
                     
                 #for each frame, the cell count = object count - [artefacts + out of focus objects]. Only possible if the classification was computed
-                    if classes is not None:
-                        bincount = np.bincount(frame.classification, minlength=len(classes))
-                        out_of_focus = bincount[np.where(classes=='Flou')]
-                        artefacts = bincount[np.where(classes=='Artefact')] + bincount[np.where(classes=='SmallUnidentified')] 
+                    if self.classes is not None:
+                        bincount = np.bincount(frame.classification, minlength=len(self.classes))
+                        out_of_focus = bincount[np.where(self.classes=='Flou')]
+                        artefacts = bincount[np.where(self.classes=='Artefact')] + bincount[np.where(self.classes=='SmallUnidentified')] 
                         result["cell_count"].append( frame.centers.shape[0] - (out_of_focus + artefacts))
                 #if second channel was processed, computing percentage of red only cells
                     try:
@@ -161,16 +165,15 @@ class HTMLGenerator():
                         if not secondary:
                             result["red_only"].append(np.nan)
                         else:
-                            raise
-                        
+                            raise ValueError
                 #other parameters are specified in the setting file    
                     for arg in argL:
                         if arg[0]=='irregularity':
                             result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])]+1)
                             continue
                         
-                        if arg[0]=='Flou' and classes is not None:
-                            result['Flou_ch1'].append(out_of_focus/float(np.sum(bincount)))
+                        if self.classes is not None and arg[0] in self.classes:
+                            result['{}_ch1'.format(arg[0])].append(bincount[np.where(self.classes==arg[0])]/float(np.sum(bincount)))
                             continue
                         
                         try:
@@ -206,7 +209,7 @@ class HTMLGenerator():
                     result['endCircMNucleus']= result['endCircularity']-result["endNucleusOnly"]            
                     result["death"]=result['endCircMNucleus']/float(result['initCircMNucleus']+0.0001)
                     
-                if classes is not None:
+                if self.classes is not None:
             #computing the percentage of out of focus nuclei on the last image
                     result['endFlou']=result['Flou_ch1'][-1]
                 resD[plate][int(well[:-3])].update(result)
@@ -418,42 +421,53 @@ class HTMLGenerator():
 
         for well in resCour:
             #we want to plot cell count and circularity evolutions
-            
             print "working on well ", well
             final_well_num = np.where(well_setup==well)[0][0]+1
             for pheno in self.settings.well_features:
+        #So here I enable to take a list of data tables and labels into account for them to be plotted on the same graph
+                data=[];labels=[pheno];colors=['blue']
                 print "working on ", pheno
                 filename = '{}_{}--W{:>05}.png'.format(pheno,plate.split('_')[0], final_well_num)
-                try:
-                    data = self.wp.prepareData(resCour[well][pheno])
-                except KeyError:
-                    continue
+                if pheno in list(resCour[well].keys()):
+                    data.append(self.wp.prepareData(resCour[well][pheno]))
+                    figsize=(8,6)
+                elif pheno=='Nuclear_morphologies':
+                    labels=self.classes
+                    colors=[]
+                    figsize=(20,10)
+                    for class_ in self.classes:
+                        data.append(self.wp.prepareData(resCour[well]['{}_ch1'.format(class_)]))
+                        colors.append(self.settings.COLORD['{}_ch1'.format(class_)])
                 else:
-                    if pheno =='circularity':
-                        data2=self.wp.prepareData(resCour[well]['red_only'])
-                        label_data2="Fraction of cells simply marked"
-                    elif pheno=='cell_count':
-                        data2=self.wp.prepareData(resCour[well]['object_count'])
-                        label_data2='Object count'
-                    else:
-                        data2=None
-                    try:
-                        min_=self.settings.well_plot_settings[pheno][0];max_=self.settings.well_plot_settings[pheno][1]
-                    except KeyError:
-                        max_=None; min_=None
-                        
-                    if pheno=='cell_count':
-                        add_line=30
-                    elif pheno=='Flou_ch1':
-                        add_line=0.5
-                    else:
-                        add_line=None
-                    try:
-                        self.wp.plotEvolution(final_well_num, data, filename,pheno, plotDir=plotDir,
-                    max_=max_, min_=min_, data2=data2,add_line=add_line, label_data2=label_data2,
-                    title='Plate {}, well {}, evolution of {}'.format(plate, final_well_num, pheno))
-                    except IndexError:
-                        pass
+                    continue
+            
+                if pheno =='circularity':
+                    data.append(self.wp.prepareData(resCour[well]['red_only']))
+                    labels.append("Fraction of cells simply marked")
+                    colors.append('red')
+                elif pheno=='cell_count':
+                    data.append(self.wp.prepareData(resCour[well]['object_count']))
+                    labels.append('Object count')
+                    colors.append('red')
+
+                try:
+                    min_=self.settings.well_plot_settings[pheno][0];max_=self.settings.well_plot_settings[pheno][1]
+                except KeyError:
+                    max_=None; min_=None
+                    
+                if pheno=='cell_count':
+                    add_line=30
+                elif pheno=='Flou_ch1':
+                    add_line=0.5
+                else:
+                    add_line=None
+                try:
+                    self.wp.plotEvolution(final_well_num, filename, plotDir=plotDir,
+                        max_=max_, min_=min_, add_line=add_line,
+                        title='Plate {}, well {}, evolution of {}'.format(plate, final_well_num, pheno),
+                        labels=labels, data=data, colors=colors,figsize=figsize)
+                except IndexError:
+                    pass
         return
     
     def generateMovies(self, plate, well_setup):
@@ -533,8 +547,8 @@ class HTMLGenerator():
         if not fillDBOnly:
             if not moviesOnly:
                 print ' *** get result dictionary ***'
-                featureL,classes, frameLot = self.targetedDataExtraction(plateL, featureL)
-                self.formatData(frameLot, resD, featureL,classes, featureChannels)
+                featureL,self.classes, frameLot = self.targetedDataExtraction(plateL, featureL)
+                self.formatData(frameLot, resD, featureL, featureChannels)
             for plate in plateL:
                 if not moviesOnly:
                     print ' *** generate density plots for %s: ***' % plate
@@ -551,14 +565,14 @@ class HTMLGenerator():
                     print ' *** saving result dictionary ***'
                     self.saveResults(plate, resD)
     
-                    if len(np.where(self.well_lines_dict[plate]==-1)[0])>1:
+                    if len(np.where(self.well_lines_dict[plate]==-1)[0])>1 and saveDB:
                         print ' *** changing well numbers in db, plate ', plate
                         self.changeDBWellNumbers(plate, self.well_lines_dict[plate], idL)
-    
-                print ' *** generate movies ***'
-                self.generateMovies(plate, self.well_lines_dict[plate])
+                try:
+                    print ' *** generate movies ***'
+                    self.generateMovies(plate, self.well_lines_dict[plate])
          
-                else: 
+                except: 
                     print ' ERROR while working for %s' % plate
                     continue
         return
@@ -654,14 +668,15 @@ class ArrayPlotter():
 #            exp = range(1, nrow*ncol+1)
 #            exp=np.reshape(exp, (nrow, ncol))
         #exp=np.flipud(exp)
-        for well in res.keys():
+        for well in filter(lambda x: x!=-1, res.keys()):
             a,b=np.where(where_wells==well)
-            #restricting the name to max 6 char otherwise it's not lisible
-            txt = res[well]['Name'][:6]
-            txt+='\n{} {}'.format(res[well]['Xenobiotic'][:6],res[well]['Dose'])
-            txt+='\n{} {}'.format(res[well]['Medium'][:6],res[well]['Serum'])
-            ax.text(b+0.1, nrow-a-1+0.1, txt, fontsize=10)
-            texts.append((b, nrow-a-1, txt))
+            for x,y in zip(a,b):
+                #restricting the name to max 6 char otherwise it's not lisible
+                txt = res[well]['Name'][:6]
+                txt+='\n{} {}'.format(res[well]['Xenobiotic'][:6],res[well]['Dose'])
+                txt+='\n{} {}'.format(res[well]['Medium'][:6],res[well]['Serum'])
+                ax.text(y+0.1, nrow-x-1+0.1, txt, fontsize=10)
+                texts.append((y, nrow-x-1, txt))
         if show:
             p.show()
         else:
@@ -790,23 +805,27 @@ class WellPlotter():
             return None    
         
         
-    def plotEvolution(self, well_num, data, filename,pheno, plotDir=None, max_=None, min_=None,data2=None,
-                      add_line=None, label_data2="Fraction of cells simply marked",
-                  title='', ctrl_data=None, show=False):
+    def plotEvolution(self, well_num, filename, plotDir=None, max_=None, min_=None,
+                      add_line=None, title='', ctrl_data=None, show=False, **kwargs):
+        data=kwargs['data']
+        labels=kwargs['labels']
+        colors=kwargs['colors']
         if data is None:
             return 
         if plotDir is None:
             plotDir = self.plotDir
         full_filename = os.path.join(plotDir, filename)
         print title
-
-        fig, ax = p.subplots(1)
+        try:
+            fig, ax = p.subplots(1, figsize=kwargs['figsize'])
+        except KeyError:
+            fig, ax = p.subplots(1)
         if data is not None:
-            ax.scatter(range(data.shape[0]), data, label="{}".format(pheno), color = 'blue', s=10)
+            for i,data_set in enumerate(data):
+                ax.scatter(range(data_set.shape[0]), data_set, label="{}".format(labels[i]), color = colors[i], s=10)
         if ctrl_data is not None:
             ax.scatter(range(data.shape[0]), ctrl_data, label="Ctrl", color = 'black', s=10)
-        if data2 is not None:
-            ax.scatter(range(data.shape[0]), data2, label=label_data2, color = 'red', s=10)
+
         if min_ is not None:
             ax.set_ylim(min_, max_)
         if add_line is not None:

@@ -4,11 +4,11 @@ import numpy as np
 import vigra.impex as vi
 from collections import defaultdict
 
-from analyzer import compoundL
+from analyzer import compoundL, plates
 from plateSetting import fromXBToWells
 
-def intensity_qc(input_folder, output_folder, plateL=['201114', '271114', '121214', '201214', '271214']):
-    print 'Doing quality control text file for plates ', plateL
+def intensity_qc(input_folder, output_folder):
+    print 'Doing quality control text file for plates ', plates
     
     print "Loading automatic intensity quality control results"
     f=open(os.path.join(input_folder, 'xb_intensity_qc.pkl'), 'r')
@@ -27,7 +27,7 @@ def intensity_qc(input_folder, output_folder, plateL=['201114', '271114', '12121
     f=open(os.path.join(output_folder, 'qc_xbscreen.txt'), 'w')
     f.write('{}\t{}\t{}\t{}\t{}\n'.format('Plate', 'Well', 'WellQC', 'ImageQC', 'ManualQC'))
     line_type='{}\t{}\t{}\t{}\t{}\n'
-    for plate in plateL:
+    for plate in plates:
         for well in d_intensity[plate]:
             visual_qc=(plate not in d_manual or well not in d_manual[plate])
             flou=(plate not in flou_qc or well not in flou_qc[plate])
@@ -76,7 +76,7 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
     '''
     print 'Computing experiments to redo starting with plates ', plateL
     
-    failed=defaultdict(dict)
+    failed=defaultdict(dict); passed=[]
     number_failed=0; total_number=0
     flou_qc_dict=defaultdict(list)
     _,well_groups=fromXBToWells(compoundL)
@@ -100,6 +100,7 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
             total_bio_replicates=0
             for plate in curr_well_groups[dose]:
                 usable_plate=False
+
                 for well in curr_well_groups[dose][plate]:
                     total_number+=1
                     #i.checking if the well is in the manual qc failed list
@@ -128,6 +129,7 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
                                 
                                 flou_qc_dict[plate].append(well)
                             else:
+                                passed.append((plate,well))
                                 usable_plate=True
                 if usable_plate:
                     total_bio_replicates+=1
@@ -136,7 +138,7 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
     f=open(os.path.join(input_folder, 'xb_focus_qc.pkl'), 'w')
     pickle.dump(flou_qc_dict, f); f.close()
     print "Percentage of experiments failed ", number_failed/float(total_number)
-    return failed, number_failed, total_number
+    return passed, failed, number_failed, total_number
             
 
 
