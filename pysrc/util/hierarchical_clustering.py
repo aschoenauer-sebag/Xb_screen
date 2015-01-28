@@ -192,7 +192,7 @@ def heatmap(x, row_header, column_header, row_method,
     if numpy.any(x<0):
         norm = mpl.colors.Normalize(range_normalization[0], range_normalization[1])
     else:
-        norm = mpl.colors.Normalize(0,50)
+        norm = mpl.colors.Normalize(0,range_normalization[1])
     ### Scale the Matplotlib window size
     default_window_hight = 8.5
     default_window_width = 12

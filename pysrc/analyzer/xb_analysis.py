@@ -6,20 +6,16 @@ import matplotlib.pyplot as p
 import numpy as np
 import vigra.impex as vi
 from warnings import warn
-from itertools import repeat, product
+
+from itertools import repeat
 from scipy.stats import ks_2samp
 from sklearn.decomposition import PCA
 
-import rpy2.robjects as objects
-locfit = objects.packages.importr('locfit')
-globalenv = objects.globalenv
-
-from analyzer import cecog_features, CONTROLS, quality_control
+from analyzer import cecog_features, CONTROLS, plates
 #from interface import fromPlateToPython
 from tracking import test
 from tracking.trajPack import featuresSaved, featuresNumeriques
 from tracking.importPack import FEATURE_NUMBER
-from tracking.plots import markers
 from tracking.trajPack.trajFeatures import driftCorrection
 
 from plateSetting import readPlateSetting
@@ -27,110 +23,6 @@ from util.plots import plotBarPlot, couleurs, linestyles
 from util.listFileManagement import expSi, siEntrez, correct_from_Nan
 from util.sandbox import histLogTrsforming
 from tracking.PyPack.fHacktrack2 import sortiesAll, initXml, ecrireXml, finirXml
-from analyzer import plates
-from analyzer.interface import HTMLGenerator
-
-def globalParameterComparison(well_num=50, perc=20, n_list=list([0.4,0.5,0.6,0.7,0.8]), h_list=[10], deg_list=[2,3],
-                               pheno_list=['Anaphase_ch1', 'Apoptosis_ch1', 'Folded_ch1', 'Interphase_ch1', 'Metaphase_ch1',
-                                           'Polylobbed_ch1', 'Prometaphase_ch1', 'WMicronuclei_ch1'],
-                               loadingFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results'):
-    passed,_,_,_=quality_control.computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20)
-    selected=np.array(passed)[np.random.permutation(len(passed))[:well_num]]
-    
-    y_list=[]
-    
-    processedDict={}
-    for pl,w in selected:
-        if pl not in processedDict:
-            print "Opening processed dictionary file for pl ", pl
-            f=open(os.path.join(loadingFolder, "processedDictResult_P{}.pkl".format(pl)))
-            processedDict[pl]=pickle.load(f); f.close()
-            
-        for pheno in pheno_list:
-            y_list.append(np.array(processedDict[pl][int(w)][pheno]))
-            
-    r=parameterComparison(y_list, n_list, h_list, deg_list, perc, plot=True)
-    return r
-    
-
-def selectLocalReg(y,n_list=list(np.linspace(0.5,0.8,4)), h_list=[2,10,20], deg_list=[2,3], plot=True):
-    f=p.figure(); ax=f.add_subplot(111)
-    for n,h,deg in product(n_list, h_list, deg_list):
-        result, prediction = localReg(y, n, h, deg, plot=plot, ax=ax, color=couleurs[h_list.index(h)], marker=markers[n_list.index(n)])
-    p.show()
-        
-    return
-
-def parameterComparison(y_list, n_list=list([0.4,0.5,0.6,0.7,0.8]), h_list=[10], deg_list=[2,3], perc=10, plot=True):
-    '''
-    This function compares different parameter sets: how well does the local regression performs on points that
-    were left out during modeling?
-    
-    - y_list: list of different data sets. Important because we need the same parameter set for different types of curves
-    
-    '''
-    r={}
-    for n,h,deg in product(n_list, h_list, deg_list):
-        r[(n,h,deg)]=crossValidation(y_list, n, h, deg, perc=perc)
-        
-    if plot:
-        f=p.figure(); ax=f.add_subplot(111)
-        w=[r[el] for el in sorted(r)]
-        ax.boxplot(w)
-        ax.set_xticklabels([el for el in sorted(r)])
-        ax.tick_params(axis='both', which='major', labelsize=8)
-        p.show()
-    return r
-
-def crossValidation(y_list,n,h,deg, perc=10):
-    r=[]
-    number_cv=100/perc
-
-    for y in y_list:
-        m=np.mean(y)
-        time_length=y.shape[0]
-        
-        aside = int(time_length/perc)
-        
-        for k in range(number_cv):
-            perm=np.random.permutation(time_length)
-            test_=objects.FloatVector(perm[:aside]); train_set=y[perm[aside:]]
-            model = localReg(train_set, n, h, deg, plot=False)
-            r.append(np.sum(((np.array(locfit.predict_locfit(model, test_, what='coef'))- y[test_])/m)**2))
-        
-    return r
-        
-
-def localReg(y, n, h, deg=3, plot=True, ax=None, color=None, marker=None):
-    '''
-    Using locfit to perform local regression. Formula http://cm.bell-labs.com/stat/doc/locfitscg.ps
-    - n: nearest neighbour fraction for the local least squares criterion
-    - h: size of the bandwith
-    - deg: degree of polynome used in local regression
-    '''
-    time_length=y.shape[0]
-    
-    x=objects.FloatVector(range(time_length))
-    y=objects.FloatVector(y)
-    data_frame= objects.DataFrame({'x': x, 'y': y})
-    
-    globalenv['x'] = x
-    globalenv['y'] = y
-    globalenv['df'] = data_frame
-    
-    result = locfit.locfit(objects.Formula("y~lp(x, nn={}, h={}, deg={})".format(n,h,deg)), data=data_frame)
-    
-    #predic2 = locfit.
-    if plot and ax is not None:
-        prediction=locfit.predict_locfit(result, objects.FloatVector(range(281)), what="coef")
-        ax.scatter(range(time_length), y, color='green',s=7)
-        ax.scatter(range(time_length), prediction, color=color, marker=marker, label='Param n {} h {} deg {}'.format(n,h,deg), s=3)
-        ax.legend(fontsize=7); ax.grid(True)
-    
-        return result, prediction
-    else:
-        return result
-
 
 def comparTrajectoriesMitoXB():
     f=open('../resultData/features_on_films/labelsKM_whole_k8.pkl')

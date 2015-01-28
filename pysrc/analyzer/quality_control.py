@@ -36,7 +36,7 @@ def intensity_qc(input_folder, output_folder):
     f.close()
     return
 
-def usable_XBSC(compound, dose, plate, input_folder='../data'):
+def usable_XBSC(compound, dose, plate=None, input_folder='../data'):
     _, info_dict=fromXBToWells([compound], dose_filter=dose, plate=plate)
     
     print "Loading manual quality control results"
@@ -49,11 +49,19 @@ def usable_XBSC(compound, dose, plate, input_folder='../data'):
     f.close()
     
     expL=[]
-    wells=info_dict[compound][dose][plate]
-    for well in wells:
-        if ((plate not in flou_qc) or (plate in flou_qc and well not in flou_qc[plate])):
-            if ((plate not in d_manual) or (plate in d_manual and well not in d_manual[plate])):
-                expL.append((plate, '{:>05}'.format(well)))
+    if plate is not None:
+        wells=info_dict[compound][dose][plate]
+        for well in wells:
+            if ((plate not in flou_qc) or (plate in flou_qc and well not in flou_qc[plate])):
+                if ((plate not in d_manual) or (plate in d_manual and well not in d_manual[plate])):
+                    expL.append((plate, '{:>05}'.format(well)))
+    else:
+        for plate in info_dict[compound][dose]:
+            wells=info_dict[compound][dose][plate]
+            for well in wells:
+                if ((plate not in flou_qc) or (plate in flou_qc and well not in flou_qc[plate])):
+                    if ((plate not in d_manual) or (plate in d_manual and well not in d_manual[plate])):
+                        expL.append((plate, '{:>05}'.format(well)))
                 
     return expL         
     
