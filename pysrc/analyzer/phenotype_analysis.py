@@ -7,15 +7,133 @@ import matplotlib.pyplot as p
 from operator import itemgetter
 
 from util import settings
-from collections import defaultdict
+from collections import defaultdict, Counter
 from itertools import product
 from scipy.stats import spearmanr
 import rpy2.robjects as objects
 locfit = objects.packages.importr('locfit')
 globalenv = objects.globalenv
 
-from util.plots import couleurs, markers
-from analyzer import CONTROLS, quality_control, plates
+from util.plots import couleurs, markers, plotBarPlot
+from analyzer import CONTROLS, quality_control, plates, xbL, compoundL
+
+def plotResults(localRegMeasure, result, who, dose_list, compound_list, outputFile, outputFolder):
+    compounds = sorted(filter(lambda x: x in xbL or x=='Rien', Counter(compound_list).keys()))
+    f,axes=p.subplots(len(compounds), len(result), sharey=True)
+    for i,compound in enumerate(compounds):
+        control=CONTROLS[compound]
+        where_c = np.where(compound_list==control)
+        for j,pheno in enumerate(result):
+            data=[result[pheno][where_c]]
+            ww_=[np.where((compound_list==compound)&(dose_list==k))[0] for k in range(11)]
+            data.extend([result[pheno][el] for el in filter(lambda x: len(x)>0, ww_)])
+            
+            if compound !='Rien':
+                labels=['Ctrl']; labels.extend([dose for dose in sorted(Counter(dose_list[np.where(compound_list==compound)]).keys())])
+            else:
+                data.append(result[pheno][np.where(compound_list=='Nonane')]);data.append(result[pheno][np.where(compound_list=='TGF')]) 
+                labels=['DMSO', 'Rien', 'Nonane', 'TGF']
+            axes[i,j].boxplot(data); axes[i,j].set_title('{} {}'.format(compound[:4], pheno.split('_')[0]), fontsize=10)
+            axes[i,j].tick_params(axis='both', which='major', labelsize=5)
+            axes[i,j].set_xticklabels(labels)
+    p.show()
+    
+def plotResults2(localRegMeasure, result, who, dose_list, compound_list, outputFile, outputFolder):
+    compounds = sorted(filter(lambda x: x in xbL or x=='Rien', Counter(compound_list).keys()))
+    f,axes=p.subplots(len(compounds), len(result), sharey=True)
+    for i,compound in enumerate(compounds):
+        control=CONTROLS[compound]
+        where_c = np.where(compound_list==control)
+        for j,pheno in enumerate(result):
+            data=[result[pheno][where_c]]
+            ww_=[np.where((compound_list==compound)&(dose_list==k))[0] for k in range(11)]
+            data.extend([result[pheno][el] for el in filter(lambda x: len(x)>0, ww_)])
+            
+            if compound !='Rien':
+                labels=['Ctrl']; labels.extend([dose for dose in sorted(Counter(dose_list[np.where(compound_list==compound)]).keys())])
+            else:
+                data.append(result[pheno][np.where(compound_list=='Nonane')]);data.append(result[pheno][np.where(compound_list=='TGF')]) 
+                labels=['DMSO', 'Rien', 'Nonane', 'TGF']
+                
+            plotBarPlot(np.array([[np.mean(el) for el in data]]), pheno, compound, labels, title=compound,name=None,target=None,\
+                        stds=[np.std(el) for el in data],fig=f,ax=axes[i,j], sh=False, save=False )
+#             axes[i,j].boxplot(data); axes[i,j].set_title('{} {}'.format(compound[:4], pheno.split('_')[0]), fontsize=10)
+#             axes[i,j].tick_params(axis='both', which='major', labelsize=5)
+#             axes[i,j].set_xticklabels(labels)
+    p.show()
+    return
+    
+def plotResults3(localRegMeasure, result, who, dose_list, compound_list, outputFile, outputFolder):
+    f=p.figure()
+    for i, pheno in enumerate(result):
+        ax=f.add_subplot(1,8,i)
+        ax.set_title(pheno)
+        a=zip(result[pheno],compound_list, dose_list)
+        a=sorted(a, key=itemgetter(0))
+        for k,el in enumerate(a[250:]):
+            ax.scatter(k, el[0], color=couleurs[compoundL.index(el[1])])
+            ax.text(k, el[0], "{}{}".format(el[1][:2], el[2]), fontsize=10)
+        ax.grid(True)
+    p.show()
+    return
+
+def saveTextFile(localRegMeasure, result, who, dose_list, compound_list, outputFile, outputFolder):
+    for pheno in result:
+        f=open(os.path.join(outputFolder, 'ranking_pval_{}_localReg{}.txt'.format(pheno, localRegMeasure)), 'w')
+        f.write('Distance\t Xb\t Dose\t Plate\t Well\n')
+        a=zip(result[pheno],compound_list, dose_list, who)
+        a=sorted(a, key=itemgetter(0), reverse=True)
+        for el in a:
+            f.write("{}\t {} \t {}\t {}\t {} \n".format(el[0], el[1], el[2], *el[3]))
+        f.close()
+    return
+
+def loadResults(localRegMeasure=False, 
+                loadingFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/phenotype_analysis', 
+                filename='phenoAnalysis_', 
+                pheno_list = ['Anaphase_ch1', 'Apoptosis_ch1', 'Folded_ch1', 'Interphase_ch1', 'Metaphase_ch1',
+                              'Polylobbed_ch1', 'Prometaphase_ch1', 'WMicronuclei_ch1'],
+                plot1=False, plot2=False, plot3=False, saveText=False):
+    
+    file_list=sorted(filter(lambda x: filename in x, os.listdir(loadingFolder)))
+    result={pheno:[] for pheno in pheno_list}
+    who=[]#for well list
+    compound_list=[]; dose_list=[]
+    for file_ in file_list:
+        try:
+            f=open(os.path.join(loadingFolder, file_))
+            d=pickle.load(f);f.close()
+            
+        except IOError:
+            pdb.set_trace()
+        else:
+            try:
+                param_sets = [(i,dict(el)) for i,el in enumerate(d.keys())]
+                index, param_d=filter(lambda x: x[1]['localReg']==localRegMeasure, param_sets)[0]
+                print param_d
+                wells=param_d["wells"]; available_phenos = param_d['pheno_list']
+                arr=d[d.keys()[index]]
+            except IndexError, KeyError:
+                pdb.set_trace()
+            else:
+                for pheno in pheno_list:
+                    result[pheno] = arr[:,available_phenos.index(pheno)] if result[pheno]==[] else np.hstack((result[pheno], arr[:,available_phenos.index(pheno)]))
+                who.extend(wells)
+                compound_list.extend([file_.split('_')[1] for k in range(len(wells))])
+                dose_list.extend([file_.split('_')[2].split('.')[0] for k in range(len(wells))])
+    who=np.array(who); dose_list=np.array(dose_list, dtype=int); compound_list=np.array(compound_list) 
+    if plot1:
+        plotResults(localRegMeasure, result, who, dose_list, compound_list, outputFile=filename, outputFolder=loadingFolder)
+    elif plot2:
+        plotResults2(localRegMeasure, result, who, dose_list, compound_list, outputFile=filename, outputFolder=loadingFolder)
+    elif plot3:
+        plotResults3(localRegMeasure, result, who, dose_list, compound_list, outputFile=filename, outputFolder=loadingFolder)
+    if saveText:
+        saveTextFile(localRegMeasure, result, who, dose_list, compound_list, outputFile=filename, outputFolder=loadingFolder)
+    return result, who, compound_list, dose_list
+            
+            
+
 
 def parameterStabilityEvaluation(well_num=50,n_list=list([0.4,0.5,0.6,0.7,0.8]), h_list=[10], deg_list=[2,3],
                                  pheno_list=['Anaphase_ch1', 'Apoptosis_ch1', 'Folded_ch1', 'Interphase_ch1', 'Metaphase_ch1',
@@ -237,10 +355,13 @@ class wellPhenoAnalysis(object):
                 exp_data[pheno]=np.array(exp_data[pheno])
                 data[pheno]=np.array(data[pheno])
                 if self.localRegMeasure:
-    #I look at the max between local regression curves over time
-                    _,r1=localReg(exp_data[pheno], n=self.nn, h=self.h, deg=self.deg, plot=False)
-                    _,r2=localReg(data[pheno], n=self.nn, h=self.h, deg=self.deg, plot=False)
-                    r.append(np.max(np.abs(r1-r2)))
+    #I look at the max between local regression curves over time, but stop at 48h not too add the bias of different durations
+                    _,r1=localReg(exp_data[pheno][:192], n=self.nn, h=self.h, deg=self.deg, plot=False)
+                    _,r2=localReg(data[pheno][:192], n=self.nn, h=self.h, deg=self.deg, plot=False)
+                    try:
+                        r.append(np.max(np.abs(r1-r2)))
+                    except ValueError:
+                        r.append(np.max(np.abs(r1[:min(r1.shape[0], r2.shape[0])]-r2[:min(r1.shape[0], r2.shape[0])])))
                 else:
     #My intuition is that this is not going to be a good measure for all curves because they're super noisy when the number of cells is low
     #Hence I want to see what it gives if I look at the area between the two curves
@@ -248,7 +369,7 @@ class wellPhenoAnalysis(object):
                     try:
                         r1=np.abs(exp_data[pheno]-data[pheno])[:192]
                     except ValueError:
-                        r1=np.abs(exp_data[pheno][:166]-data[pheno][:166])
+                        r1=np.abs(exp_data[pheno][:min(exp_data[pheno].shape[0], data[pheno].shape[0])]-data[pheno][:min(exp_data[pheno].shape[0], data[pheno].shape[0])])
                     r.append(np.sum(r1)/r1.shape[0])
                     
             result[i]=np.median(r)
@@ -269,6 +390,8 @@ class wellPhenoAnalysis(object):
 
 class xbPhenoAnalysis(object):
     #Un peu con j'aurais pu la faire heriter de la precedente
+    
+    #Rq: concretement les deux mesures se valent (correlation de Spearman 0.913)
     def __init__(self, settings_file, compound, dose=0, nn=None, localRegMeasure=True, pheno_list=None, verbose=0):
         self.settings = settings.Settings(settings_file, globals())
 

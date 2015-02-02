@@ -65,7 +65,7 @@ def plotLabelDistributions(distributions, nb_experiments, nb_dist=8):
     axes[0].legend()
     p.show()
 
-def plotBarPlot(means, ylabel, xlabels, xticklabels, title,name,target,  stds=None,folder=None, sh=True):    
+def plotBarPlot(means, ylabel, xlabels, xticklabels, title,name,target,  stds=None,folder=None, fig=None,ax=None, sh=True, save=True):    
     '''
     Xticklabels = sequence of labels for x ticks
     '''
@@ -74,9 +74,9 @@ def plotBarPlot(means, ylabel, xlabels, xticklabels, title,name,target,  stds=No
     width = 0.4 # the width of the bars
     space = 4.6#approx width*len(means)
     ind = np.array([space* el for el in ind])
-    
-    fig = p.figure(figsize=(14,8))
-    ax = fig.add_subplot(111)
+    if ax is None or fig is None:
+        fig = p.figure(figsize=(14,8))
+        ax = fig.add_subplot(111)
 
     for k in range(len(means)):
         if stds is None or (stds is not None and stds[k] is None):
@@ -90,12 +90,13 @@ def plotBarPlot(means, ylabel, xlabels, xticklabels, title,name,target,  stds=No
     ax.set_xticks([2+space*el for el in np.arange(means.shape[1])])
     ax.set_xticklabels( xticklabels )
     ax.set_ylim(0,6)
+    ax.tick_params(axis='both', which='major', labelsize=5)
     fig.legend( rects, xlabels)
     p.grid(True)
     p.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
     if sh:
         p.show()
-    else:
+    elif save:
         p.savefig(os.path.join(folder, '{}_barplot{}.png'.format(target, name)))
         
     return

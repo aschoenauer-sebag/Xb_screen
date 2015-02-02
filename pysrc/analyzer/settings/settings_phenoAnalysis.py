@@ -8,7 +8,7 @@ base_result_dir = '/media/lalil0u/New/projects/Xb_screen'
 #Where to load processed results
 loadingFolder = os.path.join(base_result_dir, 'dry_lab_results')
 #Where to save results
-savingFolder=os.path.join(loadingFolder, 'track_predictions__settings2/features_on_films')
+savingFolder=os.path.join(loadingFolder, 'phenotype_analysis')
 outputFile='phenoAnalysis_{}_{}.pkl'
 
 #Local regression parameters

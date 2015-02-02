@@ -69,7 +69,6 @@ def usable_XBSC(compound, dose, plate=None, input_folder='../data'):
 
 def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_control_count=3,
                     input_folder='../data', 
-                     plateL=['201114', '271114', '121214', '201214', '271214'],
                      hdf5Folder = "/media/lalil0u/New/projects/Xb_screen/plates__all_features_2bis",
                      savingFolder = "/media/lalil0u/New/projects/Xb_screen/dry_lab_results"):
     '''
@@ -82,7 +81,7 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
     ALSO
     normally there are five controls/solvent/plate. There should not be less than three otherwise the plate is to be discarded (oh god)
     '''
-    print 'Computing experiments to redo starting with plates ', plateL
+    print 'Computing experiments to redo starting with plates ', plates
     
     failed=defaultdict(dict); passed=[]
     number_failed=0; total_number=0
@@ -93,7 +92,7 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
     d_manual=pickle.load(f)
     f.close()
     result=defaultdict(dict)
-    for plate in plateL:
+    for plate in plates:
         f=open(os.path.join(savingFolder, 'processedDictResult_P{}.pkl'.format(plate)))
         resCour=pickle.load(f)
         f.close()
@@ -105,7 +104,7 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
         failed[compound]=defaultdict(list)
         for dose in curr_well_groups:
             print "----DOSE ", dose
-            total_bio_replicates=0
+            total_bio_replicates=0; total_num_wells=0
             for plate in curr_well_groups[dose]:
                 usable_plate=False
 
@@ -139,8 +138,11 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
                             else:
                                 passed.append((plate,well))
                                 usable_plate=True
+                                total_num_wells+=1
+            
                 if usable_plate:
                     total_bio_replicates+=1
+            print '****number of wells for this condition ', total_num_wells
             print '******total number of biological replicates for this condition ', total_bio_replicates
     print 'Saving list of failed wells in ', os.path.join(input_folder, 'xb_focus_qc.pkl')
     f=open(os.path.join(input_folder, 'xb_focus_qc.pkl'), 'w')

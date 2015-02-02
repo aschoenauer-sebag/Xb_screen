@@ -420,7 +420,7 @@ def finding_hit_XB(result, who, compounds, doses, combination=(lambda x: np.max(
                 ax.text(i,el,"{} {}".format(compounds_DMSO[np.where(compounds_DMSO==compound)][i][0],doses_DMSO[np.where(compounds_DMSO==compound)][i]))
             ax.set_ylim(0,1)
             p.legend(fontsize=7)
-            p.savefig(os.path.join(outputFolder, "pval_{}_comb_optimistic.png".format(compound)))
+            p.savefig(os.path.join(outputFolder, "pval_{}_comb_med.png".format(compound)))
             
         who_Nonane=who[np.where(compounds=='TCDD')];zz=[]
         f=p.figure(figsize=(24,16))
@@ -434,9 +434,9 @@ def finding_hit_XB(result, who, compounds, doses, combination=(lambda x: np.max(
             ax.text(i,el,"T {}".format(doses[np.where(compounds=='TCDD')][i]))
         ax.set_ylim(0,1)
         p.legend(fontsize=7)
-        p.savefig(os.path.join(outputFolder, "pval_TCDD_comb_optimistic.png"))
+        p.savefig(os.path.join(outputFolder, "pval_TCDD_comb_med.png"))
     if saveTextFile:
-        f=open(os.path.join(outputFolder, 'ranking_pval_{}.txt'.format(datetime.date.today())), 'w')
+        f=open(os.path.join(outputFolder, 'ranking_pval_med{}.txt'.format(datetime.date.today())), 'w')
         f.write('P-val\t Q-val\t Xb\t Dose\t Plate\t Well\n')
         for el in result:
             f.write("{}\t {} \t {}\t {} \t {} \t {}\n".format(el[0][0], el[1][0], *el[2].split(" ")))
@@ -446,7 +446,7 @@ def finding_hit_XB(result, who, compounds, doses, combination=(lambda x: np.max(
 
 def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max(x,0)), cmap=mpl.cm.bwr, norm=2, compL=None, sh=True,
                      outputFolder = '../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2/features_on_films',
-                     filename='TW0', length=None
+                     filename='heatmaps_pval_comb_med_medstandardized_TW0.png', length=None, normal_z_score=False, all_ctrl=False
                      ):
     '''
     So just plot-wise we look at the different -log(pvalues) for all features for the different conditions,
@@ -482,6 +482,7 @@ def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max
         f, axes=p.subplots(5,10,sharex=True, sharey=True,figsize=(24,16))
         L=filter(lambda x: x in xbL, compL)
         result=np.array(combination(result))
+    print result.shape
     k=0
     for i,compound in enumerate(L):
         print compound
@@ -491,14 +492,22 @@ def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max
             where_1=np.where(compounds==CONTROLS[compound])[0]
             for el,j in enumerate(where_compound):
                 pl=who[j][0]
-                where_control=filter(lambda x:x in where_1, np.where(who[:,0]==pl)[0])
-                subR[el]=(subR[el]-np.mean(result[where_control],0))/np.std(result[where_control],0)
+                where_control=filter(lambda x:x in where_1, np.where(who[:,0]==pl)[0]) if not all_ctrl else where_1
+                if normal_z_score:
+                    subR[el]=(subR[el]-np.mean(result[where_control],0))/np.std(result[where_control],0)
+                else:
+                    IQR=(scoreatpercentile(a=result[where_control], per=75,axis=0)-scoreatpercentile(a=result[where_control], per=25,axis=0))
+                    subR[el]=(subR[el]-np.median(result[where_control],0))/IQR
                 
         else:
             for el,j in enumerate(where_compound):
                 pl=who[j][0]
-                where_control=filter(lambda x:x in where_compound, np.where(who[:,0]==pl)[0])
-                subR[el]=(subR[el]-np.mean(result[where_control],0))/np.std(result[where_control],0)
+                where_control=filter(lambda x:x in where_compound, np.where(who[:,0]==pl)[0]) if not all_ctrl else where_compound
+                if normal_z_score:
+                    subR[el]=(subR[el]-np.mean(result[where_control],0))/np.std(result[where_control],0)
+                else:
+                    IQR=(scoreatpercentile(a=result[where_control], per=75,axis=0)-scoreatpercentile(a=result[where_control], per=25,axis=0))
+                    subR[el]=(subR[el]-np.median(result[where_control],0))/IQR
                 
         subD = np.array(doses[np.where(compounds==compound)], dtype=int) 
         
@@ -531,7 +540,7 @@ def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max
     if sh:
         p.show()
     else:
-        p.savefig(os.path.join(outputFolder, 'heatmaps_pval_comb_max_standardized_{}.png'.format(filename)))
+        p.savefig(os.path.join(outputFolder, filename))
     if L!=compL:
         return plotDistances_XB(result, compounds, who,doses, combination, cmap, norm, compL=filter(lambda x: x not in xbL, compL), sh=sh,\
                                 outputFolder=outputFolder, filename='controls{}'.format(filename))

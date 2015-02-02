@@ -27,8 +27,8 @@ FEATURES = [
             'signed turning angle', 
             ]
 
-RADIUS = 11
-
+RADIUS_traj = 11
+RADIUS_classif = 11
 #FEATURE_RANGE =  {'entropy1': (0.15, 0.75), 
 #                  'mean squared displacement': (0.0, 50.0), 
 #                  'entropy2': (0.0, 0.4), 
@@ -45,8 +45,8 @@ RADIUS = 11
 #                 }
 pca_file = '../resultData/features_on_films/pca_hitSimpson.pkl'
 cluster_file = '../resultData/features_on_films/cluster_hitSimpson.pkl'
-#couleurs pour les clusters
-diverging_colors = [[ 27, 120,  55],#vert
+#couleurs pour les clusters de trajectoires
+diverging_colors_traj = [[ 27, 120,  55],#vert
        [ 69, 117, 180],#bleu
        [253,  63, 171],#rose
        [215,  48,  39],#rouge
@@ -63,6 +63,18 @@ diverging_colors = [[ 27, 120,  55],#vert
 #                    (41,238,211),#bleu clair
 #                    (69,117,180)]#bleu corresponding to l=['#762A83',"#1B7837", "#D73027", "#8C510A", "#DB3EF3","#FD3FAB", "#29EED3", "#4575B4"]
 
+#Now I'd like to say the colors for the classification. They're the same that the ones used in the browser
+diverging_colors_classif=[(0.0, 0.83203125, 0.0),
+ (0.6640625, 0.33203125, 0.0),
+ (0.99609375, 0.0, 0.99609375),
+ (0.33203125, 0.99609375, 0.99609375),
+ (0.99609375, 0.0, 0.0),
+ (0.9296875, 0.8828125, 0.203125),
+ (0.62109375, 0.12109375, 0.9296875),
+ (0.99609375, 0.53515625, 0.3515625),
+ (0.13671875, 0.05859375, 0.99609375),
+ (0.26953125, 0.4765625, 0.05859375),
+ (0.34765625, 0.6640625, 0.48828125)]
 
 # colors 
 class ColorMap(object):
