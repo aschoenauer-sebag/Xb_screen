@@ -1,4 +1,6 @@
 
+qc_file='/media/lalil0u/New/workspace2/Xb_screen/data/xb_manual_qc.pkl'
+qc_file2='/media/lalil0u/New/workspace2/Xb_screen/data/xb_focus_qc.pkl'
 
 #folders
 outputFolder = '/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2/thrivisions'
@@ -11,7 +13,8 @@ trackingFolder = '/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_pr
 ##filenames
 imageFilename = "--W{}--P0001_t{:>05}_c00002"
 trackingFilename='traj_intQC_{}.hdf5.pkl'
-outputImage="crop_{}_{}_{}_{}.png"
+trackingFilename2='traj_intQC_w{}.hdf5.pkl'
+outputImage="crop_P{}_W{}_t{}_{}_id{}.png"
 outputFile="thrivisions_{}_{}.pkl"
 
 min_=50

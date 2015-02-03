@@ -1,4 +1,6 @@
 
+mitocheck_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens75.txt'
+qc_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt'
 
 #folders
 outputFolder = '../resultData/thrivisions'
@@ -11,7 +13,7 @@ trackingFolder = '/share/data20T/mitocheck/tracking_results'
 ##filenames
 imageFilename = "--W{}--P00001--T{:>05}-"
 trackingFilename='traj_noF_densities_w{}.hdf5.pkl'
-outputImage="crop_{}_{}_{}_{}.png"
+outputImage="crop_P{}_W{}_t{}_{}_id{}.png"
 outputFile="thrivisions_{}_{}.pkl"
 
 min_=1
