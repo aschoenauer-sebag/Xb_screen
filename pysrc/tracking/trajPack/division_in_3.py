@@ -10,17 +10,17 @@ from optparse import OptionParser
 from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 
-def scriptTrajFeat(exp_list, baseName='thrivision'):
+def scriptThrivision(exp_list, baseName='thrivision'):
     fileNumber = int(len(exp_list)/float(jobSize))+1
     
     head = """#!/bin/sh
 cd %s""" %progFolder
     
     for k in range(fileNumber):
+        cmd = ''
         for pl, w in exp_list[jobSize*k:jobSize*(k+1)]:
-            cmd = ''
             temp_cmd = """
-        python tracking/trajPack/division_in_3.py -p %s -w %s"""
+python tracking/trajPack/division_in_3.py -p %s -w %s"""
             temp_cmd %= (
                         pl,
                         w
