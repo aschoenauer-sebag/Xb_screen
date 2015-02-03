@@ -28,7 +28,7 @@ FEATURES = [
             ]
 
 RADIUS_traj = 11
-RADIUS_classif = 11
+RADIUS_classif = 8
 #FEATURE_RANGE =  {'entropy1': (0.15, 0.75), 
 #                  'mean squared displacement': (0.0, 50.0), 
 #                  'entropy2': (0.0, 0.4), 

@@ -475,16 +475,17 @@ class trajectoire():
         
     def findLast(self):
         keyList = sorted(self.lstPoints.keys(), key=lambda tup:tup[0])
-        lastFrame =0
+#        lastFrame =0
 #        (xi, yi)=(0,0)
-        for i in keyList:
-            if int(i[0])>=lastFrame:
-                lastFrame = int(i[0])
-#                debutId = i[1]
-#                (xi, yi)=self.lstPoints[(debutFrame, debutId)]
-        if lastFrame !=keyList[-1][0]:
-            raise
-        return lastFrame
+#         for i in keyList:
+#             if int(i[0])>=lastFrame:
+#                 lastFrame = int(i[0])
+# #                debutId = i[1]
+# #                (xi, yi)=self.lstPoints[(debutFrame, debutId)]
+#         if lastFrame !=keyList[-1][0]:
+#             raise
+#         return lastFrame
+        return keyList[-1][0]
 
     def copyBefore(self, index):
         newKeys = filter(lambda x: x[0]<index+1, self.lstPoints)

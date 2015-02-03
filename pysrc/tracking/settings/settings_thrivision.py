@@ -1,7 +1,8 @@
 
 
 #folders
-result_folder = '../resultData/thrivisions'
+outputFolder = '../resultData/thrivisions'
+hdf5Folder = '/share/data20T/mitocheck/results'
 rawDataFolder='/share/data20T/mitocheck/compressed_data'
 trackingFolder = '/share/data20T/mitocheck/tracking_results'
 #mitocheck_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens75.txt'
@@ -16,3 +17,7 @@ outputFile="thrivisions_{}_{}.pkl"
 min_=1
 max_=2**8
 margin=20
+new_h5=False
+renumber=True
+XMAX = 1344 
+YMAX = 1024
