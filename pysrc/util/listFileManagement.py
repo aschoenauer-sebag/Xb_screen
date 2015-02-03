@@ -98,9 +98,9 @@ def usable_MITO(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck=
     #ii.checking if siRNA corresponds to a single target in the current state of knowledge
             sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(pl[:9], w[2:5]))
             r.append(False)  
-        else:
+        if 'eatures' in filename:
             try:
-    #iii.loading data
+    #iii.checking the feature array shape, if we're talking about features
                 f=open(os.path.join(folder, pl, filename.format(w)), 'r')
                 arr, coord, histN= pickle.load(f)
                 f.close()
@@ -119,6 +119,8 @@ def usable_MITO(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck=
                     r.append(False)
                 else:
                     r.append(True)
+        else:
+            r.append(True)
     return np.array(r)
 
 
