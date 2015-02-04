@@ -449,7 +449,7 @@ if __name__ ==  "__main__":
     python make_movies_mito_cbio.py --out_path ./mini_out --pickle_file mini.pkl --feature_target_dir ./mini_overlay
     '''
     parser = OptionParser()
-    parser.add_option("-i", "--in_path", dest="in_path",
+    parser.add_option("-i", "--in_path", dest="in_path", default=BASE_DIR,
                       help="base input directory")
     parser.add_option("-o", "--out_path", dest="out_path",
                       help="base output directory")
@@ -467,10 +467,7 @@ if __name__ ==  "__main__":
         parser.error("incorrect number of arguments!")
 
     out_path = options.out_path
-    if options.in_path is None:
-        in_path = BASE_DIR
-    else:
-        in_path = options.in_path
+    in_path = options.in_path
 
 #The pickle_file should be a dictionary with keys=features. If options.labels, then it should just be labels
 
@@ -519,7 +516,10 @@ if __name__ ==  "__main__":
 
             else:
                 for i,id in enumerate(ids[:20]):
-                    exp='{}--{}'.format(id[0][:9], id[1][2:5])
+                    if len(id)==2:
+                        exp='{}--{}'.format(id[0][:9], id[1][2:5])
+                    else:
+                        exp=id
                     print 'making movie number %i %s' %(i, exp)
                     local_feature_movie_dir = os.path.join(options.feature_target_dir, category)
                     mm.make_movie(exp, cat_out_path, 
