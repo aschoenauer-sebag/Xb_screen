@@ -13,7 +13,7 @@ from util.sandbox import histLogTrsforming
 
 BASE_DIR = '/share/data20T/mitocheck/compressed_data'
 TRAJECTORY_DIR ='/share/data20T/mitocheck/tracking_results'
-FEATURES = featuresNumeriques
+FEATURES = featuresSaved
 # 
 # FEATURES = [            
 #             'ball number1','ball number2',
