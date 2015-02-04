@@ -492,6 +492,8 @@ if __name__ ==  "__main__":
         f=open('/cbio/donnees/aschoenauer/workspace2/Xb_screen/resultData/features_on_films/distExp_123etctrl_minmax_50.pkl', 'r')
         minMax = pickle.load(f); f.close()
         FEATURE_RANGE = dict(zip(FEATURES, minMax))
+#addition le 4fev2015, valeurs sur les hits MotIW
+        FEATURE_RANGE['mean straight'] = np.array([0.0016, 2.6026])
     else:
         l=['labels']
         

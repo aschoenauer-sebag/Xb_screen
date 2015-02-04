@@ -56,7 +56,7 @@ def compareDistributions(bins_type, nb_exp, folder="../resultData/features_on_fi
     pickle.dump(pvalues, f); f.close()
     return
 
-def computeBins(bin_size, folder="../resultData/features_on_films"):
+def computeBins(bin_size, folder="../resultData/features_on_films", featuresList=featuresSaved):
     '''
     WARNING DON'T FORGET TO SORT LISTS OF FEATURES
     '''
