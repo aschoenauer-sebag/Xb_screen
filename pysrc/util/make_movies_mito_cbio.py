@@ -425,7 +425,7 @@ class MovieMaker(object):
                     print shell_command
                     os.system(shell_command)
                 else:
-                    f_dir = os.path.join(feature_movie_dir, 'images_projection_{}'.format(id))
+                    f_dir = os.path.join(feature_movie_dir, 'images_projection_{}'.format(id).replace(' ', '_'))
                     if not os.path.isdir(f_dir):
                         os.makedirs(f_dir)
                     shell_command='mv %s/*.png %s' % (f_temp_dir, f_dir)
@@ -523,7 +523,8 @@ if __name__ ==  "__main__":
                     else:
                         exp=id
                     print 'making movie number %i %s' %(i, exp)
-                    local_feature_movie_dir = os.path.join(options.feature_target_dir, category)
+                    cat_out_path = os.path.join(out_path, category.replace(' ', '_'))
+                    local_feature_movie_dir = os.path.join(options.feature_target_dir, category).replace(' ', '_')
                     mm.make_movie(exp, cat_out_path, 
                                   feature_movie_dir=local_feature_movie_dir,
                                   feature=category, num_cluster=options.num_cluster,
