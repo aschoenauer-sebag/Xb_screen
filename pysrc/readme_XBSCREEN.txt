@@ -26,4 +26,24 @@
 		
 7. Launch hit detection step
 	i. Generate scripts 
-		
+	
+	[missing info here]
+	
+	
+8. Looking at PCAed features using ctrls
+	from analyzer import quality_control, xb_analysis
+	exp_list=quality_control.usable_XBSC('DMSO', 0)
+	exp_list.extend(quality_control.usable_XBSC('Nonane', 0))
+	
+	r_D, who,ctrlStatus, length_D, xb, others, time_length_D=xb_analysis.xbConcatenation(folder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/', exp_list=exp_list)
+	r=np.hstack((r_D[:,:len(featuresNumeriques)], r_D[:,featuresSaved.index('mean straight')][:,np.newaxis]))
+	nr=(r-mean)/std
+	pca=PCA(n_components=15, whiten=False)
+	pnr=pca.fit_transform(nr)
+	all_r, who,ctrlStatus, length, xb, others, time_length=xb_analysis.xbConcatenation(folder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/')
+	all_r=np.hstack((all_r[:,:len(featuresNumeriques)], all_r[:,featuresSaved.index('mean straight')][:,np.newaxis]))
+	
+	pnall_r=pca.transform((all_r-mean)/std)
+	
+	
+	

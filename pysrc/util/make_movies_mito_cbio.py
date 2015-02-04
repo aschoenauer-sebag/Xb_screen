@@ -13,19 +13,20 @@ from util.sandbox import histLogTrsforming
 
 BASE_DIR = '/share/data20T/mitocheck/compressed_data'
 TRAJECTORY_DIR ='/share/data20T/mitocheck/tracking_results'
-
-FEATURES = [            
-            'ball number1','ball number2',
-            'norm convex hull area',
-            'corrected straightness index',
-            'diffusion coefficient',
-            'effective space length', 'effective speed',
-            'entropy1', 'entropy2',#rayons 0, 14 ci-dessus
-            'largest move',
-            'mean squared displacement',
-            'movement type',
-            'signed turning angle', 
-            ]
+FEATURES = featuresNumeriques
+# 
+# FEATURES = [            
+#             'ball number1','ball number2',
+#             'norm convex hull area',
+#             'corrected straightness index',
+#             'diffusion coefficient',
+#             'effective space length', 'effective speed',
+#             'entropy1', 'entropy2',#rayons 0, 14 ci-dessus
+#             'largest move',
+#             'mean squared displacement',
+#             'movement type',
+#             'signed turning angle', 
+#             ]
 
 RADIUS_traj = 11
 RADIUS_classif = 8
@@ -264,7 +265,6 @@ class MovieMaker(object):
             ending = '%05i_01.pkl' % int(pos)
             feature_index = FEATURES.index(feature)
                         
-            
             values = tab[:,feature_index]
             colors = [cm.getColorFromMap(x, cr, FEATURE_RANGE[feature][0], FEATURE_RANGE[feature][1])
                       for x in values.tolist()]
@@ -278,23 +278,11 @@ class MovieMaker(object):
                     new_coord.append(el)
             f=open('../resultData/features_on_films/labelsKM_whole_k{}.pkl'.format(num_cluster))
             labels, perc, who, length=pickle.load(f); f.close()
-#            #i. logTrsforming
-#   pu         tab=histLogTrsforming(tab)
-#            tab=np.hstack((tab[:,:len(featuresNumeriques)], tab[:,featuresSaved.index('mean persistence')][:,np.newaxis], tab[:,featuresSaved.index('mean straight')][:,np.newaxis]))
-#            if pca_file is not None:
-#                f=open(pca_file, 'r')
-#                pca, mean, std=pickle.load(f); f.close()
-#                
-#                tab=pca.transform((tab-mean)/std)[:,:7]
-#                
-#            f=open(cluster_file, 'r')
-#            cluster_model, std = pickle.load(f); f.close()
-#            labels = cluster_model.predict(tab/std)
 
             where_=np.where(who=='{}--{}'.format(ltId, pos))[0]
             labels=labels[np.sum(length[:where_]):np.sum(length[:where_+1])]
             assert(len(labels)==len(new_coord))
-            colors = [diverging_colors[labels[k]] for k in range(tab.shape[0])]
+            colors = [diverging_colors_traj[labels[k]] for k in range(tab.shape[0])]
             
         markers = {}
         for i, track_coord in enumerate(new_coord):                    
@@ -316,7 +304,7 @@ class MovieMaker(object):
         
         in_path = self.get_img_dir(id)
         ltId, pos = id.split('--')
-        co = self.make_circle_offset(RADIUS)      
+        co = self.make_circle_offset(RADIUS_traj)      
         # temp directory
         if tempDir is None:
             tempDir = os.path.join(out_path, 'temp')
@@ -330,8 +318,6 @@ class MovieMaker(object):
         if not feature_movie_dir is None and not feature is None:
             markers = self.make_markers(ltId, pos,feature, trajectory_dir, num_cluster)
             
-                
-        
         # convert images
         print 'converting images ... '
         modDir = in_path.replace('(', '\(')
@@ -391,7 +377,9 @@ class MovieMaker(object):
             movieName += ('--C%s' % gene)
         if not sirna is None:
             movieName += ('--%s' % sirna)
-        movieName += '_k{}.mov'.format(num_cluster)
+        if not num_cluster is None:
+            movieName += '_k{}'.format(num_cluster)
+        movieName+='.mov'
 
         # make output directory
         if outDir is None:
@@ -470,7 +458,7 @@ if __name__ ==  "__main__":
     parser.add_option("-f", "--feature_target_dir", dest="feature_target_dir",
                       help="directory for the feature projection movies")
     parser.add_option('--labels', dest='labels', type=int, help="If you're interested in plotting clustering labels as opposed to features")
-    parser.add_option('--num_cluster', dest='num_cluster', type=int, help="Cluster number")
+    parser.add_option('--num_cluster', dest='num_cluster', default=None, type=int, help="Cluster number")
     parser.add_option('--specific_cluster', dest='specific_cluster', type=int, default=None)
     parser.add_option('--keep_images', dest='keep_projection_images', type=int, default=0)
     (options, args) = parser.parse_args()
@@ -533,7 +521,9 @@ if __name__ ==  "__main__":
                 for i,id in enumerate(ids[:20]):
                     exp='{}--{}'.format(id[0][:9], id[1][2:5])
                     print 'making movie number %i %s' %(i, exp)
+                    local_feature_movie_dir = os.path.join(options.feature_target_dir, category)
                     mm.make_movie(exp, cat_out_path, 
-                                  feature_movie_dir=options.feature_target_dir,
-                                  feature=category, num_cluster=options.num_cluster)
+                                  feature_movie_dir=local_feature_movie_dir,
+                                  feature=category, num_cluster=options.num_cluster,
+                                  keep_projection_images=options.keep_projection_images)
         

@@ -17,43 +17,63 @@ globalenv = objects.globalenv
 from util.plots import couleurs, markers, plotBarPlot
 from analyzer import CONTROLS, quality_control, plates, xbL, compoundL
 
-def plotResults(localRegMeasure, result, who, dose_list, compound_list, outputFile, outputFolder):
+def plotResults(localRegMeasure, result, who, dose_list, compound_list, outputFile, outputFolder, features=False):
     compounds = sorted(filter(lambda x: x in xbL or x=='Rien', Counter(compound_list).keys()))
     f,axes=p.subplots(len(compounds), len(result), sharey=True)
     for i,compound in enumerate(compounds):
         control=CONTROLS[compound]
         where_c = np.where(compound_list==control)
+        print control, where_c
+        ww_=[np.where((compound_list==compound)&(dose_list==k))[0] for k in range(11)]
         for j,pheno in enumerate(result):
-            data=[result[pheno][where_c]]
-            ww_=[np.where((compound_list==compound)&(dose_list==k))[0] for k in range(11)]
-            data.extend([result[pheno][el] for el in filter(lambda x: len(x)>0, ww_)])
-            
+            if not features:
+                data=[result[pheno][where_c]]
+                data.extend([result[pheno][el] for el in filter(lambda x: len(x)>0, ww_)]) 
+            else:
+                data=[np.hstack((el for el in result[pheno][where_c]))]
+                for el in filter(lambda x: len(x)>0, ww_):
+                    data.append(np.hstack((result[pheno][k] for k in el)) )
+                
             if compound !='Rien':
                 labels=['Ctrl']; labels.extend([dose for dose in sorted(Counter(dose_list[np.where(compound_list==compound)]).keys())])
             else:
-                data.append(result[pheno][np.where(compound_list=='Nonane')]);data.append(result[pheno][np.where(compound_list=='TGF')]) 
-                labels=['DMSO', 'Rien', 'Nonane', 'TGF']
-            axes[i,j].boxplot(data); axes[i,j].set_title('{} {}'.format(compound[:4], pheno.split('_')[0]), fontsize=10)
+                if not features:
+                    data.append(result[pheno][np.where(compound_list=='DMSO')]);data.append(result[pheno][np.where(compound_list=='TGF')])
+                else:
+                    data.append(np.hstack((el for el in result[pheno][np.where(compound_list=='DMSO')])))
+                    data.append(np.hstack((el for el in result[pheno][np.where(compound_list=='TGF')])))
+                labels=['Nonane', 'Rien', 'DMSO', 'TGF']
+            axes[i,j].boxplot(data); axes[i,j].set_title('{}'.format(pheno), fontsize=10)
+            axes[i,j].set_ylabel(compound)
             axes[i,j].tick_params(axis='both', which='major', labelsize=5)
             axes[i,j].set_xticklabels(labels)
     p.show()
     
-def plotResults2(localRegMeasure, result, who, dose_list, compound_list, outputFile, outputFolder):
+def plotResults2(localRegMeasure, result, who, dose_list, compound_list, outputFile, outputFolder, features=False):
     compounds = sorted(filter(lambda x: x in xbL or x=='Rien', Counter(compound_list).keys()))
     f,axes=p.subplots(len(compounds), len(result), sharey=True)
     for i,compound in enumerate(compounds):
         control=CONTROLS[compound]
         where_c = np.where(compound_list==control)
+        ww_=[np.where((compound_list==compound)&(dose_list==k))[0] for k in range(11)]
         for j,pheno in enumerate(result):
-            data=[result[pheno][where_c]]
-            ww_=[np.where((compound_list==compound)&(dose_list==k))[0] for k in range(11)]
-            data.extend([result[pheno][el] for el in filter(lambda x: len(x)>0, ww_)])
+            if not features:
+                data=[result[pheno][where_c]]
+                data.extend([result[pheno][el] for el in filter(lambda x: len(x)>0, ww_)])
+            else:
+                data=[np.hstack((el for el in result[pheno][where_c]))]
+                for el in filter(lambda x: len(x)>0, ww_):
+                    data.append(np.hstack((result[pheno][k] for k in el)) )
             
             if compound !='Rien':
                 labels=['Ctrl']; labels.extend([dose for dose in sorted(Counter(dose_list[np.where(compound_list==compound)]).keys())])
             else:
-                data.append(result[pheno][np.where(compound_list=='Nonane')]);data.append(result[pheno][np.where(compound_list=='TGF')]) 
-                labels=['DMSO', 'Rien', 'Nonane', 'TGF']
+                if  not features:
+                    data.append(result[pheno][np.where(compound_list=='DMSO')]);data.append(result[pheno][np.where(compound_list=='TGF')])
+                else:
+                    data.append(np.hstack((el for el in result[pheno][np.where(compound_list=='DMSO')])))
+                    data.append(np.hstack((el for el in result[pheno][np.where(compound_list=='TGF')])))
+                labels=['Nonane', 'Rien', 'DMSO', 'TGF']
                 
             plotBarPlot(np.array([[np.mean(el) for el in data]]), pheno, compound, labels, title=compound,name=None,target=None,\
                         stds=[np.std(el) for el in data],fig=f,ax=axes[i,j], sh=False, save=False )
@@ -110,7 +130,6 @@ def loadResults(localRegMeasure=False,
             try:
                 param_sets = [(i,dict(el)) for i,el in enumerate(d.keys())]
                 index, param_d=filter(lambda x: x[1]['localReg']==localRegMeasure, param_sets)[0]
-                print param_d
                 wells=param_d["wells"]; available_phenos = param_d['pheno_list']
                 arr=d[d.keys()[index]]
             except IndexError, KeyError:
