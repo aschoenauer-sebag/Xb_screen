@@ -394,7 +394,7 @@ class MovieMaker(object):
             encode_command %= (tempDir, os.path.join(outDir, movieName))
             print encode_command
             print 'movie generated: %s' % os.path.join(outDir, movieName)
-            #os.system(encode_command)
+            os.system(encode_command)
 
             if not feature_movie_dir is None and not feature is None:
                 encode_command = 'mencoder "mf://%s/*.png" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
