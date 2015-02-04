@@ -139,7 +139,7 @@ class thrivisionExtraction(object):
                         assert (first_fr==im+1)
                         r.append(first_id)
                 new_c[im+1].append(r)
-            i+=1
+                i+=1
         return new_c
     
     def findObjects(self, thrivisions):
@@ -217,7 +217,7 @@ class thrivisionExtraction(object):
                 croppedImage = vigra.VigraArray((x__, y__, 1), dtype=np.dtype('uint8'))
                 croppedImage[:,:,0]=(image[x:X, y:Y,0]-self.settings.min_)*(2**8-1)/(self.settings.max_-self.settings.min_)  
                 vi.writeImage(croppedImage, \
-                              os.path.join(self.settings.outputFolder, self.plate, self.settings.outputImage.format(self.plate, self.well, im, id_, cell_id)),\
+                              os.path.join(self.settings.outputFolder, self.plate, self.settings.outputImage.format(self.plate, self.well.split('_')[0],id_, im,  cell_id)),\
                               dtype=np.dtype('uint8'))
                 
         return    

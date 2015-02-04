@@ -4,9 +4,9 @@ from operator import itemgetter
 import cPickle as pickle
 import numpy as np
 from PIL import Image
-from scipy.stats import ks_2samp
+from scipy.stats import ks_2samp, nanmean, nanmedian, scoreatpercentile
 import vigra.impex as vi
-
+import matplotlib.pyplot as p
 
 from tracking.trajPack import featuresSaved, histLogTrsf,\
     histLogTrsf_meanHistFeat
@@ -15,6 +15,47 @@ from tracking.histograms import *
 from util.listFileManagement import expSi
 from util import progFolder, jobSize, scriptFolder, path_command, pbsOutDir, pbsArrayEnvVar, pbsErrDir
 
+def findingMeans(exp_list, feature1, feature2, folder= '/share/data20T/mitocheck/tracking_results/', filename="hist_tabFeatures_{}.pkl", plot=True, result=None):
+    '''
+    For interesting plots: getting means and medians for a couple of features, then getting wells for extreme values
+    '''
+    if result is None:
+        result=np.zeros(shape=len(exp_list, 4))
+        for k, exp in enumerate(exp_list):
+            pl,w=exp; print k
+        try:
+            f=open(os.path.join(folder, pl, filename.format(w)))
+            arr,_,_=pickle.load(f)
+            f.close()
+        except OSError:
+            print "no ", pl, w
+        else:                 
+            result[k]=[nanmean(arr[:,featuresSaved.index(feature1)]), nanmedian(arr[:,featuresSaved.index(feature1)]),\
+                        nanmean(arr[:,featuresSaved.index(feature2)]), nanmedian(arr[:,featuresSaved.index(feature2)])]
+            
+        f=open('result__{}{}.pkl'.format(feature1, feature2), 'w')
+        pickle.dump(result, f); f.close()
+    
+    if plot:
+        f=p.figure()
+        ax=f.add_subplot(121)
+        ax.scatter(result[:,0], result[:,2]); ax.set_title('Means'); ax.set_xlabel(feature1); ax.set_ylabel(feature2)
+        ax.axhline(scoreatpercentile(result[:,2],90)); ax.axhline(scoreatpercentile(result[:,2],10))
+        ax.axvline(scoreatpercentile(result[:,0],90)); ax.axvline(scoreatpercentile(result[:,0],10))
+        
+        ax=f.add_subplot(122)
+        ax.scatter(result[:,1], result[:,3]); ax.set_title('Medians'); ax.set_xlabel(feature1); ax.set_ylabel(feature2)
+        ax.axhline(scoreatpercentile(result[:,3],90)); ax.axhline(scoreatpercentile(result[:,3],10))
+        ax.axvline(scoreatpercentile(result[:,1],90)); ax.axvline(scoreatpercentile(result[:,1],10))
+        p.show()
+    mean_result=[0,0,0,0]
+    mean_result[1] = exp_list[np.where((result[:,0]>scoreatpercentile(result[:,0],90)) & ((result[:,2])>scoreatpercentile(result[:,2],90)))]
+    mean_result[2] = exp_list[np.where((result[:,0]>scoreatpercentile(result[:,0],90)) & ((result[:,2])<scoreatpercentile(result[:,2],10)))]
+    mean_result[0] = exp_list[np.where((result[:,0]<scoreatpercentile(result[:,0],10)) & ((result[:,2])>scoreatpercentile(result[:,2],90)))]
+    mean_result[3] = exp_list[np.where((result[:,0]<scoreatpercentile(result[:,0],10)) & ((result[:,2])<scoreatpercentile(result[:,2],10)))]
+    
+    return mean_result
+        
 def generic_single_script(name, text,folder='../scripts', *args):
     '''
     This enables one to generate scripts with or without custom arguments. *args can be None

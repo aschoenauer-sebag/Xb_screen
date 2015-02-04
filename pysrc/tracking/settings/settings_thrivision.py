@@ -13,7 +13,7 @@ trackingFolder = '/share/data20T/mitocheck/tracking_results'
 ##filenames
 imageFilename = "--W{}--P00001--T{:>05}-"
 trackingFilename='traj_noF_densities_w{}.hdf5.pkl'
-outputImage="crop_P{}_W{}_t{}_{}_id{}.png"
+outputImage="crop_P{}_W{}_{}_t{}_id{}.png"
 outputFile="thrivisions_{}_{}.pkl"
 
 min_=1
