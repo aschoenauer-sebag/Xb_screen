@@ -46,4 +46,56 @@
 	pnall_r=pca.transform((all_r-mean)/std)
 	
 	
+	making movie number 2 LT0100_03--050
+converting images ... 
+generating movie ... 
+mencoder "mf://../resultData/Munich_plots/mean_straight/temp/*.jpg" -mf fps=3 -o ../resultData/Munich_plots/mean_straight/LT0100_03/LT0100_03--050.mov -ovc xvid -oac copy -xvidencopts fixed_quant=2.5
+movie generated: ../resultData/Munich_plots/mean_straight/LT0100_03/LT0100_03--050.mov
+MEncoder 1.1-4.1.2 (C) 2000-2012 MPlayer Team
+
+WARNING: OUTPUT FILE FORMAT IS _AVI_. See -of help.
+success: format: 16  data: 0x0 - 0x0
+MF file format detected.
+[mf] search expr: ../resultData/Munich_plots/mean_straight/temp/*.jpg
+============ Sorry, this file format is not recognized/supported =============
+=== If this file is an AVI, ASF or MPEG stream, please contact the author! ===
+Cannot open demuxer.
+
+Exiting...
+mencoder "mf://../resultData/Munich_plots/feature_movies_2/mean_straight/temp/*.png" -mf fps=3 -o ../resultData/Munich_plots/feature_movies_2/mean_straight/meanstraight_LT0100_03--050.mov -ovc xvid -oac copy -xvidencopts fixed_quant=2.5
+movie generated: ../resultData/Munich_plots/feature_movies_2/mean_straight/meanstraight_LT0100_03--050.mov
+MEncoder 1.1-4.1.2 (C) 2000-2012 MPlayer Team
+
+WARNING: OUTPUT FILE FORMAT IS _AVI_. See -of help.
+success: format: 16  data: 0x0 - 0x0
+MF file format detected.
+[mf] search expr: ../resultData/Munich_plots/feature_movies_2/mean_straight/temp/*.png
+[mf] number of files: 93 (744)
+[demux_mf] file type was not set! trying 'type=png'...
+VIDEO:  [MPNG]  0x0  24bpp  3.000 fps    0.0 kbps ( 0.0 kbyte/s)
+[V] filefmt:16  fourcc:0x474E504D  size:0x0  fps:3.000  ftime:=0.3333
+xvid: using library version 1.3.2 (build xvid-1.3.2)
+Opening video filter: [expand osd=1]
+Expand: -1 x -1, -1 ; -1, osd: 1, aspect: 0.000000, round: 1
+==========================================================================
+Opening video decoder: [ffmpeg] FFmpeg's libavcodec codec family
+libavcodec version 54.23.100 (internal)
+Selected video codec: [ffpng] vfm: ffmpeg (FFmpeg PNG)
+==========================================================================
+Could not find matching colorspace - retrying with -vf scale...
+Opening video filter: [scale]
+Movie-Aspect is undefined - no prescaling applied.
+[swscaler @ 0xdfa500]BICUBIC scaler, from rgb24 to yuv420p using MMX2
+videocodec: XviD (1344x1024 fourcc=44495658 [XVID])
+xvid: par=0/0 (vga11), displayed=1344x1024, sampled=1344x1024
+xvid: Fixed Quant Rate Control -- quantizer=5/2=2.50
+New_Face failed. Maybe the font path is wrong.
+Please supply the text font file (~/.mplayer/subfont.ttf).
+subtitle font: load_sub_face failed.
+New_Face failed. Maybe the font path is wrong.
+Please supply the text font file (~/.mplayer/subfont.ttf).
+subtitle font: load_sub_face failed.
+Writing header...
+ODML: vprp aspect is 16384:12483.
+Writing header...
 	

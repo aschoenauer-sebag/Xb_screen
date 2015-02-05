@@ -304,8 +304,9 @@ class MovieMaker(object):
         
         in_path = self.get_img_dir(id)
         ltId, pos = id.split('--')
-        co = self.make_circle_offset(RADIUS_traj)      
-        # temp directory
+        co = self.make_circle_offset(RADIUS_traj)
+              
+        # temp directory for raw movies
         if tempDir is None:
             tempDir = os.path.join(out_path, 'temp')
         if not os.path.isdir(tempDir):
@@ -328,9 +329,12 @@ class MovieMaker(object):
         img_list.sort()
         for i, img_name in enumerate(img_list):
             img = vigra.readImage(os.path.join(in_path, img_name))
-            #new_filename = os.path.join(tempDir, '%s.jpg' % os.path.splitext(img_name)[0][2:])
-            #vigra.impex.writeImage(img.astype(np.dtype('uint8')),new_filename)
             
+            #for raw movies
+            new_filename = os.path.join(tempDir, '%s.jpg' % os.path.splitext(img_name)[0][2:])
+            vigra.impex.writeImage(img.astype(np.dtype('uint8')),new_filename)
+            
+            #for feature movies
             if not feature_movie_dir is None:
                 f_temp_dir = os.path.join(feature_movie_dir, 'temp')
                 if not os.path.isdir(f_temp_dir):
@@ -364,8 +368,7 @@ class MovieMaker(object):
                         #for c in color:
                         #    for xo, yo in co:
                         #        img_rgb[x, y, c] = color[c]
-                vigra.impex.writeImage(img_rgb.astype(np.dtype('uint8')), 
-                                       new_filename)
+                vigra.impex.writeImage(img_rgb.astype(np.dtype('uint8')), new_filename)
                 
         #shell_command = "mito_convert -s png -o %s %s/*.tif"
         #shell_command %= (tempDir, modDir)
@@ -498,35 +501,34 @@ if __name__ ==  "__main__":
         l=['labels']
         
     for category in l:
-        if category !='mean squared displacement':
-            ids = movies[category]
-    
-            cat_out_path = os.path.join(out_path, category.replace(' ', '_'))
-            if not os.path.exists(cat_out_path):
-                os.makedirs(cat_out_path)
-            if type(ids)==dict:
-                clusterL=ids.keys() if options.specific_cluster is None else [options.specific_cluster]
-                for cluster in clusterL:
-                    for i,exp in enumerate(ids[cluster][:20]):
-                        print 'making movie number %i %s' %(i, exp)
-                        exp='{}--{}'.format(exp[0][:9], exp[1][2:5])
-                        mm.make_movie(exp, cat_out_path,gene=cluster, 
-                                      feature_movie_dir=options.feature_target_dir,
-                                      feature=category, num_cluster=options.num_cluster,
-                                      keep_projection_images=options.keep_projection_images)
-        
+        ids = movies[category]
 
-            else:
-                for i,id in enumerate(ids[:20]):
-                    if len(id)==2:
-                        exp='{}--{}'.format(id[0][:9], id[1][2:5])
-                    else:
-                        exp=id
+        cat_out_path = os.path.join(out_path, category.replace(' ', '_'))
+        if not os.path.exists(cat_out_path):
+            os.makedirs(cat_out_path)
+        if type(ids)==dict:
+            clusterL=ids.keys() if options.specific_cluster is None else [options.specific_cluster]
+            for cluster in clusterL:
+                for i,exp in enumerate(ids[cluster][:20]):
                     print 'making movie number %i %s' %(i, exp)
-                    cat_out_path = os.path.join(out_path, category.replace(' ', '_'))
-                    local_feature_movie_dir = os.path.join(options.feature_target_dir, category).replace(' ', '_')
-                    mm.make_movie(exp, cat_out_path, 
-                                  feature_movie_dir=local_feature_movie_dir,
+                    exp='{}--{}'.format(exp[0][:9], exp[1][2:5])
+                    mm.make_movie(exp, cat_out_path,gene=cluster, 
+                                  feature_movie_dir=options.feature_target_dir,
                                   feature=category, num_cluster=options.num_cluster,
                                   keep_projection_images=options.keep_projection_images)
-        
+    
+
+        else:
+            for i,id in enumerate(ids[:20]):
+                if len(id)==2:
+                    exp='{}--{}'.format(id[0][:9], id[1][2:5])
+                else:
+                    exp=id
+                print 'making movie number %i %s' %(i, exp)
+                cat_out_path = os.path.join(out_path, category.replace(' ', '_'))
+                local_feature_movie_dir = os.path.join(options.feature_target_dir, category).replace(' ', '_')
+                mm.make_movie(exp, cat_out_path, 
+                              feature_movie_dir=local_feature_movie_dir,
+                              feature=category, num_cluster=options.num_cluster,
+                              keep_projection_images=options.keep_projection_images)
+    
