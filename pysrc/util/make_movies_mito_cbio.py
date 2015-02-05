@@ -480,7 +480,7 @@ if __name__ ==  "__main__":
 
     mm = MovieMaker(in_path)
     if not options.labels:
-        l=movies.keys()
+        l=['mean squared displacement']#movies.keys()
         print "About to compute movies for those features ", l
 #        l=['signed turning angle',
 #         'movement type',
