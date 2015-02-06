@@ -8,7 +8,12 @@
 	from util import listFileManagement
 	listFileManagement.renameFromZeiss(inputFolder=[folder with the images], plate='[plate name]')
 
-3. Extract features with CellCognition, setting file projects/Xb_screen/settings/settings_all_features_2.conf
+3. Extract features with CellCognition, settings file CellCognition projects/Xb_screen/settings/settings_all_features_2.conf
+
+Rq (06/02/2015) : now possible to do it on the cluster. 
+	Settings file for using CellCognition on the cluster pysrc/analyzer/settings/pbs_Xb_screen1.py
+	Command python analyzer/Cecog_script_generation.py -b analyzer/settings/pbs_Xb_screen1.py -p [filename with relevant wells]
+	eg for all wells of the screen that passed the QC : data/all_QC_wells_XBSC.pkl
 	
 4. Enter the info in the db, compute the images with regard to cell count, number of out of focus objects, etc
 	from analyzer import interface
