@@ -255,8 +255,14 @@ class MovieMaker(object):
             fp.close()
         except:
             pdb.set_trace()
+        tab, toDel = correct_from_Nan(tab, perMovie=False)
+        new_coord = []#np.array(coord)[[el for el in range(len(coord)) if el not in toDel]]
+        for i,el in enumerate(coord):
+            if i not in toDel:
+                new_coord.append(el)
             
         if feature in FEATURES:
+            tab = histLogTrsforming(tab)
             cm = ColorMap()
             cr = cm.makeColorRamp(256, ["#FFFF00", "#FF0000"])
             
@@ -268,15 +274,11 @@ class MovieMaker(object):
             values = tab[:,feature_index]
             colors = [cm.getColorFromMap(x, cr, FEATURE_RANGE[feature][0], FEATURE_RANGE[feature][1])
                       for x in values.tolist()]
-            new_coord=coord
+            
             pdb.set_trace()
         elif feature=='labels':
             #we are going to predict on the fly the clustering labels not to have to stock them smw (fast to predict)
-            tab, toDel = correct_from_Nan(tab, perMovie=False)
-            new_coord = []#np.array(coord)[[el for el in range(len(coord)) if el not in toDel]]
-            for i,el in enumerate(coord):
-                if i not in toDel:
-                    new_coord.append(el)
+            
             f=open('../resultData/features_on_films/labelsKM_whole_k{}.pkl'.format(num_cluster))
             labels, perc, who, length=pickle.load(f); f.close()
 
