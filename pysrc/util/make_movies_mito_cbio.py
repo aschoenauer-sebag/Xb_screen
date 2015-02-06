@@ -275,7 +275,6 @@ class MovieMaker(object):
             colors = [cm.getColorFromMap(x, cr, FEATURE_RANGE[feature][0], FEATURE_RANGE[feature][1])
                       for x in values.tolist()]
             
-            pdb.set_trace()
         elif feature=='labels':
             #we are going to predict on the fly the clustering labels not to have to stock them smw (fast to predict)
             
