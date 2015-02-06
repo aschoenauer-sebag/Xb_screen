@@ -23,7 +23,7 @@ baseScriptDir = '/cbio/donnees/aschoenauer/data/Xb_screen/scripts'
 scriptPrefix = 'images_classification'
 
 # settingsfile
-settingsFilename = '/cbio/donnees/aschoenauer/projects/Xb_screen/settings/settings_all_features_2.conf'
+settingsFilename = '/cbio/donnees/aschoenauer/projects/Xb_screen/settings/settings_allfeatures_image_classification_2.conf'
 
 # plates=None means that all plates found in baseInDir are going to be processed.
 
