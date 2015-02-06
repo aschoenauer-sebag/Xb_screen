@@ -13,7 +13,7 @@ from tracking.trajPack import featuresSaved, histLogTrsf,\
 from tracking.plots import plotTraj3d
 from tracking.histograms import *
 from util.listFileManagement import expSi
-from util import progFolder, jobSize, scriptFolder, path_command, pbsOutDir, pbsArrayEnvVar, pbsErrDir
+from util import jobSize, scriptFolder, path_command, pbsOutDir, pbsArrayEnvVar, pbsErrDir
 
 def findingMeans(exp_list, feature1, feature2, folder= '/share/data20T/mitocheck/tracking_results/', filename="hist_tabFeatures_{}.pkl", plot=True, result=None):
     '''
