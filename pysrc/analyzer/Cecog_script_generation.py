@@ -120,14 +120,14 @@ class BatchProcessor(object):
 #         return
 
     def exportPBSJobArray(self, lstExperiments):
-
+        jobCount = 0
 #        filename_settings = self.oBatchSettings.settingsFilename
 #         mod_filename = os.path.join(os.path.dirname(filename_settings),
 #                                     'mod_%s' % os.path.basename(filename_settings))
 # 
 #         self.writeRenderingSettingsToConfigFile(filename_settings, mod_filename)
 #         self.writePathSettingsToConfigFile(mod_filename, mod_filename)
-       # jobCount = 0
+
         #jobSize = self.oBatchSettings.jobSize
         #nb_jobs = int(math.ceil(len(lstExperiments)/float(jobSize)))
         #print 'found : %i experiments' % len(lstExperiments)

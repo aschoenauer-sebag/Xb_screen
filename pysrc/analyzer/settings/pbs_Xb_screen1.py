@@ -15,7 +15,7 @@ setenv DRMAA_LIBRARY_PATH /opt/gridengine/lib/lx26-amd64/libdrmaa.so
 """
 
 # data directories
-baseInDir = '/cbio/donnees/aschoenauer/data/Xb_screen/results'
+baseInDir = '/cbio/donnees/aschoenauer/data/Xb_screen/raw_data'
 baseOutDir = '/share/data20T/mitocheck/Alice/Xb_screen/results'
 
 # settings for scripts
