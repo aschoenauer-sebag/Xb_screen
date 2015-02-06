@@ -297,7 +297,7 @@ class MovieMaker(object):
     
     def make_movie(self, id, out_path, tempDir=None, sirna=None, gene=None, outDir=None,
                    trajectory_dir=None, feature_movie_dir=None, feature=None, num_cluster=6, 
-                   keep_projection_images=False):
+                   keep_projection_images=False, make_raw_movies=True):
         
         '''
         Feature can be a trajectory feature like diffusion coefficient. It can also be
@@ -333,8 +333,9 @@ class MovieMaker(object):
             img = vigra.readImage(os.path.join(in_path, img_name))
             
             #for raw movies
-            new_filename = os.path.join(tempDir, '%s.jpg' % os.path.splitext(img_name)[0][2:])
-            vigra.impex.writeImage(img.astype(np.dtype('uint8')),new_filename)
+            if make_raw_movies:
+                new_filename = os.path.join(tempDir, '%s.jpg' % os.path.splitext(img_name)[0][2:])
+                vigra.impex.writeImage(img.astype(np.dtype('uint8')),new_filename)
             
             #for feature movies
             if not feature_movie_dir is None:
@@ -394,14 +395,17 @@ class MovieMaker(object):
 
         # encode command
         try:
-            print 'generating movie ... '
-            encode_command = 'mencoder "mf://%s/*.jpg" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
-            encode_command %= (tempDir, os.path.join(outDir, movieName))
-            print encode_command
-            print 'movie generated: %s' % os.path.join(outDir, movieName)
-            os.system(encode_command)
+            print 'generating movies ... '
+            if make_raw_movies:
+                print "First, raw movies"
+                encode_command = 'mencoder "mf://%s/*.jpg" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
+                encode_command %= (tempDir, os.path.join(outDir, movieName))
+                print encode_command
+                print 'movie generated: %s' % os.path.join(outDir, movieName)
+                os.system(encode_command)
 
             if not feature_movie_dir is None and not feature is None:
+                print "Second, feature movies"
                 encode_command = 'mencoder "mf://%s/*.png" -mf fps=3 -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5'
                 target_dir = feature_movie_dir
                 if not os.path.exists(target_dir):
@@ -466,6 +470,8 @@ if __name__ ==  "__main__":
     parser.add_option('--num_cluster', dest='num_cluster', default=None, type=int, help="Cluster number")
     parser.add_option('--specific_cluster', dest='specific_cluster', type=int, default=None)
     parser.add_option('--keep_images', dest='keep_projection_images', type=int, default=0)
+    
+    parser.add_option('--raw_movies', dest='raw_movies', type=int, default=0)
     (options, args) = parser.parse_args()
     
     if (options.pickle_file is None or options.out_path is None):
@@ -519,7 +525,8 @@ if __name__ ==  "__main__":
                     mm.make_movie(exp, cat_out_path,gene=cluster, 
                                   feature_movie_dir=options.feature_target_dir,
                                   feature=category, num_cluster=options.num_cluster,
-                                  keep_projection_images=options.keep_projection_images)
+                                  keep_projection_images=options.keep_projection_images,
+                                  make_raw_movies=options.raw_movies)
     
 
         else:
@@ -534,5 +541,6 @@ if __name__ ==  "__main__":
                 mm.make_movie(exp, cat_out_path, 
                               feature_movie_dir=local_feature_movie_dir,
                               feature=category, num_cluster=options.num_cluster,
-                              keep_projection_images=options.keep_projection_images)
+                              keep_projection_images=options.keep_projection_images,
+                                  make_raw_movies=options.raw_movies)
     
