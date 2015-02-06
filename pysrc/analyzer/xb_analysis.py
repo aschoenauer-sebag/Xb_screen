@@ -6,12 +6,13 @@ import matplotlib.pyplot as p
 import numpy as np
 import vigra.impex as vi
 from warnings import warn
+from collections import Counter, defaultdict
 
 from itertools import repeat
 from scipy.stats import ks_2samp
 from sklearn.decomposition import PCA
 
-from analyzer import cecog_features, CONTROLS, plates
+from analyzer import cecog_features, CONTROLS, plates, compoundL
 #from interface import fromPlateToPython
 from tracking import test
 from tracking.trajPack import featuresSaved, featuresNumeriques
@@ -23,6 +24,43 @@ from util.plots import plotBarPlot, couleurs, linestyles
 from util.listFileManagement import expSi, siEntrez, correct_from_Nan
 from util.sandbox import histLogTrsforming
 from tracking.PyPack.fHacktrack2 import sortiesAll, initXml, ecrireXml, finirXml
+
+from rpy2.robjects import IntVector
+from rpy2.robjects.packages import importr
+rStats = importr('stats')
+
+def comparClusterDistributions(labels, compound_list, who, ctrlStatus, length, dose_list, n_cluster=8):
+    '''
+    Here I do Fisher tests for trajectory cluster distributions. For controls, just to get an idea about how different controls
+    from the same plate are, I just compute one control well against all the others. Not very orthodox but it's just to see 
+    
+    '''
+    result1={el:defaultdict(list) for el in compoundL}; result=[]
+    for i,experiment in enumerate(who):
+        if compound_list[i] in CONTROLS.keys():
+            ctrlEl=np.where((np.array(who)[:,0]==experiment[0])&(compound_list==CONTROLS[compound_list[i]]))[0]
+        else:
+            ctrlEl=np.where((np.array(who)[:,0]==experiment[0])&(compound_list==compound_list[i])&(np.array(who)[:,1]!=experiment[1]))[0]
+            
+        dose=dose_list[i]
+        pLabelsCour = labels[np.sum(length[:i]):np.sum(length[:i+1])]
+        cLabelsCour =[]
+        for ctrlel in ctrlEl:
+            cLabelsCour.extend(labels[np.sum(length[:ctrlel]):np.sum(length[:ctrlel+1])])
+        
+        vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
+        cLabelsCour.extend(pLabelsCour)
+        
+        if True:
+            print np.bincount(cLabelsCour, minlength=n_cluster)
+            print np.bincount(pLabelsCour, minlength=n_cluster)
+
+        pval = np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
+                                             hybrid=True,
+                                             simulate_p_value=True, B=2000000)[0][0])
+        result1[compound_list[i]][dose].append(pval); result.append(pval)
+    
+    return result1, result
 
 def comparTrajectoriesMitoXB():
     f=open('../resultData/features_on_films/labelsKM_whole_k8.pkl')

@@ -45,57 +45,55 @@
 	
 	pnall_r=pca.transform((all_r-mean)/std)
 	
+#puis pour regarder les plots : on peut considérer que l'on a des infos sur quatre composantes pour chaque puits, et regarder ce que cela donne au niveau des conditions.
+ 
+	r={k:np.array([pnall_r[np.sum(length[:j]):np.sum(length[:j+1]),k] for j in range(len(length))]) for k in range(4)}
+	phenotype_analysis.plotResults(None, r, who, dose_list, xb, None, None, features=True)
 	
-	making movie number 2 LT0100_03--050
-converting images ... 
-generating movie ... 
-mencoder "mf://../resultData/Munich_plots/mean_straight/temp/*.jpg" -mf fps=3 -o ../resultData/Munich_plots/mean_straight/LT0100_03/LT0100_03--050.mov -ovc xvid -oac copy -xvidencopts fixed_quant=2.5
-movie generated: ../resultData/Munich_plots/mean_straight/LT0100_03/LT0100_03--050.mov
-MEncoder 1.1-4.1.2 (C) 2000-2012 MPlayer Team
+#Ne donne rien de très concluant. Donc autre idée, regarder comment les trajectoires se répartissent dans les clusters trouvés avec Mitocheck. DONC :
 
-WARNING: OUTPUT FILE FORMAT IS _AVI_. See -of help.
-success: format: 16  data: 0x0 - 0x0
-MF file format detected.
-[mf] search expr: ../resultData/Munich_plots/mean_straight/temp/*.jpg
-============ Sorry, this file format is not recognized/supported =============
-=== If this file is an AVI, ASF or MPEG stream, please contact the author! ===
-Cannot open demuxer.
+#En fait je l'avais déjà fait : c'est à peu près la fonction xb_analysis.comparTrajectoriesMitoXB().......
+	
+	f=open('../resultData/features_on_films/all_distances_whole_dataonly.pkl')
+	arr=pickle.load(f);f.close()
+	data=arr[0]; data=np.hstack((data[:,:len(featuresNumeriques)], data[:,featuresSaved.index('mean straight')][:,np.newaxis]))
+	
+	pca=PCA(n_components=15, whiten=False)
+	mean=np.mean(data,0)
+	std=np.std(data,0)
+	ndata=(data-mean)/std
+	pca.fit(ndata)
+	
+	all_r, who,ctrlStatus, length, xb, others, time_length=xb_analysis.xbConcatenation(folder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/')
+	all_r=np.hstack((all_r[:,:len(featuresNumeriques)], all_r[:,featuresSaved.index('mean straight')][:,np.newaxis]))
+	#to put everybody in the same referencial
+	pnall_r=pca.transform((all_r-np.mean(all_r,0))/np.std(all_r,0))
+	model=MiniBatchKMeans(n_clusters=8, batch_size = 2000, init='k-means++',n_init=1000,max_iter=1000, max_no_improvement=100, compute_labels = True)
+	model.fit((pndata/np.std(pndata,0))[:,:7])
+	std_p=np.std(pndata,0)
+	xb_screen_labels=model.predict((pnall_r/std_p)[:,:7])
 
-Exiting...
-mencoder "mf://../resultData/Munich_plots/feature_movies_2/mean_straight/temp/*.png" -mf fps=3 -o ../resultData/Munich_plots/feature_movies_2/mean_straight/meanstraight_LT0100_03--050.mov -ovc xvid -oac copy -xvidencopts fixed_quant=2.5
-movie generated: ../resultData/Munich_plots/feature_movies_2/mean_straight/meanstraight_LT0100_03--050.mov
-MEncoder 1.1-4.1.2 (C) 2000-2012 MPlayer Team
+	#Sauvegardes:			
+	f=open('../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2/used_MotIW_pca.pkl', 'w')
+	pickle.dump((pca, mean, std, std_p),f)
+	f.close()
+	
+	f=open('../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2/xb_screen_labels.pkl', 'w')
+	pickle.dump(xb_screen_labels, f)
+	f.close()
+	percentages=exploiting_clustering.filmCharacterization(xb_screen_labels, length, ctrlStatus, others, colors=None, show=False,plotcov=False)
+	
+#Maintenant on a de nouveau pour chaque puits huit caractéristiques, qui sont les pourcentages de trajectoires dans chacun des clusters. On peut donc regarder cela
+#de la même manière avec des boxplots
+	phenotype_analysis.plotResults(None, r, who, dose_list, xb, None, None, features=True)
+	
+	
+	
+	
+	
+	
+	
+	
+	
 
-WARNING: OUTPUT FILE FORMAT IS _AVI_. See -of help.
-success: format: 16  data: 0x0 - 0x0
-MF file format detected.
-[mf] search expr: ../resultData/Munich_plots/feature_movies_2/mean_straight/temp/*.png
-[mf] number of files: 93 (744)
-[demux_mf] file type was not set! trying 'type=png'...
-VIDEO:  [MPNG]  0x0  24bpp  3.000 fps    0.0 kbps ( 0.0 kbyte/s)
-[V] filefmt:16  fourcc:0x474E504D  size:0x0  fps:3.000  ftime:=0.3333
-xvid: using library version 1.3.2 (build xvid-1.3.2)
-Opening video filter: [expand osd=1]
-Expand: -1 x -1, -1 ; -1, osd: 1, aspect: 0.000000, round: 1
-==========================================================================
-Opening video decoder: [ffmpeg] FFmpeg's libavcodec codec family
-libavcodec version 54.23.100 (internal)
-Selected video codec: [ffpng] vfm: ffmpeg (FFmpeg PNG)
-==========================================================================
-Could not find matching colorspace - retrying with -vf scale...
-Opening video filter: [scale]
-Movie-Aspect is undefined - no prescaling applied.
-[swscaler @ 0xdfa500]BICUBIC scaler, from rgb24 to yuv420p using MMX2
-videocodec: XviD (1344x1024 fourcc=44495658 [XVID])
-xvid: par=0/0 (vga11), displayed=1344x1024, sampled=1344x1024
-xvid: Fixed Quant Rate Control -- quantizer=5/2=2.50
-New_Face failed. Maybe the font path is wrong.
-Please supply the text font file (~/.mplayer/subfont.ttf).
-subtitle font: load_sub_face failed.
-New_Face failed. Maybe the font path is wrong.
-Please supply the text font file (~/.mplayer/subfont.ttf).
-subtitle font: load_sub_face failed.
-Writing header...
-ODML: vprp aspect is 16384:12483.
-Writing header...
 	
