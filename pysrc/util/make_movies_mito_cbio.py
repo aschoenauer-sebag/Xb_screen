@@ -483,7 +483,7 @@ if __name__ ==  "__main__":
 
     mm = MovieMaker(in_path)
     if not options.labels:
-        l=['mean squared displacement']#movies.keys()
+        l=movies.keys()
         print "About to compute movies for those features ", l
 #        l=['signed turning angle',
 #         'movement type',
@@ -495,11 +495,13 @@ if __name__ ==  "__main__":
 #         'diffusion coefficient',
 #         'largest move',
 #         'ball number1', 'entropy1', 'entropy2']
-        f=open('/cbio/donnees/aschoenauer/workspace2/Xb_screen/resultData/features_on_films/distExp_123etctrl_minmax_50.pkl', 'r')
-        minMax = pickle.load(f); f.close()
-        FEATURE_RANGE = dict(zip(FEATURES, minMax))
+#         f=open('/cbio/donnees/aschoenauer/workspace2/Xb_screen/resultData/features_on_films/distExp_123etctrl_minmax_50.pkl', 'r')
+#         minMax = pickle.load(f); f.close()
+#         FEATURE_RANGE = dict(zip(FEATURES, minMax))
 #addition le 4fev2015, valeurs sur les hits MotIW
+        FEATURE_RANGE={}
         FEATURE_RANGE['mean straight'] = np.array([0.0016, 2.6026])
+        FEATURE_RANGE['mean squared displacement']=np.array([0.2386, 6.6706])
     else:
         l=['labels']
         
