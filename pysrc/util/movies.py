@@ -2,9 +2,24 @@ import vigra.impex as vi
 import vigra
 import os, pdb, shutil
 import numpy as np
-from PIL import Image
 
-def makeMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitocheck/compressed_data', \
+def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data20T/mitocheck/Alice/Xb_screen/results',\
+                                outDir = "/cbio/donnees/aschoenauer/projects/Xb_screen/dry_lab_results/classifiers/mitose_movies",\
+                                clef=lambda x:int(x.split('_')[2][1:-4]), folderName='primary_classification_primary3'):
+    
+    if tempDir is None:
+        tempDir = os.path.join(outDir, 'temp')
+    
+    for gene in idDict:
+        for pl,w in idDict[gene]:
+            print pl,w
+            folder = os.path.join(inDir, pl)
+            imgInDir = os.path.join(inDir, folder, "analyzed", w,"images",folderName)
+            makeMovieWithoutRenorm(imgInDir, outDir, gene, pl,w, clef, tempDir)
+    return
+
+
+def makeRawMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitocheck/compressed_data', \
                          outDir='/cbio/donnees/aschoenauer/cluster', clef=lambda x:int(x.split('_')[2])):
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
@@ -15,10 +30,10 @@ def makeMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitocheck/c
             folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))[0]
             imgInDir = filter(lambda x: x[:3] == exp[11:], os.listdir(os.path.join(inDir, folder)))[0]
             imgInDir = os.path.join(inDir, folder, imgInDir)
-            makeMovieFromPNG(imgInDir, outDir, gene, exp[:9], exp[11:], clef, tempDir)
+            makeMovieWithoutRenorm(imgInDir, outDir, gene, exp[:9], exp[11:], clef, tempDir)
     return
 
-def makeMovieFromPNG(imgDir, outDir,gene, plate, well, clef, tempDir=None):
+def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None, extension=".png"):
 #    def normWrite(img, filename):
 #        img=(img-2**15)*(2**8-1)/(2**12-1)
 #        vi.writeImage(img, filename)
@@ -42,13 +57,13 @@ def makeMovieFromPNG(imgDir, outDir,gene, plate, well, clef, tempDir=None):
         os.makedirs(outDir)
     
     # encode command
-    encode_command = "mencoder mf://%s/*.png -mf w=800:h=600:fps=3:type=png -ovc copy -oac copy -o %s"
-    encode_command %= (tempDir, os.path.join(outDir, movieName))
+    encode_command = "mencoder mf://%s/*%s -mf w=800:h=600:fps=3:type=png -ovc copy -oac copy -o %s"
+    encode_command %= (tempDir,extension, os.path.join(outDir, movieName))
     print encode_command
     os.system(encode_command)
     
     # cleaning up temporary directory
-    shell_command = 'rm %s/*.png' % tempDir
+    shell_command = 'rm %s/*%s' %(tempDir, extension)
     print shell_command
     os.system(shell_command)
 
