@@ -15,7 +15,7 @@ def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data20T/
             print pl,w
             folder = os.path.join(inDir, pl)
             imgInDir = os.path.join(inDir, folder, "analyzed", w,"images",folderName)
-            makeMovieWithoutRenorm(imgInDir, outDir, gene, pl,w, clef, tempDir)
+            makeMovieWithoutRenorm(imgInDir, outDir, gene, pl,w, clef, tempDir,extension=".jpg")
     return
 
 
