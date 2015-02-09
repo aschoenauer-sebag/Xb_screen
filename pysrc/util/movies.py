@@ -5,7 +5,8 @@ import numpy as np
 
 def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data20T/mitocheck/Alice/Xb_screen/results',\
                                 outDir = "/cbio/donnees/aschoenauer/projects/Xb_screen/dry_lab_results/classifiers/mitose_movies",\
-                                clef=lambda x:int(x.split('_')[2][1:-4]), folderName='primary_classification_primary3'):
+                                clef=lambda x:int(x.split('_')[2][1:-4]), folderName='primary_classification_primary3',\
+                                extension="jpg"):
     
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
@@ -17,7 +18,7 @@ def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data20T/
                 w=w+'_01'
             folder = os.path.join(inDir, pl)
             imgInDir = os.path.join(inDir, folder, "analyzed", w,"images",folderName)
-            makeMovieWithoutRenorm(imgInDir, outDir, gene, pl,w, clef, tempDir,extension=".jpg")
+            makeMovieWithoutRenorm(imgInDir, outDir, gene, pl,w, clef, tempDir,extension=extension)
     return
 
 
