@@ -13,6 +13,8 @@ def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data20T/
     for gene in idDict:
         for pl,w in idDict[gene]:
             print pl,w
+            if len(w.split('_'))==1 or w.split('_')[1]!='01':
+                w=w+'_01'
             folder = os.path.join(inDir, pl)
             imgInDir = os.path.join(inDir, folder, "analyzed", w,"images",folderName)
             makeMovieWithoutRenorm(imgInDir, outDir, gene, pl,w, clef, tempDir,extension=".jpg")
@@ -33,7 +35,7 @@ def makeRawMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitochec
             makeMovieWithoutRenorm(imgInDir, outDir, gene, exp[:9], exp[11:], clef, tempDir)
     return
 
-def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None, extension=".png"):
+def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None, extension="png"):
 #    def normWrite(img, filename):
 #        img=(img-2**15)*(2**8-1)/(2**12-1)
 #        vi.writeImage(img, filename)
@@ -57,13 +59,13 @@ def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None,
         os.makedirs(outDir)
     
     # encode command
-    encode_command = "mencoder mf://%s/*%s -mf w=800:h=600:fps=3:type=png -ovc copy -oac copy -o %s"
-    encode_command %= (tempDir,extension, os.path.join(outDir, movieName))
+    encode_command = "mencoder mf://%s/*.%s -mf w=800:h=600:fps=3:type=%s -ovc copy -oac copy -o %s"
+    encode_command %= (tempDir,extension, extension, os.path.join(outDir, movieName))
     print encode_command
     os.system(encode_command)
     
     # cleaning up temporary directory
-    shell_command = 'rm %s/*%s' %(tempDir, extension)
+    shell_command = 'rm %s/*.%s' %(tempDir, extension)
     print shell_command
     os.system(shell_command)
 

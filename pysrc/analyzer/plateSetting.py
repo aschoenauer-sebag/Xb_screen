@@ -7,7 +7,7 @@ from collections import Counter
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from plates.models import Plate,Cond, Treatment, Well
-from analyzer import CONTROLS
+from analyzer import CONTROLS, compoundL
 WELL_PARAMETERS = ['Name', 'Medium', 'Serum', 'Xenobiotic', 'Dose']
 
 def readPlateSetting(plateL, confDir, startAtZero = False,
@@ -135,7 +135,7 @@ def readPlateSetting(plateL, confDir, startAtZero = False,
     else:
         return result, WELL_PARAMETERS, well_lines, idL
     
-def fromXBToWells(xbL,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_etal/plate_setups',
+def fromXBToWells(xbL=None,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_etal/plate_setups',
                    dose_filter=None, plate=None, verbose=False):
     '''
     Getting information for which treatments are where in the data base
@@ -143,6 +143,9 @@ def fromXBToWells(xbL,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_e
     dose_filter can be one dose (type int) or a list of int, or None in which case all doses are considered from 1 to 10
     '''
     plateL=[]; well_lines_dict = {}; result={}
+    if xbL is None:
+        xbL = compoundL
+    
     #in the db the well numbers are recalculated: each well, even the empty ones, have a number.
     for xb in xbL:
         if plate is None:
