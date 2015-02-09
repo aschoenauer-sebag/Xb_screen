@@ -178,19 +178,7 @@ def fromXBToWells(xbL=None,confDir='/media/lalil0u/New/projects/Xb_screen/protoc
     
     #so now we need to recalculate the well numbers according to hdf5 and Zeiss numbering
     for plate in plateL:
-        #getting where the existing wells are
-        try:
-            file_ =open(os.path.join(confDir,  "%s_Wells.csv" % plate))
-            well_lines = file_.readlines(); file_.close()
-        except OSError:
-            nb_col = 12; nb_row=8
-            well_lines = np.reshape(range(1,97),(8,12))
-        else:
-            well_lines=np.array([line.strip("\n").split(",") for line in well_lines[1:]], dtype=int)
-            if verbose:
-                print well_lines
-            well_lines_dict[plate]= {i+1:well_lines.ravel()[i] for i in range(well_lines.size)}
-            
+        well_lines_dict[plate]= dbNum_ZeissNumTranslator(plate, confDir, sens="toZeiss")
     r2={}; r1=defaultdict(dict)
     for xb in result:
         r2[xb]={}
@@ -203,7 +191,24 @@ def fromXBToWells(xbL=None,confDir='/media/lalil0u/New/projects/Xb_screen/protoc
         
     return r2,r1
     
-    
+def dbNum_ZeissNumTranslator(plate, confDir, sens="toZeiss"):
+    '''
+    This function translates from database well numbering to Zeiss well numbering and vice versa
+    '''
+    #getting where the existing wells are
+    try:
+        file_ =open(os.path.join(confDir,  "%s_Wells.csv" % plate))
+        well_lines = file_.readlines(); file_.close()
+    except OSError:
+        nb_col = 12; nb_row=8
+        well_lines = np.reshape(range(1,97),(8,12))
+    else:
+        well_lines=np.array([line.strip("\n").split(",") for line in well_lines[1:]], dtype=int)
+    if sens == 'toZeiss':
+        return {i+1:well_lines.ravel()[i] for i in range(well_lines.size)}
+    if sens =="toDB":
+        return {well_lines.ravel()[i]:i+1 for i in range(well_lines.size)}
+        
     
 def readNewPlateSetting(plateL, confDir, startAtZero = False,
                      plateName=None, dateFormat='%d%m%y', 
