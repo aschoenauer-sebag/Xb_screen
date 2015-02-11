@@ -2,10 +2,70 @@ import os, pdb
 import cPickle as pickle
 import numpy as np
 import vigra.impex as vi
-from collections import defaultdict
+import matplotlib.pyplot as p
+from collections import defaultdict, Counter
+from scipy.stats import scoreatpercentile
 
 from analyzer import compoundL, plates
 from plateSetting import fromXBToWells
+
+def replicabilityEvaluation(arr, condition_list, conditions, key_list=None):
+    res=defaultdict(list)
+    data=[]
+    
+    if key_list==None:
+        for condition in conditions:
+            data.append(np.median(arr,0)[np.where(condition_list==condition)]/np.median(np.median(arr,0)[np.where(condition_list==condition)]))
+            data.append(np.max(arr,0)[np.where(condition_list==condition)]/np.median(np.max(arr,0)[np.where(condition_list==condition)]))
+        for el in data[::2]:
+            res['Median'].append(scoreatpercentile(a=el, per=75,axis=0)-scoreatpercentile(a=el, per=25,axis=0))
+        for el in data[1::2]:
+            res['Max'].append(scoreatpercentile(a=el, per=75,axis=0)-scoreatpercentile(a=el, per=25,axis=0))
+        title="Comparison of replicability for trajectory statistic for all conditions, between med(iterations) and max(iterations)"
+    else:
+        for condition in conditions:
+            for key in key_list:
+                el = arr[key][np.where(condition_list==condition)]/np.median(arr[key][np.where(condition_list==condition)])
+                data.append(el)
+                res[key].append(scoreatpercentile(a=el, per=75,axis=0)-scoreatpercentile(a=el, per=25,axis=0))
+        title="Replicability for {} distance for all conditions".format(key)
+
+    f=p.figure()
+    ax=f.add_subplot(121)
+    ax.boxplot(data)
+    if key is None:
+        xtickNames = p.setp(ax, xticklabels=np.repeat(conditions, 2))
+    else:
+        xtickNames = p.setp(ax, xticklabels=np.repeat(conditions, len(key_list)))
+    ax.grid(True)
+    p.setp(xtickNames, rotation=90, fontsize=8)
+    p.title(title)
+    ax=f.add_subplot(122)
+    for el in res:
+        ax.hist(res[el], label=el, bins=50, range=(0,1), alpha=0.5)
+    ax.legend(); ax.grid(True)
+    p.title('IQR distributions')
+    
+    p.show()
+            
+
+
+def zFactor(data, ctrlStatus):
+    '''
+    Function to compute z-factor to evaluate screen quality
+    '''
+    
+    if type(data)==list or len(data.shape)==1 or data.shape[1]==1:
+        ctrlStatus=np.array(ctrlStatus)
+        ctrl=np.array(data)[np.where(ctrlStatus==0)]
+        experiments = np.array(data)[np.where(ctrlStatus==1)]
+        
+        return 1-3*(np.std(ctrl)+np.std(experiments))/np.absolute(np.mean(ctrl)-np.mean(experiments))
+    else:
+        result = np.zeros(shape=(data.shape[1],), dtype=float)
+        for k in range(data.shape[1]):
+            result[k]=zFactor(data[:,k], ctrlStatus)
+        return result
 
 def intensity_qc(input_folder, output_folder):
     print 'Doing quality control text file for plates ', plates
