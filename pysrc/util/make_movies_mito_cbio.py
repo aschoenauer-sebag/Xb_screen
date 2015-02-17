@@ -272,6 +272,7 @@ class MovieMaker(object):
             feature_index = FEATURES.index(feature)
                         
             values = tab[:,feature_index]
+            pdb.set_trace()
             colors = [cm.getColorFromMap(x, cr, FEATURE_RANGE[feature][0], FEATURE_RANGE[feature][1])
                       for x in values.tolist()]
             
@@ -385,7 +386,7 @@ class MovieMaker(object):
             movieName += ('--%s' % sirna)
         if not num_cluster is None:
             movieName += '_k{}'.format(num_cluster)
-        movieName+='.mov'
+        movieName+='.avi'
 
         # make output directory
         if outDir is None:
@@ -488,7 +489,7 @@ if __name__ ==  "__main__":
 
     mm = MovieMaker(in_path)
     if not options.labels:
-        l=movies.keys()
+        l=['mean straight']#movies.keys()
         print "About to compute movies for those features ", l
 #        l=['signed turning angle',
 #         'movement type',
@@ -507,6 +508,7 @@ if __name__ ==  "__main__":
         FEATURE_RANGE={}
         FEATURE_RANGE['mean straight'] = np.array([0.0016, 2.6026])
         FEATURE_RANGE['mean squared displacement']=np.array([0.2386, 6.6706])
+        print "Using this feature range for normalization ", FEATURE_RANGE
     else:
         l=['labels']
         

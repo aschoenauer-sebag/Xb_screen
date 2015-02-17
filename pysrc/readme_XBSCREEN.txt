@@ -92,6 +92,8 @@ Rq (06/02/2015) : now possible to do it on the cluster.
 #de la même manière avec des boxplots
 	phenotype_analysis.plotResults(None, r, who, dose_list, xb, None, None, features=True)
 	
+#To compute Fisher's pvalues on trajectory distributions in Mitocheck trajectory clusters
+	r1,r2=xb_analysis.comparClusterDistributions(labels, compound_list, who, ctrlStatus, length, dose_list, n_cluster=8)
 	
 	
 	

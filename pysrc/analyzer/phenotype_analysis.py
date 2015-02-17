@@ -130,7 +130,8 @@ def loadResults(localRegMeasure=False,
             try:
                 param_sets = [(i,dict(el)) for i,el in enumerate(d.keys())]
                 index, param_d=filter(lambda x: x[1]['localReg']==localRegMeasure, param_sets)[0]
-                wells=param_d["wells"]; available_phenos = param_d['pheno_list']
+                wells=param_d["wells"] if len(param_d['wells'][0])==2 else [el.split('_') for el in param_d['wells']]
+                available_phenos = param_d['pheno_list']
                 arr=d[d.keys()[index]]
             except IndexError, KeyError:
                 pdb.set_trace()

@@ -37,6 +37,7 @@ def comparClusterDistributions(labels, compound_list, who, ctrlStatus, length, d
     '''
     result1={el:defaultdict(list) for el in compoundL}; result=[]
     for i,experiment in enumerate(who):
+        print i,
         if compound_list[i] in CONTROLS.keys():
             ctrlEl=np.where((np.array(who)[:,0]==experiment[0])&(compound_list==CONTROLS[compound_list[i]]))[0]
         else:
@@ -51,9 +52,9 @@ def comparClusterDistributions(labels, compound_list, who, ctrlStatus, length, d
         vecLongueurs = [0 for k in range(len(cLabelsCour))]; vecLongueurs.extend([1 for k in range(len(pLabelsCour))])
         cLabelsCour.extend(pLabelsCour)
         
-        if True:
-            print np.bincount(cLabelsCour, minlength=n_cluster)
-            print np.bincount(pLabelsCour, minlength=n_cluster)
+#         if True:
+#             print np.bincount(cLabelsCour, minlength=n_cluster)
+#             print np.bincount(pLabelsCour, minlength=n_cluster)
 
         pval = np.float64(rStats.fisher_test(IntVector(cLabelsCour), IntVector(vecLongueurs), 
                                              hybrid=True,

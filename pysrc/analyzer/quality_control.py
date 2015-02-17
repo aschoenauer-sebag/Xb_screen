@@ -8,8 +8,76 @@ from scipy.stats import scoreatpercentile
 
 from analyzer import compoundL, plates
 from plateSetting import fromXBToWells
+from util.plots import couleurs
+from scipy.stats.stats import spearmanr
 
-def replicabilityEvaluation(arr, condition_list, conditions, key_list=None):
+def conditionCorrelationMeasures(arr, label, who,conditions, condition_list):
+    result=np.zeros(shape=(len(plates), len(plates)))
+    if type(arr)==list:
+        arr=np.array(arr)
+    if type(conditions)==list:
+        conditions=np.array(conditions)
+    if type(who)==list:
+        who=np.array(list)
+    
+    for i in range(len(plates)):
+        result[i,i]=1
+        for cond in condition_list:
+            print conditions[np.where((conditions==cond)&(who[:,0]==plates[i]))],
+            print who[np.where((conditions==cond)&(who[:,0]==plates[i]))]
+        list_val1=[np.median(arr[np.where((conditions==cond)&(who[:,0]==plates[i]))]) for cond in condition_list]
+        print list_val1
+        for j in range(i+1, len(plates)):
+            list_val2=[np.median(arr[np.where((conditions==cond)&(who[:,0]==plates[j]))]) for cond in condition_list]
+            aa=np.vstack((list_val1, list_val2))
+            aa=aa[:,np.where((np.isfinite(aa[1])&(np.isfinite(aa[0]))))]
+            result[i,j]=spearmanr(aa[0,0], aa[1,0])[0]
+            result[j,i]=result[i,j]
+    
+    return result
+
+def replicateCorrelationPlots(arr, who, conditions, ax=None, refPlate=None):
+    '''
+    This is to look at replicability from a well perspective (and not condition perspective).
+    If the 
+    Arguments:
+    - conditions: list of conditions ordered as the data in arr
+    - who: list or array of (plate, well) info
+    '''
+    if refPlate==None:
+        if type(who)==list:
+            who=np.array(who)
+        if type(conditions)==list:
+            conditions=np.array(conditions)
+
+        f,axes=p.subplots(3,4,sharex=True, sharey=True)
+        for i,plate in enumerate(['201114', '121214', '271214']):
+            replicateCorrelationPlots(arr, who, conditions, ax=axes[i], refPlate=plate)
+        p.show()
+        return
+    else:
+        if ax==None:
+            raise ValueError
+        
+        for i,currPlate in enumerate(filter(lambda x: x!=refPlate, plates)):
+            currConditions = conditions[np.where(who[:,0]==currPlate)]
+            currArr = arr[np.where((who[:,0]==currPlate))]
+            for k,cond in enumerate(currConditions):
+                refCond = np.median(arr[np.where((conditions==cond)&(who[:,0]==refPlate))])
+                ax[i].scatter(refCond, currArr[k], color=couleurs[plates.index(currPlate)])
+                ax[i].plot(np.linspace(np.min(currArr), np.max(currArr), 10), np.linspace(np.min(currArr), np.max(currArr), 10))
+                ax[i].set_xlabel(refPlate); ax[i].set_ylabel(currPlate); ax[i].grid(True)
+                
+        return
+            
+        
+
+def conditionReplicabilityBoxplots(arr, condition_list, conditions, key_list=None):
+    '''
+    This function looks at replicability from a condition perspective.
+    It plots boxplots of the data that is in arr for each condition given in condition_list. Conditions should contain
+    once all possible conditions.
+    '''
     res=defaultdict(list)
     data=[]
     

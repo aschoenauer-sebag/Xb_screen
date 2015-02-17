@@ -310,12 +310,9 @@ def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5)
                         try:
                             who[currParams['time_window']].extend(currParams['wells'])
                         except KeyError:
-                            if not use_time_window:
-                                who.extend(['{}_{}'.format(compound, tag(file_)) for k in range(d[param_set].shape[0])])
-                            else:
-                                pdb.set_trace()
+                            pdb.set_trace()
                         compounds[currParams['time_window']].extend([compound for k in range(d[param_set].shape[0])])
-                        doses[currParams['time_window']].extend([tag(file_) for k in range(d[param_set].shape[0])])
+                        doses[currParams['time_window']].extend([0 for k in range(d[param_set].shape[0])])
                     #deleting mean persistence if it is still there
                         if d[param_set].shape[1]==16:
                             d[param_set]=np.delete(d[param_set], 15, 1)
@@ -369,7 +366,8 @@ def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5)
     doses={el:np.array(doses[el], dtype=int) for el in who}
     compounds={el:np.array(compounds[el]) for el in who}
     who={el:np.array(who[el]) for el in who}
-    return result, result2, who, compounds, doses
+    conditions = {el:["{}_{}".format(a,b) for a,b in zip(compounds[el],doses[el])] for el in doses}
+    return result[0], result2[0], who[0], compounds[0], doses[0], conditions[0]
 
 def finding_hit_XB(result, who, compounds, doses, combination=(lambda x: np.max(x,0)), 
                    outputFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/track_predictions__settings2/features_on_films',
