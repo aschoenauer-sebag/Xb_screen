@@ -272,7 +272,10 @@ class MovieMaker(object):
             feature_index = FEATURES.index(feature)
                         
             values = tab[:,feature_index]
-            pdb.set_trace()
+            
+            print "Working on feature {} with this range min {} max {}".format(feature, *FEATURE_RANGE[feature])
+            print "In this well min {} max {}".format(np.min(values), np.max(values))
+            
             colors = [cm.getColorFromMap(x, cr, FEATURE_RANGE[feature][0], FEATURE_RANGE[feature][1])
                       for x in values.tolist()]
             
@@ -506,9 +509,8 @@ if __name__ ==  "__main__":
 #         FEATURE_RANGE = dict(zip(FEATURES, minMax))
 #addition le 4fev2015, valeurs sur les hits MotIW
         FEATURE_RANGE={}
-        FEATURE_RANGE['mean straight'] = np.array([0.0016, 2.6026])
+        FEATURE_RANGE['mean straight'] = np.array([0.10, 0.43])
         FEATURE_RANGE['mean squared displacement']=np.array([0.2386, 6.6706])
-        print "Using this feature range for normalization ", FEATURE_RANGE
     else:
         l=['labels']
         
