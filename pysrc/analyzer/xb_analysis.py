@@ -29,19 +29,36 @@ from rpy2.robjects import IntVector
 from rpy2.robjects.packages import importr
 rStats = importr('stats')
 
-def comparClusterDistributions(labels, compound_list, who, ctrlStatus, length, dose_list, n_cluster=8):
+def comparClusterDistributions_plateNorm(labels, compound_list, who, length, dose_list, n_cluster=8, n_n=37, n_iter=5):
+    result=None
+    for k in range(n_iter):
+        print 'Iteration ',k
+        _,r = comparClusterDistributions(labels, compound_list, who, length, dose_list, n_cluster=n_cluster, norm='plate', n_n=n_n)
+        result = r if result == None else np.vstack((result,r))
+        
+    return result
+
+def comparClusterDistributions(labels, compound_list, who, length, dose_list, n_cluster=8, norm='neg_ctrl', n_n=None):
     '''
     Here I do Fisher tests for trajectory cluster distributions. For controls, just to get an idea about how different controls
-    from the same plate are, I just compute one control well against all the others. Not very orthodox but it's just to see 
+    from the same plate are, I just compute one control well against all the others. Not very orthodox but it's just to see
+    
+    The norm argument says if we'd rather normalize with respect to the negative controls on the same plate, or n_n=37 wells on the
+    same plate. 
     
     '''
     result1={el:defaultdict(list) for el in compoundL}; result=[]
     for i,experiment in enumerate(who):
         print i,
-        if compound_list[i] in CONTROLS.keys():
-            ctrlEl=np.where((np.array(who)[:,0]==experiment[0])&(compound_list==CONTROLS[compound_list[i]]))[0]
+        if norm=='neg_ctrl': 
+            if compound_list[i] in CONTROLS.keys():
+                ctrlEl=np.where((np.array(who)[:,0]==experiment[0])&(compound_list==CONTROLS[compound_list[i]]))[0]
+            else:
+                ctrlEl=np.where((np.array(who)[:,0]==experiment[0])&(compound_list==compound_list[i])&(np.array(who)[:,1]!=experiment[1]))[0]
         else:
-            ctrlEl=np.where((np.array(who)[:,0]==experiment[0])&(compound_list==compound_list[i])&(np.array(who)[:,1]!=experiment[1]))[0]
+    #We normalize by the whole plate
+            ctrlEl=np.where((np.array(who)[:,0]==experiment[0]))[0]; np.random.shuffle(ctrlEl)
+            ctrlEl=ctrlEl[:n_n]
             
         dose=dose_list[i]
         pLabelsCour = labels[np.sum(length[:i]):np.sum(length[:i+1])]
@@ -61,7 +78,7 @@ def comparClusterDistributions(labels, compound_list, who, ctrlStatus, length, d
                                              simulate_p_value=True, B=2000000)[0][0])
         result1[compound_list[i]][dose].append(pval); result.append(pval)
     
-    return result1, result
+    return result1, np.array(result)
 
 def comparTrajectoriesMitoXB():
     f=open('../resultData/features_on_films/labelsKM_whole_k8.pkl')
@@ -330,7 +347,7 @@ def xbConcatenation(folder, exp_list=None, xb_list='processedDictResult_P{}.pkl'
 
     warn('The data was not normalized. Please check that it will be done before applying any algorithm.')
     
-    return r2[:,:-1], np.array(who),ctrlStatus, length, np.array(xb), others, time_length
+    return r2[:,:-1], who,ctrlStatus, length, np.array(xb), others, time_length
 
 def plottingBar(folder, plate, xenobioticL, solvent,sh=True, target='speed', average_over_xb=False):
     timepoints={}

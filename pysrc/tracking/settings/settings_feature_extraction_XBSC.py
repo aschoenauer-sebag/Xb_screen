@@ -1,4 +1,4 @@
-result_folder = '../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2/features_on_films'
+result_folder = '../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2/plate_norm_features_on_films'
 outputFile = 'distances_tw_{}.pkl'
 ctrl_exp_filename = 'ctrl_exp_{}_{}.pkl'
 data_folder = '../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2/'
@@ -19,3 +19,8 @@ histDataAsWell=False
 redo=True
 #to tell it's xb screen data
 xb_screen=True
+
+#Number of well on each plate to normalize plate-wise
+n_n=37
+
+norm='plate'

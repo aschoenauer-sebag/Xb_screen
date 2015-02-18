@@ -95,6 +95,12 @@ Rq (06/02/2015) : now possible to do it on the cluster.
 #To compute Fisher's pvalues on trajectory distributions in Mitocheck trajectory clusters
 	r1,r2=xb_analysis.comparClusterDistributions(labels, compound_list, who, ctrlStatus, length, dose_list, n_cluster=8)
 	
+#PLATE NORMALIZATION (instead of negative control normalization)
+
+	file='projects/Xb_screen/dry_lab_results/track_predictions__settings2/xb_screen_Fisherspval_plate_normalization.pkl'
+	result, xb, who, length,conditions = pickle.load(open(file, 'r'))
+	
+	
 	
 	
 	

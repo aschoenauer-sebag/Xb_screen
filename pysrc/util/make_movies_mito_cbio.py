@@ -492,7 +492,7 @@ if __name__ ==  "__main__":
 
     mm = MovieMaker(in_path)
     if not options.labels:
-        l=['mean straight']#movies.keys()
+        l=movies.keys()
         print "About to compute movies for those features ", l
 #        l=['signed turning angle',
 #         'movement type',
@@ -509,7 +509,7 @@ if __name__ ==  "__main__":
 #         FEATURE_RANGE = dict(zip(FEATURES, minMax))
 #addition le 4fev2015, valeurs sur les hits MotIW
         FEATURE_RANGE={}
-        FEATURE_RANGE['mean straight'] = np.array([0.10, 0.43])
+        FEATURE_RANGE['mean straight'] = np.array([0.10, 0.43])#score at percentiles approx 5 et 95
         FEATURE_RANGE['mean squared displacement']=np.array([0.2386, 6.6706])
     else:
         l=['labels']

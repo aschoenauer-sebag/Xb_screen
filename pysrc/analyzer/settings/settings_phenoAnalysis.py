@@ -9,7 +9,7 @@ base_result_dir = '/media/lalil0u/New/projects/Xb_screen'
 loadingFolder = os.path.join(base_result_dir, 'dry_lab_results')
 #Where to save results
 savingFolder=os.path.join(loadingFolder, 'phenotype_analysis')
-outputFile='phenoAnalysis_{}_{}.pkl'
+outputFile='phenoAnalysis_plateNorm_{}_{}.pkl'
 
 #Local regression parameters
 h=10
@@ -17,4 +17,7 @@ deg=3
 #Default phenotypes of interest
 pheno_list=['Anaphase_ch1', 'Apoptosis_ch1', 'Folded_ch1', 'Interphase_ch1', 'Metaphase_ch1',
             'Polylobbed_ch1', 'Prometaphase_ch1', 'WMicronuclei_ch1']
+#Regarding normalization
+norm='plate'
+n_n=37
 

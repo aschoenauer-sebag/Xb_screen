@@ -1,5 +1,5 @@
 import getpass, os
-
+training=False
 if getpass.getuser()=='aschoenauer':
     outputFolder = "/cbio/donnees/aschoenauer/projects/Xb_screen/dry_lab_results/track_predictions__settings2"
     dataFolder="/cbio/donnees/aschoenauer/Xb_screen/plates__all_features_2bis"

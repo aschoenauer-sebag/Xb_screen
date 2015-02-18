@@ -32,7 +32,7 @@ from util.sandbox import concatCtrl
 from util.plots import couleurs, markers
 from analyzer import CONTROLS, compoundL, xbL, plates
 from analyzer.xb_analysis import xbConcatenation
-from analyzer.quality_control import usable_XBSC
+from analyzer.quality_control import usable_XBSC, computingToRedo
 
 from util import settings
 from scipy.stats.stats import ks_2samp, spearmanr, scoreatpercentile, percentileofscore,\
@@ -277,15 +277,15 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl{}', filename='all_dist
 #    result.sort(key=itemgetter(0))
     return expL, geneL, siRNAL, combined_pval#np.array(result) 
 
-def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5), use_time_window=True, compL=None):
+def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5), use_time_window=True, compL=None, norm='neg_ctrl'):
     '''
     This function aims at collecting p-values from the xenobiotic screen. No need to look again for the experiments that are involved since it's saved in
     the file
     '''
     files=os.listdir(folder)
     if use_time_window:
-        time_window_range=len(time_windows)
-        result={(i,j):None for (i,j) in product(iter_range, range(time_window_range))}
+        time_window_range=range(1)#len(time_windows)
+        result={(i,j):None for (i,j) in product(iter_range, time_window_range)}
     else:
         result=[None for k in iter_range]
     who=defaultdict(list); compounds=defaultdict(list); doses=defaultdict(list)
@@ -296,7 +296,7 @@ def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5)
     for compound in compL:
     #we get the list of files from dose 1 to dose max
         cFiles=sorted(filter(lambda x: filename in x and compound in x, files))
-        if compound in CONTROLS.values():
+        if compound in CONTROLS.values() and norm=='neg_ctrl':
             tag=(lambda x:x.split('_')[-2])
             for file_ in cFiles:
                 try:
@@ -331,7 +331,7 @@ def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5)
                 #ATTENTION ca ne marche pas dans le cas ou les doses vont de 1 a 10 pcq ds ce cas l'ordre est 1 10 2 3 4 5 6 7 8 9
                 #tag = lambda x: cFiles.index(x)+1
                 tag = lambda x: x.split('_')[-1].split('.')[0]
-                print file_, tag(file_)
+                print file_,
                 
                 try:
                     f=open(os.path.join(folder, file_), 'r')
@@ -339,6 +339,7 @@ def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5)
                 except:
                     pdb.set_trace()
                 else:
+                    print len(d.keys())
                     for param_set in d:
                         currParams=dict(param_set)
                         iter_ = currParams['iter']
@@ -360,13 +361,14 @@ def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5)
                         else:
                             raise AttributeError
     print result[(0,0)].shape
-    result={tw: np.vstack((-np.log(result[(el,tw)])[np.newaxis] for el in range(5))) for tw in range(5)}
+    result={tw: np.vstack((-np.log(result[(el,tw)])[np.newaxis] for el in range(5))) for tw in time_window_range}
     result2={tw:2*np.sum(result[tw],2) for tw in result}
     
     doses={el:np.array(doses[el], dtype=int) for el in who}
     compounds={el:np.array(compounds[el]) for el in who}
     who={el:np.array(who[el]) for el in who}
     conditions = {el:["{}_{}".format(a,b) for a,b in zip(compounds[el],doses[el])] for el in doses}
+    
     return result[0], result2[0], who[0], compounds[0], doses[0], conditions[0]
 
 def finding_hit_XB(result, who, compounds, doses, combination=(lambda x: np.max(x,0)), 
@@ -1039,11 +1041,12 @@ class cellExtractor():
                  verbose=0):
         
         '''
-MITOCHECK data: if doing ctrl-ctrl p-values, the plate that is under study is in testCtrl. In this case, self.siRNA takes values CTRL_plate 
+MITOCHECK data: if doing ctrl-ctrl p-values, the plate that is under study is in testCtrl. In this case, self.siRNA takes values CTRL_[plate] 
 Otherwise testCtrl is 0 and self.siRNA is the siRNA under study
 
-XB SCREEN data: if doing ctrl-ctrl p-values, the plate that is under study is in testCtrl. In this case self.siRNA takes values CTRL_plate_solvent
-Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
+XB SCREEN data: if doing ctrl-ctrl p-values, the plate that is under study is in testCtrl. In this case self.siRNA takes values CTRL_[plate]_solvent
+Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose. If we are going for plate normalization, as opposed to negative control normalization,
+self.siRNA takes value CTRL_[plate]_plate
     '''
 
         self.siRNA = siRNA
@@ -1055,7 +1058,12 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
         if not testCtrl:
             self.plate = None
             if self.settings.xb_screen:
-                self.ctrl = CONTROLS[siRNA.split('_')[0]]
+                if self.settings.norm=='neg_ctrl':
+                    self.ctrl = CONTROLS[siRNA.split('_')[0]]
+                elif self.settings.norm=='plate':
+                    self.ctrl='plate'
+                else:
+                    raise ValueError
                 print "Control ", self.ctrl
         else:
             if self.verbose:
@@ -1115,7 +1123,7 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
                                    verbose=self.verbose, perMovie = True, 
                                    track_folder="track_predictions__settings2")
             
-    def _usableControl(self):
+    def _usableControl(self, indication=None):
         '''
         This function returns the list of control experiment for a given plate, that have passed the quality control.
         For the xb screen data, it will probably be here that we are going to add the simulated control experiments
@@ -1128,7 +1136,19 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
                                 mitocheck=self.settings.mitocheck_file))]
         else:
             #we have put in self.siRNA CTRL_plate_control because there is DMSO and Nonane for the different xbs
-            return usable_XBSC(self.ctrl, 0, self.plate)
+            if self.ctrl!='plate':
+                return usable_XBSC(self.ctrl, 0, self.plate)
+            else:
+                if indication==None:
+                    a=np.array(computingToRedo()[0])
+                    return [(pl, "{:>05}".format(w)) for pl, w in a[np.where(a[:,0]==self.plate)]]
+                elif indication=='all_ctrl':
+                    a=[]
+                    for control in Counter(CONTROLS.values()).keys():
+                        a.extend(usable_XBSC(control, 0, self.plate))
+                    return a
+                else:
+                    raise ValueError
         
     
     def getData(self, histDataAsWell):
@@ -1140,7 +1160,7 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
         histDict = defaultdict(list)
         
         r, self.expList,_, length, _, _, _ = self._concatenation(self.expList)
-                    
+        
         for i in range(len(length)):
             for k,feature in enumerate(self.currInterestFeatures):
                 histDict[feature].append(r[np.sum(length[:i]):np.sum(length[:i+1]),featuresSaved.index(feature)])
@@ -1149,6 +1169,29 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
 #        bins = pickle.load(f); f.close()
         
         return histDict, None
+    
+    def plateNormCtrlHistograms(self, bins, ctrlExpList):
+        histDict = defaultdict(list)
+        length=[]
+
+        if self.verbose:
+            print 'Controls plate-wise', len(ctrlExpList)
+        try:
+            curr_r, _,_, curr_length, _, _, _ = self._concatenation(np.array(ctrlExpList))
+        except:
+            print "Problem with controls from plate {}".format(self.plate)
+            length.append(np.nan)
+            for k, feature in enumerate(self.currInterestFeatures):
+                histDict[feature].append(np.nan)
+        else:    
+            length.append(np.sum(curr_length))
+            assert(np.sum(curr_length)==curr_r.shape[0])                        
+            for k, feature in enumerate(self.currInterestFeatures):
+                histDict[feature].append(curr_r[:,featuresSaved.index(feature)])
+                
+        assert(len(length)==1)
+        assert(len(histDict[feature])==1)
+        return histDict
     
     def ctrlHistograms(self, bins,usable_ctrl=None, toDel=[]):
         '''
@@ -1321,54 +1364,86 @@ Otherwise testCtrl is 0 and self.siRNA is xenobiotic_dose.
             
         else:
             usable_ctrl = self._usableControl() 
-            
-            if len(usable_ctrl)<2:
-                return
-            elif len(usable_ctrl)==2:
-                #only one comparison possible if only two control movies
-                different_controls=[[0]]
-                
-            elif len(usable_ctrl)<=6:
-                #randomly selecting one well of the plate that will be used to be compared to the others, and do it once
-                different_controls=[[i] for i in range(len(usable_ctrl))]
-                
-            else:
-                #randomly selecting two wells of the plate that will be used to be compared to the others, and do it twice
-                different_controls=np.array([[a,b] for a,b in combinations(range(len(usable_ctrl)), 2)])[np.random.permutation(len(usable_ctrl)*(len(usable_ctrl)-1)/2)[:21]]
-            
-            if self.verbose:
-                print different_controls
-
-            for false_experiments in different_controls:
-                self.expList = [usable_ctrl[i] for i in false_experiments]
-                if not self.settings.redo and self.alreadyDone():
-                    print 'Already done'
+            print len(usable_ctrl)
+            if self.ctrl !='plate':
+                if len(usable_ctrl)<2:
                     return
+                elif len(usable_ctrl)==2:
+                    #only one comparison possible if only two control movies
+                    different_controls=[[0]]
+                    
+                elif len(usable_ctrl)<=6:
+                    #randomly selecting one well of the plate that will be used to be compared to the others, and do it once
+                    different_controls=[[i] for i in range(len(usable_ctrl))]
+                    
+                else:
+                    #randomly selecting two wells of the plate that will be used to be compared to the others, and do it twice
+                    different_controls=np.array([[a,b] for a,b in combinations(range(len(usable_ctrl)), 2)])[np.random.permutation(len(usable_ctrl)*(len(usable_ctrl)-1)/2)[:21]]
+                    
+                    
+                if self.verbose:
+                    print different_controls
+    
+                for false_experiments in different_controls:
+                    self.expList = [usable_ctrl[i] for i in false_experiments]
+                    if not self.settings.redo and self.alreadyDone():
+                        print 'Already done'
+                        return
+    
+                    
+                    if self.verbose:
+                        print 'false experiments', self.expList
+    
+                    histogrammes, bins = self.getData(self.settings.histDataAsWell)
+                    
+                    if len(usable_ctrl)==8:
+                        left=[j for j in range(len(usable_ctrl)) if j not in false_experiments][np.random.permutation(len(usable_ctrl)-len(false_experiments))[0]]
+                        false_experiments=np.hstack((false_experiments,left))
+                        
+                    if self.verbose:
+                        print 'to del on this plate ', false_experiments
+                        
+                    plates, ctrl_histogrammes = self.ctrlHistograms(bins,usable_ctrl, toDel=false_experiments)
+                        
+                    #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON all control experiments 
+                    #for the plate
+            
+                    #iv. calculate the distance from each experiment to its control
+                    distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes)
+                    if self.verbose:
+                        print distances
+                    #v. save results
+                    self.saveResults(distances)
+            else:
+            #in this case in usable_ctrl is the list of usable experiments on the plate
+                different_controls = np.array([np.random.permutation(len(usable_ctrl))[:self.settings.n_n] for k in range(5)])
+                print "Defining plate-wise controls and permutations"
+                f=open(os.path.join(self.settings.result_folder, self.settings.ctrl_exp_filename.format(self.plate, self.ctrl)), 'w')
+                pickle.dump([np.array(usable_ctrl), different_controls], f); f.close()
 
-                
+                self.expList=self._usableControl('all_ctrl')
                 if self.verbose:
-                    print 'false experiments', self.expList
-
-                histogrammes, bins = self.getData(self.settings.histDataAsWell)
-                
-                if len(usable_ctrl)==8:
-                    left=[j for j in range(len(usable_ctrl)) if j not in false_experiments][np.random.permutation(len(usable_ctrl)-len(false_experiments))[0]]
-                    false_experiments=np.hstack((false_experiments,left))
+                    print self.expList
+                distances=None
+                for currNormalization in different_controls:
+                    if not self.settings.redo:
+                        if self.alreadyDone():
+                            print 'Already done'
+                            return
                     
-                if self.verbose:
-                    print 'to del on this plate ', false_experiments
-                    
-                plates, ctrl_histogrammes = self.ctrlHistograms(bins,usable_ctrl, toDel=false_experiments)
-                    
-                #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON all control experiments 
-                #for the plate
-        
-                #iv. calculate the distance from each experiment to its control
-                distances = self.calculateDistances(plates, histogrammes, ctrl_histogrammes)
-                if self.verbose:
-                    print distances
+                    histogrammes, bins = self.getData(self.settings.histDataAsWell)
+                    #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON all control experiments 
+                    #for the plate                        
+                    ctrl_histogrammes = self.plateNormCtrlHistograms(bins,np.array(usable_ctrl)[currNormalization])
+                     
+                    #iv. calculate the distance from each experiment to its control
+                    currDistances = self.calculateDistances([self.plate], histogrammes, ctrl_histogrammes) 
+                    distances = currDistances if distances ==None else np.vstack((distances, currDistances))
+                    if self.verbose:
+                        print currDistances
                 #v. save results
-                self.saveResults(distances)
+                self.saveResults(currDistances)
+
         
         return
     

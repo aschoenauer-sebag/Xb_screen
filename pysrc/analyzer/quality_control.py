@@ -209,7 +209,7 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
     ALSO
     normally there are five controls/solvent/plate. There should not be less than three otherwise the plate is to be discarded (oh god)
     '''
-    print 'Computing experiments to redo starting with plates ', plates
+    print 'Counting experiments starting with plates ', plates
     
     failed=defaultdict(dict); passed=[]
     number_failed=0; total_number=0

@@ -110,7 +110,7 @@ def saveTextFile(localRegMeasure, result, who, dose_list, compound_list, outputF
 
 def loadResults(localRegMeasure=False, 
                 loadingFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/phenotype_analysis', 
-                filename='phenoAnalysis_', 
+                filename='phenoAnalysis_plateNorm_', 
                 pheno_list = ['Anaphase_ch1', 'Apoptosis_ch1', 'Folded_ch1', 'Interphase_ch1', 'Metaphase_ch1',
                               'Polylobbed_ch1', 'Prometaphase_ch1', 'WMicronuclei_ch1'],
                 plot1=False, plot2=False, plot3=False, saveText=False):
@@ -120,27 +120,27 @@ def loadResults(localRegMeasure=False,
     who=[]#for well list
     compound_list=[]; dose_list=[]
     for file_ in file_list:
-        try:
-            f=open(os.path.join(loadingFolder, file_))
-            d=pickle.load(f);f.close()
+        #try:
+        f=open(os.path.join(loadingFolder, file_))
+        d=pickle.load(f);f.close()
             
-        except IOError:
+#         except IOError:
+#             pdb.set_trace()
+        #else:
+        try:
+            param_sets = [(i,dict(el)) for i,el in enumerate(d.keys())]
+            index, param_d=filter(lambda x: x[1]['localReg']==localRegMeasure, param_sets)[0]
+            wells=param_d["wells"] if len(param_d['wells'][0])==2 else [el.split('_') for el in param_d['wells']]
+            available_phenos = param_d['pheno_list']
+            arr=d[d.keys()[index]]
+        except IndexError, KeyError:
             pdb.set_trace()
         else:
-            try:
-                param_sets = [(i,dict(el)) for i,el in enumerate(d.keys())]
-                index, param_d=filter(lambda x: x[1]['localReg']==localRegMeasure, param_sets)[0]
-                wells=param_d["wells"] if len(param_d['wells'][0])==2 else [el.split('_') for el in param_d['wells']]
-                available_phenos = param_d['pheno_list']
-                arr=d[d.keys()[index]]
-            except IndexError, KeyError:
-                pdb.set_trace()
-            else:
-                for pheno in pheno_list:
-                    result[pheno] = arr[:,available_phenos.index(pheno)] if result[pheno]==[] else np.hstack((result[pheno], arr[:,available_phenos.index(pheno)]))
-                who.extend(wells)
-                compound_list.extend([file_.split('_')[1] for k in range(len(wells))])
-                dose_list.extend([file_.split('_')[2].split('.')[0] for k in range(len(wells))])
+            for pheno in pheno_list:
+                result[pheno] = arr[:,available_phenos.index(pheno)] if result[pheno]==[] else np.hstack((result[pheno], arr[:,available_phenos.index(pheno)]))
+            who.extend(wells)
+            compound_list.extend([file_.split('_')[-2] for k in range(len(wells))])
+            dose_list.extend([file_.split('_')[-1].split('.')[0] for k in range(len(wells))])
     who=np.array(who); dose_list=np.array(dose_list, dtype=int); compound_list=np.array(compound_list) 
     if plot1:
         plotResults(localRegMeasure, result, who, dose_list, compound_list, outputFile=filename, outputFolder=loadingFolder)
@@ -152,9 +152,6 @@ def loadResults(localRegMeasure=False,
         saveTextFile(localRegMeasure, result, who, dose_list, compound_list, outputFile=filename, outputFolder=loadingFolder)
     return result, who, compound_list, dose_list
             
-            
-
-
 def parameterStabilityEvaluation(well_num=50,n_list=list([0.4,0.5,0.6,0.7,0.8]), h_list=[10], deg_list=[2,3],
                                  pheno_list=['Anaphase_ch1', 'Apoptosis_ch1', 'Folded_ch1', 'Interphase_ch1', 'Metaphase_ch1',
                                            'Polylobbed_ch1', 'Prometaphase_ch1', 'WMicronuclei_ch1'],
@@ -327,17 +324,21 @@ def localReg(y, n, h, deg=3, plot=True, ax=None, color=None, marker=None):
     return result, np.array(prediction)
 
 class wellPhenoAnalysis(object):
-    def __init__(self, settings, pl, w, compound, nn,h,deg,pheno_list,verbose,localRegMeasure=True, settings_file=None):
-        if settings_file is not None:
+    def __init__(self, settings_, pl, w, compound, nn,pheno_list,verbose,localRegMeasure=True, settings_file=None):
+        if settings_ is None:
             self.settings = settings.Settings(settings_file, globals())
         else:
-            self.settings=settings
+            self.settings=settings_
         self.pheno_list = self.settings.pheno_list if pheno_list is None else pheno_list
         
         self.plate = pl
         self.well=int(w)
         self.nn = nn
-        self.h=h;self.deg=deg;self.localRegMeasure=localRegMeasure
+        
+        self.h=self.settings.h
+        self.deg=self.settings.deg
+        self.localRegMeasure=localRegMeasure
+        
         self.compound=compound
         self.verbose=verbose
         
@@ -347,7 +348,7 @@ class wellPhenoAnalysis(object):
         
         return d[self.well], d
     
-    def _getCtrlData(self, filter_, total_data):
+    def _getCtrlData_ctrlNorm(self, filter_, total_data):
         try:
             ctrl = CONTROLS[self.compound]
         except KeyError:
@@ -365,8 +366,45 @@ class wellPhenoAnalysis(object):
             if self.verbose:
                 print "Apres filtre", ctrl_wells
             
-        return [total_data[int(w)] for pl,w in ctrl_wells]  
-
+        return [total_data[int(w)] for pl,w in ctrl_wells]
+    
+    def _getCtrlData_plateNorm(self, filter_, total_data):
+        a=np.array(quality_control.computingToRedo()[0])
+        exp_list= [(pl, "{:>05}".format(w)) for pl, w in a[np.where(a[:,0]==self.plate)]]
+        result=[]
+    #i. Doing five permutations
+        for k in range(5):
+            currExp = np.array(exp_list)[np.random.permutation(range(len(exp_list)))[:self.settings.n_n]]
+            r=defaultdict(list)
+            for pheno in self.pheno_list:
+                global_object_count=None
+                for pl,w in currExp:
+     #ii. Going from counts+percentage/wells to percentages/well list
+                    curr_count = np.array(total_data[int(w)]['object_count'], dtype=float)
+                    global_object_count = curr_count if global_object_count is None \
+                        else global_object_count[:min(curr_count.shape[0], global_object_count.shape[0])]+curr_count[:min(curr_count.shape[0], global_object_count.shape[0])]
+                    
+                    curr_pheno_count=np.array(total_data[int(w)][pheno])[:,0]*curr_count
+                    if len(r[pheno])==0:
+                        r[pheno]=curr_pheno_count
+                    else:
+                        r[pheno]= r[pheno][:min(r[pheno].shape[0], curr_pheno_count.shape[0])]
+                        curr_pheno_count=curr_pheno_count[:min(r[pheno].shape[0], curr_pheno_count.shape[0])]
+                        r[pheno]+=curr_pheno_count
+                        
+                r[pheno]/=global_object_count
+            result.append(r)
+        return result
+        
+    def _getCtrlData(self, filter_, total_data):
+        '''
+        Returning a list of control data arrays. The final result for the well will be the median of the results on each array of the list
+        '''
+        if self.settings.norm=='ctrl_neg':
+            return self._getCtrlData_ctrlNorm(filter_, total_data)
+        elif self.settings.norm=='plate':
+            return self._getCtrlData_plateNorm(filter_, total_data)
+        
     def _analyze(self, exp_data, ctrl_data):
         result=np.zeros(shape=(len(self.pheno_list)))
         for i,pheno in enumerate(self.pheno_list):
@@ -437,20 +475,25 @@ class xbPhenoAnalysis(object):
         return tuple(sorted(zip(r.keys(), r.values()), key=itemgetter(0)))
         
     def _getExperiments(self):
-        if self.compound not in CONTROLS.values():
+        if self.settings.norm=='neg_ctrl':
+            if self.compound not in CONTROLS.values():
+                return quality_control.usable_XBSC(self.compound, self.dose), None
+            else:
+                exp_list = []
+                filter_=[]
+                for plate in plates:
+                    l= quality_control.usable_XBSC(self.compound, self.dose, plate=plate)
+                    size_=2 if len(l)>3 else 1
+                    f_=np.random.permutation(len(l))
+                    filter_.append(f_[size_:]); exp_list.extend(['{}_{}'.format(el[0], el[1]) for el in np.array(l)[f_[:size_]]])
+                    if self.verbose:
+                        print "Chosen for plate ", plate, np.array(l)[f_[:size_]]
+                    
+                return exp_list, filter_
+        elif self.settings.norm=='plate':
             return quality_control.usable_XBSC(self.compound, self.dose), None
         else:
-            exp_list = []
-            filter_=[]
-            for plate in plates:
-                l= quality_control.usable_XBSC(self.compound, self.dose, plate=plate)
-                size_=2 if len(l)>3 else 1
-                f_=np.random.permutation(len(l))
-                filter_.append(f_[size_:]); exp_list.extend(['{}_{}'.format(el[0], el[1]) for el in np.array(l)[f_[:size_]]])
-                if self.verbose:
-                    print "Chosen for plate ", plate, np.array(l)[f_[:size_]]
-                
-            return exp_list, filter_
+            raise ValueError
 
     def save(self, result,exp_list):
         if self.settings.outputFile.format(self.compound, self.dose) in os.listdir(self.settings.savingFolder):
@@ -476,7 +519,7 @@ class xbPhenoAnalysis(object):
             pl,w=exp if len(exp)==2 else exp.split('_')
             print pl
             wellPA = wellPhenoAnalysis(self.settings, pl, w, compound=self.compound, 
-                                       h=self.settings.h, deg=self.settings.deg,localRegMeasure=self.localRegMeasure,
+                                       localRegMeasure=self.localRegMeasure,
                                        nn=self.nn, pheno_list=self.pheno_list, verbose=self.verbose)
             r[i]=wellPA(filter_=filter_[plates.index(pl)]) if filter_ is not None else wellPA() 
             
