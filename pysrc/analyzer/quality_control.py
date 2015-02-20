@@ -11,6 +11,15 @@ from plateSetting import fromXBToWells
 from util.plots import couleurs
 from scipy.stats.stats import spearmanr
 
+def normalizationCorrelationMeasures(arr_plate, arr_negctrl, who_plate, who_negctrl):
+    
+    who_plate2=['{}--{}'.format(*el) for el in who_plate]
+    who_negctrl2=['{}--{}'.format(*el) for el in who_negctrl]
+    
+    comm=filter(lambda x: x in who_plate2, who_negctrl2)
+    
+    return arr_plate[np.where(np.array([el in comm for el in who_plate2]))], arr_negctrl[np.where(np.array([el in comm for el in who_negctrl2]))]
+
 def conditionCorrelationMeasures(arr, label, who,conditions, condition_list):
     result=np.zeros(shape=(len(plates), len(plates)))
     if type(arr)==list:
@@ -22,11 +31,11 @@ def conditionCorrelationMeasures(arr, label, who,conditions, condition_list):
     
     for i in range(len(plates)):
         result[i,i]=1
-        for cond in condition_list:
-            print conditions[np.where((conditions==cond)&(who[:,0]==plates[i]))],
-            print who[np.where((conditions==cond)&(who[:,0]==plates[i]))]
+#         for cond in condition_list:
+#             print conditions[np.where((conditions==cond)&(who[:,0]==plates[i]))],
+#             print who[np.where((conditions==cond)&(who[:,0]==plates[i]))]
         list_val1=[np.median(arr[np.where((conditions==cond)&(who[:,0]==plates[i]))]) for cond in condition_list]
-        print list_val1
+        #print list_val1
         for j in range(i+1, len(plates)):
             list_val2=[np.median(arr[np.where((conditions==cond)&(who[:,0]==plates[j]))]) for cond in condition_list]
             aa=np.vstack((list_val1, list_val2))
@@ -226,7 +235,7 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
         f.close()
         result[plate]=resCour
     for compound in compoundL:
-        print "################### Loading wells for xenobiotic ", compound
+        print "################################# Loading wells for xenobiotic ", compound
         #by default this function returns all wells with this xenobiotic starting on the 20th of Nov
         curr_well_groups=well_groups[compound]
         failed[compound]=defaultdict(list)
@@ -238,6 +247,7 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
 
                 for well in curr_well_groups[dose][plate]:
                     total_number+=1
+                    print plate, well
                     #i.checking if the well is in the manual qc failed list
                     if plate in d_manual and well in d_manual[plate]:
                         print 'Manual QC failed', plate, well
@@ -246,6 +256,12 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
                     else:
                         #ii. checking if the initial number of objects is above the threshold
                         avg_init_cell_count=np.mean(np.array(result[plate][well]['cell_count'])[:10])
+                        
+                        print "Avg init cell count ", avg_init_cell_count
+                        
+                        avg_init_cell_perc=np.mean((np.array(result[plate][well]['cell_count'], dtype=float)/np.array(result[plate][well]['object_count']))[:10])
+                        print "Avg init cell perc ", avg_init_cell_perc
+                        
                         if avg_init_cell_count<threshold_init_cell_count:
                             print 'Cell count failed', plate, well
                             failed[compound][dose].append((plate, well))
@@ -270,8 +286,8 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
             
                 if usable_plate:
                     total_bio_replicates+=1
-            print '****number of wells for this condition ', total_num_wells
-            print '******total number of biological replicates for this condition ', total_bio_replicates
+            print '****number of wells ', total_num_wells
+            print '*****************************biological rep ', total_bio_replicates
     print 'Saving list of failed wells in ', os.path.join(input_folder, 'xb_focus_qc.pkl')
     f=open(os.path.join(input_folder, 'xb_focus_qc.pkl'), 'w')
     pickle.dump(flou_qc_dict, f); f.close()

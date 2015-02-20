@@ -369,7 +369,13 @@ class wellPhenoAnalysis(object):
         return [total_data[int(w)] for pl,w in ctrl_wells]
     
     def _getCtrlData_plateNorm(self, filter_, total_data):
-        a=np.array(quality_control.computingToRedo()[0])
+        '''
+        We compute the percentage of phenotypes with respect to the number of cells that are not artefacts or out of focus cells.
+        '''
+        #Loading well list, that passed the QC - instead of recomputing it each time
+        f=open(self.settings.ok_wells_input_file)
+        a=pickle.load(f); f.close()
+        
         exp_list= [(pl, "{:>05}".format(w)) for pl, w in a[np.where(a[:,0]==self.plate)]]
         result=[]
     #i. Doing five permutations
@@ -377,14 +383,15 @@ class wellPhenoAnalysis(object):
             currExp = np.array(exp_list)[np.random.permutation(range(len(exp_list)))[:self.settings.n_n]]
             r=defaultdict(list)
             for pheno in self.pheno_list:
-                global_object_count=None
+                global_cell_count=None
                 for pl,w in currExp:
      #ii. Going from counts+percentage/wells to percentages/well list
-                    curr_count = np.array(total_data[int(w)]['object_count'], dtype=float)
-                    global_object_count = curr_count if global_object_count is None \
-                        else global_object_count[:min(curr_count.shape[0], global_object_count.shape[0])]+curr_count[:min(curr_count.shape[0], global_object_count.shape[0])]
+                    curr_object_count = np.array(total_data[int(w)]['object_count'], dtype=float)
+                    curr_cell_count = np.array(total_data[int(w)]['cell_count'], dtype=float)
+                    global_cell_count = curr_cell_count if global_cell_count is None \
+                        else global_cell_count[:min(curr_cell_count.shape[0], global_cell_count.shape[0])]+curr_cell_count[:min(curr_cell_count.shape[0], global_cell_count.shape[0])]
                     
-                    curr_pheno_count=np.array(total_data[int(w)][pheno])[:,0]*curr_count
+                    curr_pheno_count=np.array(total_data[int(w)][pheno])[:,0]*curr_object_count
                     if len(r[pheno])==0:
                         r[pheno]=curr_pheno_count
                     else:
@@ -392,7 +399,7 @@ class wellPhenoAnalysis(object):
                         curr_pheno_count=curr_pheno_count[:min(r[pheno].shape[0], curr_pheno_count.shape[0])]
                         r[pheno]+=curr_pheno_count
                         
-                r[pheno]/=global_object_count
+                r[pheno]/=global_cell_count[:,0]
             result.append(r)
         return result
         
@@ -410,11 +417,11 @@ class wellPhenoAnalysis(object):
         for i,pheno in enumerate(self.pheno_list):
             r=[]
             for data in ctrl_data:
-                exp_data[pheno]=np.array(exp_data[pheno])
+                local_exp_data=np.array(exp_data[pheno], dtype=float)[:,0]*np.array(exp_data['object_count'], dtype=float)/(np.array(exp_data['cell_count'], dtype=float)[:,0])
                 data[pheno]=np.array(data[pheno])
                 if self.localRegMeasure:
     #I look at the max between local regression curves over time, but stop at 48h not too add the bias of different durations
-                    _,r1=localReg(exp_data[pheno][:192], n=self.nn, h=self.h, deg=self.deg, plot=False)
+                    _,r1=localReg(local_exp_data[:192], n=self.nn, h=self.h, deg=self.deg, plot=False)
                     _,r2=localReg(data[pheno][:192], n=self.nn, h=self.h, deg=self.deg, plot=False)
                     try:
                         r.append(np.max(np.abs(r1-r2)))

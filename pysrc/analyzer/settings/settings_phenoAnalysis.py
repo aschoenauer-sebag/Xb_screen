@@ -7,6 +7,8 @@ base_result_dir = '/media/lalil0u/New/projects/Xb_screen'
 
 #Where to load processed results
 loadingFolder = os.path.join(base_result_dir, 'dry_lab_results')
+
+ok_wells_input_file = '../data/xb_OK_wells.pkl'
 #Where to save results
 savingFolder=os.path.join(loadingFolder, 'phenotype_analysis')
 outputFile='phenoAnalysis_plateNorm_{}_{}.pkl'
