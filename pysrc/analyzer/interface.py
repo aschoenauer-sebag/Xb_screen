@@ -223,6 +223,9 @@ class HTMLGenerator():
             print plate, ' not in result dictionary.'
             return
         
+        if not os.path.isdir(self.settings.result_dir):
+            os.mkdir(self.settigns.result_dir)
+        
         f=open(os.path.join(self.settings.result_dir, 'processedDictResult_P{}.pkl'.format(plate)), 'w')
         pickle.dump(resCour, f)
         f.close()
