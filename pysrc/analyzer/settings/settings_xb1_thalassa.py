@@ -8,11 +8,11 @@ base_result_dir = '/cbio/donnees/aschoenauer/projects/Xb_screen'
 base_html = "/cbio/donnees/aschoenauer/public_html"
 
 #where hdf5 files are
-raw_result_dir = "/share/data20T/mitocheck/Alice/Xb_screen/dry_lab_results"
+raw_result_dir = "/share/data20T/mitocheck/Alice/Xb_screen/results"
 intensity_qc_filename='../data/xb_intensity_qc.pkl'
 
 #Where to save processed results
-result_dir = os.path.join(base_result_dir, 'results')
+result_dir = os.path.join(base_result_dir, 'dry_lab_results')
 
 #Where to save data to be put online
 media_dir = os.path.join(base_html, 'interface_screen/plates/static')
