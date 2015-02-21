@@ -509,6 +509,9 @@ class HTMLGenerator():
         
         
     def __call__(self, plateL=None, featureL = None, featureChannels =None, saveDB=True, fillDBOnly=False, doQC=False, moviesOnly=False):
+        '''
+        Default behaviour regarding movie generation: if already done they are not recomputed
+        '''
         
     #Getting plate list
         if plateL is None:

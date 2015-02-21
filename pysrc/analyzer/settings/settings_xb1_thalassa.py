@@ -20,7 +20,7 @@ plot_dir = os.path.join(media_dir, 'plots')
 movie_dir = os.path.join(media_dir, "movies")
 
 # Plate setups directory
-confDir = os.path.join(base_result_dir, 'plate_setups')
+confDir = os.path.join(base_result_dir, 'protocols_etal/plate_setups')
 
 ###DEFAULT PLATE
 plate = '11414'
