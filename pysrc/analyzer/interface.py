@@ -512,7 +512,7 @@ class HTMLGenerator():
         return
         
         
-    def __call__(self, plateL=None, featureL = None, featureChannels =None, saveDB=True, fillDBOnly=False, doQC=False, moviesOnly=False):
+    def __call__(self, plateL=None, featureL = None, featureChannels =None, saveDB=True, fillDBOnly=False, doQC=False, moviesOnly=False, doMovies=True):
         '''
         Default behaviour regarding movie generation: if already done they are not recomputed
         '''
@@ -575,13 +575,14 @@ class HTMLGenerator():
                     if len(np.where(self.well_lines_dict[plate]==-1)[0])>1 and saveDB:
                         print ' *** changing well numbers in db, plate ', plate
                         self.changeDBWellNumbers(plate, self.well_lines_dict[plate], idL)
-                try:
-                    print ' *** generate movies ***'
-                    self.generateMovies(plate, self.well_lines_dict[plate])
-         
-                except: 
-                    print ' ERROR while working for %s' % plate
-                    continue
+                if doMovies:
+                    try:
+                        print ' *** generate movies ***'
+                        self.generateMovies(plate, self.well_lines_dict[plate])
+             
+                    except: 
+                        print ' ERROR while working for %s' % plate
+                        continue
         return
     
     
