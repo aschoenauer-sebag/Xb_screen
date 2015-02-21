@@ -155,7 +155,8 @@ class HTMLGenerator():
                     if self.classes is not None:
                         bincount = np.bincount(frame.classification, minlength=len(self.classes))
                         out_of_focus = bincount[np.where(self.classes=='Flou')]
-                        artefacts = bincount[np.where(self.classes=='Artefact')] + bincount[np.where(self.classes=='SmallUnidentified')] 
+#NB: no more smallUnidentified after classifier update on 2/20/15
+                        artefacts = bincount[np.where(self.classes=='Artefact')] 
                         result["cell_count"].append( frame.centers.shape[0] - (out_of_focus + artefacts))
                 #if second channel was processed, computing percentage of red only cells
                     try:
