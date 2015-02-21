@@ -16,6 +16,7 @@ from trajPack import featuresHisto
 from util.plots import makeColorRamp, basic_colors, markers, couleurs
 
 import brewer2mpl
+from operator import itemgetter
 
 def plotPermutationResults(res):
     f=p.figure(figsize=(24,13))
@@ -112,29 +113,29 @@ def plotAlignedTraj(X, Y,minx, maxx, miny, maxy,turn=False, show=False, name=Non
         p.close(1)
     return
 
-def plotTraj3d(coordonnees, plate = '?', well='?', N=100, colors=None, name=None):
+def plotTraj3d(lstTraj, plate = '?', well='?', N=100, colors=None, name=None):
     #mpl.rcParams['legend.fontsize'] = 10
 #    c = []
-#    for traj in coordonnees:
-#        r=[[],[],[]]
-#        for frame in traj:
-#            r[0].append(frame)
-#            r[1].append(traj[frame][0])
-#            r[2].append(traj[frame][1])
-#        c.append(r)
-    fig = p.figure(figsize=(24,13))
+    coordonnees=[]
+    for l in lstTraj:
+        l=l.lstPoints
+        arr = np.array(sorted(zip(np.array(l.keys())[:,0], np.array(l.values())[:,0], np.array(l.values())[:,1]), key=itemgetter(0)))
+        if arr.shape[0]>40:
+            coordonnees.append(arr)
+    
+    fig = p.figure()
     ax = fig.gca(projection='3d')
     for k in range(min(len(coordonnees),N)):
         if colors is not None:
-            ax.plot(coordonnees[k][1], coordonnees[k][2], coordonnees[k][0], color=colors[k])
+            ax.plot(coordonnees[k][:,0], coordonnees[k][:,2], coordonnees[k][:,1], color=colors[k%len(colors)])
         else:
             ax.plot(coordonnees[k][0], coordonnees[k][1], coordonnees[k][2])
-    p.title(str(N)+' time trajectories from plate '+plate+', well '+well)
+    #p.title(str(N)+' time trajectories from plate '+plate+', well '+well)
     p.ylabel('Frame number')
 #pour ne pas afficher les chiffres devant les graduations des axes
-#    ax.set_xticklabels([])
-#    ax.set_yticklabels([])
-#    ax.set_zticklabels([])
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    ax.set_zticklabels([])
     if name is not None:
         fig.savefig(name)
     else:
