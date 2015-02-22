@@ -3,6 +3,7 @@ import os, pdb
 import numpy as np
 import cPickle as pickle
 import matplotlib.pyplot as p
+from optparse import OptionParser
 
 from operator import itemgetter
 
@@ -13,6 +14,8 @@ from scipy.stats import spearmanr
 import rpy2.robjects as objects
 locfit = objects.packages.importr('locfit')
 globalenv = objects.globalenv
+
+from tracking.histograms.summaries_script import jobSize, progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, pbsOutDir, path_command
 
 from util.plots import couleurs, markers, plotBarPlot
 from analyzer import CONTROLS, quality_control, plates, xbL, compoundL
@@ -534,4 +537,77 @@ class xbPhenoAnalysis(object):
         self.save(r, exp_list)
         
         return 1
+    
+    
+def script(condition_list_file='../data/siRNA_xb.pkl', baseName="phenotype_analysis"):
+    f=open(condition_list_file)
+    l=pickle.load(f)
+    f.close()
+    
+    l.extend(['Nonane_0', 'DMSO_0'])
+    
+    head = """#!/bin/sh
+cd %s""" %progFolder
+    
+    for i,condition in enumerate(l):
+        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i+1))
+        script_file = file(script_name, "w")
+        cmd="""
+python analyzer/phenotype_analysis.py -x %s -d %s
+"""
+        cmd %= condition.split('_')
+                
+        script_file.write(head + cmd)
+        script_file.close()
+        os.system('chmod a+x %s' % script_name)
+    
+                # write the main script
+    array_script_name = '%s.sh' % os.path.join(scriptFolder, baseName)
+    main_script_file = file(array_script_name, 'w')
+    main_content = """#!/bin/sh
+%s
+#$ -o %s
+#$ -e %s
+%s$%s.sh
+""" % (path_command,
+       pbsOutDir,  
+       pbsErrDir, 
+       os.path.join(scriptFolder, baseName),
+       pbsArrayEnvVar)
+
+    main_script_file.write(main_content)
+    main_script_file.close()
+    os.system('chmod a+x %s' % array_script_name)
+    sub_cmd = 'qsub -hold_jid  -t 1-%i %s' % (i+1, array_script_name)
+
+    print sub_cmd
+    
         
+if __name__ == '__main__':
+    verbose=0
+    description =\
+'''
+%prog - 
+
+'''
+    parser = OptionParser(usage="usage: %prog [options]",
+                         description=description)
+    
+    parser.add_option("-f", "--settings_file", dest="settings_file", default='analyzer/settings/settings_phenoAnalysis.py',
+                      help="Settings_file")
+
+    parser.add_option("-x", dest="xenobiotic",
+                      help="The xenobiotic which you are interested in")
+    
+    parser.add_option("-d", dest="dose",
+                      help="The dose which you are interested in")
+
+    parser.add_option("-n", dest="nn", default=0.5, type=float,
+                      help="Number of neighbours for local regression")
+        
+    (options, args) = parser.parse_args()
+    
+    x=xbPhenoAnalysis(options.settings_file, compound=options.xenobiotic, dose=options.dose, nn=options.nn, verbose=0, localRegMeasure=True)    
+    x()
+    x=xbPhenoAnalysis(options.settings_file, compound=options.xenobiotic, dose=options.dose, nn=options.nn, verbose=0, localRegMeasure=False)
+    x()
