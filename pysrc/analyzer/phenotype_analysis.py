@@ -1,5 +1,5 @@
 
-import os, pdb
+import os, pdb, getpass
 import numpy as np
 import cPickle as pickle
 import matplotlib.pyplot as p
@@ -12,7 +12,11 @@ from collections import defaultdict, Counter
 from itertools import product
 from scipy.stats import spearmanr
 import rpy2.robjects as objects
-locfit = objects.packages.importr('locfit')
+if getpass.getuser()=='aschoenauer':
+    locfit = objects.packages.importr('locfit', lib_loc="/cbio/donnees/aschoenauer/software/lib64/R")
+else:
+    locfit = objects.packages.importr('locfit')
+    
 globalenv = objects.globalenv
 
 from tracking.histograms.summaries_script import jobSize, progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, pbsOutDir, path_command
