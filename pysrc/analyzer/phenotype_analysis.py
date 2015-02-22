@@ -364,7 +364,7 @@ class wellPhenoAnalysis(object):
             else:
                 ctrl=self.compound
                 
-        ctrl_wells = quality_control.usable_XBSC(ctrl, 0, self.plate)
+        ctrl_wells = quality_control.usable_XBSC(ctrl, 0, self.plate,confDir=self.settings.plate_setups_folder)
         if filter_ is not None:
             if self.verbose:
                 print "Avant filtre", ctrl_wells, filter_
@@ -491,12 +491,12 @@ class xbPhenoAnalysis(object):
     def _getExperiments(self):
         if self.settings.norm=='neg_ctrl':
             if self.compound not in CONTROLS.values():
-                return quality_control.usable_XBSC(self.compound, self.dose), None
+                return quality_control.usable_XBSC(self.compound, self.dose,confDir=self.settings.plate_setups_folder), None
             else:
                 exp_list = []
                 filter_=[]
                 for plate in plates:
-                    l= quality_control.usable_XBSC(self.compound, self.dose, plate=plate)
+                    l= quality_control.usable_XBSC(self.compound, self.dose, plate=plate,confDir=self.settings.plate_setups_folder)
                     size_=2 if len(l)>3 else 1
                     f_=np.random.permutation(len(l))
                     filter_.append(f_[size_:]); exp_list.extend(['{}_{}'.format(el[0], el[1]) for el in np.array(l)[f_[:size_]]])
@@ -505,7 +505,7 @@ class xbPhenoAnalysis(object):
                     
                 return exp_list, filter_
         elif self.settings.norm=='plate':
-            return quality_control.usable_XBSC(self.compound, self.dose), None
+            return quality_control.usable_XBSC(self.compound, self.dose,confDir=self.settings.plate_setups_folder), None
         else:
             raise ValueError
 
@@ -597,7 +597,7 @@ if __name__ == '__main__':
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
-    parser.add_option("-f", "--settings_file", dest="settings_file", default='analyzer/settings/settings_phenoAnalysis.py',
+    parser.add_option("-f", "--settings_file", dest="settings_file", default='analyzer/settings/settings_phenoAnalysis_thalassa.py',
                       help="Settings_file")
 
     parser.add_option("-x", dest="xenobiotic",

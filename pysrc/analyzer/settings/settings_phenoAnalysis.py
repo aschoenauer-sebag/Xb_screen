@@ -2,8 +2,10 @@
 
 ###DIRECTORY SETTINGS
 #where the images are
-raw_data_dir = "/media/lalil0u/TOSHIBA EXT/images_A"#"/media/lalil0u/XB SCREEN/ok cbio/images"#"/media/lalil0u/New/data/Xb_screen/Images_Cecog"#
 base_result_dir = '/media/lalil0u/New/projects/Xb_screen'
+
+#Where plate setups are
+plate_setups_folder=os.path.join(base_result_dir, 'protocols_etal/plate_setups')
 
 #Where to load processed results
 loadingFolder = os.path.join(base_result_dir, 'dry_lab_results')

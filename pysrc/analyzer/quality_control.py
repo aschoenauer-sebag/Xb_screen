@@ -173,8 +173,8 @@ def intensity_qc(input_folder, output_folder):
     f.close()
     return
 
-def usable_XBSC(compound, dose, plate=None, input_folder='../data'):
-    _, info_dict=fromXBToWells([compound], dose_filter=dose, plate=plate)
+def usable_XBSC(compound, dose, plate=None, input_folder='../data', confDir='/media/lalil0u/New/projects/Xb_screen/protocols_etal/plate_setups'):
+    _, info_dict=fromXBToWells([compound], dose_filter=dose, plate=plate,confDir=confDir)
     
     print "Loading manual quality control results"
     f=open(os.path.join(input_folder, 'xb_manual_qc.pkl'), 'r')
