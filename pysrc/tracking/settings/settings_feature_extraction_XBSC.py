@@ -24,3 +24,6 @@ xb_screen=True
 n_n=37
 
 norm='plate'
+
+ok_wells_asLIST = '../data/xb_OK_wells_asLIST.pkl'
+ok_wells_asDICT= '../data/xb_OK_wells_asDICT.pkl'
