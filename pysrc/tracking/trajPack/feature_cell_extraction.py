@@ -1326,9 +1326,6 @@ self.siRNA takes value CTRL_[plate]_plate
             return False
     
     def saveResults(self, distances):
-        if not os.path.isdir(self.settings.result_folder):
-            os.mkdir(self.settings.result_folder)
-        
         if self.plate is None:
             if self.settings.outputFile.format(self.siRNA) in os.listdir(self.settings.result_folder):
                 f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)))
@@ -1354,7 +1351,8 @@ self.siRNA takes value CTRL_[plate]_plate
         return
     
     def __call__(self):
-        
+        if not os.path.isdir(self.settings.result_folder):
+            os.mkdir(self.settings.result_folder)
     #i. getting experiments corresponding to siRNA if we're not looking for control experiments only
         if self.plate is None:
             self.expList=self._findExperiment()

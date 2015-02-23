@@ -31,7 +31,7 @@ Rq (06/02/2015) : now possible to do it on the cluster.
 		
 7. Launch hit detection step
 	i. Generate scripts for feature_cell_extraction
-	python tracking/trajPack/feature_cell_extraction_script.py --type XBSC -b traj_dist_XBSC --iter 5
+	python tracking/trajPack/feature_cell_extraction_script.py --type XBSC -b traj_dist_XBSC --iter 5 --siRNA ../data/siRNA_xb.pkl
 	
 	ii. Generate scripts for phenotype analysis
 	from analyzer import phenotype_analysis
