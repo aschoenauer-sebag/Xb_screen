@@ -635,10 +635,12 @@ if __name__ == '__main__':
 
     parser.add_option("-n", dest="nn", default=0.5, type=float,
                       help="Number of neighbours for local regression")
+     parser.add_option("-v", dest="verbose", default=0, type=int,
+                      help="Verbosity level")
         
     (options, args) = parser.parse_args()
     
-    x=xbPhenoAnalysis(options.settings_file, compound=options.xenobiotic, dose=options.dose, nn=options.nn, verbose=0, localRegMeasure=True)    
+    x=xbPhenoAnalysis(options.settings_file, compound=options.xenobiotic, dose=options.dose, nn=options.nn, verbose=options.verbose, localRegMeasure=True)    
     x()
-    x=xbPhenoAnalysis(options.settings_file, compound=options.xenobiotic, dose=options.dose, nn=options.nn, verbose=0, localRegMeasure=False)
+    x=xbPhenoAnalysis(options.settings_file, compound=options.xenobiotic, dose=options.dose, nn=options.nn, verbose=options.verbose, localRegMeasure=False)
     x()
