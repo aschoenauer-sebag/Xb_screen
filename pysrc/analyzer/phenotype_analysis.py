@@ -19,7 +19,7 @@ else:
     
 globalenv = objects.globalenv
 
-from tracking.histograms.summaries_script import jobSize, progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, pbsOutDir, path_command
+from tracking.histograms.summaries_script import progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, pbsOutDir, path_command
 
 from util.plots import couleurs, markers, plotBarPlot
 from analyzer import CONTROLS, quality_control, plates, xbL, compoundL
