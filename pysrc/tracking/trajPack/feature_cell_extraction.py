@@ -1102,9 +1102,10 @@ self.siRNA takes value CTRL_[plate]_plate
             try:
                 f=open(self.settings.ok_wells_asDICT)
                 info_dict=pickle.load(f); f.close()
+                l=info_dict[xb][int(dose)]
             except:
                 info_dict, _=fromXBToWells([xb],confDir=self.settings.plate_setups_folder, dose_filter=dose, verbose=self.verbose)
-            l=info_dict[xb][dose]
+                l=info_dict[xb][dose]
             
         if self.verbose>0:
             print l
@@ -1359,7 +1360,6 @@ self.siRNA takes value CTRL_[plate]_plate
             os.mkdir(self.settings.result_folder)
     #i. getting experiments corresponding to siRNA if we're not looking for control experiments only
         if self.plate is None:
-            pdb.set_trace()
             self.expList=self._findExperiment()
             #before anything, testing for existence if not redo anyway
             if not self.settings.redo and self.alreadyDone():
