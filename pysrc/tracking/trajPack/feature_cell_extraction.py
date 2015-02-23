@@ -1102,7 +1102,7 @@ self.siRNA takes value CTRL_[plate]_plate
             try:
                 f=open(self.settings.ok_wells_asDICT)
                 info_dict=pickle.load(f); f.close()
-                l=info_dict[xb][int(dose)]
+                l=[(pl, "{:>05}".format(w)) for pl, w in info_dict[xb][int(dose)]]
             except:
                 info_dict, _=fromXBToWells([xb],confDir=self.settings.plate_setups_folder, dose_filter=dose, verbose=self.verbose)
                 l=info_dict[xb][dose]
