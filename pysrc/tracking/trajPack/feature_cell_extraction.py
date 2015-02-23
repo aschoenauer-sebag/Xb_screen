@@ -1359,6 +1359,7 @@ self.siRNA takes value CTRL_[plate]_plate
             os.mkdir(self.settings.result_folder)
     #i. getting experiments corresponding to siRNA if we're not looking for control experiments only
         if self.plate is None:
+            pdb.set_trace()
             self.expList=self._findExperiment()
             #before anything, testing for existence if not redo anyway
             if not self.settings.redo and self.alreadyDone():
