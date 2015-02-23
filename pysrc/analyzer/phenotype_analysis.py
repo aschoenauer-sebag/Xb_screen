@@ -551,7 +551,6 @@ class xbPhenoAnalysis(object):
 
 
     def __call__(self):
-        pdb.set_trace()
         #i.Need to get the corresponding experiments - separate two cases depending if it's a control or no
         exp_list, filter_ = self._getExperiments()
 
