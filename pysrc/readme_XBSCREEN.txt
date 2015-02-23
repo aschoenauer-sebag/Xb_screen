@@ -13,7 +13,7 @@
 Rq (06/02/2015) : now possible to do it on the cluster. 
 	Settings file for using CellCognition on the cluster pysrc/analyzer/settings/pbs_Xb_screen1.py
 	Command python analyzer/Cecog_script_generation.py -b analyzer/settings/pbs_Xb_screen1.py -p [filename with relevant wells]
-	eg for all wells of the screen that passed the QC : data/all_QC_wells_XBSC.pkl
+	eg for all wells : data/all_wells_XBSC.pkl
 	
 4. Enter the info in the db, compute the images with regard to cell count, number of out of focus objects, etc
 	from analyzer import interface
@@ -31,7 +31,7 @@ Rq (06/02/2015) : now possible to do it on the cluster.
 		
 7. Launch hit detection step
 	i. Generate scripts for feature_cell_extraction
-	
+	python tracking/trajPack/feature_cell_extraction_script.py --type XBSC -b traj_dist_XBSC --iter 5
 	
 	ii. Generate scripts for phenotype analysis
 	from analyzer import phenotype_analysis

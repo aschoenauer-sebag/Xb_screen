@@ -260,7 +260,7 @@ Options:
     (options, args) = parser.parse_args()
     for k in range(options.iter_num):
         globalSummaryScript(options.baseName,options.siRNAFile, options.div_name, k,
-                        options.bins_type, options.bin_size, options.testCtrl, options.simulated
+                        options.bins_type, options.bin_size, options.testCtrl, options.type
                       )
     
 #NB before Bioimage Informatics, siRNAs impacted by the bug siRNAList = ['123438', '123438', '148427', '148427', '122325', '122325', '28902', '28902']
