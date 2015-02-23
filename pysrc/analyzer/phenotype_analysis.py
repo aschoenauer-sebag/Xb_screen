@@ -583,10 +583,7 @@ cd %s""" %progFolder
     for i,condition in enumerate(l):
         script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i+1))
         script_file = file(script_name, "w")
-        cmd="""
-python analyzer/phenotype_analysis.py -x %s -d %s
-"""
-        cmd %= condition.split('_')
+        cmd="\npython analyzer/phenotype_analysis.py -x {} -d {}\n".format(*condition.split('_'))
                 
         script_file.write(head + cmd)
         script_file.close()
