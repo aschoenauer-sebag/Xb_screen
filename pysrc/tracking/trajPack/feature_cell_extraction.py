@@ -1099,7 +1099,11 @@ self.siRNA takes value CTRL_[plate]_plate
             l= strToTuple(yqualDict[self.siRNA], os.listdir(self.settings.data_folder))
         else:
             xb=self.siRNA.split('_')[0]; dose=self.siRNA.split('_')[1]
-            info_dict, _=fromXBToWells([xb], dose_filter=dose, verbose=self.verbose)
+            try:
+                f=open(self.settings.ok_wells_asDICT)
+                info_dict=pickle.load(f); f.close()
+            except:
+                info_dict, _=fromXBToWells([xb],confDir=self.settings.plate_setups_folder, dose_filter=dose, verbose=self.verbose)
             l=info_dict[xb][dose]
             
         if self.verbose>0:
@@ -1437,16 +1441,17 @@ self.siRNA takes value CTRL_[plate]_plate
                 pickle.dump([np.array(usable_ctrl), different_controls], f); f.close()
 
                 self.expList=self._usableControl('all_ctrl')
+                histogrammes, bins = self.getData(self.settings.histDataAsWell)
+                
                 if self.verbose:
                     print self.expList
+                
                 distances=None
                 for currNormalization in different_controls:
                     if not self.settings.redo:
                         if self.alreadyDone():
                             print 'Already done'
                             return
-                    
-                    histogrammes, bins = self.getData(self.settings.histDataAsWell)
                     #ii.calculate the histograms and binnings of experiments, using pre-computed binnings, ON all control experiments 
                     #for the plate                        
                     ctrl_histogrammes = self.plateNormCtrlHistograms(bins,np.array(usable_ctrl)[currNormalization])

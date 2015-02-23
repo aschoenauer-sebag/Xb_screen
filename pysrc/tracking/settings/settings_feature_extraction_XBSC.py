@@ -4,6 +4,7 @@ ctrl_exp_filename = 'ctrl_exp_{}_{}.pkl'
 data_folder = '../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2/'
 visual_qc = '../data/xb_manual_qc.pkl'
 flou_qc='../data/xb_focus_qc.pkl'
+plate_setups_folder='/cbio/donnees/aschoenauer/projects/Xb_screen/protocols_etal/plate_setups'
 
 ##filename for trajectory features
 filename='features_intQC_{}_01.pkl'
