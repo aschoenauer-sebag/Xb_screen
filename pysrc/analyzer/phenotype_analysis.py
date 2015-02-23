@@ -551,6 +551,7 @@ class xbPhenoAnalysis(object):
 
 
     def __call__(self):
+        pdb.set_trace()
         #i.Need to get the corresponding experiments - separate two cases depending if it's a control or no
         exp_list, filter_ = self._getExperiments()
 
@@ -627,10 +628,10 @@ if __name__ == '__main__':
     parser.add_option("-f", "--settings_file", dest="settings_file", default='analyzer/settings/settings_phenoAnalysis_thalassa.py',
                       help="Settings_file")
 
-    parser.add_option("-x", dest="xenobiotic",
+    parser.add_option("-x", dest="xenobiotic",type=str,
                       help="The xenobiotic which you are interested in")
     
-    parser.add_option("-d", dest="dose",
+    parser.add_option("-d", dest="dose", type=int,
                       help="The dose which you are interested in")
 
     parser.add_option("-n", dest="nn", default=0.5, type=float,
