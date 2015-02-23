@@ -364,7 +364,7 @@ class wellPhenoAnalysis(object):
             else:
                 ctrl=self.compound
                 
-        ctrl_wells = quality_control.usable_XBSC(ctrl, 0, self.plate,confDir=self.settings.plate_setups_folder)
+        ctrl_wells = self._getUsable(comp=ctrl, dose=0)
         if filter_ is not None:
             if self.verbose:
                 print "Avant filtre", ctrl_wells, filter_
@@ -380,7 +380,7 @@ class wellPhenoAnalysis(object):
         We compute the percentage of phenotypes with respect to the number of cells that are not artefacts or out of focus cells.
         '''
         #Loading well list, that passed the QC - instead of recomputing it each time
-        f=open(self.settings.ok_wells_input_file)
+        f=open(self.settings.ok_wells_asLIST, 'r')
         a=pickle.load(f); f.close()
         
         exp_list= [(pl, "{:>05}".format(w)) for pl, w in a[np.where(a[:,0]==self.plate)]]
@@ -418,6 +418,21 @@ class wellPhenoAnalysis(object):
             return self._getCtrlData_ctrlNorm(filter_, total_data)
         elif self.settings.norm=='plate':
             return self._getCtrlData_plateNorm(filter_, total_data)
+        
+    def _getUsable(self, comp=None, dose=None):
+        try:
+            f=open(self.settings.ok_wells_asDICT, 'r')
+            ok_dict=pickle.load(f);f.close()
+        except:
+            if comp is None:
+                return quality_control.usable_XBSC(self.compound, self.dose,confDir=self.settings.plate_setups_folder)
+            else:
+                return quality_control.usable_XBSC(comp, dose,confDir=self.settings.plate_setups_folder)
+        else:
+            if comp is None:
+                return ok_dict[self.compound][self.dose]
+            else:
+                return ok_dict[comp][dose]
         
     def _analyze(self, exp_data, ctrl_data):
         result=np.zeros(shape=(len(self.pheno_list)))
@@ -487,16 +502,25 @@ class xbPhenoAnalysis(object):
            }
 
         return tuple(sorted(zip(r.keys(), r.values()), key=itemgetter(0)))
+    
+    def _getUsable(self):
+        try:
+            f=open(self.settings.ok_wells_asDICT, 'r')
+            ok_dict=pickle.load(f);f.close()
+        except:
+            return quality_control.usable_XBSC(self.compound, self.dose,confDir=self.settings.plate_setups_folder)
+        else:
+            return ok_dict[self.compound][self.dose]
         
     def _getExperiments(self):
         if self.settings.norm=='neg_ctrl':
             if self.compound not in CONTROLS.values():
-                return quality_control.usable_XBSC(self.compound, self.dose,confDir=self.settings.plate_setups_folder), None
+                return self._getUsable(), None
             else:
                 exp_list = []
                 filter_=[]
                 for plate in plates:
-                    l= quality_control.usable_XBSC(self.compound, self.dose, plate=plate,confDir=self.settings.plate_setups_folder)
+                    l= self._getUsable()
                     size_=2 if len(l)>3 else 1
                     f_=np.random.permutation(len(l))
                     filter_.append(f_[size_:]); exp_list.extend(['{}_{}'.format(el[0], el[1]) for el in np.array(l)[f_[:size_]]])
@@ -505,11 +529,14 @@ class xbPhenoAnalysis(object):
                     
                 return exp_list, filter_
         elif self.settings.norm=='plate':
-            return quality_control.usable_XBSC(self.compound, self.dose,confDir=self.settings.plate_setups_folder), None
+            return self._getUsable(), None
         else:
             raise ValueError
 
     def save(self, result,exp_list):
+        if not os.path.isdir(self.settings.savingFolder):
+            os.mkdir(self.settings.savingFolder)
+            
         if self.settings.outputFile.format(self.compound, self.dose) in os.listdir(self.settings.savingFolder):
             f=open(os.path.join(self.settings.savingFolder, self.settings.outputFile.format(self.compound, self.dose)), 'r')
             d=pickle.load(f); f.close()

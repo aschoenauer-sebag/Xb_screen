@@ -10,7 +10,8 @@ plate_setups_folder=os.path.join(base_result_dir, 'protocols_etal/plate_setups')
 #Where to load processed results
 loadingFolder = os.path.join(base_result_dir, 'dry_lab_results')
 
-ok_wells_input_file = '../data/xb_OK_wells.pkl'
+ok_wells_asLIST = '../data/xb_OK_wells_asLIST.pkl'
+ok_wells_asDICT= '../data/xb_OK_wells_asDICT.pkl'
 #Where to save results
 savingFolder=os.path.join(loadingFolder, 'phenotype_analysis')
 outputFile='phenoAnalysis_plateNorm_{}_{}.pkl'

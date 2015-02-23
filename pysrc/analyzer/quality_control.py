@@ -6,7 +6,7 @@ import matplotlib.pyplot as p
 from collections import defaultdict, Counter
 from scipy.stats import scoreatpercentile
 
-from analyzer import compoundL, plates
+from analyzer import compoundL, plates, total_experiment_number
 from plateSetting import fromXBToWells
 from util.plots import couleurs
 from scipy.stats.stats import spearmanr
@@ -204,10 +204,11 @@ def usable_XBSC(compound, dose, plate=None, input_folder='../data', confDir='/me
     
     
 
-def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_control_count=3,
+def computingToRedo(threshold_flou=0.37, threshold_init_cell_count=23, threshold_control_count=3,
                     input_folder='../data', 
                      hdf5Folder = "/media/lalil0u/New/projects/Xb_screen/plates__all_features_2bis",
-                     savingFolder = "/media/lalil0u/New/projects/Xb_screen/dry_lab_results"):
+                     savingFolder = "/media/lalil0u/New/projects/Xb_screen/dry_lab_results",
+                     verbose=False):
     '''
     What should the goal of this function be?
     I have a list of xenobiotics and doses and I want to know if I have three experiments on a different day for each
@@ -220,10 +221,13 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
     '''
     print 'Counting experiments starting with plates ', plates
     
-    failed=defaultdict(dict); passed=[]
+    failed=defaultdict(dict); passed=defaultdict(dict)
     number_failed=0; total_number=0
     flou_qc_dict=defaultdict(list)
     _,well_groups=fromXBToWells(compoundL)
+    
+    who=[]; qc_indicators = np.empty(shape=(total_experiment_number,3), dtype=float); qc_indicators.fill(-1)
+    
     print "Loading manual quality control results"
     f=open(os.path.join(input_folder, 'xb_manual_qc.pkl'), 'r')
     d_manual=pickle.load(f)
@@ -239,6 +243,7 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
         #by default this function returns all wells with this xenobiotic starting on the 20th of Nov
         curr_well_groups=well_groups[compound]
         failed[compound]=defaultdict(list)
+        passed[compound]=defaultdict(list)
         for dose in curr_well_groups:
             print "----DOSE ", dose
             total_bio_replicates=0; total_num_wells=0
@@ -247,7 +252,7 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
 
                 for well in curr_well_groups[dose][plate]:
                     total_number+=1
-                    print plate, well
+                    print plate, well; who.append((plate, well, compound, dose))
                     #i.checking if the well is in the manual qc failed list
                     if plate in d_manual and well in d_manual[plate]:
                         print 'Manual QC failed', plate, well
@@ -255,34 +260,46 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
                         number_failed+=1
                     else:
                         #ii. checking if the initial number of objects is above the threshold
-                        avg_init_cell_count=np.mean(np.array(result[plate][well]['cell_count'])[:10])
-                        
-                        print "Avg init cell count ", avg_init_cell_count
+                        try:
+                            avg_init_cell_count=np.mean(np.array(result[plate][well]['cell_count'])[:10])
+                        except ValueError:
+                            print "                                                                        MISSING INFO "
+                            continue
+                        if verbose:
+                            print "Avg init cell count ", avg_init_cell_count
+                        qc_indicators[total_number-1, 0]=avg_init_cell_count
                         
                         avg_init_cell_perc=np.mean((np.array(result[plate][well]['cell_count'], dtype=float)/np.array(result[plate][well]['object_count']))[:10])
-                        print "Avg init cell perc ", avg_init_cell_perc
+                        if verbose:
+                            print "Avg init cell perc ", avg_init_cell_perc
+                        qc_indicators[total_number-1, 1]=avg_init_cell_perc
+                        
+                        flou_arr=np.array(result[plate][well]['Flou_ch1'])
+                        end_flou_perc=np.mean(flou_arr[min(190, flou_arr.shape[0]-10):min(200, flou_arr.shape[0])])
+                        if verbose:
+                            print "Avg end out of focus perc ", end_flou_perc
+                        qc_indicators[total_number-1, 2]=end_flou_perc
                         
                         if avg_init_cell_count<threshold_init_cell_count:
-                            print 'Cell count failed', plate, well
+                            if verbose:
+                                print 'Cell count failed', plate, well
                             failed[compound][dose].append((plate, well))
                             number_failed+=1
                             
                             flou_qc_dict[plate].append(well)
                             
                         #iii. checking if the percentage of out of focus objects in the last frames is ok
-                        else:
-                            flou_arr=np.array(result[plate][well]['Flou_ch1'])
-                            end_flou_perc=np.mean(flou_arr[min(190, flou_arr.shape[0]-10):min(200, flou_arr.shape[0])])
-                            if end_flou_perc>threshold_flou:
+                        elif end_flou_perc>threshold_flou:
+                            if verbose:
                                 print 'Out of focus count failed', plate, well
-                                failed[compound][dose].append((plate, well))
-                                number_failed+=1
-                                
-                                flou_qc_dict[plate].append(well)
-                            else:
-                                passed.append((plate,well))
-                                usable_plate=True
-                                total_num_wells+=1
+                            failed[compound][dose].append((plate, well))
+                            number_failed+=1
+                            
+                            flou_qc_dict[plate].append(well)
+                        else:
+                            passed[compound][dose].append((plate,well))
+                            usable_plate=True
+                            total_num_wells+=1
             
                 if usable_plate:
                     total_bio_replicates+=1
@@ -292,7 +309,8 @@ def computingToRedo(threshold_flou=0.4, threshold_init_cell_count=20, threshold_
     f=open(os.path.join(input_folder, 'xb_focus_qc.pkl'), 'w')
     pickle.dump(flou_qc_dict, f); f.close()
     print "Percentage of experiments failed ", number_failed/float(total_number)
-    return passed, failed, number_failed, total_number
+    
+    return passed, failed, number_failed, np.hstack((np.array(who), qc_indicators))
             
 
 

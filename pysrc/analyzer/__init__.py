@@ -6,7 +6,9 @@ compoundL=['TCDD', 'MeHg', 'BPA', 'PCB', 'Endo', 'Rien', 'TGF','DMSO', 'Nonane']
 xbL=['TCDD', 'MeHg', 'BPA', 'PCB', 'Endo']
 CONTROLS = {'TCDD':'Nonane', 'PCB':'DMSO', 'Endo':'DMSO', 'MeHg':'DMSO', 'BPA':'DMSO', 'TGF':'DMSO', 'Rien':'Nonane'}
 plates=['201114', '271114', '121214', '201214', '271214']
-
+#Number of wells per plate
+lengths={'271214':96, '121214':65, '271114':65, '201214':96, '201114':93}
+total_experiment_number=415
 
 cecog_features = ['ch_acd',
                  'ch_area_ratio',
