@@ -6,7 +6,7 @@ import numpy as np
 def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data20T/mitocheck/Alice/Xb_screen/results',\
                                 outDir = "/cbio/donnees/aschoenauer/projects/Xb_screen/dry_lab_results/classifiers/mitose_movies",\
                                 clef=lambda x:int(x.split('_')[2][1:-4]), folderName='primary_classification_primary3',\
-                                extension="jpg"):
+                                extension="jpg", redo=True):
     
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
@@ -19,7 +19,7 @@ def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data20T/
             folder = os.path.join(inDir, pl)
             imgInDir = os.path.join(inDir, folder, "analyzed", w,"images",folderName)
             try:
-                makeMovieWithoutRenorm(imgInDir, outDir, gene, pl,w, clef, tempDir,extension=extension)
+                makeMovieWithoutRenorm(imgInDir, outDir, gene, pl,w, clef, tempDir,extension=extension, redo=redo)
             except OSError:
                 print "No folder ", imgInDir
                 continue
@@ -40,7 +40,7 @@ def makeRawMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitochec
             makeMovieWithoutRenorm(imgInDir, outDir, gene, exp[:9], exp[11:], clef, tempDir)
     return
 
-def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None, extension="png"):
+def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None, extension="png", redo=True):
 #    def normWrite(img, filename):
 #        img=(img-2**15)*(2**8-1)/(2**12-1)
 #        vi.writeImage(img, filename)
@@ -62,6 +62,9 @@ def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None,
     # make output directory
     if not os.path.isdir(outDir):
         os.makedirs(outDir)
+    elif not redo and movieName in os.listdir(outDir):
+        print "Movie {} already done".format(movieName)
+        return
     
     # encode command
     encode_command = "mencoder mf://%s/*.%s -mf w=800:h=600:fps=3:type=%s -ovc copy -oac copy -o %s"
