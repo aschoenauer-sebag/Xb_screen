@@ -1140,12 +1140,26 @@ self.siRNA takes value CTRL_[plate]_plate
                 return usable_XBSC(self.ctrl, 0, self.plate)
             else:
                 if indication==None:
-                    a=np.array(computingToRedo()[0])
+                    try:
+                        f=open(self.settings.ok_wells_asLIST)
+                        a=pickle.load(f); f.close()
+                    except:
+                        a=np.array(computingToRedo()[0])
                     return [(pl, "{:>05}".format(w)) for pl, w in a[np.where(a[:,0]==self.plate)]]
                 elif indication=='all_ctrl':
                     a=[]
+                    try:
+                        f=open(self.settings.ok_wells_asDICT)
+                        d=pickle.load(f); f.close()
+                    except:
+                        d=None
+                        
                     for control in Counter(CONTROLS.values()).keys():
-                        a.extend(usable_XBSC(control, 0, self.plate))
+                        try:
+                            arr=np.array(d[control][0])
+                            a.extend([(pl, "{:>05}".format(w)) for pl, w in arr[np.where(arr[:,0]==self.plate)]])
+                        except:
+                            a.extend(usable_XBSC(control, 0, self.plate))
                     return a
                 else:
                     raise ValueError
@@ -1312,6 +1326,9 @@ self.siRNA takes value CTRL_[plate]_plate
             return False
     
     def saveResults(self, distances):
+        if not os.path.isdir(self.settings.result_folder):
+            os.mkdir(self.settings.result_folder)
+        
         if self.plate is None:
             if self.settings.outputFile.format(self.siRNA) in os.listdir(self.settings.result_folder):
                 f=open(os.path.join(self.settings.result_folder, self.settings.outputFile.format(self.siRNA)))
@@ -1465,12 +1482,12 @@ if __name__ == '__main__':
     parser.add_option('--siRNA', type=str, dest='siRNA', default=None)
     parser.add_option('--testCtrl', type=str, dest='testCtrl', default=0)
     parser.add_option('--solvent', type=str, dest='solvent', default=None)
-    parser.add_option('--div_name', type=str, dest='div_name', default='total_variation')
+    parser.add_option('--div_name', type=str, dest='div_name', default='KS')
 #    parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
 #    parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
 #    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
     parser.add_option('--iter', type=int, dest="iter", default=0)
-    parser.add_option('--time_window', type=int, dest="time_window", default=None)
+    parser.add_option('--time_window', type=int, dest="time_window", default=0)
 #    parser.add_option("-l",type=int, dest="lambda_", default=10)
     parser.add_option("--verbose", dest="verbose", type=int,default=0)
     (options, args) = parser.parse_args()

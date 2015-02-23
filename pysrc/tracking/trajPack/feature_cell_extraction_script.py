@@ -1,22 +1,18 @@
 import os, pdb, time
 from optparse import OptionParser
 import cPickle as pickle
-
-
-jobSize = 10
-progFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc'
-scriptFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/scripts'
-#to enable the use of rpy2
-path_command = """setenv PATH /cbio/donnees/nvaroquaux/.local/bin:/cbio/donnees/twalter/software/bin:${PATH}
-setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/cbio/donnees/nvaroquaux/.local/lib:/cbio/donnees/twalter/software/lib64/R/lib:/cbio/donnees/twalter/software/lib
-setenv LIBRARY_PATH /cbio/donnees/nvaroquaux/.local/lib:/cbio/donnees/twalter/software/lib:/cbio/donnees/twalter/software/lib64/R/lib
-setenv PYTHONPATH /cbio/donnees/aschoenauer/workspace2/cecog/pysrc:/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc
-setenv DRMAA_LIBRARY_PATH /opt/gridengine/lib/lx26-amd64/libdrmaa.so
-"""
-
-pbsOutDir = '/cbio/donnees/aschoenauer/PBS/OUT'
-pbsErrDir = '/cbio/donnees/aschoenauer/PBS/ERR'
-pbsArrayEnvVar = 'SGE_TASK_ID'
+from analyzer import plates
+from tracking.histograms.summaries_script import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
+# path_command = """setenv PATH /cbio/donnees/nvaroquaux/.local/bin:/cbio/donnees/twalter/software/bin:${PATH}
+# setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/cbio/donnees/nvaroquaux/.local/lib:/cbio/donnees/twalter/software/lib64/R/lib:/cbio/donnees/twalter/software/lib
+# setenv LIBRARY_PATH /cbio/donnees/nvaroquaux/.local/lib:/cbio/donnees/twalter/software/lib:/cbio/donnees/twalter/software/lib64/R/lib
+# setenv PYTHONPATH /cbio/donnees/aschoenauer/workspace2/cecog/pysrc:/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc
+# setenv DRMAA_LIBRARY_PATH /opt/gridengine/lib/lx26-amd64/libdrmaa.so
+# """
+# 
+# pbsOutDir = '/cbio/donnees/aschoenauer/PBS/OUT'
+# pbsErrDir = '/cbio/donnees/aschoenauer/PBS/ERR'
+# pbsArrayEnvVar = 'SGE_TASK_ID'
 
 def script_hierarchical_clustering(outFolder='../scripts', baseName='hierclust', outputname='halfM_max_05'):
     cmd ="""
@@ -114,46 +110,88 @@ cd %s""" %progFolder
     return 1
     
 
-def globalSummaryScript(baseName, siRNAFile,div_name,iter, bins_type, bin_size, testCtrl=False, simulated=False):
+def globalSummaryScript(baseName, siRNAFile,div_name,iter, bins_type, bin_size, testCtrl=False, type="simulated"):
     
     jobCount = 0
     i=0
-    if simulated:
-        settings_file = 'tracking/settings/settings_feature_extraction_SIMULATED_DATA.py'
-        folder = '../resultData/simulated_traj/simres/plates'
-    else:
-        settings_file = 'tracking/settings/settings_feature_extraction.py'
-        folder = '/share/data20T/mitocheck/tracking_results'
-    
-    if not testCtrl:
-        #A. DEALING WITH EXPERIMENTS
-        
-        f=open(siRNAFile, 'r')
-        siRNAList = pickle.load(f); f.close()
-        cmd ="""
-python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --bins_type %s --bin_size %s --settings_file %s --iter %i
-"""
-
-    else:
-        #A. DEALING WITH CONTROLS, for a specific list of plates
-        baseName+='CTRL_'
-        siRNAList = os.listdir(folder)
-
-        cmd ="""
-python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s --bins_type %s --bin_size %s --settings_file %s --iter %i
-"""
-    
     head = """#!/bin/sh
 cd %s""" %progFolder
     baseName = baseName+'{}{}'.format(div_name, iter)
-
-    for siRNA in siRNAList:
-        print i,
-        i+=1; jobCount +=1
+    
+    if type=="XBSC":
+        settings_file = 'tracking/settings/settings_feature_extraction_XBSC.py'
         
-        cour_cmd= cmd%(
-              siRNA, div_name, bins_type, bin_size, settings_file, iter
-              )
+        #Dealing with controls for the first iteration
+        if iter==0:
+            cmd ="""
+python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --solvent plate --div_name %s --settings_file %s --iter 0 --time_window 0
+"""         
+            for plate in plates:
+                print i,
+                i+=1; jobCount +=1
+                cour_cmd=cmd%(plate, div_name, settings_file)
+                script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
+                script_file = file(script_name, "w")
+                script_file.write(head + cour_cmd)
+                script_file.close()
+        
+                # make the script executable (without this, the cluster node cannot call it)
+                os.system('chmod a+x %s' % script_name)
+        num_ctrl=i
+        #Then doing the others
+        f=open(siRNAFile, 'r')
+        siRNAList = pickle.load(f); f.close()
+        cmd ="""
+python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --solvent plate --settings_file %s --iter %i
+"""
+        for siRNA in siRNAList:
+            print i,
+            i+=1; jobCount +=1
+            
+            cour_cmd= cmd%(
+                  siRNA, div_name, settings_file, iter
+                  )
+            script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
+            script_file = file(script_name, "w")
+            script_file.write(head + cour_cmd)
+            script_file.close()
+    
+            # make the script executable (without this, the cluster node cannot call it)
+            os.system('chmod a+x %s' % script_name)
+        
+    else:
+        if type=="simulated":
+            settings_file = 'tracking/settings/settings_feature_extraction_SIMULATED_DATA.py'
+            folder = '../resultData/simulated_traj/simres/plates'
+        else:
+            settings_file = 'tracking/settings/settings_feature_extraction.py'
+            folder = '/share/data20T/mitocheck/tracking_results'
+        
+        if not testCtrl:
+            #A. DEALING WITH EXPERIMENTS
+            
+            f=open(siRNAFile, 'r')
+            siRNAList = pickle.load(f); f.close()
+            cmd ="""
+python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --bins_type %s --bin_size %s --settings_file %s --iter %i
+"""
+    
+        else:
+            #A. DEALING WITH CONTROLS, for a specific list of plates
+            baseName+='CTRL_'
+            siRNAList = os.listdir(folder)
+    
+            cmd ="""
+python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s --bins_type %s --bin_size %s --settings_file %s --iter %i
+"""
+    
+        for siRNA in siRNAList:
+            print i,
+            i+=1; jobCount +=1
+            
+            cour_cmd= cmd%(
+                  siRNA, div_name, bins_type, bin_size, settings_file, iter
+                  )
         
         # this is now written to a script file (simple text file)
         # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
@@ -209,20 +247,19 @@ Options:
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     parser.add_option("-b", "--base_name", dest="baseName",help="Base name for script")
-        
-    parser.add_option('--div_name', type=str, dest='div_name', default='etransportation')
+    parser.add_option('--div_name', type=str, dest='div_name', default='KS')
     parser.add_option('--bins_type', type=str, dest="bins_type", default='quantile')#possible values: quantile or minmax
     parser.add_option('--bin_size', type=int, dest="bin_size", default=10)    
     parser.add_option('--testCtrl', type=str, dest='testCtrl', default=0)   
-    parser.add_option('--iter', type=int, dest='iter', default=0)
-    parser.add_option("-s", "--simulated", dest="simulated", default = 0, type=int, 
-                      help="Use of simulated trajectories or no")
+    parser.add_option('--iter', type=int, dest='iter_num', default=5)
+    parser.add_option("-t", "--type", dest="type", default = "simulated", type=str, 
+                      help="Use of simulated trajectories or XB SC trajectories or Mitocheck trajectories")
     
     parser.add_option('--siRNA', type=str, dest='siRNAFile', default='../data/siRNA_Simpson.pkl')
 
     (options, args) = parser.parse_args()
-    
-    globalSummaryScript(options.baseName,options.siRNAFile, options.div_name, options.iter,
+    for k in range(options.iter_num):
+        globalSummaryScript(options.baseName,options.siRNAFile, options.div_name, k,
                         options.bins_type, options.bin_size, options.testCtrl, options.simulated
                       )
     

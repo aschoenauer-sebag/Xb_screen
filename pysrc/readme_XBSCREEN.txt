@@ -30,9 +30,12 @@ Rq (06/02/2015) : now possible to do it on the cluster.
 		%run tracking/trajPack/parallel_trajFeatures -p [plate name] -w $ww -d /media/lalil0u/New/projects/Xb_screen/plates__all_features_2bis -c 1 --ff 0 -n features_intQC_{{}}.pkl
 		
 7. Launch hit detection step
-	i. Generate scripts 
+	i. Generate scripts for feature_cell_extraction
 	
-	[missing info here]
+	
+	ii. Generate scripts for phenotype analysis
+	from analyzer import phenotype_analysis
+	phenotype_analysis.script()
 	
 	
 8. Looking at PCAed features using ctrls
