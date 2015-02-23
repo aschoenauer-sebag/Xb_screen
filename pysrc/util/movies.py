@@ -45,6 +45,16 @@ def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None,
 #        img=(img-2**15)*(2**8-1)/(2**12-1)
 #        vi.writeImage(img, filename)
 #        return 1
+    
+    # movie filename
+    movieName = '{}_P{}_W{}.avi'.format(gene, plate[:9], well)
+    # make output directory
+    if not os.path.isdir(outDir):
+        os.makedirs(outDir)
+    elif not redo and movieName in os.listdir(outDir):
+        print "Movie {} already done".format(movieName)
+        return
+    
     # temp directory
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
@@ -56,15 +66,7 @@ def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None,
     for el in lstImageNames:
         shutil.copy(os.path.join(imgDir, el), tempDir)   
         
-    # movie filename
-    movieName = '{}_P{}_W{}.avi'.format(gene, plate[:9], well)
     
-    # make output directory
-    if not os.path.isdir(outDir):
-        os.makedirs(outDir)
-    elif not redo and movieName in os.listdir(outDir):
-        print "Movie {} already done".format(movieName)
-        return
     
     # encode command
     encode_command = "mencoder mf://%s/*.%s -mf w=800:h=600:fps=3:type=%s -ovc copy -oac copy -o %s"
