@@ -7,9 +7,9 @@ from collections import Counter
 from analyzer import plates
 from _collections import defaultdict
 
-def rank_product(data, who, conditions, technical_replicates_key):
+def rank_product(data, who, conditions, technical_replicates_key, batch_names):
     '''
-    This function should compute the rank product of all conditions.
+    This function should compute the rank product of all conditions, as defined by Breitling et al 2004
     Given that on some plates the same condition may have been plated twice or thrice,
     technical_replicates_key says how to deal with that.
     
@@ -20,11 +20,14 @@ def rank_product(data, who, conditions, technical_replicates_key):
     max, min. Min means that we take the smallest possible rank for this condition on the plate, very much too optimistic.
     Max means we take the biggest possible rank for this condition on the plate, conservative.
     '''
+    if batch_names is None:
+        batch_names =plates
+    
     all_conditions = Counter(conditions).keys()
     num_technical_replicates=defaultdict(list)
-    ranks = np.zeros(shape=(len(all_conditions), len(plates)), dtype=float)
+    ranks = np.zeros(shape=(len(all_conditions), len(batch_names)), dtype=float)
     
-    for j,plate in enumerate(plates):
+    for j,plate in enumerate(batch_names):
         print plate
     
         local_cond=conditions[np.where(who[:,0]==plate)][np.argsort((-data)[np.where(who[:,0]==plate)])]
@@ -39,8 +42,21 @@ def rank_product(data, who, conditions, technical_replicates_key):
         
     return all_conditions,np.prod(ranks, axis=1, dtype=float),num_technical_replicates
 
-def computeRPpvalues(data, who, conditions, technical_replicates_key, num_permutations):
-    all_conditions,real_result, num_technical_replicates = rank_product(data, who, conditions, technical_replicates_key)
+def computeRPpvalues(data, who, conditions, technical_replicates_key, num_permutations, batch_names=None):
+    '''
+    THE function to call to do both the rank product on your data and compute p-values by permutations.
+    
+    Arguments:
+    - data: an np.array of float values, for all experiments. Size n_exp
+    - who: an np.array of str values, indicating the experiment names under the following form: [(batch_name, experiment_number)]
+        Same order as for the values in data. Size (n_exp,2)
+    - conditions: an np.array of str values indicating the condition of each experiment. Size n_exp
+    - technical_replicates_key: either np.median or np.max. Indicates how to deal with technical replicates values
+    - num_permutations: int, number of permutation of computing p-values
+    - batch_names : list of str with the names of your batches
+    
+    '''
+    all_conditions,real_result, num_technical_replicates = rank_product(data, who, conditions, technical_replicates_key, batch_names)
     
     rrp=randomRankProduct(num_permutations)
     random_result = rrp(num_technical_replicates, technical_replicates_key)

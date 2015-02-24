@@ -30,12 +30,43 @@ Rq (06/02/2015) : now possible to do it on the cluster.
 		%run tracking/trajPack/parallel_trajFeatures -p [plate name] -w $ww -d /media/lalil0u/New/projects/Xb_screen/plates__all_features_2bis -c 1 --ff 0 -n features_intQC_{{}}.pkl
 		
 7. Launch hit detection step
-	i. Generate scripts for feature_cell_extraction
+	#i. Generate scripts for feature_cell_extraction
 	python tracking/trajPack/feature_cell_extraction_script.py --type XBSC -b traj_dist_XBSC --iter 5 --siRNA ../data/siRNA_xb.pkl
+	res, res2, who, compounds, doses, conditions = feature_cell_extraction.collectingDistances_XB('../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2/plate_norm_features_on_films/', norm='plate')
+
+	data=[(np.max(res2,0), who, conditions)]
+	data.append((np.median(res2,0), who, conditions))
+	labels=[]
+	labels.extend(["KS statistics - max", "KS statistics - median"])
 	
-	ii. Generate scripts for phenotype analysis
+	#ii. Generate scripts for phenotype analysis
 	from analyzer import phenotype_analysis
 	phenotype_analysis.script()
+	
+	result, who, compound_list, dose_list=phenotype_analysis.loadResults(localRegMeasure=True, plot1=True)
+	for el in result:
+	    data.append((result[el], who, ["{}_{}".format(a,b) for a,b in zip(compound_list, dose_list)]))
+	    labels.append("{} max diff".format(el))
+	    
+	result, who, compound_list, dose_list=phenotype_analysis.loadResults(localRegMeasure=False)
+	for el in result:
+	    data.append((result[el], who, ["{}_{}".format(a,b) for a,b in zip(compound_list, dose_list)]))
+	    labels.append("{} integrale diff".format(el))
+	plate=dict(zip(labels,data))
+	f=open('../../../projects/Xb_screen/dry_lab_results/replicability/all_data_per_condition_plateNorm.pkl', 'w')
+	pickle.dump(plate,f); f.close()
+	
+	import matplotlib.pyplot as p; import matplotlib as mpl; from collections import Counter
+	cmap=mpl.cm.bwr
+	f,axes=p.subplots(4,5,sharex=True,sharey=True)
+	for i,label in enumerate(sorted(plate)):
+	    print label
+	    r= quality_control.conditionCorrelationMeasures(plate[label][0], label, plate[label][1], plate[label][2],Counter(plate[label][2]).keys())
+	    axes.flatten()[i].matshow(np.absolute(r), cmap=cmap, norm=mpl.colors.Normalize(0,1))
+	    axes.flatten()[i].set_title(label)
+	    axes.flatten()[i].set_xticklabels([])
+	    axes.flatten()[i].set_ylabel("{0:.3f}".format(np.mean(r)))
+	p.show()
 	
 	
 8. Looking at PCAed features using ctrls
