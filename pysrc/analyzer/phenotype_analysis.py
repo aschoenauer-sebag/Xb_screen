@@ -327,7 +327,7 @@ def localReg(y, n, h, deg=3, plot=True, ax=None, color=None, marker=None):
     result = locfit.locfit(objects.Formula("y~lp(x, nn={}, h={}, deg={})".format(n,h,deg)), data=data_frame)
     prediction=locfit.predict_locfit(result, objects.FloatVector(range(time_length)), what="coef")
     if plot and ax is not None:
-        ax.scatter(range(time_length), y, color='green',s=7)
+        ax.scatter(range(time_length), y, color=color,s=7)
         ax.scatter(range(time_length), prediction, color=color, marker=marker, label='Param n {} h {} deg {}'.format(n,h,deg), s=3)
         ax.legend(fontsize=7); ax.grid(True)
     
@@ -441,15 +441,19 @@ class wellPhenoAnalysis(object):
         result=np.zeros(shape=(len(self.pheno_list)))
         for i,pheno in enumerate(self.pheno_list):
             r=[]
+            
             for i,data in enumerate(ctrl_data):
                 local_exp_data=np.array(exp_data[pheno], dtype=float)[:,0]*np.array(exp_data['object_count'], dtype=float)/(np.array(exp_data['cell_count'], dtype=float)[:,0])
                 data[pheno]=np.array(data[pheno])
                 if self.localRegMeasure:
-                    f=p.figure(figsize=(12,12)); ax=f.add_subplot(111)
+                    if i==0:
+                        f=p.figure(figsize=(12,12)); ax=f.add_subplot(111)
+                        plot=True
     #I look at the max between local regression curves over time, but stop at 48h not too add the bias of different durations
-                    _,r1=localReg(local_exp_data[:192], n=self.nn, h=self.h, deg=self.deg, plot=True, ax=ax, color=self.settings.COLORD[pheno], marker='o')
-                    _,r2=localReg(data[pheno][:192], n=self.nn, h=self.h, deg=self.deg, plot=True, ax=ax, color='blue', marker='*')
-                    p.savefig(os.path.join(self.settings.savingFolder, self.settings.imageName.format(self.plate, self.well,i)))
+                    _,r1=localReg(local_exp_data[:192], n=self.nn, h=self.h, deg=self.deg, plot=plot, ax=ax, color=self.settings.COLORD[pheno], marker='o')
+                    plot=False
+                    _,r2=localReg(data[pheno][:192], n=self.nn, h=self.h, deg=self.deg, plot=True, ax=ax, color=self.settings.plate_colors[self.plate], marker='*')
+
                     try:
                         r.append(np.max(r1-r2))
                     except ValueError:
@@ -463,6 +467,10 @@ class wellPhenoAnalysis(object):
                     except ValueError:
                         r1=(exp_data[pheno][:min(exp_data[pheno].shape[0], data[pheno].shape[0])]-data[pheno][:min(exp_data[pheno].shape[0], data[pheno].shape[0])])
                     r.append(np.sum(r1)/r1.shape[0])
+            if self.localRegMeasure:
+                ax.set_ylim(self.settings.plot_ylim[i])
+                ax.set_xlim(0,192)
+                p.savefig(os.path.join(self.settings.savingFolder, self.settings.imageName.format(pheno, self.plate, self.well)))
                     
             result[i]=np.median(r)
             
