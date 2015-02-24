@@ -10,6 +10,22 @@ plates=['201114', '271114', '121214', '201214', '271214']
 lengths={'271214':96, '121214':65, '271114':65, '201214':96, '201114':93}
 total_experiment_number=415
 
+COLORD = {'Interphase_ch1': '#00d500',
+          'Amas_ch1': '#eee234',
+          'Polylobbed_ch1': '#457a0f',
+          'Metaphase_ch1': '#ff00ff',
+          'Anaphase_ch1': '#55ffff',
+          'Prometaphase_ch1': '#aa5500',
+          'Apoptosis_ch1': '#ff0000',
+          'WMicronuclei_ch1': '#59aa7d',
+          'Folded_ch1': '#ff895a',
+
+          'Flou_ch1':'black',
+          'Artefact_ch1': 'black',
+          'SmallUnidentified_ch1': 'grey',
+
+          }
+
 cecog_features = ['ch_acd',
                  'ch_area_ratio',
                  'ch_cc',

@@ -25,3 +25,5 @@ pheno_list=['Anaphase_ch1', 'Apoptosis_ch1', 'Folded_ch1', 'Interphase_ch1', 'Me
 norm='plate'
 n_n=37
 
+from analyzer import COLORD
+imageName='reg_{}_{}_{}.png'

@@ -2,7 +2,6 @@
 import os, pdb, getpass
 import numpy as np
 import cPickle as pickle
-import matplotlib.pyplot as p
 from optparse import OptionParser
 
 from operator import itemgetter
@@ -14,7 +13,11 @@ from scipy.stats import spearmanr
 import rpy2.robjects as objects
 if getpass.getuser()=='aschoenauer':
     locfit = objects.packages.importr('locfit', lib_loc="/cbio/donnees/aschoenauer/software/lib64/R")
-else:
+
+    import matplotlib as mpl
+    mpl.use('Agg')
+elif getpass.getuser()=='lalil0u':
+    import matplotlib.pyplot as p
     locfit = objects.packages.importr('locfit')
     
 globalenv = objects.globalenv
@@ -438,25 +441,27 @@ class wellPhenoAnalysis(object):
         result=np.zeros(shape=(len(self.pheno_list)))
         for i,pheno in enumerate(self.pheno_list):
             r=[]
-            for data in ctrl_data:
+            for i,data in enumerate(ctrl_data):
                 local_exp_data=np.array(exp_data[pheno], dtype=float)[:,0]*np.array(exp_data['object_count'], dtype=float)/(np.array(exp_data['cell_count'], dtype=float)[:,0])
                 data[pheno]=np.array(data[pheno])
                 if self.localRegMeasure:
+                    f=p.figure(figsize=(12,12)); ax=f.add_subplot(111)
     #I look at the max between local regression curves over time, but stop at 48h not too add the bias of different durations
-                    _,r1=localReg(local_exp_data[:192], n=self.nn, h=self.h, deg=self.deg, plot=False)
-                    _,r2=localReg(data[pheno][:192], n=self.nn, h=self.h, deg=self.deg, plot=False)
+                    _,r1=localReg(local_exp_data[:192], n=self.nn, h=self.h, deg=self.deg, plot=True, ax=ax, color=self.settings.COLORD[pheno], marker='o')
+                    _,r2=localReg(data[pheno][:192], n=self.nn, h=self.h, deg=self.deg, plot=True, ax=ax, color='blue', marker='*')
+                    p.savefig(os.path.join(self.settings.savingFolder, self.settings.imageName.format(self.plate, self.well,i)))
                     try:
-                        r.append(np.max(np.abs(r1-r2)))
+                        r.append(np.max(r1-r2))
                     except ValueError:
-                        r.append(np.max(np.abs(r1[:min(r1.shape[0], r2.shape[0])]-r2[:min(r1.shape[0], r2.shape[0])])))
+                        r.append(np.max(r1[:min(r1.shape[0], r2.shape[0])]-r2[:min(r1.shape[0], r2.shape[0])]))
                 else:
     #My intuition is that this is not going to be a good measure for all curves because they're super noisy when the number of cells is low
     #Hence I want to see what it gives if I look at the area between the two curves
     #I normalize because I know that for 201214 they last 166 frames and not 192
                     try:
-                        r1=np.abs(exp_data[pheno]-data[pheno])[:192]
+                        r1=(exp_data[pheno]-data[pheno])[:192]
                     except ValueError:
-                        r1=np.abs(exp_data[pheno][:min(exp_data[pheno].shape[0], data[pheno].shape[0])]-data[pheno][:min(exp_data[pheno].shape[0], data[pheno].shape[0])])
+                        r1=(exp_data[pheno][:min(exp_data[pheno].shape[0], data[pheno].shape[0])]-data[pheno][:min(exp_data[pheno].shape[0], data[pheno].shape[0])])
                     r.append(np.sum(r1)/r1.shape[0])
                     
             result[i]=np.median(r)
@@ -534,8 +539,6 @@ class xbPhenoAnalysis(object):
             raise ValueError
 
     def save(self, result,exp_list):
-        if not os.path.isdir(self.settings.savingFolder):
-            os.mkdir(self.settings.savingFolder)
             
         if self.settings.outputFile.format(self.compound, self.dose) in os.listdir(self.settings.savingFolder):
             f=open(os.path.join(self.settings.savingFolder, self.settings.outputFile.format(self.compound, self.dose)), 'r')
@@ -551,6 +554,8 @@ class xbPhenoAnalysis(object):
 
 
     def __call__(self):
+        if not os.path.isdir(self.settings.savingFolder):
+            os.mkdir(self.settings.savingFolder)
         #i.Need to get the corresponding experiments - separate two cases depending if it's a control or no
         exp_list, filter_ = self._getExperiments()
 

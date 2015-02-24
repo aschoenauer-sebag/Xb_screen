@@ -13,7 +13,7 @@ loadingFolder = os.path.join(base_result_dir, 'dry_lab_results')
 ok_wells_asLIST = '../data/xb_OK_wells_asLIST.pkl'
 ok_wells_asDICT= '../data/xb_OK_wells_asDICT.pkl'
 #Where to save results
-savingFolder=os.path.join(loadingFolder, 'phenotype_analysis')
+savingFolder=os.path.join(loadingFolder, 'phenotype_analysis_up_down')
 outputFile='phenoAnalysis_plateNorm_{}_{}.pkl'
 
 #Local regression parameters
@@ -25,4 +25,7 @@ pheno_list=['Anaphase_ch1', 'Apoptosis_ch1', 'Folded_ch1', 'Interphase_ch1', 'Me
 #Regarding normalization
 norm='plate'
 n_n=37
+
+from analyzer import COLORD
+imageName='reg_{}_{}_{}.png'
 

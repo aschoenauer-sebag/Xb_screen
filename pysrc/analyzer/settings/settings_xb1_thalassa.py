@@ -97,18 +97,4 @@ TRANSLATION_WHOLENAMED = {
 
 # color dictionnary for the time curve plots
  
-COLORD = {'Interphase_ch1': '#00d500',
-          'Amas_ch1': '#eee234',
-          'Polylobbed_ch1': '#457a0f',
-          'Metaphase_ch1': '#ff00ff',
-          'Anaphase_ch1': '#55ffff',
-          'Prometaphase_ch1': '#aa5500',
-          'Apoptosis_ch1': '#ff0000',
-          'WMicronuclei_ch1': '#59aa7d',
-          'Folded_ch1': '#ff895a',
-
-          'Flou_ch1':'black',
-          'Artefact_ch1': 'black',
-          'SmallUnidentified_ch1': 'grey',
-
-          }
+from analyzer import COLORD
