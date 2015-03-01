@@ -442,18 +442,20 @@ class wellPhenoAnalysis(object):
         for i,pheno in enumerate(self.pheno_list):
             r=[]
             
-            for i,data in enumerate(ctrl_data):
+            for j,data in enumerate(ctrl_data):
                 local_exp_data=np.array(exp_data[pheno], dtype=float)[:,0]*np.array(exp_data['object_count'], dtype=float)/(np.array(exp_data['cell_count'], dtype=float)[:,0])
                 data[pheno]=np.array(data[pheno])
                 if self.localRegMeasure:
-                    if i==0:
+                    if j==0:
                         f=p.figure(figsize=(12,12)); ax=f.add_subplot(111)
                         plot=True
     #I look at the max between local regression curves over time, but stop at 48h not too add the bias of different durations
                     _,r1=localReg(local_exp_data[:192], n=self.nn, h=self.h, deg=self.deg, plot=plot, ax=ax, color=self.settings.COLORD[pheno], marker='o')
+                    r1[np.where(r1<0)]=0
                     plot=False
+                    
                     _,r2=localReg(data[pheno][:192], n=self.nn, h=self.h, deg=self.deg, plot=True, ax=ax, color=self.settings.plate_colors[self.plate], marker='*')
-
+                    r2[np.where(r1<0)]=0
                     try:
                         r.append(np.max(r1-r2))
                     except ValueError:
@@ -643,7 +645,7 @@ if __name__ == '__main__':
     parser.add_option("-d", dest="dose", type=int,
                       help="The dose which you are interested in")
 
-    parser.add_option("-n", dest="nn", default=0.5, type=float,
+    parser.add_option("-n", dest="nn", default=0.6, type=float,
                       help="Number of neighbours for local regression")
     parser.add_option("-v", dest="verbose", default=0, type=int,
                       help="Verbosity level")

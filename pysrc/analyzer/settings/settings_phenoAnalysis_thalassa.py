@@ -20,7 +20,7 @@ outputFile='phenoAnalysis_plateNorm_{}_{}.pkl'
 h=10
 deg=3
 #Default phenotypes of interest
-pheno_list=['Anaphase_ch1', 'Apoptosis_ch1', 'Folded_ch1', 'Interphase_ch1', 'Metaphase_ch1',
+pheno_list=['Anaphase_ch1', 'Apoptosis_ch1', 'Folded_ch1', 'Frozen_ch1', 'Interphase_ch1', 'Metaphase_ch1',
             'Polylobbed_ch1', 'Prometaphase_ch1', 'WMicronuclei_ch1']
 #Regarding normalization
 norm='plate'

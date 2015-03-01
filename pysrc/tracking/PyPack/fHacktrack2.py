@@ -130,9 +130,6 @@ def lireDot(nomDot, X, Y):
         idCourante = int(decomp[0].split("_")[1])
         decomp[2]=decomp[2][1:-1]
         
-#        if idCourante==105 and frameCourante ==1:
-#            pdb.set_trace()
-
         if (int(frameCourante) != int(frameSuivante) or int(idCourante) != int(idSuivante)):
             if frameSuivante!=-1 and idSuivante!=-1:
                 trajCourante.ajoutPoint(X[(frameSuivante, idSuivante)], Y[(frameSuivante, idSuivante)], frameSuivante, idSuivante)
@@ -141,37 +138,29 @@ def lireDot(nomDot, X, Y):
             lstPointsTotale = []
             for trajec in trajectoires.lstTraj:
                 for element in trajec.lstPoints.keys():
-                    #print element
                     lstPointsTotale.append(element)
 
-            #if lstPointsTotale <> []: print lstPointsTotale
             if (frameCourante, idCourante) in lstPointsTotale or (frameCourante, idCourante) in trajCourante.lstPoints.keys():
-                #print "mitose", frameCourante, idCourante
                 trajCourante.mitose = 1
                 ensembleTraj.numMitoses +=1
                 if (frameCourante, idCourante) in trajCourante.lstPoints.keys():
                     trajCourante.ajoutPoint(X[(frameCourante, idCourante)], Y[(frameCourante, idCourante)], frameCourante, idCourante)
                 ensembleTraj.ajouter(trajCourante)
                 num = trajCourante.numCellule
-  #              print num
                 trajCourante.supp()
                 trajCourante = trajectoire(num, X[(frameCourante, idCourante)], Y[(frameCourante, idCourante)], frameCourante, idCourante)
                 trajCourante.mitose = 1
 
             else:
-   #             print "nouvelle trajectoire", frameCourante, idCourante
                 ensembleTraj.ajouter(trajCourante)
                 num = trajCourante.numCellule+1
 
                 trajCourante.supp()
 
                 trajCourante = trajectoire(num, X[(frameCourante, idCourante)], Y[(frameCourante, idCourante)], frameCourante, idCourante)             
-#                print trajCourante.lstPoints
 
         else:
- #           print "ajout point"
             trajCourante.ajoutPoint(X[(frameCourante, idCourante)], Y[(frameCourante, idCourante)], frameCourante, idCourante)
-  #          print trajCourante.lstPoints
      
 
         frameSuivante = int(decomp[2].split("_")[0])
