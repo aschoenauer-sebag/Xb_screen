@@ -16,10 +16,11 @@ if getpass.getuser()=='aschoenauer':
 
     import matplotlib as mpl
     mpl.use('Agg')
+    
 elif getpass.getuser()=='lalil0u':
-    import matplotlib.pyplot as p
     locfit = objects.packages.importr('locfit')
     
+import matplotlib.pyplot as p
 globalenv = objects.globalenv
 
 from tracking.histograms.summaries_script import progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, pbsOutDir, path_command
