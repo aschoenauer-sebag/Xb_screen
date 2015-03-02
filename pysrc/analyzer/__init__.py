@@ -19,6 +19,7 @@ COLORD = {'Interphase_ch1': '#00d500',
           'Apoptosis_ch1': '#ff0000',
           'WMicronuclei_ch1': '#59aa7d',
           'Folded_ch1': '#ff895a',
+          'Frozen_ch1': '#aaaaff',
 
           'Flou_ch1':'black',
           'Artefact_ch1': 'black',
