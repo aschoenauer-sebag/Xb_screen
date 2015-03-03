@@ -9,8 +9,9 @@ elif getpass.getuser()=='lalil0u':
 traj_filename = 'traj_intQC_w{}.pkl'
 feature_filename='features_intQC_{}.pkl'
 
+training = False
 predict = True
-repeat=False
+repeat=True
 filtering_fusion=False
 
 time_windows=[(0, 48), (0,24), (12, 36), (24,48),(36, 60)] 

@@ -165,7 +165,7 @@ THEN it doesn't replace the first $ww with
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
-    parser.add_option("-f", "--settings_file", dest="settings_file", default='../settings/settings_trajFeatures_XBSC.py',
+    parser.add_option("-f", "--settings_file", dest="settings_file", default='tracking/trajPack/settings/settings_trajFeatures_XBSC.py',
                       help="Settings_file")
 
     parser.add_option("-p", "--plate", dest="plate",

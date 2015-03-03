@@ -11,8 +11,9 @@ traj_filename = 'traj_intQC_w{}.pkl'
 feature_filename='features_intQC_{}_t{}.pkl'
 
 predict = True
-repeat=False
+repeat=True
 filtering_fusion=False
 
 #Indicating the number of frames per hour
 time_lapse=4
+time_windows=[(0, 48), (0,24), (12, 36), (24,48),(36, 60)] 

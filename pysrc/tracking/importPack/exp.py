@@ -8,15 +8,6 @@ import vigra.impex as vi
 import numpy as np
 from _collections import defaultdict
 
-def find_id(frame, object_frame_id, object_ids):
-    try:
-        object_movie_id=np.where((object_ids['time_idx']==frame)&(object_ids['obj_label_id']==object_frame_id))[0][0]
-    except IndexError:
-        print object_frame_id
-        return None
-    else:
-        return object_movie_id
-        
 class TrackWriter(object):
     
     TRACK_DTYPE=np.dtype([('obj_idx1', '<u4'), ('obj_idx2', '<u4')])
@@ -52,6 +43,35 @@ class TrackWriter(object):
         else:
             return object_ids
         
+    def _quality_check(self):
+        '''
+        Warning:
+            H5 file: image number starts at 0
+            Browser and annotations: image number starts at 1
+        '''
+        try:
+            f=open(self.settings.image_QC_file)
+            l=pickle.load(f)
+            f.close()
+        except (OSError, IOError) as e:
+            raise e
+        else:
+            try:
+                return l[self.plate][int(self.well)]
+            except KeyError:
+                return []
+            
+    def _find_id(self, frame, object_frame_id, object_ids):
+        try:
+            qc_frame_correspondance= frame+len(np.where(self.skipped_frames<=frame)[0])
+            
+            object_movie_id=np.where((object_ids['time_idx']==qc_frame_correspondance)&(object_ids['obj_label_id']==object_frame_id))[0][0]
+        except IndexError:
+            print self.plate, self.well,frame, qc_frame_correspondance
+            raise IndexError
+        else:
+            return object_movie_id
+        
     def _getTracklets(self, tracklets, object_ids):
         '''
         track_id_memory will store for each trajectory with which object_movie_id it started and finished.
@@ -69,17 +89,17 @@ class TrackWriter(object):
                     #Meaning we've reached the end of track
                     #Possible cases: either there is only one frame in this tracklet, either not
                     if len(points)==1:
-                        currId = find_id(frame=point[0], object_frame_id=point[1], object_ids=object_ids)
+                        currId = self._find_id(frame=point[0], object_frame_id=point[1], object_ids=object_ids)
                         track_id_memory[track.id]=[currId, currId]
                     else:
                         track_id_memory[track.id].append(nextId)
                     continue
                 if nextId is None:
-                    currId = find_id(frame=point[0], object_frame_id=point[1], object_ids=object_ids)
+                    currId = self._find_id(frame=point[0], object_frame_id=point[1], object_ids=object_ids)
                     track_id_memory[track.id]=[currId]
                 else:
                     currId = nextId
-                nextId=find_id(frame=nextPoint[0], object_frame_id=nextPoint[1], object_ids=object_ids)
+                nextId=self._find_id(frame=nextPoint[0], object_frame_id=nextPoint[1], object_ids=object_ids)
                 
                 result.append((currId, nextId))
                 
@@ -105,17 +125,35 @@ class TrackWriter(object):
         except Exception as e:
             raise e
         return 1
+    
+    def _alreadyDone(self):
+        path = self.TRACKING_PATH_NAME.format(self.plate, self.well)
+        
+        try:
+            tracking_table=vi.readHDF5(self.ch5_file, path)
+        except:
+            return False
+        else:
+            return True
         
     def __call__(self):
-        #i. read trajectories
+        #if not redo then check if it has already been done
+        if not self.settings.redo:
+            if self._alreadyDone():
+                print "Already done"
+                return 1
+        
+        #i. DATA LOADING
+            # read trajectories
         tracklets, connexions = self._getTrajectories()
         
-        #also get table of object_id in h5 file
+            #also get table of object_id in h5 file
         object_ids= self._getObjectIds()
+            #see if some images were deleted during quality control
+        self.skipped_frames = self._quality_check()
         
         #ii. get list of connexions for each track
         self.track_result, self.track_id_memory = self._getTracklets(tracklets, object_ids)
-        pdb.set_trace()
         #iii. Complete list of result by adding connexions between tracklets
         self._getTrackConnexions(connexions)
         
