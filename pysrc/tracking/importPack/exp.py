@@ -64,11 +64,14 @@ class TrackWriter(object):
     def _find_id(self, frame, object_frame_id, object_ids):
         try:
             qc_frame_correspondance= frame+len(np.where(self.skipped_frames<=frame)[0])
+            assert (len(self.skipped_frames)<=2), "Need to rethink frame correspondences"
+            if qc_frame_correspondance in self.skipped_frames:
+                qc_frame_correspondance+=1
             
             object_movie_id=np.where((object_ids['time_idx']==qc_frame_correspondance)&(object_ids['obj_label_id']==object_frame_id))[0][0]
         except IndexError:
             print self.plate, self.well,frame, qc_frame_correspondance
-            raise IndexError
+            return None
         else:
             return object_movie_id
         
@@ -158,4 +161,15 @@ class TrackWriter(object):
         self._getTrackConnexions(connexions)
         
         #iv. Save this in the right h5 file
-        self._saveResult()
+        try:
+            self._saveResult()
+        except Exception as e:
+            print "##############", e.message, self.plate, self.well
+        
+        
+        
+        
+        
+        
+        
+        
