@@ -445,8 +445,8 @@ def finding_hit_XB(result, who, compounds, doses, combination=(lambda x: np.max(
     
 
 def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max(x,0)), cmap=mpl.cm.bwr, norm=2, compL=None, sh=True,
-                     outputFolder = '../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2/features_on_films',
-                     filename='heatmaps_pval_comb_med_medstandardized_TW0.png', length=None, normal_z_score=False, all_ctrl=False
+                     outputFolder = '../../../projects/Xb_screen/dry_lab_results/MOTILITY/track_predictions__settings2/features_on_films',
+                     filename='heatmaps_pval_comb_med_medstandardized_TW0.png', length=None, normal_z_score=False, ctrl="neg_plate"
                      ):
     '''
     So just plot-wise we look at the different -log(pvalues) for all features for the different conditions,
@@ -458,6 +458,9 @@ def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max
     By the way, if the combination here is min, it means it's max(pval) because result is supposed to be -log(pval),
     so it's just the other way around with all mitocheck results. We chose in the latter to use max(pval) ie most
     conservative approach.
+    
+    Possible values for ctrl: neg_plate for negative controls on the same plate, neg_all fr negative controls on all plates
+    and all for all wells on the same plate
     '''
     if result.shape[0] >500:
         #It means we're dealing with feature tables and not statistic or pvalue tables.
@@ -466,7 +469,7 @@ def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max
         else:
             new_result=np.zeros(shape=(len(length), result.shape[1]))
             for i in range(len(length)):
-                new_result[i]=np.mean(result[np.sum(length[:i]):np.sum(length[:i+1])],0)
+                new_result[i]=np.median(result[np.sum(length[:i]):np.sum(length[:i+1])],0)
             combination=lambda x:x
             
             result=np.hstack((new_result[:,:len(featuresNumeriques)],new_result[:, featuresSaved.index('mean straight'), np.newaxis]))
@@ -492,7 +495,15 @@ def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max
             where_1=np.where(compounds==CONTROLS[compound])[0]
             for el,j in enumerate(where_compound):
                 pl=who[j][0]
-                where_control=filter(lambda x:x in where_1, np.where(who[:,0]==pl)[0]) if not all_ctrl else where_1
+                if ctrl=='neg_plate':
+                    where_control=filter(lambda x:x in where_1, np.where(who[:,0]==pl)[0])
+                elif ctrl=="neg_all":
+                    where_control=where_1
+                elif ctrl=="plate":
+                    where_control=np.where(who[:,0]==pl)[0]
+                else:
+                    raise AttributeError
+                
                 if normal_z_score:
                     subR[el]=(subR[el]-np.mean(result[where_control],0))/np.std(result[where_control],0)
                 else:
@@ -502,7 +513,16 @@ def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max
         else:
             for el,j in enumerate(where_compound):
                 pl=who[j][0]
-                where_control=filter(lambda x:x in where_compound, np.where(who[:,0]==pl)[0]) if not all_ctrl else where_compound
+                if ctrl=='neg_plate':
+                    where_control=filter(lambda x:x in where_compound, np.where(who[:,0]==pl)[0])
+                elif ctrl=="neg_all":
+                    where_control=where_compound
+                elif ctrl=="plate":
+                    where_control=np.where(who[:,0]==pl)[0]
+                else:
+                    raise AttributeError
+                
+                
                 if normal_z_score:
                     subR[el]=(subR[el]-np.mean(result[where_control],0))/np.std(result[where_control],0)
                 else:
@@ -543,7 +563,7 @@ def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max
         p.savefig(os.path.join(outputFolder, filename))
     if L!=compL:
         return plotDistances_XB(result, compounds, who,doses, combination, cmap, norm, compL=filter(lambda x: x not in xbL, compL), sh=sh,\
-                                outputFolder=outputFolder, filename='controls{}'.format(filename))
+                                outputFolder=outputFolder, filename='controls{}'.format(filename),normal_z_score=normal_z_score, ctrl=ctrl)
     
 def plotDistances_TWEvol(result, who,compounds, doses, combination=(lambda x: np.max(x,0)), compL=None, sh=False,
                     outputFolder = '../../../projects/Xb_screen/dry_lab_results/track_predictions__settings2/features_on_films',

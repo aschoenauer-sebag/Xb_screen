@@ -22,7 +22,7 @@ redo=True
 xb_screen=True
 
 #Number of well on each plate to normalize plate-wise
-n_n=37
+n_n=24
 
 norm='plate'
 
