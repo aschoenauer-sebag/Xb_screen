@@ -20,7 +20,7 @@ def normalizationCorrelationMeasures(arr_plate, arr_negctrl, who_plate, who_negc
     
     return arr_plate[np.where(np.array([el in comm for el in who_plate2]))], arr_negctrl[np.where(np.array([el in comm for el in who_negctrl2]))]
 
-def conditionCorrelationMeasures(arr, label, who,conditions, condition_list):
+def conditionCorrelationMeasures(arr, who,conditions, condition_list):
     result=np.zeros(shape=(len(plates), len(plates)))
     if type(arr)==list:
         arr=np.array(arr)

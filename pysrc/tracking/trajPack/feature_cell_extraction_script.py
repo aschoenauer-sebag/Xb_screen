@@ -141,6 +141,7 @@ python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --solvent plat
         #Then doing the others
         f=open(siRNAFile, 'r')
         siRNAList = pickle.load(f); f.close()
+        
         cmd ="""
 python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --solvent plate --settings_file %s --iter %i
 """

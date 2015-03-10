@@ -350,20 +350,21 @@ def collectingDistances_XB(folder, filename='distances_tw_', iter_range=range(5)
                                 pdb.set_trace()
                             compounds[currParams['time_window']].extend([compound for k in range(d[param_set].shape[0])])
                             doses[currParams['time_window']].extend([tag(file_) for k in range(d[param_set].shape[0])])
-                    #deleting mean persistence if it is still there
-                        if d[param_set].shape[1]==16:
-                            d[param_set]=np.delete(d[param_set], 15, 1)
-                        if use_time_window:
-#                             if np.any(np.isnan(d[param_set])):
-#                                 pdb.set_trace()
-                            result[(iter_, currParams['time_window'])]= d[param_set] if result[(iter_, currParams['time_window'])] is None\
-                                     else np.vstack((result[(iter_, currParams['time_window'])], d[param_set]))
-                        else:
-                            raise AttributeError
+                        #deleting mean persistence if it is still there
+                        if currParams['time_window']==0:
+                            if d[param_set].shape[1]==16:
+                                d[param_set]=np.delete(d[param_set], 15, 1)
+                            if use_time_window:
+    #                             if np.any(np.isnan(d[param_set])):
+    #                                 pdb.set_trace()
+                                result[(iter_, currParams['time_window'])]= d[param_set] if result[(iter_, currParams['time_window'])] is None\
+                                         else np.vstack((result[(iter_, currParams['time_window'])], d[param_set]))
+                            else:
+                                raise AttributeError
     print result[(0,0)].shape
     result={tw: np.vstack((-np.log(result[(el,tw)])[np.newaxis] for el in range(5))) for tw in time_window_range}
     result2={tw:2*np.sum(result[tw],2) for tw in result}
-    pdb.set_trace()
+    
     doses={el:np.array(doses[el], dtype=int) for el in who}
     compounds={el:np.array(compounds[el]) for el in who}
     who={el:np.array(who[el]) for el in who}

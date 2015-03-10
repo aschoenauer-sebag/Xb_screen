@@ -28,7 +28,7 @@ from tracking.histograms.summaries_script import progFolder, scriptFolder, pbsAr
 from util.plots import couleurs, markers, plotBarPlot
 from analyzer import CONTROLS, quality_control, plates, xbL, compoundL
 
-def plotResults(localRegMeasure, result, who, dose_list, compound_list, outputFile, outputFolder, features=False):
+def plotResults(result, who, dose_list, compound_list, outputFile, outputFolder, features=False):
     compounds = sorted(filter(lambda x: x in xbL or x=='Rien', Counter(compound_list).keys()))
     f,axes=p.subplots(len(compounds), len(result), sharey=True)
     for i,compound in enumerate(compounds):
@@ -60,7 +60,7 @@ def plotResults(localRegMeasure, result, who, dose_list, compound_list, outputFi
             axes[i,j].set_xticklabels(labels)
     p.show()
     
-def plotResults2(localRegMeasure, result, who, dose_list, compound_list, outputFile, outputFolder, features=False):
+def plotResults2(result, who, dose_list, compound_list, outputFile, outputFolder, features=False):
     compounds = sorted(filter(lambda x: x in xbL or x=='Rien', Counter(compound_list).keys()))
     f,axes=p.subplots(len(compounds), len(result), sharey=True)
     for i,compound in enumerate(compounds):
@@ -94,7 +94,7 @@ def plotResults2(localRegMeasure, result, who, dose_list, compound_list, outputF
     p.show()
     return
     
-def plotResults3(localRegMeasure, result, who, dose_list, compound_list, outputFile, outputFolder):
+def plotResults3(result, who, dose_list, compound_list, outputFile, outputFolder):
     f=p.figure()
     for i, pheno in enumerate(result):
         ax=f.add_subplot(1,8,i)
@@ -120,10 +120,10 @@ def saveTextFile(localRegMeasure, result, who, dose_list, compound_list, outputF
     return
 
 def loadResults(localRegMeasure=False, 
-                loadingFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/phenotype_analysis', 
+                loadingFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/MITOSIS/phenotype_analysis_up_down', 
                 filename='phenoAnalysis_plateNorm_', 
                 pheno_list = ['Anaphase_ch1', 'Apoptosis_ch1', 'Folded_ch1', 'Interphase_ch1', 'Metaphase_ch1',
-                              'Polylobbed_ch1', 'Prometaphase_ch1', 'WMicronuclei_ch1'],
+                              'Polylobbed_ch1', 'Prometaphase_ch1', 'WMicronuclei_ch1', 'Frozen_ch1'],
                 plot1=False, plot2=False, plot3=False, saveText=False):
     
     file_list=sorted(filter(lambda x: filename in x, os.listdir(loadingFolder)))
@@ -154,11 +154,11 @@ def loadResults(localRegMeasure=False,
             dose_list.extend([file_.split('_')[-1].split('.')[0] for k in range(len(wells))])
     who=np.array(who); dose_list=np.array(dose_list, dtype=int); compound_list=np.array(compound_list) 
     if plot1:
-        plotResults(localRegMeasure, result, who, dose_list, compound_list, outputFile=filename, outputFolder=loadingFolder)
+        plotResults(result, who, dose_list, compound_list, outputFile=filename, outputFolder=loadingFolder)
     elif plot2:
-        plotResults2(localRegMeasure, result, who, dose_list, compound_list, outputFile=filename, outputFolder=loadingFolder)
+        plotResults2(result, who, dose_list, compound_list, outputFile=filename, outputFolder=loadingFolder)
     elif plot3:
-        plotResults3(localRegMeasure, result, who, dose_list, compound_list, outputFile=filename, outputFolder=loadingFolder)
+        plotResults3(result, who, dose_list, compound_list, outputFile=filename, outputFolder=loadingFolder)
     if saveText:
         saveTextFile(localRegMeasure, result, who, dose_list, compound_list, outputFile=filename, outputFolder=loadingFolder)
     return result, who, compound_list, dose_list
@@ -456,11 +456,14 @@ class wellPhenoAnalysis(object):
                     plot=False
                     
                     _,r2=localReg(data[pheno][:192], n=self.nn, h=self.h, deg=self.deg, plot=True, ax=ax, color=self.settings.plate_colors[self.plate], marker='*')
-                    r2[np.where(r1<0)]=0
+                    r2[np.where(r2<0)]=0
                     try:
-                        r.append(np.max(r1-r2))
+                        arr = r1-r2
                     except ValueError:
-                        r.append(np.max(r1[:min(r1.shape[0], r2.shape[0])]-r2[:min(r1.shape[0], r2.shape[0])]))
+                        arr = r1[:min(r1.shape[0], r2.shape[0])]-r2[:min(r1.shape[0], r2.shape[0])]
+                    ind= np.argmax(np.absolute(arr))
+                    r.append(arr[ind])
+
                 else:
     #My intuition is that this is not going to be a good measure for all curves because they're super noisy when the number of cells is low
     #Hence I want to see what it gives if I look at the area between the two curves
