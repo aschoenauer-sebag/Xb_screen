@@ -406,13 +406,14 @@ class wellPhenoAnalysis(object):
                     if len(r[pheno])==0:
                         r[pheno]=curr_pheno_count
                     else:
+                        if np.any(np.isnan(curr_pheno_count)):
+                            pdb.set_trace()
                         r[pheno]= r[pheno][:min(r[pheno].shape[0], curr_pheno_count.shape[0])]
                         curr_pheno_count=curr_pheno_count[:min(r[pheno].shape[0], curr_pheno_count.shape[0])]
                         r[pheno]+=curr_pheno_count
                         
                 r[pheno]/=global_cell_count[:,0]
-                if np.any(np.isnan(r[pheno])):
-                    pdb.set_trace()
+                
             result.append(r)
         return result
         
