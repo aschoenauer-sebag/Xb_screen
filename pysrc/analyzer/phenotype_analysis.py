@@ -473,6 +473,8 @@ class wellPhenoAnalysis(object):
                     except ValueError:
                         r1=(exp_data[pheno][:min(exp_data[pheno].shape[0], data[pheno].shape[0])]-data[pheno][:min(exp_data[pheno].shape[0], data[pheno].shape[0])])
                     r.append(np.sum(r1)/r1.shape[0])
+                    if np.isnan(r[-1]):
+                        pdb.set_trace()
             if self.localRegMeasure:
                 ax.set_ylim(self.settings.plot_ylim[i])
                 ax.set_xlim(0,192)
