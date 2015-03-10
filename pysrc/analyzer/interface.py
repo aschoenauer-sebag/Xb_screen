@@ -148,16 +148,19 @@ class HTMLGenerator():
                 for frame_nb in frameLot.lstFrames[plate][well]:
                     frame = frameLot.lstFrames[plate][well][frame_nb]
                     
-                #for each frame, the object count = all objects = cells+out of focus objects + artefacts
-                    result["object_count"].append(frame.centers.shape[0])
-                    
                 #for each frame, the cell count = object count - [artefacts + out of focus objects]. Only possible if the classification was computed
                     if self.classes is not None:
                         bincount = np.bincount(frame.classification, minlength=len(self.classes))
+                        if np.sum(bincount)==0:
+                            print "No info frame {} well {} plate {}".format(frame_nb, well, plate)
+                            continue
                         out_of_focus = bincount[np.where(self.classes=='Flou')]
 #NB: no more smallUnidentified after classifier update on 2/20/15
                         artefacts = bincount[np.where(self.classes=='Artefact')] 
                         result["cell_count"].append( frame.centers.shape[0] - (out_of_focus + artefacts))
+                        
+                #for each frame, the object count = all objects = cells+out of focus objects + artefacts
+                    result["object_count"].append(frame.centers.shape[0])
                 #if second channel was processed, computing percentage of red only cells
                     try:
                         red_only_dist =self.featureComparison(frame.features, featureL.index("roisize"))

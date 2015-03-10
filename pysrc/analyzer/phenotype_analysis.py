@@ -34,7 +34,6 @@ def plotResults(result, who, dose_list, compound_list, outputFile, outputFolder,
     for i,compound in enumerate(compounds):
         control=CONTROLS[compound]
         where_c = np.where(compound_list==control)
-        print control, where_c
         ww_=[np.where((compound_list==compound)&(dose_list==k))[0] for k in range(11)]
         for j,pheno in enumerate(result):
             if not features:

@@ -28,8 +28,6 @@ def rank_product(data, who, conditions, technical_replicates_key, batch_names):
     ranks = np.zeros(shape=(len(all_conditions), len(batch_names)), dtype=float)
     
     for j,plate in enumerate(batch_names):
-        print plate
-    
         local_cond=conditions[np.where(who[:,0]==plate)][np.argsort((-data)[np.where(who[:,0]==plate)])]
         
         for i,condition in enumerate(all_conditions):
@@ -42,7 +40,7 @@ def rank_product(data, who, conditions, technical_replicates_key, batch_names):
         
     return all_conditions,np.prod(ranks, axis=1, dtype=float),num_technical_replicates
 
-def computeRPpvalues(data, who, conditions, technical_replicates_key, num_permutations, batch_names=None):
+def computeRPpvalues(data, who, conditions, technical_replicates_key, num_permutations, batch_names=None, random_result=None):
     '''
     THE function to call to do both the rank product on your data and compute p-values by permutations.
     
@@ -58,14 +56,20 @@ def computeRPpvalues(data, who, conditions, technical_replicates_key, num_permut
     '''
     all_conditions,real_result, num_technical_replicates = rank_product(data, who, conditions, technical_replicates_key, batch_names)
     
-    rrp=randomRankProduct(num_permutations)
-    random_result = rrp(num_technical_replicates, technical_replicates_key)
+    if random_result is None:
+        rrp=randomRankProduct(num_permutations)
+        random_result = rrp(num_technical_replicates, technical_replicates_key)
     
-    pvals=np.zeros(shape=len(all_conditions,), dtype=float)
+    pvals_up=np.zeros(shape=len(all_conditions,), dtype=float)
     for i in range(real_result.shape[0]):
-        pvals[i]=max(1, len(np.where(random_result[:,i]<real_result[i])[0]))/float(num_permutations)
+        pvals_up[i]=max(1, len(np.where(random_result[:,i]<real_result[i])[0]))/float(num_permutations)
         
-    return zip(all_conditions,real_result, pvals)
+    pvals_down=np.zeros(shape=len(all_conditions,), dtype=float)
+    for i in range(real_result.shape[0]):
+        pvals_down[i]=max(1, len(np.where(random_result[:,i]>real_result[i])[0]))/float(num_permutations)
+
+        
+    return zip(all_conditions,real_result, pvals_up, pvals_down), random_result
 
 class randomRankProduct(object):
     def __init__(self, num_permutations=1000):
