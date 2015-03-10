@@ -406,7 +406,7 @@ class wellPhenoAnalysis(object):
                     if len(r[pheno])==0:
                         r[pheno]=curr_pheno_count
                     else:
-                        if np.any(np.isnan(curr_pheno_count)):
+                        if np.any(np.isnan(curr_pheno_count)) and curr_pheno_count.shape[0]==r[pheno].shape[0]:
                             pdb.set_trace()
                         r[pheno]= r[pheno][:min(r[pheno].shape[0], curr_pheno_count.shape[0])]
                         curr_pheno_count=curr_pheno_count[:min(r[pheno].shape[0], curr_pheno_count.shape[0])]
