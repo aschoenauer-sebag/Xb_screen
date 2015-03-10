@@ -469,9 +469,9 @@ class wellPhenoAnalysis(object):
     #Hence I want to see what it gives if I look at the area between the two curves
     #I normalize because I know that for 201214 they last 166 frames and not 192
                     try:
-                        r1=(exp_data[pheno]-data[pheno])[:192]
+                        r1=(local_exp_data-data[pheno])[:192]
                     except ValueError:
-                        r1=(exp_data[pheno][:min(exp_data[pheno].shape[0], data[pheno].shape[0])]-data[pheno][:min(exp_data[pheno].shape[0], data[pheno].shape[0])])
+                        r1=(local_exp_data[:min(local_exp_data.shape[0], data[pheno].shape[0])]-data[pheno][:min(local_exp_data.shape[0], data[pheno].shape[0])])
                     r.append(np.sum(r1)/r1.shape[0])
                     if np.isnan(r[-1]):
                         pdb.set_trace()
