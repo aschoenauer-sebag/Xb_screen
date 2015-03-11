@@ -177,7 +177,11 @@ class HTMLGenerator():
                             continue
                         
                         if self.classes is not None and arg[0] in self.classes:
-                            result['{}_ch1'.format(arg[0])].append(bincount[np.where(self.classes==arg[0])]/float(np.sum(bincount)))
+                            if arg[0] not in ['Polylobbed', 'WMicronuclei']:
+                                result['{}_ch1'.format(arg[0])].append(bincount[np.where(self.classes==arg[0])]/float(np.sum(bincount)))
+                            elif arg[0]=='WMicronuclei':
+                                s = bincount[np.where(self.classes==arg[0])] + bincount[np.where(self.classes=='Polylobbed')]
+                                result['{}_ch1'.format(arg[0])].append(s/float(np.sum(bincount)))
                             continue
                         
                         try:
@@ -558,7 +562,10 @@ class HTMLGenerator():
             if not moviesOnly:
                 print ' *** get result dictionary ***'
                 featureL,self.classes, frameLot = self.targetedDataExtraction(plateL, featureL)
+                
                 self.formatData(frameLot, resD, featureL, featureChannels)
+                
+                self.classes=np.delete(self.classes, np.where(self.classes=='Polylobbed')[0])
             for plate in plateL:
                 if not moviesOnly:
                     print ' *** generate density plots for %s: ***' % plate
