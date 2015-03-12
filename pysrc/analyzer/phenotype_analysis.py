@@ -26,7 +26,24 @@ globalenv = objects.globalenv
 from tracking.histograms.summaries_script import progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, pbsOutDir, path_command
 
 from util.plots import couleurs, markers, plotBarPlot
+from util.make_movies_mito_cbio import ColorMap
 from analyzer import CONTROLS, quality_control, plates, xbL, compoundL
+
+def plotColorRampedResults(result, who, dose_list, compound_list, title=""):
+    cm=ColorMap()
+    cr = cm.makeColorRamp(N=11, basic_colors=["#FFFF00", "#FF0000"])
+    cr[0]=(0,0,0)
+    cr={i:cr[i] for i in range(len(cr))}
+    cr[15]=(1,0,1)
+    
+    f=p.figure();ax=f.add_subplot(111)
+    for i,el in enumerate(dose_list):
+        ax.scatter(i,result[i], color=cr[el])
+        ax.text(i, result[i], compound_list[i][0], fontsize=10)
+    ax.grid(True)
+    ax.set_xlabel("Conditions"); ax.set_ylabel("Distances")
+    ax.set_title(title)
+    p.show()
 
 def plotResults(result, who, dose_list, compound_list, outputFile, outputFolder, features=False):
     compounds = sorted(filter(lambda x: x in xbL or x=='Rien', Counter(compound_list).keys()))
@@ -122,7 +139,7 @@ def loadResults(localRegMeasure=False,
                 loadingFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/MITOSIS/phenotype_analysis_up_down', 
                 filename='phenoAnalysis_plateNorm_', 
                 pheno_list = ['Anaphase_ch1', 'Apoptosis_ch1', 'Folded_ch1', 'Interphase_ch1', 'Metaphase_ch1',
-                              'Polylobbed_ch1', 'Prometaphase_ch1', 'WMicronuclei_ch1', 'Frozen_ch1'],
+                              'Prometaphase_ch1', 'WMicronuclei_ch1', 'Frozen_ch1'],
                 plot1=False, plot2=False, plot3=False, saveText=False):
     
     file_list=sorted(filter(lambda x: filename in x, os.listdir(loadingFolder)))
@@ -442,6 +459,8 @@ class wellPhenoAnalysis(object):
         
     def _analyze(self, exp_data, ctrl_data):
         result=np.zeros(shape=(len(self.pheno_list)))
+        regularized_data={}
+        
         for i,pheno in enumerate(self.pheno_list):
             r=[]
             
@@ -463,6 +482,7 @@ class wellPhenoAnalysis(object):
                         arr = r1-r2
                     except ValueError:
                         arr = r1[:min(r1.shape[0], r2.shape[0])]-r2[:min(r1.shape[0], r2.shape[0])]
+                    
                     ind= np.argmax(np.absolute(arr))
                     r.append(arr[ind])
 
@@ -474,17 +494,17 @@ class wellPhenoAnalysis(object):
                         r1=(local_exp_data-data[pheno])[:192]
                     except ValueError:
                         r1=(local_exp_data[:min(local_exp_data.shape[0], data[pheno].shape[0])]-data[pheno][:min(local_exp_data.shape[0], data[pheno].shape[0])])
-                    r.append(np.sum(r1)/r1.shape[0])
+                    r.append(np.sum(np.absolute(r1))/r1.shape[0])
                     if np.isnan(r[-1]):
                         pdb.set_trace()
             if self.localRegMeasure:
                 ax.set_ylim(self.settings.plot_ylim[i])
                 ax.set_xlim(0,192)
                 p.savefig(os.path.join(self.settings.savingFolder, self.settings.imageName.format(pheno, self.plate, self.well)))
-                    
+                regularized_data[pheno]=arr
             result[i]=np.median(r)
             
-        return result
+        return result, regularized_data
             
     def __call__(self, filter_=None):
         #i. Get the data
@@ -494,9 +514,9 @@ class wellPhenoAnalysis(object):
         control_data = self._getCtrlData(filter_, total_data)
         
         #iii. Measure the distance
-        result = self._analyze(exp_data, control_data)
+        result, regularized_data = self._analyze(exp_data, control_data)
         
-        return result
+        return result, regularized_data
 
 class xbPhenoAnalysis(object):
     #Un peu con j'aurais pu la faire heriter de la precedente
@@ -556,7 +576,7 @@ class xbPhenoAnalysis(object):
         else:
             raise ValueError
 
-    def save(self, result,exp_list):
+    def save(self, result,regularized_data,exp_list):
             
         if self.settings.outputFile.format(self.compound, self.dose) in os.listdir(self.settings.savingFolder):
             f=open(os.path.join(self.settings.savingFolder, self.settings.outputFile.format(self.compound, self.dose)), 'r')
@@ -565,7 +585,7 @@ class xbPhenoAnalysis(object):
             d={}
             
         f=open(os.path.join(self.settings.savingFolder, self.settings.outputFile.format(self.compound, self.dose)), 'w')    
-        d[self.parameters(exp_list)]=result
+        d[self.parameters(exp_list)]=(result, regularized_data)
         pickle.dump(d,f);f.close()
         
         return
@@ -579,16 +599,19 @@ class xbPhenoAnalysis(object):
 
         #ii. Need to measure the distances
         r=np.zeros(shape=(len(exp_list), len(self.pheno_list)))
+        all_regularized_data=defaultdict(list)
         for i,exp in enumerate(exp_list):
             pl,w=exp if len(exp)==2 else exp.split('_')
             print pl
             wellPA = wellPhenoAnalysis(self.settings, pl, w, compound=self.compound, 
                                        localRegMeasure=self.localRegMeasure,
                                        nn=self.nn, pheno_list=self.pheno_list, verbose=self.verbose)
-            r[i]=wellPA(filter_=filter_[plates.index(pl)]) if filter_ is not None else wellPA() 
+            r[i], exp_regularized_data=wellPA(filter_=filter_[plates.index(pl)]) if filter_ is not None else wellPA()
+            for el in exp_regularized_data:
+                all_regularized_data[el].append(exp_regularized_data[el]) 
             
         #iii. Need to save it
-        self.save(r, exp_list)
+        self.save(r, all_regularized_data, exp_list)
         
         return 1
     

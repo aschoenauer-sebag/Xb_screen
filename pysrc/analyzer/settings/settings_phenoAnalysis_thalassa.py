@@ -13,7 +13,7 @@ loadingFolder = os.path.join(base_result_dir, 'dry_lab_results')
 ok_wells_asLIST = '../data/xb_OK_wells_asLIST.pkl'
 ok_wells_asDICT= '../data/xb_OK_wells_asDICT.pkl'
 #Where to save results
-savingFolder=os.path.join(loadingFolder, 'phenotype_analysis_up_down')
+savingFolder=os.path.join(loadingFolder, 'phenotype_analysis')
 outputFile='phenoAnalysis_plateNorm_{}_{}.pkl'
 
 #Local regression parameters
