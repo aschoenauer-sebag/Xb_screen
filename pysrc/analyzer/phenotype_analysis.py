@@ -29,20 +29,82 @@ from util.plots import couleurs, markers, plotBarPlot
 from util.make_movies_mito_cbio import ColorMap
 from analyzer import CONTROLS, quality_control, plates, xbL, compoundL
 
-def plotColorRampedResults(result, who, dose_list, compound_list, title=""):
-    cm=ColorMap()
-    cr = cm.makeColorRamp(N=11, basic_colors=["#FFFF00", "#FF0000"])
-    cr[0]=(0,0,0)
-    cr={i:cr[i] for i in range(len(cr))}
-    cr[15]=(1,0,1)
+cm=ColorMap()
+cr = cm.makeColorRamp(N=10, basic_colors=["#FFFF00", "#FF0000"])
+cr.insert(0,(0,0,0))
+cr={i:cr[i] for i in range(len(cr))}
+cr[15]=(1,0,1)
+
+def plotRegularizedResults(localRegMeasure=False, 
+                loadingFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/MITOSIS/phenotype_analysis_up_down', 
+                filename='phenoAnalysis_plateNorm_', 
+                pheno_list = ['Anaphase_ch1', 'Apoptosis_ch1', 'Folded_ch1', 'Interphase_ch1', 'Metaphase_ch1',
+                              'Prometaphase_ch1', 'WMicronuclei_ch1', 'Frozen_ch1'],
+                fig_filename="Difference_with_controls_{}.png"):
     
-    f=p.figure();ax=f.add_subplot(111)
+    file_list=sorted(filter(lambda x: filename in x, os.listdir(loadingFolder)))
+    result={pheno:defaultdict(dict) for pheno in pheno_list}
+    who=[]#for well list
+    compound_list=[]; dose_list=[]
+    for file_ in file_list:
+        f=open(os.path.join(loadingFolder, file_))
+        d=pickle.load(f);f.close()
+
+        try:
+            param_sets = [(i,dict(el)) for i,el in enumerate(d.keys())]
+            index, param_d=filter(lambda x: x[1]['localReg']==localRegMeasure, param_sets)[0]
+            wells=param_d["wells"] if len(param_d['wells'][0])==2 else [el.split('_') for el in param_d['wells']]
+            available_phenos = param_d['pheno_list']
+            regularized_data=None if len(d[d.keys()[index]])==1 else d[d.keys()[index]][1]
+        except IndexError, KeyError:
+            pdb.set_trace()
+        else:
+            compound = file_.split('_')[-2]
+            dose=int(file_.split('_')[-1].split('.')[0])
+            for pheno in pheno_list:
+                result[pheno][compound][dose] = regularized_data[pheno]
+            who.extend(wells)
+            compound_list.extend([compound for k in range(len(wells))])
+            dose_list.extend([dose for k in range(len(wells))])
+    who=np.array(who); dose_list=np.array(dose_list, dtype=int); compound_list=np.array(compound_list) 
+    for pheno in result:
+        f, axes=p.subplots(nrows=1, ncols=6,figsize=(24,16), sharex=True, sharey=True)
+        for i,compound in enumerate(['BPA', 'Endo', 'MeHg','PCB', 'TCDD']):
+            ax=axes[i]; ax.grid(True); ax.set_title("{} {}".format(pheno, compound))
+            ax.set_xlim(0,194)
+            for dose in result[pheno][compound]:
+                for regularized_curve in result[pheno][compound][dose]:
+                    ax.plot(range(len(regularized_curve)), regularized_curve, color=cr[dose])#,s=3)
+        for j,compound in enumerate(['Rien', 'DMSO', 'Nonane']):
+            ax=axes[-1]; ax.grid(True)
+            ax.scatter(0,0, label=compound, color=couleurs[3*j])
+            ax.legend() 
+            for regularized_curve in result[pheno][compound][0]:
+                ax.plot(range(len(regularized_curve)), regularized_curve, color=couleurs[3*j])#,s=3)
+        ax.set_title("Controls {}".format(pheno))
+                    
+        p.savefig(os.path.join(loadingFolder, fig_filename.format(pheno)))
+
+    return result, who, compound_list, dose_list
+
+def plotColorRampedResults(result, who, dose_list, compound_list, title=""):
+    f=p.figure();ax=f.add_subplot(211)
     for i,el in enumerate(dose_list):
         ax.scatter(i,result[i], color=cr[el])
         ax.text(i, result[i], compound_list[i][0], fontsize=10)
     ax.grid(True)
-    ax.set_xlabel("Conditions"); ax.set_ylabel("Distances")
+    ax.set_xlabel("Wells"); ax.set_ylabel("Distances")
     ax.set_title(title)
+    
+    ax=f.add_subplot(212)
+    for i,el in enumerate(dose_list):
+        ax.scatter(i,result[i], color=couleurs[plates.index(who[i,0])])
+    for i,pl in enumerate(plates):
+        ax.scatter(0,0, label=pl, color=couleurs[i])
+    ax.legend()
+    ax.grid(True)
+    ax.set_xlabel("Wells"); ax.set_ylabel("Distances")
+    
     p.show()
 
 def plotResults(result, who, dose_list, compound_list, outputFile, outputFolder, features=False):
@@ -159,7 +221,7 @@ def loadResults(localRegMeasure=False,
             index, param_d=filter(lambda x: x[1]['localReg']==localRegMeasure, param_sets)[0]
             wells=param_d["wells"] if len(param_d['wells'][0])==2 else [el.split('_') for el in param_d['wells']]
             available_phenos = param_d['pheno_list']
-            arr=d[d.keys()[index]]
+            arr=d[d.keys()[index]] if len(d[d.keys()[index]])==1 else d[d.keys()[index]][0]
         except IndexError, KeyError:
             pdb.set_trace()
         else:
