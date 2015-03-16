@@ -495,7 +495,7 @@ def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max
         if compound in CONTROLS.keys():
             where_1=np.where(compounds==CONTROLS[compound])[0]
             for el,j in enumerate(where_compound):
-                pl=who[j][0]
+                pl=who[j][0]; print "-------------------------",pl
                 if ctrl=='neg_plate':
                     where_control=filter(lambda x:x in where_1, np.where(who[:,0]==pl)[0])
                 elif ctrl=="neg_all":
@@ -506,9 +506,13 @@ def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max
                     raise AttributeError
                 
                 if normal_z_score:
-                    subR[el]=(subR[el]-np.mean(result[where_control],0))/np.std(result[where_control],0)
+                    sig=np.std(result[where_control],0)
+                    sig[np.where(sig==0)]+=0.001
+                    subR[el]=(subR[el]-np.mean(result[where_control],0))/sig
                 else:
                     IQR=(scoreatpercentile(a=result[where_control], per=75,axis=0)-scoreatpercentile(a=result[where_control], per=25,axis=0))
+                    print np.median(result[where_control],0)[8], IQR[8]
+                    IQR[np.where(IQR==0)]+=0.001
                     subR[el]=(subR[el]-np.median(result[where_control],0))/IQR
                 
         else:
@@ -523,11 +527,14 @@ def plotDistances_XB(result, compounds,who, doses, combination=(lambda x: np.max
                 else:
                     raise AttributeError
                 
-                
                 if normal_z_score:
-                    subR[el]=(subR[el]-np.mean(result[where_control],0))/np.std(result[where_control],0)
+                    sig=np.std(result[where_control],0)
+                    sig[np.where(sig==0)]+=0.001
+                    subR[el]=(subR[el]-np.mean(result[where_control],0))/sig
                 else:
                     IQR=(scoreatpercentile(a=result[where_control], per=75,axis=0)-scoreatpercentile(a=result[where_control], per=25,axis=0))
+                    print np.median(result[where_control],0)[8], IQR[8]
+                    IQR[np.where(IQR==0)]+=0.001
                     subR[el]=(subR[el]-np.median(result[where_control],0))/IQR
                 
         subD = np.array(doses[np.where(compounds==compound)], dtype=int) 

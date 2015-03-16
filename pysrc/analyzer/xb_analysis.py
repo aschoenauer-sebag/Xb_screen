@@ -255,7 +255,7 @@ def comparDistributions(filename, labels,values, features=None,
 
 def xbConcatenation(folder, exp_list=None, xb_list='processedDictResult_P{}.pkl', visual_qc='../data/xb_manual_qc.pkl', 
                     flou_qc='../data/xb_focus_qc.pkl', 
-                    filename = 'features_intQC_{}_01_t0.pkl', verbose=0, perMovie = False, track_folder="track_predictions__settings2"):
+                    filename = 'features_intQC_{}_01_t0.pkl', verbose=0, perMovie = False, track_folder="MOTILITY/track_predictions__settings2"):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; xb=[]; others=[]
     time_length=[]
     processed={}

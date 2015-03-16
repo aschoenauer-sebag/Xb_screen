@@ -87,8 +87,10 @@ def plotRegularizedResults(localRegMeasure=False,
 
     return result, who, compound_list, dose_list
 
-def plotColorRampedResults(result, who, dose_list, compound_list, title=""):
-    f=p.figure();ax=f.add_subplot(211)
+def plotColorRampedResults(result, who, dose_list, compound_list, title="", 
+                           fig_filename="{}_condition.png",
+                           savingFolder='/media/lalil0u/New/projects/Xb_screen/dry_lab_results/MITOSIS/phenotype_analysis_up_down'):
+    f=p.figure(figsize=(24,16));ax=f.add_subplot(211)
     for i,el in enumerate(dose_list):
         ax.scatter(i,result[i], color=cr[el])
         ax.text(i, result[i], compound_list[i][0], fontsize=10)
@@ -105,7 +107,8 @@ def plotColorRampedResults(result, who, dose_list, compound_list, title=""):
     ax.grid(True)
     ax.set_xlabel("Wells"); ax.set_ylabel("Distances")
     
-    p.show()
+    p.savefig(os.path.join(savingFolder, fig_filename.format(title.split('-')[0])))
+    return
 
 def plotResults(result, who, dose_list, compound_list, outputFile, outputFolder, features=False):
     compounds = sorted(filter(lambda x: x in xbL or x=='Rien', Counter(compound_list).keys()))
@@ -221,7 +224,7 @@ def loadResults(localRegMeasure=False,
             index, param_d=filter(lambda x: x[1]['localReg']==localRegMeasure, param_sets)[0]
             wells=param_d["wells"] if len(param_d['wells'][0])==2 else [el.split('_') for el in param_d['wells']]
             available_phenos = param_d['pheno_list']
-            arr=d[d.keys()[index]] if len(d[d.keys()[index]])==1 else d[d.keys()[index]][0]
+            arr=d[d.keys()[index]] if type(d[d.keys()[index]])==np.ndarray else d[d.keys()[index]][0]
         except IndexError, KeyError:
             pdb.set_trace()
         else:
