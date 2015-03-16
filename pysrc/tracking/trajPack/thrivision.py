@@ -10,6 +10,13 @@ from optparse import OptionParser
 from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 
+def _traintestClassif():
+    from sklearn.cross_validation import KFold
+    
+    #TODO also check how one can quickly visualize prediction on new movies. For this need to write somewhere the images to which the lines in the feature matrix corresponds
+    
+    pass
+
 def scriptThrivision(exp_list, baseName='thrivision'):
     fileNumber = int(len(exp_list)/float(jobSize))+1
     
@@ -73,7 +80,6 @@ class featureExtraction(object):
         
     def _getElements(self, loadingFolders):
         result={}
-        print loadingFolders
         for folder in loadingFolders:
             element_list = filter(lambda x: 'crop' in x and int(x.split('_')[-1][2:-4])!=0, os.listdir(folder))
             for el in element_list:
