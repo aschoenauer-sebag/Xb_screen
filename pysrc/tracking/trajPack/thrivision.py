@@ -111,7 +111,7 @@ class featureExtraction(object):
                 for frame in elements[plate][well]:
                     for cell_id in elements[plate][well][frame]:
                         try:
-                            line = np.where((objects['time_idx']==frame)&(objects['obj_label_id']))[0]
+                            line = np.where((objects['time_idx']==frame)&(objects['obj_label_id']==cell_id))[0]
                         except:
                             pdb.set_trace()
                         else:
