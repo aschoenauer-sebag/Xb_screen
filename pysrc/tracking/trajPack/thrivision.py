@@ -66,6 +66,7 @@ python tracking/trajPack/division_in_3.py -p %s -w %s"""
 
 
 
+
 class featureExtraction(object):
     def __init__(self, settings_file):
         self.settings=settings.Settings(settings_file, globals())
@@ -127,7 +128,8 @@ class featureExtraction(object):
     
     def __call__(self, loadingFolders=None, filename=None):
         if loadingFolders ==None:
-            loadingFolders=[os.path.join(self.settings.outputFolder, plate) for plate in filter(lambda x: os.path.isdir(x) and 'LT' in x, os.listdir(self.settings.outputFolder))]
+            loadingFolders=[os.path.join(self.settings.outputFolder, plate) \
+                            for plate in filter(lambda x: os.path.isdir(os.path.join(self.settings.outputFolder,x)) and 'LT' in x, os.listdir(self.settings.outputFolder))]
             
         elements = self._getElements(loadingFolders)
         
