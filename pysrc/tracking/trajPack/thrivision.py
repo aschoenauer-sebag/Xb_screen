@@ -83,7 +83,7 @@ class featureExtraction(object):
                 pl=""
                 for x in decomp[1:-4]:
                     pl+="{}_".format(x)
-                pl=pl[:-1]
+                pl=pl[1:-1]
                 
                 print pl, well, frame, cell_id
                 if pl not in result:
