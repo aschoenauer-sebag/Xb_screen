@@ -79,7 +79,7 @@ class featureExtraction(object):
                 decomp=el.split('_')
                 cell_id = int(decomp[-1][2:-4])
                 frame = int(decomp[-2][1:])
-                well = "{}_{}".format(decomp[-4][1:], decomp[-3])
+                well = "{}_01".format(decomp[-4][1:])
                 pl=""
                 for x in decomp[1:-4]:
                     pl+="{}_".format(x)
