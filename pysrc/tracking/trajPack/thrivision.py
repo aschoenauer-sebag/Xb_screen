@@ -75,7 +75,6 @@ class featureExtraction(object):
         for folder in loadingFolders:
             element_list = filter(lambda x: 'crop' in x and int(x.split('_')[-1][2:-4])!=0, os.listdir(folder))
             for el in element_list:
-                print el
                 decomp=el.split('_')
                 cell_id = int(decomp[-1][2:-4])
                 frame = int(decomp[-2][1:])
@@ -85,7 +84,6 @@ class featureExtraction(object):
                     pl+="{}_".format(x)
                 pl=pl[1:-1]
                 
-                print pl, well, frame, cell_id
                 if pl not in result:
                     result[pl]={well:defaultdict(list)}
                 elif well not in result[pl]:
@@ -106,8 +104,8 @@ class featureExtraction(object):
         result=None
         for plate in elements:
             for well in elements[plate]:
-                objects = vi.readHDF5(file_.format(plate, well), path_objects.format(plate, int(well.split('_')[0])))
-                features=vi.readHDF5(file_.format(plate, well), path_features.format(plate, int(well.split('_')[0])))
+                objects = vi.readHDF5(file_.format(plate, well), path_objects.format(plate, well.split('_')[0]))
+                features=vi.readHDF5(file_.format(plate, well), path_features.format(plate, well.split('_')[0]))
                 
                 for frame in elements[plate][well]:
                     for cell_id in elements[plate][well][frame]:
