@@ -1,7 +1,7 @@
 #SETTINGS FOR CLUSTER JOB ARRAYS, TO WORK WITH CELL COGNITION MASTER - not especially to work with R
 
 jobSize = 10
-#progFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc'
+progFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc'
 scriptFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/scripts'
 path_command = """setenv PATH /cbio/donnees/nvaroquaux/.local/bin:${PATH}
 setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/share/apps/libxml2/lib:/share/apps/libxslt/lib:/cbio/donnees/nvaroquaux/.local/lib
