@@ -100,7 +100,7 @@ class featureExtraction(object):
         else:
             file_=os.path.join(self.settings.hdf5Folder, "{}", 'hdf5', "{}.hdf5")
             path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary"
-            path_features="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary3/object_features"
+            path_features="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_features"
         result=None
         for plate in elements:
             for well in elements[plate]:
