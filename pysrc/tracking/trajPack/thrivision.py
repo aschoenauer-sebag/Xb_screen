@@ -119,7 +119,7 @@ class featureExtraction(object):
         return result
                     
     def _saveResults(self, matrix, filename):
-        f=open(os.path.join(self.settings.outputFolder, filename))
+        f=open(os.path.join(self.settings.outputFolder, filename), 'w')
         pickle.dump(matrix, f); f.close()
         
         return 1
@@ -146,12 +146,15 @@ class trainingFeatureExtraction(featureExtraction):
     def __call__(self):
         #i. loading data for positive examples
         extractor = featureExtraction(self.settings_file)
+        print "Working on positive examples"
         matrix_TRUE=extractor(loadingFolders = [os.path.join(self.settings.outputFolder, 'True')], filename =None)
+        print "Working on negative examples"
         matrix_FALSE=extractor(loadingFolders = [os.path.join(self.settings.outputFolder, 'False')], filename =None)
 
         matrix_FALSE=np.hstack((matrix_FALSE, np.ones(shape=(matrix_FALSE.shape[0],1))))
         matrix_TRUE=np.hstack((matrix_TRUE, np.ones(shape=(matrix_TRUE.shape[0],1))))
         matrix=np.vstack((matrix_FALSE, matrix_TRUE))
+        print "Saving results"
         self._saveResults(matrix, filename=self.settings.outputTrainingFilename)
         
         return 1
