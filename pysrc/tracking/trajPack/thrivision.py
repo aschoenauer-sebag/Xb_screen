@@ -132,6 +132,7 @@ class featureExtraction(object):
         elements = self._getElements(loadingFolders)
         
         feature_matrix = self._getFeatures(elements)
+        feature_matrix=np.delete(feature_matrix, np.where(np.isnan(feature_matrix))[0],0)
         if filename is not None:
             self._saveResults(feature_matrix, filename)
         
@@ -155,6 +156,7 @@ class trainingFeatureExtraction(featureExtraction):
         matrix_FALSE=np.hstack((matrix_FALSE, np.ones(shape=(matrix_FALSE.shape[0],1))))
         matrix_TRUE=np.hstack((matrix_TRUE, np.ones(shape=(matrix_TRUE.shape[0],1))))
         matrix=np.vstack((matrix_FALSE, matrix_TRUE))
+        
         print "Saving results"
         self._saveResults(matrix, filename=self.settings.outputTrainingFilename)
         
