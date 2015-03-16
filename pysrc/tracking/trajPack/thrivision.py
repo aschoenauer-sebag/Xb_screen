@@ -106,8 +106,8 @@ class featureExtraction(object):
         result=None
         for plate in elements:
             for well in elements[plate]:
-                objects = vi.readHDF5(file_, path_objects)
-                features=vi.readHDF5(file_, path_features)
+                objects = vi.readHDF5(file_.format(plate, well), path_objects.format(plate, well))
+                features=vi.readHDF5(file_.format(plate, well), path_features.format(plate, well))
                 
                 for frame in elements[plate][well]:
                     for cell_id in elements[plate][well][frame]:
