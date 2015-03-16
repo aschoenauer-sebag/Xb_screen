@@ -72,6 +72,7 @@ class featureExtraction(object):
         
     def _getElements(self, loadingFolders):
         result={}
+        print loadingFolders
         for folder in loadingFolders:
             element_list = filter(lambda x: 'crop' in x and int(x.split('_')[-1][2:-4])!=0, os.listdir(folder))
             for el in element_list:
