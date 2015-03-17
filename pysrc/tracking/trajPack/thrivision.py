@@ -144,7 +144,7 @@ class featureExtraction(object):
                 if copy:
                     shutil.copyfile(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,1)))
                     following = el.replace("id{}.png".format(cell_id), "id0.png")
-                    following=following.replace("t{}".format(frame), "t{}".format(frame+1))
+                    following=following.replace("_t{}_".format(frame), "_t{}_".format(frame+1))
                     shutil.copyfile(os.path.join(folder, following), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,2)))
                     i+=1
                 if pl not in result:
