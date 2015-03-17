@@ -159,12 +159,6 @@ class featureExtraction(object):
                     pl+="{}_".format(x)
                 pl=pl[1:-1]
 
-                if copy:
-                    shutil.copyfile(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,1)))
-                    following = el.replace("id{}.png".format(cell_id), "id0.png")
-                    following=following.replace("_t{}_".format(frame), "_t{}_".format(frame+1))
-                    shutil.copyfile(os.path.join(folder, following), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,2)))
-                    i+=1
                 if pl not in result:
                     result[pl]={well:defaultdict(list)}
                 elif well not in result[pl]:
