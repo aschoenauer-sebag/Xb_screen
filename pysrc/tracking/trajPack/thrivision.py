@@ -239,7 +239,7 @@ class featureExtraction(object):
                         else:
                             if not np.any(np.isnan(features[line])):
                                 result=features[line] if result is None else np.vstack((result, features[line]))
-                                image_list.append((plate, self.settings.outputImage.format(self.plate, self.well.split('_')[0]," ", frame,  cell_id)))
+                                image_list.append((plate, self.settings.outputImage.format(plate, well.split('_')[0]," ", frame,  cell_id)))
         return result, image_list
                     
     def _saveResults(self, matrix, filename):
