@@ -9,6 +9,7 @@ from util import settings
 from optparse import OptionParser
 from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
+import shutil
 
 def _traintestClassif():
     from sklearn.cross_validation import KFold
@@ -100,6 +101,21 @@ class featureExtraction(object):
             
         return  result
     
+    def _copyImages(self, loadingFolders):
+        i=0
+        for folder in sorted(loadingFolders):
+            element_list = sorted(filter(lambda x: 'crop' in x and int(x.split('_')[-1][2:-4])!=0, os.listdir(folder)))
+            try:
+                os.mkdir(os.path.join(self.settings.outputFolder, 'test_set'))
+            except:
+                pass
+            
+            for el in element_list:
+                cell_id = int(el.split('_')[-1][2:-4])
+                shutil.copy(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,1)))
+                shutil.copy(os.path.join(folder, el.replace("id{}.png".format(cell_id), "id0.png")), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,2)))
+                i+=1
+            
     def _getFeatures(self, elements):
         if self.settings.new_h5:
             file_=os.path.join(self.settings.hdf5Folder, "{}", 'hdf5', "{}.ch5")
@@ -110,13 +126,13 @@ class featureExtraction(object):
             path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary"
             path_features="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_features"
         result=None
-        for plate in elements:
-            for well in elements[plate]:
+        for plate in sorted(elements):
+            for well in sorted(elements[plate]):
                 objects = vi.readHDF5(file_.format(plate, well), path_objects.format(plate, well.split('_')[0]))
                 features=vi.readHDF5(file_.format(plate, well), path_features.format(plate, well.split('_')[0]))
                 
-                for frame in elements[plate][well]:
-                    for cell_id in elements[plate][well][frame]:
+                for frame in sorted(elements[plate][well]):
+                    for cell_id in sorted(elements[plate][well][frame]):
                         try:
                             line = np.where((objects['time_idx']==frame)&(objects['obj_label_id']==cell_id))[0]
                         except:
@@ -142,7 +158,9 @@ class featureExtraction(object):
         feature_matrix = self._getFeatures(elements)
         feature_matrix=np.delete(feature_matrix, np.where(np.isnan(feature_matrix))[0],0)
         if filename is not None:
+            #meaning we are dealing with test set
             self._saveResults(feature_matrix, filename)
+            self._copyImages(loadingFolders)
         
         return feature_matrix
     
