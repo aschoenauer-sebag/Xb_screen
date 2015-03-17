@@ -15,7 +15,7 @@ from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 import shutil
 
-def _traintestClassif(loadingFolder, cv=10):
+def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10):
     f=open(os.path.join(loadingFolder, "thrivisions_featureMatrix_training.pkl"))
     X=pickle.load(f); f.close()
     y=X[:,-1]; X=X[:,:-1]
@@ -30,7 +30,8 @@ def _traintestClassif(loadingFolder, cv=10):
         # Set the parameters by cross-validation
         tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-1,1e-2,1e-3, 1e-4],
                              'C': [1, 10, 100, 1000]},
-                            {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}]
+                            #{'kernel': ['linear'], 'C': [1, 10, 100, 1000]}
+                            ]
         
         scores = ['precision', 'recall']
         
@@ -142,7 +143,9 @@ class featureExtraction(object):
 
                 if copy:
                     shutil.copyfile(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,1)))
-                    shutil.copyfile(os.path.join(folder, el.replace("id{}.png".format(cell_id), "id0.png")), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,2)))
+                    following = el.replace("id{}.png".format(cell_id), "id0.png")
+                    following=following.replace("t{}".format(frame), "t{}".format(frame+1))
+                    shutil.copyfile(os.path.join(folder, following), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,2)))
                     i+=1
                 if pl not in result:
                     result[pl]={well:defaultdict(list)}
