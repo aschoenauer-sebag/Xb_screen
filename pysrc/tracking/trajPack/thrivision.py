@@ -179,8 +179,7 @@ class featureExtraction(object):
                 cell_id = int(decomp[-1][2:-4])
                 frame = int(decomp[-2][1:])
                 print i-len(np.where(toDel<i)[0])
-                if i-len(np.where(toDel<i)[0])==2900:
-                    pdb.set_trace()
+
                 shutil.copyfile(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i-len(np.where(toDel<i)[0]),1)))
                 following = el.replace("id{}.png".format(cell_id), "id0.png")
                 following=following.replace("_t{}_".format(frame), "_t{}_".format(frame+1))
@@ -235,11 +234,9 @@ class featureExtraction(object):
         elements = self._getElements(loadingFolders)
         
         feature_matrix = self._getFeatures(elements)
-        print feature_matrix.shape
-        toDel = np.where(np.isnan(feature_matrix))[0]
-        print len(toDel)
+        toDel = np.unique(np.where(np.isnan(feature_matrix))[0])
         feature_matrix=np.delete(feature_matrix, toDel,0)
-        print feature_matrix.shape
+        print "Feature matrix shape", feature_matrix.shape
         if filename is not None:
             #meaning we are dealing with test set
             self._saveResults(feature_matrix, filename)
