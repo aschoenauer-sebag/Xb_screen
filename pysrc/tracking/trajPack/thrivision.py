@@ -15,7 +15,7 @@ from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 import shutil
 
-def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10, predict=False):
+def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_acc=True, predict=False):
     '''
     Double cross-validation 
     '''
@@ -27,45 +27,37 @@ def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10, predict=
     
     toDel=np.where(np.isnan(nX))[1]
     nX = np.delete(nX, toDel, 1)
-    
-    for k in range(10):
-        print "--------------",k
-        # Split the dataset in two parts
-        X_train, X_test, y_train, y_test = train_test_split(nX, y, test_size=0.2)
-        print np.sum(y_train)
-        # Set the parameters by cross-validation
-        tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-1,1e-2,1e-3, 1e-4],
-                             'C': [1, 10, 100, 1000]},
-                            #{'kernel': ['linear'], 'C': [1, 10, 100, 1000]}
-                            ]
+    if estimate_acc:
+        for k in range(10):
+            print "--------------",k
+            # Split the dataset in two parts
+            X_train, X_test, y_train, y_test = train_test_split(nX, y, test_size=0.2)
+            print np.sum(y_train)
+            # Set the parameters by cross-validation
+            tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-1,1e-2,1e-3, 1e-4],
+                                 'C': [1, 10, 100, 1000]},
+                                #{'kernel': ['linear'], 'C': [1, 10, 100, 1000]}
+                                ]
+            
+            def loss(y_pred, y_test):
+                return len(np.where(y_pred!=y_test)[0])/float(len(y_test))
         
-        def loss(y_pred, y_test):
-            return len(np.where(y_pred!=y_test)[0])/float(len(y_test))
-    
-        print("# Tuning hyper-parameters for loss")
-        print()
-    
-        clf = GridSearchCV(SVC(class_weight="auto"), param_grid=tuned_parameters, cv=cv, loss_func=loss)
-        clf.fit(X_train, y_train)
-    
-        print("Best parameters set found on development set:")
-        print()
-        print(clf.best_estimator_)
-#         print()
-#         print("Grid scores on development set:")
-#         print()
-#         for params, mean_score, scores in clf.grid_scores_:
-#             print("%0.3f (+/-%0.03f) for %r"
-#                   % (mean_score, scores.std() / 2, params))
-#         print()
-    
-        print("Detailed classification report:\n")
-        print("The model is trained on the full development set.\n")
-        print("The scores are computed on the full evaluation set.\n")
-        y_true, y_pred = y_test, clf.predict(X_test)
-        print(classification_report(y_true, y_pred))
+            print("# Tuning hyper-parameters for loss")
+            print()
         
-    #TODO also check how one can quickly visualize prediction on new movies. For this need to write somewhere the images to which the lines in the feature matrix corresponds
+            clf = GridSearchCV(SVC(class_weight="auto"), param_grid=tuned_parameters, cv=cv, loss_func=loss)
+            clf.fit(X_train, y_train)
+        
+            print("Best parameters set found on development set:")
+            print()
+            print(clf.best_estimator_)
+        
+            print("Detailed classification report:\n")
+            print("The model is trained on the full development set.\n")
+            print("The scores are computed on the full evaluation set.\n")
+            y_true, y_pred = y_test, clf.predict(X_test)
+            print(classification_report(y_true, y_pred))
+        
     if predict:
         model = GridSearchCV(SVC(class_weight="auto"), param_grid=tuned_parameters, cv=cv, loss_func=loss)
         model.fit(nX,y)
@@ -195,23 +187,6 @@ class featureExtraction(object):
             following=following.replace("_t{}_".format(frame), "_t{}_".format(frame+1))
             shutil.copyfile(os.path.join(folder, following), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,2)))
             i+=1
-#         
-#         for folder in sorted(loadingFolders):
-#             element_list = filter(lambda x: 'crop' in x and int(x.split('_')[-1][2:-4])!=0, os.listdir(folder))
-#             for el in sorted(element_list):
-#                 if i in toDel:
-#                     i+=1
-#                     continue
-#                 decomp=el.split('_')
-#                 cell_id = int(decomp[-1][2:-4])
-#                 frame = int(decomp[-2][1:])
-#                 print i-len(np.where(toDel<i)[0])
-# 
-#                 shutil.copyfile(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i-len(np.where(toDel<i)[0]),1)))
-#                 following = el.replace("id{}.png".format(cell_id), "id0.png")
-#                 following=following.replace("_t{}_".format(frame), "_t{}_".format(frame+1))
-#                 shutil.copyfile(os.path.join(folder, following), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i-len(np.where(toDel<i)[0]),2)))
-#                 i+=1 
                 
         return
             
