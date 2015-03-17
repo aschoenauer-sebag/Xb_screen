@@ -79,10 +79,9 @@ def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10, predict=
             raise ValueError
         
         y_pred=model.predict(nX_pred)
+        return y_pred
         
         
-        
-    pass
 
 def scriptThrivision(exp_list, baseName='thrivision'):
     fileNumber = int(len(exp_list)/float(jobSize))+1
@@ -168,11 +167,13 @@ class featureExtraction(object):
         return  result
     
     def _copyImages(self, toDel, loadingFolders):
+        print "Copying images"
         i=0
         for folder in sorted(loadingFolders):
             element_list = filter(lambda x: 'crop' in x and int(x.split('_')[-1][2:-4])!=0, os.listdir(folder))
             for el in sorted(element_list):
                 if i in toDel:
+                    print "youpi ",i
                     i+=1
                     continue
                 decomp=el.split('_')
@@ -233,8 +234,11 @@ class featureExtraction(object):
         elements = self._getElements(loadingFolders)
         
         feature_matrix = self._getFeatures(elements)
+        print feature_matrix.shape
         toDel = np.where(np.isnan(feature_matrix))[0]
+        print len(toDel)
         feature_matrix=np.delete(feature_matrix, toDel,0)
+        print feature_matrix.shape
         if filename is not None:
             #meaning we are dealing with test set
             self._saveResults(feature_matrix, filename)
