@@ -173,13 +173,12 @@ class featureExtraction(object):
             element_list = filter(lambda x: 'crop' in x and int(x.split('_')[-1][2:-4])!=0, os.listdir(folder))
             for el in sorted(element_list):
                 if i in toDel:
-                    print "youpi ",i
                     i+=1
                     continue
                 decomp=el.split('_')
                 cell_id = int(decomp[-1][2:-4])
                 frame = int(decomp[-2][1:])
-
+                print i-len(np.where(toDel<i)[0])
                 shutil.copyfile(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i-len(np.where(toDel<i)[0]),1)))
                 following = el.replace("id{}.png".format(cell_id), "id0.png")
                 following=following.replace("_t{}_".format(frame), "_t{}_".format(frame+1))
