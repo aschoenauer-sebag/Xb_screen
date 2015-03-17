@@ -179,6 +179,8 @@ class featureExtraction(object):
                 cell_id = int(decomp[-1][2:-4])
                 frame = int(decomp[-2][1:])
                 print i-len(np.where(toDel<i)[0])
+                if i-len(np.where(toDel<i)[0])==2900:
+                    pdb.set_trace()
                 shutil.copyfile(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i-len(np.where(toDel<i)[0]),1)))
                 following = el.replace("id{}.png".format(cell_id), "id0.png")
                 following=following.replace("_t{}_".format(frame), "_t{}_".format(frame+1))
