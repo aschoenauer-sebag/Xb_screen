@@ -3,6 +3,10 @@ import os, vigra, pdb, sys
 import numpy as np
 import cPickle as pickle
 import vigra.impex as vi
+from sklearn.cross_validation import train_test_split
+from sklearn.grid_search import GridSearchCV
+from sklearn.metrics import classification_report
+from sklearn.svm import SVC
 
 from collections import defaultdict
 from util import settings
@@ -11,9 +15,52 @@ from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 import shutil
 
-def _traintestClassif():
-    from sklearn.cross_validation import KFold
+def _traintestClassif(loadingFolder, cv=10):
+    f=open(os.path.join(loadingFolder, "thrivisions_featureMatrix_training.pkl"))
+    X=pickle.load(f); f.close()
+    y=X[:,-1]; X=X[:,:-1]
+    mean = np.mean(X,0); std=np.std(X,0)
+    nX=(X-mean)/std
     
+    for k in range(10):
+        print "--------------",k
+        # Split the dataset in two parts
+        X_train, X_test, y_train, y_test = train_test_split(nX, y, test_size=0.1, random_state=0)
+    
+        # Set the parameters by cross-validation
+        tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-1,1e-2,1e-3, 1e-4],
+                             'C': [1, 10, 100, 1000]},
+                            {'kernel': ['linear'], 'C': [1, 10, 100, 1000]}]
+        
+        scores = ['precision', 'recall']
+        
+        for score in scores:
+            print("# Tuning hyper-parameters for %s" % score)
+            print()
+        
+            clf = GridSearchCV(SVC(class_weight="auto"), tuned_parameters, cv=5, scoring=score)
+            clf.fit(X_train, y_train)
+        
+            print("Best parameters set found on development set:")
+            print()
+            print(clf.best_estimator_)
+            print()
+            print("Grid scores on development set:")
+            print()
+            for params, mean_score, scores in clf.grid_scores_:
+                print("%0.3f (+/-%0.03f) for %r"
+                      % (mean_score, scores.std() / 2, params))
+            print()
+        
+            print("Detailed classification report:")
+            print()
+            print("The model is trained on the full development set.")
+            print("The scores are computed on the full evaluation set.")
+            print()
+            y_true, y_pred = y_test, clf.predict(X_test)
+            print(classification_report(y_true, y_pred))
+            print()
+        
     #TODO also check how one can quickly visualize prediction on new movies. For this need to write somewhere the images to which the lines in the feature matrix corresponds
     
     pass
@@ -79,11 +126,11 @@ class featureExtraction(object):
     def __init__(self, settings_file):
         self.settings=settings.Settings(settings_file, globals())
         
-    def _getElements(self, loadingFolders):
-        result={}
-        for folder in loadingFolders:
+    def _getElements(self, loadingFolders, copy=False):
+        result={}; i=0
+        for folder in sorted(loadingFolders):
             element_list = filter(lambda x: 'crop' in x and int(x.split('_')[-1][2:-4])!=0, os.listdir(folder))
-            for el in element_list:
+            for el in sorted(element_list):
                 decomp=el.split('_')
                 cell_id = int(decomp[-1][2:-4])
                 frame = int(decomp[-2][1:])
@@ -92,7 +139,11 @@ class featureExtraction(object):
                 for x in decomp[1:-4]:
                     pl+="{}_".format(x)
                 pl=pl[1:-1]
-                
+
+                if copy:
+                    shutil.copyfile(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,1)))
+                    shutil.copy(os.path.join(folder, el.replace("id{}.png".format(cell_id), "id0.png")), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,2)))
+                    i+=1
                 if pl not in result:
                     result[pl]={well:defaultdict(list)}
                 elif well not in result[pl]:
@@ -100,21 +151,6 @@ class featureExtraction(object):
                 result[pl][well][frame].append(cell_id)
             
         return  result
-    
-    def _copyImages(self, loadingFolders):
-        i=0
-        for folder in sorted(loadingFolders):
-            element_list = sorted(filter(lambda x: 'crop' in x and int(x.split('_')[-1][2:-4])!=0, os.listdir(folder)))
-            try:
-                os.mkdir(os.path.join(self.settings.outputFolder, 'test_set'))
-            except:
-                pass
-            
-            for el in element_list:
-                cell_id = int(el.split('_')[-1][2:-4])
-                shutil.copy(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,1)))
-                shutil.copy(os.path.join(folder, el.replace("id{}.png".format(cell_id), "id0.png")), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,2)))
-                i+=1
             
     def _getFeatures(self, elements):
         if self.settings.new_h5:
@@ -143,24 +179,31 @@ class featureExtraction(object):
         return result
                     
     def _saveResults(self, matrix, filename):
+        print "Saving results"
         f=open(os.path.join(self.settings.outputFolder, filename), 'w')
         pickle.dump(matrix, f); f.close()
         
         return 1
     
     def __call__(self, loadingFolders=None, filename=None):
+        copy_image_testing=False
         if loadingFolders ==None:
+            #Meaning we are dealing with the test set
+            copy_image_testing=True
             loadingFolders=[os.path.join(self.settings.outputFolder, plate) \
                             for plate in filter(lambda x: os.path.isdir(os.path.join(self.settings.outputFolder,x)) and 'LT' in x, os.listdir(self.settings.outputFolder))]
+            try:
+                os.mkdir(os.path.join(self.settings.outputFolder, 'test_set'))
+            except:
+                pass
             
-        elements = self._getElements(loadingFolders)
+        elements = self._getElements(loadingFolders, copy=copy_image_testing)
         
         feature_matrix = self._getFeatures(elements)
         feature_matrix=np.delete(feature_matrix, np.where(np.isnan(feature_matrix))[0],0)
         if filename is not None:
             #meaning we are dealing with test set
             self._saveResults(feature_matrix, filename)
-            self._copyImages(loadingFolders)
         
         return feature_matrix
     
@@ -179,11 +222,10 @@ class trainingFeatureExtraction(featureExtraction):
         print "Working on negative examples"
         matrix_FALSE=extractor(loadingFolders = [os.path.join(self.settings.outputFolder, 'False')], filename =None)
 
-        matrix_FALSE=np.hstack((matrix_FALSE, np.ones(shape=(matrix_FALSE.shape[0],1))))
+        matrix_FALSE=np.hstack((matrix_FALSE, np.zeros(shape=(matrix_FALSE.shape[0],1))))
         matrix_TRUE=np.hstack((matrix_TRUE, np.ones(shape=(matrix_TRUE.shape[0],1))))
         matrix=np.vstack((matrix_FALSE, matrix_TRUE))
         
-        print "Saving results"
         self._saveResults(matrix, filename=self.settings.outputTrainingFilename)
         
         return 1
