@@ -69,7 +69,9 @@ def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10, predict=
     if predict:
         model = GridSearchCV(SVC(class_weight="auto"), param_grid=tuned_parameters, cv=cv, loss_func=loss)
         model.fit(nX,y)
-        
+        print("Best parameters set found on whole dataset:")
+        print()
+        print(model.best_estimator_)
         
         f=open(os.path.join(loadingFolder, "thrivision_testing.pkl"))
         forPred=pickle.load(f); f.close()
@@ -79,6 +81,18 @@ def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10, predict=
             raise ValueError
         
         y_pred=model.predict(nX_pred)
+        
+        images=sorted(filter(lambda x: "_1.png" in x, os.listdir(os.path.join(loadingFolder, "test_set"))))
+        try:
+            os.mkdir(os.path.join(loadingFolder, "pred_True"))
+        except:
+            pass
+        for i, image in enumerate(images):
+            if bool(y_pred[i]):
+                shutil.move(os.path.join(loadingFolder, "test_set", image), os.path.join(loadingFolder, "pred_True"))
+                shutil.move(os.path.join(loadingFolder, "test_set", image.replace("_1.png", "_2.png")), os.path.join(loadingFolder, "pred_True"))
+        
+        
         return np.array(y_pred, dtype=int)
         
         
@@ -166,25 +180,38 @@ class featureExtraction(object):
             
         return  result
     
-    def _copyImages(self, toDel, loadingFolders):
+    def _copyImages(self, image_list, loadingFolders):
         print "Copying images"
         i=0
-        for folder in sorted(loadingFolders):
-            element_list = filter(lambda x: 'crop' in x and int(x.split('_')[-1][2:-4])!=0, os.listdir(folder))
-            for el in sorted(element_list):
-                if i in toDel:
-                    i+=1
-                    continue
-                decomp=el.split('_')
-                cell_id = int(decomp[-1][2:-4])
-                frame = int(decomp[-2][1:])
-                print i-len(np.where(toDel<i)[0])
-
-                shutil.copyfile(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i-len(np.where(toDel<i)[0]),1)))
-                following = el.replace("id{}.png".format(cell_id), "id0.png")
-                following=following.replace("_t{}_".format(frame), "_t{}_".format(frame+1))
-                shutil.copyfile(os.path.join(folder, following), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i-len(np.where(toDel<i)[0]),2)))
-                i+=1 
+        
+        for pl, image in image_list:
+            folder = os.path.join(self.settings.outputFolder, pl)
+            el= filter(lambda x: image.split(' ')[0] in x and image.split(' ')[1] in x, os.listdir(folder))[0]
+            shutil.copyfile(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,1)))
+            decomp=el.split('_')
+            cell_id = int(decomp[-1][2:-4])
+            frame = int(decomp[-2][1:])
+            following = el.replace("id{}.png".format(cell_id), "id0.png")
+            following=following.replace("_t{}_".format(frame), "_t{}_".format(frame+1))
+            shutil.copyfile(os.path.join(folder, following), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,2)))
+            i+=1
+#         
+#         for folder in sorted(loadingFolders):
+#             element_list = filter(lambda x: 'crop' in x and int(x.split('_')[-1][2:-4])!=0, os.listdir(folder))
+#             for el in sorted(element_list):
+#                 if i in toDel:
+#                     i+=1
+#                     continue
+#                 decomp=el.split('_')
+#                 cell_id = int(decomp[-1][2:-4])
+#                 frame = int(decomp[-2][1:])
+#                 print i-len(np.where(toDel<i)[0])
+# 
+#                 shutil.copyfile(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i-len(np.where(toDel<i)[0]),1)))
+#                 following = el.replace("id{}.png".format(cell_id), "id0.png")
+#                 following=following.replace("_t{}_".format(frame), "_t{}_".format(frame+1))
+#                 shutil.copyfile(os.path.join(folder, following), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i-len(np.where(toDel<i)[0]),2)))
+#                 i+=1 
                 
         return
             
@@ -197,7 +224,7 @@ class featureExtraction(object):
             file_=os.path.join(self.settings.hdf5Folder, "{}", 'hdf5', "{}.hdf5")
             path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary"
             path_features="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_features"
-        result=None
+        result=None; image_list=[]
         for plate in sorted(elements):
             for well in sorted(elements[plate]):
                 objects = vi.readHDF5(file_.format(plate, well), path_objects.format(plate, well.split('_')[0]))
@@ -210,9 +237,10 @@ class featureExtraction(object):
                         except:
                             pdb.set_trace()
                         else:
-                            result=features[line] if result is None else np.vstack((result, features[line]))
-                            
-        return result
+                            if not np.any(np.isnan(features[line])):
+                                result=features[line] if result is None else np.vstack((result, features[line]))
+                                image_list.append((plate, self.settings.outputImage.format(self.plate, self.well.split('_')[0]," ", frame,  cell_id)))
+        return result, image_list
                     
     def _saveResults(self, matrix, filename):
         print "Saving results"
@@ -233,14 +261,14 @@ class featureExtraction(object):
             
         elements = self._getElements(loadingFolders)
         
-        feature_matrix = self._getFeatures(elements)
-        toDel = np.unique(np.where(np.isnan(feature_matrix))[0])
-        feature_matrix=np.delete(feature_matrix, toDel,0)
+        feature_matrix, image_list = self._getFeatures(elements)
+#         toDel = np.unique(np.where(np.isnan(feature_matrix))[0])
+#         feature_matrix=np.delete(feature_matrix, toDel,0)
         print "Feature matrix shape", feature_matrix.shape
         if filename is not None:
             #meaning we are dealing with test set
             self._saveResults(feature_matrix, filename)
-            self._copyImages(toDel, loadingFolders)
+            self._copyImages(image_list, loadingFolders)
         
         return feature_matrix
     
