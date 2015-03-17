@@ -174,7 +174,6 @@ class featureExtraction(object):
             for el in sorted(element_list):
                 if i in toDel:
                     print "youpi ",i
-                    i+=1
                     continue
                 decomp=el.split('_')
                 cell_id = int(decomp[-1][2:-4])
