@@ -15,55 +15,73 @@ from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 import shutil
 
-def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10):
+def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10, predict=False):
+    '''
+    Double cross-validation 
+    '''
     f=open(os.path.join(loadingFolder, "thrivisions_featureMatrix_training.pkl"))
     X=pickle.load(f); f.close()
     y=X[:,-1]; X=X[:,:-1]
     mean = np.mean(X,0); std=np.std(X,0)
     nX=(X-mean)/std
     
+    toDel=np.where(np.isnan(nX))[1]
+    nX = np.delete(nX, toDel, 1)
+    
     for k in range(10):
         print "--------------",k
         # Split the dataset in two parts
-        X_train, X_test, y_train, y_test = train_test_split(nX, y, test_size=0.1, random_state=0)
-    
+        X_train, X_test, y_train, y_test = train_test_split(nX, y, test_size=0.2)
+        print np.sum(y_train)
         # Set the parameters by cross-validation
         tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-1,1e-2,1e-3, 1e-4],
                              'C': [1, 10, 100, 1000]},
                             #{'kernel': ['linear'], 'C': [1, 10, 100, 1000]}
                             ]
         
-        scores = ['precision', 'recall']
-        
-        for score in scores:
-            print("# Tuning hyper-parameters for %s" % score)
-            print()
-        
-            clf = GridSearchCV(SVC(class_weight="auto"), tuned_parameters, cv=5, scoring=score)
-            clf.fit(X_train, y_train)
-        
-            print("Best parameters set found on development set:")
-            print()
-            print(clf.best_estimator_)
-            print()
-            print("Grid scores on development set:")
-            print()
-            for params, mean_score, scores in clf.grid_scores_:
-                print("%0.3f (+/-%0.03f) for %r"
-                      % (mean_score, scores.std() / 2, params))
-            print()
-        
-            print("Detailed classification report:")
-            print()
-            print("The model is trained on the full development set.")
-            print("The scores are computed on the full evaluation set.")
-            print()
-            y_true, y_pred = y_test, clf.predict(X_test)
-            print(classification_report(y_true, y_pred))
-            print()
+        def loss(y_pred, y_test):
+            return len(np.where(y_pred!=y_test)[0])/float(len(y_test))
+    
+        print("# Tuning hyper-parameters for loss")
+        print()
+    
+        clf = GridSearchCV(SVC(class_weight="auto"), param_grid=tuned_parameters, cv=cv, loss_func=loss)
+        clf.fit(X_train, y_train)
+    
+        print("Best parameters set found on development set:")
+        print()
+        print(clf.best_estimator_)
+#         print()
+#         print("Grid scores on development set:")
+#         print()
+#         for params, mean_score, scores in clf.grid_scores_:
+#             print("%0.3f (+/-%0.03f) for %r"
+#                   % (mean_score, scores.std() / 2, params))
+#         print()
+    
+        print("Detailed classification report:\n")
+        print("The model is trained on the full development set.\n")
+        print("The scores are computed on the full evaluation set.\n")
+        y_true, y_pred = y_test, clf.predict(X_test)
+        print(classification_report(y_true, y_pred))
         
     #TODO also check how one can quickly visualize prediction on new movies. For this need to write somewhere the images to which the lines in the feature matrix corresponds
-    
+    if predict:
+        model = GridSearchCV(SVC(class_weight="auto"), param_grid=tuned_parameters, cv=cv, loss_func=loss)
+        model.fit(nX,y)
+        
+        
+        f=open(os.path.join(loadingFolder, "thrivision_testing.pkl"))
+        forPred=pickle.load(f); f.close()
+        nX_pred=(forPred-mean)/std
+        nX_pred=np.delete(nX_pred, toDel,1)
+        if np.any(np.isnan(nX_pred)):
+            raise ValueError
+        
+        y_pred=model.predict(nX_pred)
+        
+        
+        
     pass
 
 def scriptThrivision(exp_list, baseName='thrivision'):
@@ -127,8 +145,8 @@ class featureExtraction(object):
     def __init__(self, settings_file):
         self.settings=settings.Settings(settings_file, globals())
         
-    def _getElements(self, loadingFolders, copy=False):
-        result={}; i=0
+    def _getElements(self, loadingFolders):
+        result={}
         for folder in sorted(loadingFolders):
             element_list = filter(lambda x: 'crop' in x and int(x.split('_')[-1][2:-4])!=0, os.listdir(folder))
             for el in sorted(element_list):
@@ -154,6 +172,26 @@ class featureExtraction(object):
                 result[pl][well][frame].append(cell_id)
             
         return  result
+    
+    def _copyImages(self, toDel, loadingFolders):
+        i=0
+        for folder in sorted(loadingFolders):
+            element_list = filter(lambda x: 'crop' in x and int(x.split('_')[-1][2:-4])!=0, os.listdir(folder))
+            for el in sorted(element_list):
+                if i in toDel:
+                    i+=1
+                    continue
+                decomp=el.split('_')
+                cell_id = int(decomp[-1][2:-4])
+                frame = int(decomp[-2][1:])
+
+                shutil.copyfile(os.path.join(folder, el), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,1)))
+                following = el.replace("id{}.png".format(cell_id), "id0.png")
+                following=following.replace("_t{}_".format(frame), "_t{}_".format(frame+1))
+                shutil.copyfile(os.path.join(folder, following), os.path.join(self.settings.outputFolder, "test_set", "{}_{}.png".format(i,2)))
+                i+=1 
+                
+        return
             
     def _getFeatures(self, elements):
         if self.settings.new_h5:
@@ -189,10 +227,8 @@ class featureExtraction(object):
         return 1
     
     def __call__(self, loadingFolders=None, filename=None):
-        copy_image_testing=False
         if loadingFolders ==None:
             #Meaning we are dealing with the test set
-            copy_image_testing=True
             loadingFolders=[os.path.join(self.settings.outputFolder, plate) \
                             for plate in filter(lambda x: os.path.isdir(os.path.join(self.settings.outputFolder,x)) and 'LT' in x, os.listdir(self.settings.outputFolder))]
             try:
@@ -200,13 +236,15 @@ class featureExtraction(object):
             except:
                 pass
             
-        elements = self._getElements(loadingFolders, copy=copy_image_testing)
+        elements = self._getElements(loadingFolders)
         
         feature_matrix = self._getFeatures(elements)
-        feature_matrix=np.delete(feature_matrix, np.where(np.isnan(feature_matrix))[0],0)
+        toDel = np.where(np.isnan(feature_matrix))[0]
+        feature_matrix=np.delete(feature_matrix, toDel,0)
         if filename is not None:
             #meaning we are dealing with test set
             self._saveResults(feature_matrix, filename)
+            self._copyImages(toDel, loadingFolders)
         
         return feature_matrix
     
