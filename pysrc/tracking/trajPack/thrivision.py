@@ -14,8 +14,8 @@ from optparse import OptionParser
 from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 import shutil
-from tracking import PyPack
-from tracking.PyPack import fHacktrack2
+# from tracking import PyPack
+# from tracking.PyPack import fHacktrack2
 
 def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_acc=True, predict=False, move_images=False):
     '''
