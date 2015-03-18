@@ -519,7 +519,7 @@ class thrivisionClassification(thrivisionExtraction, featureExtraction):
         
         prediction = np.sum(self._classify(feature_matrix))/float(nb_object_initial)
         
-        self._saveResults((prediction, nb_object_initial), filename=self.settings.outputPredictingFilename.format(self.plate[:9], self.well))
+        self._saveResults((prediction, nb_object_initial), filename=os.path.join('predictions', self.settings.outputPredictingFilename.format(self.plate[:9], self.well)))
         
         return 1
         
