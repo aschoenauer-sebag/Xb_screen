@@ -15,6 +15,7 @@ from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 import shutil
 from tracking import PyPack
+from tracking.PyPack import fHacktrack2
 
 def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_acc=True, predict=False, move_images=False):
     '''
@@ -535,8 +536,6 @@ Input:
 - settings file
 
 '''
-    import sys; print sys.path
-    sys.path.insert(0,'/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/tracking/PyPack')
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
