@@ -15,6 +15,7 @@ imageFilename = "--W{}--P00001--T{:>05}-"
 trackingFilename='traj_noF_densities_w{}.hdf5.pkl'
 outputImage="crop_P{}_W{}_{}_t{}_id{}.png"
 outputFile="thrivisions_{}_{}.pkl"
+modelFilename = "best_model_thrivision.pkl"
 outputTrainingFilename = "thrivisions_featureMatrix_training.pkl"
 outputTestingFilename="thrivisions_featureMatrix_testing.pkl"
 

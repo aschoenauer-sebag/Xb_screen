@@ -15,7 +15,7 @@ from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 import shutil
 
-def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_acc=True, predict=False):
+def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_acc=True, predict=False, move_images=False):
     '''
     Double cross-validation 
     '''
@@ -65,7 +65,8 @@ def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_a
             percent_FN.append(len(np.where((y_test==1)&(y_pred==0))[0])/float(np.sum(y_test)))
             accuracy.append(1-loss(y_pred, y_test))
             precision.append(len(np.where((y_test==0)&(y_pred==1))[0])/float(len(np.where((y_test==1)&(y_pred==1))[0])))
-            
+        return precision,percent_FN, accuracy
+    
     if predict:
         model = GridSearchCV(SVC(class_weight="auto"), param_grid=tuned_parameters, cv=cv, loss_func=loss)
         model.fit(nX,y)
@@ -81,23 +82,20 @@ def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_a
             raise ValueError
         
         y_pred=model.predict(nX_pred)
+        if move_images:
+            nb_images=len(filter(lambda x: "_1.png" in x, os.listdir(os.path.join(loadingFolder, "test_set"))))
+            print nb_images
+            try:
+                os.mkdir(os.path.join(loadingFolder, "pred_True"))
+            except:
+                pass
+            for i in range(nb_images):
+                if bool(y_pred[i]):
+                    shutil.move(os.path.join(loadingFolder, "test_set", "{}_1.png".format(i)), os.path.join(loadingFolder, "pred_True"))
+                    shutil.move(os.path.join(loadingFolder, "test_set", "{}_2.png".format(i)), os.path.join(loadingFolder, "pred_True"))
         
-        nb_images=len(filter(lambda x: "_1.png" in x, os.listdir(os.path.join(loadingFolder, "test_set"))))
-        print nb_images
-        try:
-            os.mkdir(os.path.join(loadingFolder, "pred_True"))
-        except:
-            pass
-        for i in range(nb_images):
-            if bool(y_pred[i]):
-                shutil.move(os.path.join(loadingFolder, "test_set", "{}_1.png".format(i)), os.path.join(loadingFolder, "pred_True"))
-                shutil.move(os.path.join(loadingFolder, "test_set", "{}_2.png".format(i)), os.path.join(loadingFolder, "pred_True"))
+        return np.array(y_pred, dtype=int), model.best_estimator_, mean, std, toDel
         
-        
-    return np.array(y_pred, dtype=int), precision,percent_FN, accuracy
-        
-        
-
 def scriptThrivision(exp_list, baseName='thrivision'):
     fileNumber = int(len(exp_list)/float(jobSize))+1
     
@@ -151,8 +149,6 @@ python tracking/trajPack/division_in_3.py -p %s -w %s"""
     print 'array containing %i jobs' % fileNumber
     print sub_cmd
     return 1
-
-
 
 
 class featureExtraction(object):
@@ -214,6 +210,8 @@ class featureExtraction(object):
                 objects = vi.readHDF5(file_.format(plate, well), path_objects.format(plate, well.split('_')[0]))
                 features=vi.readHDF5(file_.format(plate, well), path_features.format(plate, well.split('_')[0]))
                 
+                object_initial = len(np.where(objects['time_idx']==0)[0])
+                
                 for frame in sorted(elements[plate][well]):
                     for cell_id in sorted(elements[plate][well][frame]):
                         try:
@@ -224,7 +222,7 @@ class featureExtraction(object):
                             if not np.any(np.isnan(features[line])):
                                 result=features[line] if result is None else np.vstack((result, features[line]))
                                 image_list.append((plate, self.settings.outputImage.format(plate, well.split('_')[0]," ", frame,  cell_id)))
-        return result, tuple(image_list)
+        return result, tuple(image_list), object_initial
                     
     def _saveResults(self, matrix, filename):
         print "Saving results"
@@ -245,7 +243,7 @@ class featureExtraction(object):
             
         elements = self._getElements(loadingFolders)
         
-        feature_matrix, image_list = self._getFeatures(elements)
+        feature_matrix, image_list,_ = self._getFeatures(elements)
 #         toDel = np.unique(np.where(np.isnan(feature_matrix))[0])
 #         feature_matrix=np.delete(feature_matrix, toDel,0)
         print "Feature matrix shape", feature_matrix.shape
@@ -280,8 +278,11 @@ class trainingFeatureExtraction(featureExtraction):
         return 1
 
 class thrivisionExtraction(object):
-    def __init__(self, settings_file, plate, well):
-        self.settings = settings.Settings(settings_file, globals())
+    def __init__(self, settings_file, plate, well, settings=None):
+        if settings is not None:
+            self.settings = settings
+        else:
+            self.settings = settings.Settings(settings_file, globals())
         self.plate = plate
     #NB here the wells are expected in format 00***_01
         self.well = well
@@ -468,7 +469,62 @@ class thrivisionExtraction(object):
         
         return
     
+class thrivisionClassification(featureExtraction, thrivisionExtraction):
+    def __init__(self, settings_file, plate, well):
+        super(thrivisionExtraction, self).__init__(settings_file, plate, well)
+        
+    def _classify(self, feature_matrix):
+        f=open(os.path.join(self.settings.outputFolder, self.settings.modelFilename), 'r')
+        model, mean, std, toDel = pickle.load(f); f.close()
+        
+        nMatrix = (feature_matrix-mean)/std
+        nMatrix = np.delete(nMatrix, toDel, 1)
+        if np.any(np.isnan(nMatrix)):
+            print np.where(np.isnan(nMatrix))
+            raise ValueError
+        
+        return model.predict(nMatrix)
     
+    def _saveResults(self, prediction, nb_objects_initial):
+        try:
+            f=open(os.path.join(self.settings.outputFolder, "thrivision_prediction.pkl"), 'r')
+            plates, wells, predictions, nbs=pickle.load(f); f.close()
+        except IOError:
+            plates, wells, predictions, nbs=[], [],[],[]
+            
+        plates.append(self.plate); wells.append(self.well); predictions.append(prediction); nbs.append(nb_objects_initial)
+        
+        f=open(os.path.join(self.settings.outputFolder, "thrivision_prediction.pkl"), 'w')
+        pickle.dump((plates, wells, predictions, nbs),f); f.close()
+        
+        return
+    
+    def __call__(self):
+        elements={self.plate:{self.well:{}}}
+        #before anything checking that it passed the qc
+        try:
+            assert self._usable()
+        except AssertionError:
+            print "QC failed"
+            return
+
+        #i.load tracking info
+        tracklets, connexions = self.load()
+        
+        #ii. find thrivisions
+        thrivisions = self.findConnexions(tracklets, connexions)
+        
+        elements[self.plate][self.well]={fr:[thrivision[1] for thrivision in thrivisions[fr] if thrivision[-1]!=-1] for fr in thrivisions}
+        pdb.set_trace()
+        feature_matrix,_, nb_object_initial = self._getFeatures(elements)
+        
+        prediction = np.sum(self._classify(feature_matrix))/float(nb_object_initial)
+        
+        self._saveResults(prediction, nb_object_initial)
+        
+        return 1
+        
+            
     
 if __name__ == '__main__':
     verbose=0
@@ -496,7 +552,7 @@ Input:
     
     (options, args) = parser.parse_args()
     
-    thr=thrivisionExtraction(options.settings_file, options.plate, options.well)
+    thr=thrivisionClassification(options.settings_file, options.plate, options.well)
     thr()
     print "Done"
     
