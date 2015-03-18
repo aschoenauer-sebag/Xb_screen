@@ -15,7 +15,7 @@ from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 import shutil
 
-def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_acc=True, predict=False):
+def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_acc=True, predict=False):
     '''
     Double cross-validation 
     '''
@@ -26,7 +26,19 @@ def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_
     nX=(X-mean)/std
     
     toDel=np.where(np.isnan(nX))[1]
-    nX = np.delete(nX, toDel, 1)
+    nX = np.delete(nX, toDel, 1)            
+    tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-1,1e-2,1e-3, 1e-4],
+                         'C': [1, 10, 100, 1000]},
+                        #{'kernel': ['linear'], 'C': [1, 10, 100, 1000]}
+                        ]
+    def loss(y_pred, y_test):
+        '''
+        What is called "accuracy" most of the time
+        '''
+        return len(np.where(y_pred!=y_test)[0])/float(len(y_test))
+    accuracy=[]
+    percent_FN=[]
+    precision=[]
     if estimate_acc:
         for k in range(10):
             print "--------------",k
@@ -34,14 +46,7 @@ def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_
             X_train, X_test, y_train, y_test = train_test_split(nX, y, test_size=0.2)
             print np.sum(y_train)
             # Set the parameters by cross-validation
-            tuned_parameters = [{'kernel': ['rbf'], 'gamma': [1e-1,1e-2,1e-3, 1e-4],
-                                 'C': [1, 10, 100, 1000]},
-                                #{'kernel': ['linear'], 'C': [1, 10, 100, 1000]}
-                                ]
-            
-            def loss(y_pred, y_test):
-                return len(np.where(y_pred!=y_test)[0])/float(len(y_test))
-        
+
             print("# Tuning hyper-parameters for loss")
             print()
         
@@ -57,7 +62,10 @@ def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_
             print("The scores are computed on the full evaluation set.\n")
             y_true, y_pred = y_test, clf.predict(X_test)
             print(classification_report(y_true, y_pred))
-        
+            percent_FN.append(len(np.where((y_test==1)&(y_pred==0))[0])/float(np.sum(y_test)))
+            accuracy.append(1-loss(y_pred, y_test))
+            precision.append(len(np.where((y_test==0)&(y_pred==1))[0])/float(len(np.where((y_test==1)&(y_pred==1))[0])))
+            
     if predict:
         model = GridSearchCV(SVC(class_weight="auto"), param_grid=tuned_parameters, cv=cv, loss_func=loss)
         model.fit(nX,y)
@@ -74,18 +82,19 @@ def _traintestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_
         
         y_pred=model.predict(nX_pred)
         
-        images=sorted(filter(lambda x: "_1.png" in x, os.listdir(os.path.join(loadingFolder, "test_set"))))
+        nb_images=len(filter(lambda x: "_1.png" in x, os.listdir(os.path.join(loadingFolder, "test_set"))))
+        print nb_images
         try:
             os.mkdir(os.path.join(loadingFolder, "pred_True"))
         except:
             pass
-        for i, image in enumerate(images):
+        for i in range(nb_images):
             if bool(y_pred[i]):
-                shutil.move(os.path.join(loadingFolder, "test_set", image), os.path.join(loadingFolder, "pred_True"))
-                shutil.move(os.path.join(loadingFolder, "test_set", image.replace("_1.png", "_2.png")), os.path.join(loadingFolder, "pred_True"))
+                shutil.move(os.path.join(loadingFolder, "test_set", "{}_1.png".format(i)), os.path.join(loadingFolder, "pred_True"))
+                shutil.move(os.path.join(loadingFolder, "test_set", "{}_2.png".format(i)), os.path.join(loadingFolder, "pred_True"))
         
         
-        return np.array(y_pred, dtype=int)
+    return np.array(y_pred, dtype=int), precision,percent_FN, accuracy
         
         
 
@@ -215,7 +224,7 @@ class featureExtraction(object):
                             if not np.any(np.isnan(features[line])):
                                 result=features[line] if result is None else np.vstack((result, features[line]))
                                 image_list.append((plate, self.settings.outputImage.format(plate, well.split('_')[0]," ", frame,  cell_id)))
-        return result, image_list
+        return result, tuple(image_list)
                     
     def _saveResults(self, matrix, filename):
         print "Saving results"
