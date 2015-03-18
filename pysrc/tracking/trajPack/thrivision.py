@@ -484,20 +484,20 @@ class thrivisionClassification(thrivisionExtraction, featureExtraction):
             raise ValueError
         
         return model.predict(nMatrix)
-    
-    def _saveResults(self, prediction, nb_objects_initial):
-        try:
-            f=open(os.path.join(self.settings.outputFolder, "thrivision_prediction.pkl"), 'r')
-            plates, wells, predictions, nbs=pickle.load(f); f.close()
-        except IOError:
-            plates, wells, predictions, nbs=[], [],[],[]
-            
-        plates.append(self.plate); wells.append(self.well); predictions.append(prediction); nbs.append(nb_objects_initial)
-        
-        f=open(os.path.join(self.settings.outputFolder, "thrivision_prediction.pkl"), 'w')
-        pickle.dump((plates, wells, predictions, nbs),f); f.close()
-        
-        return
+#     
+#     def _saveResults(self, prediction, nb_objects_initial):
+#         try:
+#             f=open(os.path.join(self.settings.outputFolder, "thrivision_prediction.pkl"), 'r')
+#             plates, wells, predictions, nbs=pickle.load(f); f.close()
+#         except IOError:
+#             plates, wells, predictions, nbs=[], [],[],[]
+#             
+#         plates.append(self.plate); wells.append(self.well); predictions.append(prediction); nbs.append(nb_objects_initial)
+#         
+#         f=open(os.path.join(self.settings.outputFolder, "thrivision_prediction.pkl"), 'w')
+#         pickle.dump((plates, wells, predictions, nbs),f); f.close()
+#         
+#         return
     
     def __call__(self):
         elements={self.plate:{self.well:{}}}
@@ -519,7 +519,7 @@ class thrivisionClassification(thrivisionExtraction, featureExtraction):
         
         prediction = np.sum(self._classify(feature_matrix))/float(nb_object_initial)
         
-        self._saveResults(prediction, nb_object_initial)
+        self._saveResults((prediction, nb_object_initial), filename=self.settings.outputPredictingFilename.format(self.plate[:9], self.well))
         
         return 1
         
@@ -535,6 +535,7 @@ Input:
 - settings file
 
 '''
+    #Surreal: apparently I need to do this because I changed the architecture of my code between the computation of the trajectories and now that I need to reopen the files
     from tracking import PyPack
     sys.modules['PyPack.fHacktrack2']=PyPack.fHacktrack2
     parser = OptionParser(usage="usage: %prog [options]",

@@ -18,6 +18,7 @@ outputFile="thrivisions_{}_{}.pkl"
 modelFilename = "best_model_thrivision.pkl"
 outputTrainingFilename = "thrivisions_featureMatrix_training.pkl"
 outputTestingFilename="thrivisions_featureMatrix_testing.pkl"
+outputPredictingFilename = "thripred_{}_{}.pkl"
 
 min_=1
 max_=2**8
