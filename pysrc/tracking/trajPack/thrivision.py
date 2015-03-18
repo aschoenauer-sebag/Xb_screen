@@ -96,7 +96,7 @@ def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_a
         
         return np.array(y_pred, dtype=int), model.best_estimator_, mean, std, toDel
         
-def scriptThrivision(exp_list, baseName='thrivision'):
+def scriptThrivision(exp_list, baseName='thri_class'):
     fileNumber = int(len(exp_list)/float(jobSize))+1
     
     head = """#!/bin/sh
