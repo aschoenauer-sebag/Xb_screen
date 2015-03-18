@@ -535,9 +535,8 @@ Input:
 - settings file
 
 '''
-    sys.path.append('/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/tracking/PyPack')
-    print sys.modules
-    pdb.set_trace()
+    from tracking import PyPack
+    sys.modules['PyPack.fHacktrack2']=PyPack.fHacktrack2
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
