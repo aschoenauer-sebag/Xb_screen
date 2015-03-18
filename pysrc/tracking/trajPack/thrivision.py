@@ -537,6 +537,8 @@ Input:
 
 '''
     import sys; print sys.path
+    sys.path[0]=''
+    print sys.path
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
