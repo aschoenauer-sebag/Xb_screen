@@ -16,6 +16,33 @@ from util import jobSize, progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, p
 from tracking.trajPack.tracking_script import path_command
 import shutil
 
+def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', outputFilename = "thripred_{}_{}.pkl"):
+    
+    results = filter(lambda x: 'thripred' in x, os.listdir(loadingFolder))
+    who=[]; siRNA=[]; genes=[]
+    nb_objects=[]; percent_thrivision=[]
+    for result in results:
+        try:
+            f=open(os.path.join(loadingFolder, result))
+            percent, nb_ob = pickle.load(f); f.close()
+        except OSError, IOError:
+            pdb.set_trace()
+        else:
+            who.append((result[9:18], result[19:27]))
+            nb_objects.append(nb_ob)
+            percent_thrivision.append(percent)
+            
+    import matplotlib.pyplot as p
+    f=p.figure(); ax=f.add_subplot(121)
+    nb,b,patches = ax.hist(percent_thrivision, bins=50)
+    ax.set_title('Distribution of thrivision percentages in the Mitocheck dataset')
+    ax=f.add_subplot(122)
+    nb,b,patches = ax.hist(nb_objects, bins=50)
+    ax.set_title('Distribution of initial object number in the Mitocheck dataset')
+    p.show()
+    return who, nb_objects, percent_thrivision
+        
+
 def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_acc=True, predict=False, move_images=False):
     '''
     Double cross-validation 
