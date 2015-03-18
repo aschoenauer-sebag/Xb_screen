@@ -536,7 +536,7 @@ Input:
 
 '''
     import sys; print sys.path
-    sys.path.append('/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/tracking/PyPack')
+    sys.path.insert(0,'/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/tracking/PyPack')
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
