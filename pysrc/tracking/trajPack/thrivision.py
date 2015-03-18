@@ -513,7 +513,7 @@ class thrivisionClassification(thrivisionExtraction, featureExtraction):
         #ii. find thrivisions
         thrivisions = self.findConnexions(tracklets, connexions)
         
-        elements[self.plate][self.well]={fr:[thrivision[1] for thrivision in thrivisions[fr] if thrivision[-1]!=-1] for fr in thrivisions}
+        elements[self.plate][self.well]={fr:[thrivision[1] for thrivision in thrivisions[fr] if thrivision[-1]==-1] for fr in thrivisions}
         pdb.set_trace()
         feature_matrix,_, nb_object_initial = self._getFeatures(elements)
         
