@@ -471,7 +471,7 @@ class thrivisionExtraction(object):
         
         return
     
-class thrivisionClassification(featureExtraction, thrivisionExtraction):
+class thrivisionClassification(thrivisionExtraction, featureExtraction):
     def __init__(self, settings_file, plate, well):
         super(thrivisionClassification, self).__init__(settings_file, plate, well)
         
