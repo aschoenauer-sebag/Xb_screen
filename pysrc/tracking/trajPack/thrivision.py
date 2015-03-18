@@ -1,4 +1,4 @@
-import os, vigra, pdb
+import os, vigra, pdb, sys
 
 import numpy as np
 import cPickle as pickle
@@ -12,10 +12,9 @@ from collections import defaultdict
 from util import settings
 from optparse import OptionParser
 from util.listFileManagement import usable_MITO
-from util import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
+from util import jobSize, progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, pbsOutDir
+from tracking.trajPack.tracking_script import path_command
 import shutil
-# from tracking import PyPack
-# from tracking.PyPack import fHacktrack2
 
 def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_acc=True, predict=False, move_images=False):
     '''
@@ -537,7 +536,6 @@ Input:
 
 '''
     import sys; print sys.path
-    sys.path.insert(0, "tracking/PyPack")
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
