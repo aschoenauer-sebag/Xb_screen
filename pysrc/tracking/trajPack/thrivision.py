@@ -1,4 +1,4 @@
-import os, vigra, pdb, sys
+import os, vigra, pdb
 
 import numpy as np
 import cPickle as pickle
@@ -536,6 +536,7 @@ Input:
 
 '''
     import sys; print sys.path
+    sys.path.append('/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/tracking/PyPack')
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
