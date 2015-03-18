@@ -153,6 +153,7 @@ python tracking/trajPack/division_in_3.py -p %s -w %s"""
 
 class featureExtraction(object):
     def __init__(self, settings_file):
+        print "Youpli"
         self.settings=settings.Settings(settings_file, globals())
         
     def _getElements(self, loadingFolders):
@@ -279,6 +280,7 @@ class trainingFeatureExtraction(featureExtraction):
 
 class thrivisionExtraction(object):
     def __init__(self, settings_file, plate, well, settings=None):
+        print "Youpla"
         if settings is not None:
             self.settings = settings
         else:
@@ -471,7 +473,7 @@ class thrivisionExtraction(object):
     
 class thrivisionClassification(featureExtraction, thrivisionExtraction):
     def __init__(self, settings_file, plate, well):
-        super(thrivisionExtraction, self).__init__(settings_file, plate, well)
+        super(thrivisionClassification, self).__init__(settings_file, plate, well)
         
     def _classify(self, feature_matrix):
         f=open(os.path.join(self.settings.outputFolder, self.settings.modelFilename), 'r')
