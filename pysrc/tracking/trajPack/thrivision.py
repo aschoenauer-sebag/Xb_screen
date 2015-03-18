@@ -106,7 +106,7 @@ cd %s""" %progFolder
         cmd = ''
         for pl, w in exp_list[jobSize*k:jobSize*(k+1)]:
             temp_cmd = """
-python tracking/trajPack/division_in_3.py -p %s -w %s"""
+python tracking/trajPack/thrivision.py -p %s -w %s"""
             temp_cmd %= (
                         pl,
                         w
