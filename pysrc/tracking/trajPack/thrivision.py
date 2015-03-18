@@ -536,6 +536,8 @@ Input:
 
 '''
     sys.path.append('/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/tracking/PyPack')
+    print sys.modules
+    pdb.set_trace()
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
