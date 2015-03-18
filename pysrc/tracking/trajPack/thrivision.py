@@ -534,6 +534,7 @@ Input:
 - settings file
 
 '''
+    import sys; print sys.path
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
