@@ -309,7 +309,6 @@ class thrivisionExtraction(object):
         '''
         Here it is important that we also record the tracklet dictionary because that's where the cell ids are, to find back the bounding box in h5 files
         '''
-        print sys.path; pdb.set_trace()
         try:
             f=open(os.path.join(self.settings.trackingFolder, self.plate, self.settings.trackingFilename.format(self.well)))
             d=pickle.load(f); f.close()
@@ -536,6 +535,7 @@ Input:
 - settings file
 
 '''
+    sys.path.append('/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc/tracking/PyPack')
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
