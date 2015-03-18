@@ -279,12 +279,9 @@ class trainingFeatureExtraction(featureExtraction):
         return 1
 
 class thrivisionExtraction(object):
-    def __init__(self, settings_file, plate, well, settings=None):
+    def __init__(self, settings_file, plate, well):
         print "Youpla"
-        if settings is not None:
-            self.settings = settings
-        else:
-            self.settings = settings.Settings(settings_file, globals())
+        self.settings = settings.Settings(settings_file, globals())
         self.plate = plate
     #NB here the wells are expected in format 00***_01
         self.well = well
