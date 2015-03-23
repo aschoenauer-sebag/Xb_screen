@@ -44,7 +44,7 @@ def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', out
                 try:
                     genes.append(dictSiEntrez[siCourant])
                 except KeyError:
-                    if siCourant=="scramble":
+                    if siCourant in ["scramble", '103860', '251283']:
                         genes.append('ctrl')
                     else:
                         pdb.set_trace()
