@@ -41,7 +41,14 @@ def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', out
                 percent_thrivision.append(percent)
                 siCourant = yqualDict[result[9:18]+'--'+result[21:24]]
                 siRNA.append(siCourant)
-                genes.append(dictSiEntrez[siCourant])
+                try:
+                    genes.append(dictSiEntrez[siCourant])
+                except KeyError:
+                    if siCourant=="scramble":
+                        genes.append('ctrl')
+                    else:
+                        pdb.set_trace()
+                        genes.append('ctrl')
         f=open(os.path.join(loadingFolder, "all_predictions.pkl"), 'w')
         pickle.dump((nb_objects, percent_thrivision, who, genes, siRNA),f); f.close()
         return
