@@ -55,10 +55,11 @@ def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', out
     else:
         f=open(os.path.join(loadingFolder, "all_predictions.pkl"), 'r')
         nb_objects, percent_thrivision, who, genes, siRNA = pickle.load(f); f.close()
+        percent_thrivision=np.array(percent_thrivision)
         if sh:
             import matplotlib.pyplot as p
             f=p.figure(); ax=f.add_subplot(121)
-            nb,b,patches = ax.hist(percent_thrivision, bins=50)
+            nb,b,patches = ax.hist(percent_thrivision[np.where(np.isfinite(percent_thrivision))[0]], bins=50, range=(0,1))
             ax.set_title('Distribution of thrivision percentages in the Mitocheck dataset')
             ax=f.add_subplot(122)
             nb,b,patches = ax.hist(nb_objects, bins=50)
@@ -263,7 +264,10 @@ class featureExtraction(object):
                 objects = vi.readHDF5(file_.format(plate, well), path_objects.format(plate, well.split('_')[0]))
                 features=vi.readHDF5(file_.format(plate, well), path_features.format(plate, well.split('_')[0]))
                 
-                object_initial = len(np.where(objects['time_idx']==0)[0])
+                object_initial=0; fr=0
+                while object_initial==0:
+                    object_initial = len(np.where(objects['time_idx']==fr)[0])
+                    fr+=1
                 
                 for frame in sorted(elements[plate][well]):
                     for cell_id in sorted(elements[plate][well][frame]):
