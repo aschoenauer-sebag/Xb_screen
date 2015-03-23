@@ -3,6 +3,7 @@ import os, vigra, pdb, sys
 import numpy as np
 import cPickle as pickle
 import vigra.impex as vi
+from collections import Counter
 from sklearn.cross_validation import train_test_split
 from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import classification_report
@@ -10,17 +11,21 @@ from sklearn.svm import SVC
 
 from collections import defaultdict
 from util import settings
-from util.listFileManagement import expSi, siEntrez
+from util.listFileManagement import expSi, siEntrez, EnsemblEntrezTrad,\
+    geneListToFile
 from optparse import OptionParser
 from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 from tracking.trajPack.tracking_script import path_command
+from tracking.trajPack.feature_cell_extraction import empiricalPvalues
 import shutil
 
 
-def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', outputFilename = "thripred_{}_{}.pkl", sh=False, load=False,
+def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', outputFilename = "thripred_{}_{}.pkl", sh=False, load=False,write=False,
                     mitocheck = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens75.txt',
-                    qc = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt'
+                    qc = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt',
+                    ensembl="../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt",
+                    threshold=0.05, qval=None
                     ):
     if load :
         yqualDict=expSi(qc)
@@ -55,7 +60,24 @@ def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', out
     else:
         f=open(os.path.join(loadingFolder, "all_predictions.pkl"), 'r')
         nb_objects, percent_thrivision, who, genes, siRNA = pickle.load(f); f.close()
-        percent_thrivision=np.array(percent_thrivision)
+        percent_thrivision=np.array(percent_thrivision); genes=np.array(genes)
+        
+        if qval==None:
+            pval,qval =empiricalPvalues(percent_thrivision[np.where(genes=='ctrl')][:, np.newaxis],\
+                               percent_thrivision[np.where(genes!='ctrl')][:, np.newaxis],\
+                               folder=loadingFolder, name="thrivision", sup=True, also_pval=True)
+        
+        hits=Counter(np.array(siRNA)[np.where(qval<threshold)[0]])
+        all_=Counter(np.array(siRNA))
+        hits=filter(lambda x: float(hits[x])/all_[x]>=0.5, hits)
+        gene_hits = [genes[siRNA.index(el)] for el in hits]
+        gene_hits=Counter(gene_hits)
+
+        if write:
+            dd=EnsemblEntrezTrad(ensembl)
+            hits_ensembl = [dd[el] for el in gene_hits]
+            geneListToFile(hits_ensembl, os.path.join(loadingFolder, "all_predictions_{}conflevel.txt".format(1-threshold)))
+        
         if sh:
             import matplotlib.pyplot as p
             f=p.figure(); ax=f.add_subplot(121)
@@ -65,7 +87,7 @@ def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', out
             nb,b,patches = ax.hist(nb_objects, bins=50)
             ax.set_title('Distribution of initial object number in the Mitocheck dataset')
             p.show()
-        return nb_objects, percent_thrivision, who, genes, siRNA
+        return nb_objects, percent_thrivision, who, genes, siRNA, pval,qval
         
 
 def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_acc=True, predict=False, move_images=False):
