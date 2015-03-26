@@ -3,10 +3,10 @@ import vigra
 import os, pdb, shutil
 import numpy as np
 
-def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data20T/mitocheck/Alice/Xb_screen/results',\
-                                outDir = "/cbio/donnees/aschoenauer/projects/Xb_screen/dry_lab_results/classifiers/mitose_movies",\
-                                clef=lambda x:int(x.split('_')[2][1:-4]), folderName='primary_classification_primary3',\
-                                extension="jpg", redo=True):
+def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data20T/mitocheck/compressed_data',\
+                                outDir = "/cbio/donnees/aschoenauer/workspace2/Xb_screen/thrivisions",\
+                                clef=lambda x:int(x.split('--')[3][1:]),folderName='primary_classification_primary3',\
+                                extension="png", redo=True):
     
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
@@ -16,8 +16,7 @@ def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data20T/
             print pl,w
             if len(w.split('_'))==1 or w.split('_')[1]!='01':
                 w=w+'_01'
-            folder = os.path.join(inDir, pl)
-            imgInDir = os.path.join(inDir, folder, "analyzed", w,"images",folderName)
+            imgInDir = os.path.join(inDir, pl, filter(lambda x: w[2:5] ==x[:3], os.listdir(os.path.join(inDir, pl)))[0])
             try:
                 makeMovieWithoutRenorm(imgInDir, outDir, gene, pl,w, clef, tempDir,extension=extension, redo=redo)
             except OSError:
@@ -41,11 +40,7 @@ def makeRawMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitochec
     return
 
 def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None, extension="png", redo=True):
-#    def normWrite(img, filename):
-#        img=(img-2**15)*(2**8-1)/(2**12-1)
-#        vi.writeImage(img, filename)
-#        return 1
-    
+
     # movie filename
     movieName = '{}_P{}_W{}.avi'.format(gene, plate[:9], well)
     # make output directory

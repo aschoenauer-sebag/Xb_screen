@@ -8,6 +8,7 @@ from sklearn.cross_validation import train_test_split
 from sklearn.grid_search import GridSearchCV
 from sklearn.metrics import classification_report
 from sklearn.svm import SVC
+from sklearn.covariance import MinCovDet
 
 from collections import defaultdict
 from util import settings
@@ -20,6 +21,29 @@ from tracking.trajPack.tracking_script import path_command
 from tracking.trajPack.feature_cell_extraction import empiricalPvalues
 import shutil
 
+def estimateGaussian(nb_objects, percent_thrivision, who, genes, siRNA,
+                     loadingFolder = '../resultData/thrivisions/predictions',
+                     threshold=0.05,):
+    thr=percent_thrivision*np.array(nb_objects)
+    arr=np.vstack((thr, nb_objects)).T
+    genes=np.array(genes)
+    
+    arr_ctrl=arr[np.where(np.array(genes)=='ctrl')]
+    ctrlcov=MinCovDet().fit(arr_ctrl)
+    
+    robdist= ctrlcov.mahalanobis(arr)*np.sign(arr[:,0]-np.mean(arr[:,0]))
+    new_siRNA=np.array(siRNA)[np.where((genes!='ctrl')&(robdist>0))]
+    pval,qval =empiricalPvalues(np.absolute(robdist[np.where(genes=='ctrl')])[:, np.newaxis],\
+                           robdist[np.where((genes!='ctrl')&(robdist>0))][:, np.newaxis],\
+                           folder=loadingFolder, name="thrivision", sup=True, also_pval=True)
+    assert new_siRNA.shape==qval.shape
+    hits=Counter(new_siRNA[np.where(qval<threshold)[0]])
+    all_=Counter(siRNA)
+    hits=filter(lambda x: float(hits[x])/all_[x]>=0.5, hits)
+    gene_hits = [genes[siRNA.index(el)] for el in hits]
+    gene_hits=Counter(gene_hits)
+    
+    return robdist, pval,qval, hits, gene_hits
 
 def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', outputFilename = "thripred_{}_{}.pkl", sh=False, load=False,write=False,
                     mitocheck = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens75.txt',
@@ -67,7 +91,7 @@ def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', out
                                percent_thrivision[np.where(genes!='ctrl')][:, np.newaxis],\
                                folder=loadingFolder, name="thrivision", sup=True, also_pval=True)
         
-        hits=Counter(np.array(siRNA)[np.where(qval<threshold)[0]])
+        hits=Counter(np.array(siRNA)[np.where(genes=='ctrl')][np.where(qval<threshold)[0]])
         all_=Counter(np.array(siRNA))
         hits=filter(lambda x: float(hits[x])/all_[x]>=0.5, hits)
         gene_hits = [genes[siRNA.index(el)] for el in hits]
@@ -80,14 +104,18 @@ def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', out
         
         if sh:
             import matplotlib.pyplot as p
-            f=p.figure(); ax=f.add_subplot(121)
-            nb,b,patches = ax.hist(percent_thrivision[np.where(np.isfinite(percent_thrivision))[0]], bins=50, range=(0,1))
+            f=p.figure(); ax=f.add_subplot(131)
+            nb,b,patches = ax.hist(percent_thrivision, bins=50, range=(0,1))
             ax.set_title('Distribution of thrivision percentages in the Mitocheck dataset')
-            ax=f.add_subplot(122)
+            ax=f.add_subplot(132)
             nb,b,patches = ax.hist(nb_objects, bins=50)
             ax.set_title('Distribution of initial object number in the Mitocheck dataset')
+            ax=f.add_subplot(133)
+            nb,b,patches = ax.hist(pval, bins=50, range=(0,1), color='blue', label='pval')
+            nb,b,patches = ax.hist(qval, bins=b, color='orange', label='qval')
+            ax.legend()
             p.show()
-        return nb_objects, percent_thrivision, who, genes, siRNA, pval,qval
+        return nb_objects, percent_thrivision, who, genes, siRNA, qval
         
 
 def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_acc=True, predict=False, move_images=False):
