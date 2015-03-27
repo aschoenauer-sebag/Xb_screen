@@ -628,7 +628,7 @@ class noteSomething(object):
             content = pickle.load(f); f.close()
         except:
             return 
-        content.append(what)
+        content=list(content); content.append(what)
         f=open(os.path.join(self.settings.outputFolder, filename), 'w')
         pickle.dump(content, f)
         f.close()
