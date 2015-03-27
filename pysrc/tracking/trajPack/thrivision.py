@@ -1,4 +1,4 @@
-import os, vigra, pdb, sys
+import os, vigra, pdb, sys, getpass
 
 import numpy as np
 import cPickle as pickle
@@ -18,7 +18,8 @@ from optparse import OptionParser
 from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 from tracking.trajPack.tracking_script import path_command
-from tracking.trajPack.feature_cell_extraction import empiricalPvalues
+if getpass.getuser()=='lalil0u':
+    from tracking.trajPack.feature_cell_extraction import empiricalPvalues
 import shutil
 
 def estimateGaussian(nb_objects, percent_thrivision, who, genes, siRNA,
