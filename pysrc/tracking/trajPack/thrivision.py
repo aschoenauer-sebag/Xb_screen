@@ -644,6 +644,7 @@ class noteSomething(object):
         objects = vi.readHDF5(file_.format(self.plate, self.well), path_objects.format(self.plate, self.well.split('_')[0]))
         
         last_fr = np.max(objects['time_idx'])
+        print "Last frame ", last_fr
         if self.interest == 'nb_object_final':
             return len(np.where(objects['time_idx']==last_fr)[0])
         raise ValueError
