@@ -1,7 +1,7 @@
 import getpass, os,pdb, operator, sys, datetime
 import numpy as np
 import cPickle as pickle
-from analyzer.plateSetting import fromXBToWells
+#from analyzer.plateSetting import fromXBToWells
 
 if getpass.getuser()=='aschoenauer':
     import matplotlib as mpl
