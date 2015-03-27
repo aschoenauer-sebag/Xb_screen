@@ -589,20 +589,6 @@ class thrivisionClassification(thrivisionExtraction, featureExtraction):
             raise ValueError
         
         return model.predict(nMatrix)
-#     
-#     def _saveResults(self, prediction, nb_objects_initial):
-#         try:
-#             f=open(os.path.join(self.settings.outputFolder, "thrivision_prediction.pkl"), 'r')
-#             plates, wells, predictions, nbs=pickle.load(f); f.close()
-#         except IOError:
-#             plates, wells, predictions, nbs=[], [],[],[]
-#             
-#         plates.append(self.plate); wells.append(self.well); predictions.append(prediction); nbs.append(nb_objects_initial)
-#         
-#         f=open(os.path.join(self.settings.outputFolder, "thrivision_prediction.pkl"), 'w')
-#         pickle.dump((plates, wells, predictions, nbs),f); f.close()
-#         
-#         return
     
     def __call__(self):
         elements={self.plate:{self.well:{}}}
@@ -627,8 +613,47 @@ class thrivisionClassification(thrivisionExtraction, featureExtraction):
         self._saveResults((prediction, nb_object_initial), filename=os.path.join('predictions', self.settings.outputPredictingFilename.format(self.plate[:9], self.well)))
         
         return 1
+    
+class noteSomething(object):
+    
+    def __init__(self, setting_file, plate, well, whatToNote='nb_object_final'):
+        self.settings=settings.Settings(setting_file, globals())
+        self.plate = plate
+        self.well=well
+        self.interest=whatToNote
         
-            
+    def _saveResults(self, what, filename):
+        try:
+            f=open(os.path.join(self.settings.outputFolder, filename))
+            content = pickle.load(f); f.close()
+        except:
+            return 
+        content.append(what)
+        f=open(os.path.join(self.settings.outputFolder, filename), 'w')
+        pickle.dump(content, f)
+        f.close()
+        
+    def _load(self):
+        if self.settings.new_h5:
+            file_=os.path.join(self.settings.hdf5Folder, "{}", 'hdf5', "{}.ch5")
+            path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary3"
+        else:
+            file_=os.path.join(self.settings.hdf5Folder, "{}", 'hdf5', "{}.hdf5")
+            path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary"
+        
+        objects = vi.readHDF5(file_.format(self.plate, self.well), path_objects.format(self.plate, self.well.split('_')[0]))
+        
+        last_fr = np.max(objects['time_idx'])
+        if self.interest == 'nb_object_final':
+            return len(np.where(objects['time_idx']==last_fr)[0])
+        raise ValueError
+    
+    def __call__(self):
+        interestValue=self._load()
+        
+        self._saveResults(interestValue, filename=os.path.join('predictions', self.settings.outputPredictingFilename.format(self.plate[:9], self.well)))
+        
+        return
     
 if __name__ == '__main__':
     verbose=0
@@ -659,7 +684,7 @@ Input:
     
     (options, args) = parser.parse_args()
     
-    thr=thrivisionClassification(options.settings_file, options.plate, options.well)
-    thr()
+    note=noteSomething(options.settings_file, options.plate, options.well)
+    note()
     print "Done"
     
