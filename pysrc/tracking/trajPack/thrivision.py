@@ -67,7 +67,7 @@ def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', out
             except OSError, IOError:
                 pdb.set_trace()
             else:
-                percent, nb_ob_init, nb_obj_final=result[0], result[1], result[2]
+                percent, nb_ob_init, nb_obj_final=r[:3]
                 who.append((result[9:18], result[19:27]))
                 nb_objects_init.append(nb_ob_init)
                 nb_objects_final.append(nb_obj_final)
