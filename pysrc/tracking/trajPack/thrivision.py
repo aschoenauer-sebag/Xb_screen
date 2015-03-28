@@ -22,11 +22,10 @@ if getpass.getuser()=='lalil0u':
     from tracking.trajPack.feature_cell_extraction import empiricalPvalues
 import shutil
 
-def estimateGaussian(nb_objects, percent_thrivision, who, genes, siRNA,
+def estimateGaussian(nb_objects_init, nb_objects_final, thr, who, genes, siRNA,
                      loadingFolder = '../resultData/thrivisions/predictions',
                      threshold=0.05,):
-    thr=percent_thrivision*np.array(nb_objects)
-    arr=np.vstack((thr, nb_objects)).T
+    arr=np.vstack((thr, nb_objects_init, nb_objects_final, np.array(nb_objects_final, dtype=float)/nb_objects_init)).T
     genes=np.array(genes)
     
     arr_ctrl=arr[np.where(np.array(genes)=='ctrl')]
