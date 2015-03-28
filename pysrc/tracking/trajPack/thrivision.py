@@ -58,17 +58,20 @@ def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', out
         
         results = filter(lambda x: 'thripred' in x, os.listdir(loadingFolder))
         who=[]; siRNA=[]; genes=[]
-        nb_objects=[]; percent_thrivision=[]
+        nb_objects_init=[];nb_objects_final=[];
+        percent_thrivision=[]
         for result in results:
             try:
                 f=open(os.path.join(loadingFolder, result))
-                percent, nb_ob = pickle.load(f); f.close()
+                r = pickle.load(f); f.close()
             except OSError, IOError:
                 pdb.set_trace()
             else:
+                percent, nb_ob_init, nb_obj_final=result[0], result[1], result[2]
                 who.append((result[9:18], result[19:27]))
-                nb_objects.append(nb_ob)
-                percent_thrivision.append(percent)
+                nb_objects_init.append(nb_ob_init)
+                nb_objects_final.append(nb_obj_final)
+                percent_thrivision.append(percent*nb_ob_init)
                 siCourant = yqualDict[result[9:18]+'--'+result[21:24]]
                 siRNA.append(siCourant)
                 try:
@@ -80,7 +83,7 @@ def loadPredictions(loadingFolder = '../resultData/thrivisions/predictions', out
                         pdb.set_trace()
                         genes.append('ctrl')
         f=open(os.path.join(loadingFolder, "all_predictions.pkl"), 'w')
-        pickle.dump((nb_objects, percent_thrivision, who, genes, siRNA),f); f.close()
+        pickle.dump((nb_objects_init, nb_objects_final, percent_thrivision, who, genes, siRNA),f); f.close()
         return
     else:
         f=open(os.path.join(loadingFolder, "all_predictions.pkl"), 'r')
