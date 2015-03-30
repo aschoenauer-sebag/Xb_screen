@@ -25,8 +25,22 @@ import shutil
 def estimateGaussian(nb_objects_init, nb_objects_final, thr, who, genes, siRNA,
                      loadingFolder = '../resultData/thrivisions/predictions',
                      threshold=0.05,):
-    arr=np.vstack((thr, nb_objects_init, nb_objects_final, np.array(nb_objects_final, dtype=float)/nb_objects_init)).T
-    genes=np.array(genes)
+    
+    arr=np.vstack((thr, nb_objects_init, nb_objects_final)).T    
+    #deleting siRNAs that have only one experiment
+    print len(siRNA)
+    all_=Counter(siRNA);siRNA = np.array(siRNA)
+    toDelsi=filter(lambda x: all_[x]==1, all_)
+    toDelInd=[]
+    for si in toDelsi:
+        toDelInd.extend(np.where(siRNA==si)[0])
+    print len(toDelInd)
+    dd=dict(zip(range(4), [arr, who, genes, siRNA]))
+    for array_ in dd:
+        dd[array_]=np.delete(dd[array_],toDelInd,0 )
+    arr, who, genes, siRNA = [dd[el] for el in range(4)]
+    
+    print arr.shape
     
     arr_ctrl=arr[np.where(np.array(genes)=='ctrl')]
     ctrlcov=MinCovDet().fit(arr_ctrl)
@@ -38,9 +52,9 @@ def estimateGaussian(nb_objects_init, nb_objects_final, thr, who, genes, siRNA,
                            folder=loadingFolder, name="thrivision", sup=True, also_pval=True)
     assert new_siRNA.shape==qval.shape
     hits=Counter(new_siRNA[np.where(qval<threshold)[0]])
-    all_=Counter(siRNA)
+    
     hits=filter(lambda x: float(hits[x])/all_[x]>=0.5, hits)
-    gene_hits = [genes[siRNA.index(el)] for el in hits]
+    gene_hits = [genes[list(siRNA).index(el)] for el in hits]
     gene_hits=Counter(gene_hits)
     
     return robdist, pval,qval, hits, gene_hits
