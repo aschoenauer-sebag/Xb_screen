@@ -54,7 +54,7 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
     f=open(os.path.join(folder,data_filename))
     data=pickle.load(f); f.close(); r=data[0]
     
-    featuresToKeep=['effective space length','mean squared displacement', 'entropy1','diffusion adequation','movement type', 'mean persistence','corrected straightness index', 
+    featuresToKeep=['effective space length','mean squared displacement', 'entropy1','diffusion adequation','movement type', 'signed turning angle','corrected straightness index', 
                     'mean straight']
     if featuresToKeep is not None:
         r=np.hstack((r[:,featuresSaved.index(feat), np.newaxis] for feat in featuresToKeep))

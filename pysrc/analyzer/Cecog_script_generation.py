@@ -180,7 +180,7 @@ cd %s""" % self.oBatchSettings.batchScriptDirectory
                 
                 # command to be executed on the cluster
                 temp_cmd = """
-%s %s -s %s -i "%s" -o "%s" --position_list %s %s"""
+%s %s --settings %s --input "%s" --output "%s" %s --position_list %s """
 
                 temp_cmd %= (
                         self.oBatchSettings.pythonBinary,
@@ -189,8 +189,9 @@ cd %s""" % self.oBatchSettings.batchScriptDirectory
                         self.oBatchSettings.settingsFilename,
                         self.oBatchSettings.baseInDir,
                         self.oBatchSettings.baseOutDir,
+                        additional_options,
                         '___'.join([plate, pos]),
-                        additional_options)
+                        )
 
                 cmd += temp_cmd
 
