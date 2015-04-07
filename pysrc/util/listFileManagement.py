@@ -696,9 +696,10 @@ def countingClassifDone(experiments, inputDir='/share/data20T/mitocheck/Alice/re
     path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary"
     path_classif="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_classification/prediction"
     path_features="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_features"
-    
+    i=0
     for pl,w in experiments:
-        print w,
+        print i,
+        i+=1
         if pl not in os.listdir(inputDir) or 'hdf5' not in os.listdir(os.path.join(inputDir, pl)) or baseName.format(w) not in os.listdir(os.path.join(inputDir, pl, 'hdf5')): 
             nohdf5.append((pl,w))
         else:
@@ -706,10 +707,10 @@ def countingClassifDone(experiments, inputDir='/share/data20T/mitocheck/Alice/re
                 classif = vi.readHDF5(os.path.join(inputDir, pl, 'hdf5', baseName.format(w)), path_classif.format(pl, w.split('_')[0]))
             except KeyError:
                 noclassif.append((pl,w))
-            except ValueError:
+            except ValueError, IOError:
                 try:
                     features = vi.readHDF5(os.path.join(inputDir, pl, 'hdf5', baseName.format(w)), path_features.format(pl, w.split('_')[0]))
-                except ValueError:
+                except ValueError, IOError:
                     empty_both.append((pl,w))
                 else:
                     noclassif.append((pl,w))
