@@ -691,7 +691,29 @@ def countingUsable(siRNAL, result_file, qc_file='../data/qc_export.txt',
     
     return
     
-def countingDone(experiments,featlistonly=True, name=None,rawD='/share/data20T/mitocheck/Alice/results',\
+def countingClassifDone(experiments, inputDir='/share/data20T/mitocheck/Alice/results',baseName='{}.hdf5'):
+    nohdf5=[]; access_pbl=[]; shape_pbl=[];ok=0
+    path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary"
+    path_classif="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_classification/prediction"
+    for pl,w in experiments:
+        if pl not in os.listdir(inputDir) or 'hdf5' not in os.listdir(os.path.join(inputDir, pl)) or baseName.format(w) not in os.listdir(os.path.join(inputDir, pl, 'hdf5')): 
+            nohdf5.append((pl,w))
+        else:
+            try:
+                classif = vi.readHDF5(os.path.join(inputDir, pl, 'hdf5', baseName.format(w)), path_classif.format(pl, w.split('_')[0]))
+            except IOError:
+                access_pbl.append((pl,w))
+            else:
+                objects = vi.readHDF5(os.path.join(inputDir, pl, 'hdf5', baseName.format(w)), path_objects.format(pl, w.split('_')[0]))
+                if objects.shape[0]!=classif.shape[0]:
+                    shape_pbl.append((pl,w))
+                else:
+                    ok+=1
+                    
+    return nohdf5, access_pbl, shape_pbl, ok
+                    
+    
+def countingHDF5Done(experiments,featlistonly=True, name=None,rawD='/share/data20T/mitocheck/Alice/results',\
                  trajD = "/share/data20T/mitocheck/tracking_results", featureTabName='hist_tabFeatures_{}.pkl'):
     '''
     Counts of a list of experiments how many have been dealt with with regard to object feature extraction,

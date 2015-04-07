@@ -19,11 +19,11 @@ simulator_settings = {
 'movement_normal': {'N': 500,
                     'radius': {'distribution': 'Normal', 'mean': 15, 'stdev': 3},
                     'angle': {'distribution': 'Uniform', 'min': 0, 'max': 360},
-                    },
+                    },#random
 'movement_fast': {'N': 500,
                   'radius': {'distribution': 'Normal', 'mean': 25, 'stdev': 8},
                   'angle': {'distribution': 'Uniform', 'min': 0, 'max': 360},
-                  },
+                  },#fast
                       
 #commented because not used in PlateSimulator
 #'directional': {'N': 500,
@@ -36,7 +36,7 @@ simulator_settings = {
                        'angle': {'distribution': 'Normal_Moving_Mean', 'stdev': 25.0},
                        'angle_delta': {'distribution': 'Normal', 'mean': 50.0, 'stdev': 1.0},
                        'radius': {'distribution': 'Normal', 'mean': 15, 'stdev': 3},
-                },
+                },#curbed-directed
 
 # trajectory consisting in two different speeds. 
 #'radius_switch': {'N': 20,
@@ -55,7 +55,7 @@ simulator_settings = {
                  'angle': {'distribution': 'Normal', 'stdev': 25.0, 
                            'switch': {'trans_count_0_1': {'min': 10, 'max': 15},
                                       'trans_count_1_0': {'min': 5, 'max': 12}}}
-                  },                                    
+                  },          #flip-directed                          
 
 # mode_switch indicates the presence of 2 movements, one directed, the other random, with different speeds respectively.
 'mode_switch': {'N': 500,
@@ -65,7 +65,7 @@ simulator_settings = {
                 'radius2': {'distribution': 'Normal', 'mean': 35, 'stdev': 3},                
                 'angle1': {'distribution': 'Uniform', 'min': 0, 'max': 360},
                 'angle2': {'distribution': 'Normal', 'stdev': 25.0},
-                },
+                },#stop and go = alternation of directed and random motions
 }
 
 
