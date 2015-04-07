@@ -692,7 +692,7 @@ def countingUsable(siRNAL, result_file, qc_file='../data/qc_export.txt',
     return
     
 def countingClassifDone(experiments, inputDir='/share/data20T/mitocheck/Alice/results',baseName='{}.hdf5'):
-    nohdf5=[]; access_pbl=[]; shape_pbl=[];empty_both=[]; ok=0
+    nohdf5=[]; noclassif=[]; shape_pbl=[];empty_both=[]; ok=0
     path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary"
     path_classif="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_classification/prediction"
     path_features="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_features"
@@ -704,15 +704,15 @@ def countingClassifDone(experiments, inputDir='/share/data20T/mitocheck/Alice/re
         else:
             try:
                 classif = vi.readHDF5(os.path.join(inputDir, pl, 'hdf5', baseName.format(w)), path_classif.format(pl, w.split('_')[0]))
-            except IOError:
-                access_pbl.append((pl,w))
+            except KeyError:
+                noclassif.append((pl,w))
             except ValueError:
                 try:
                     features = vi.readHDF5(os.path.join(inputDir, pl, 'hdf5', baseName.format(w)), path_features.format(pl, w.split('_')[0]))
                 except ValueError:
                     empty_both.append((pl,w))
                 else:
-                    access_pbl.append((pl,w))
+                    noclassif.append((pl,w))
             else:
                 objects = vi.readHDF5(os.path.join(inputDir, pl, 'hdf5', baseName.format(w)), path_objects.format(pl, w.split('_')[0]))
                 if objects.shape[0]!=classif.shape[0]:
@@ -720,7 +720,7 @@ def countingClassifDone(experiments, inputDir='/share/data20T/mitocheck/Alice/re
                 else:
                     ok+=1
                     
-    return nohdf5, access_pbl, empty_both, shape_pbl, ok
+    return nohdf5, noclassif, empty_both, shape_pbl, ok
                     
     
 def countingHDF5Done(experiments,featlistonly=True, name=None,rawD='/share/data20T/mitocheck/Alice/results',\
