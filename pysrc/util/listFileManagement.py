@@ -719,7 +719,8 @@ def countingClassifDone(experiments, inputDir='/share/data20T/mitocheck/Alice/re
                     shape_pbl.append((pl,w))
                 else:
                     ok+=1
-                    
+    f=open("result_exist_classif.pkl", 'w')
+    pickle.dump((nohdf5, noclassif, empty_both, shape_pbl, ok),f); f.close()  
     return nohdf5, noclassif, empty_both, shape_pbl, ok
                     
     
