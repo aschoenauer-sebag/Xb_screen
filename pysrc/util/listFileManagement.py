@@ -702,7 +702,7 @@ def countingClassifDone(experiments, inputDir='/share/data20T/mitocheck/Alice/re
         print i,
         i+=1
         try:
-            f=h5py.File(os.path.join(inputDir, pl, 'hdf5',baseName.format(w), "r"))
+            f=h5py.File(os.path.join(inputDir, pl, 'hdf5',baseName.format(w)), "r")
         except IOError: 
             nohdf5.append((pl,w))
         else:
