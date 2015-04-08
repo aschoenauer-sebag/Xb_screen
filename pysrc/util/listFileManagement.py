@@ -693,7 +693,7 @@ def countingUsable(siRNAL, result_file, qc_file='../data/qc_export.txt',
     return
     
 def countingClassifDone(experiments, inputDir='/share/data20T/mitocheck/Alice/results',baseName='{}.hdf5'):
-    nohdf5=[]; noclassif=[]; shape_pbl=[];empty_both=[]; ok=0
+    nohdf5=[]; noclassif=[]; shape_pbl=[];empty_both=[]; ok=[]
     path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary"
     path_classif="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_classification/prediction"
     path_features="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_features"
@@ -716,8 +716,12 @@ def countingClassifDone(experiments, inputDir='/share/data20T/mitocheck/Alice/re
                 elif features.shape[0]!=classif.shape[0]:
                     shape_pbl.append((pl,w))
                 else:
-                    ok+=1
+                    ok.append((pl,w))
             f.close()
+            
+        if i%1000==0:
+            f=open("result_exist_classif.pkl", 'w')
+            pickle.dump((nohdf5, noclassif, empty_both, shape_pbl, ok),f); f.close()  
     f=open("result_exist_classif.pkl", 'w')
     pickle.dump((nohdf5, noclassif, empty_both, shape_pbl, ok),f); f.close()  
     return nohdf5, noclassif, empty_both, shape_pbl, ok
