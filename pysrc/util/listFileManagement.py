@@ -11,6 +11,7 @@ from optparse import OptionParser
 from tracking.trajPack import featuresNumeriques, featuresHisto
 from util import typeD, typeD2
 import getpass
+import h5py
 
 
 def correct_from_Nan(arr, perMovie):
@@ -700,23 +701,19 @@ def countingClassifDone(experiments, inputDir='/share/data20T/mitocheck/Alice/re
     for pl,w in experiments:
         print i,
         i+=1
-        if pl not in os.listdir(inputDir) or 'hdf5' not in os.listdir(os.path.join(inputDir, pl)) or baseName.format(w) not in os.listdir(os.path.join(inputDir, pl, 'hdf5')): 
+        try:
+            f=h5py.File(os.path.join(inputDir, pl, 'hdf5',baseName.format(w), "r"))
+        except IOError: 
             nohdf5.append((pl,w))
         else:
-            try:
-                classif = vi.readHDF5(os.path.join(inputDir, pl, 'hdf5', baseName.format(w)), path_classif.format(pl, w.split('_')[0]))
-            except KeyError:
+            classif = f.get(path_classif.format(pl, w.split('_')[0]))
+            if classif == None:
                 noclassif.append((pl,w))
-            except ValueError, IOError:
-                try:
-                    features = vi.readHDF5(os.path.join(inputDir, pl, 'hdf5', baseName.format(w)), path_features.format(pl, w.split('_')[0]))
-                except ValueError, IOError:
-                    empty_both.append((pl,w))
-                else:
-                    noclassif.append((pl,w))
             else:
-                objects = vi.readHDF5(os.path.join(inputDir, pl, 'hdf5', baseName.format(w)), path_objects.format(pl, w.split('_')[0]))
-                if objects.shape[0]!=classif.shape[0]:
+                features = f.get(path_features.format(pl, w.split('_')[0]))
+                if features==None or features.shape[0]==0:
+                    empty_both.append((pl,w))
+                elif features.shape[0]!=classif.shape[0]:
                     shape_pbl.append((pl,w))
                 else:
                     ok+=1
