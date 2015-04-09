@@ -13,7 +13,7 @@ from sklearn.covariance import MinCovDet
 from collections import defaultdict
 from util import settings
 from util.listFileManagement import expSi, siEntrez, EnsemblEntrezTrad,\
-    geneListToFile
+    geneListToFile, strToTuple
 from optparse import OptionParser
 from util.listFileManagement import usable_MITO
 from util import jobSize, progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, pbsOutDir
@@ -216,7 +216,11 @@ def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_a
         
         return np.array(y_pred, dtype=int), model.best_estimator_, mean, std, toDel
         
-def scriptThrivision(exp_list, baseName='thri_class'):
+def scriptThrivision(exp_list, baseName='thri_class', command="tracking/trajPack/thrivision.py"):
+    if len(exp_list[0])!=2:
+        exp_list=strToTuple(exp_list, os.listdir("/share/data20T/mitocheck/Alice/results"))
+    
+    
     fileNumber = int(len(exp_list)/float(jobSize))+1
     
     head = """#!/bin/sh
@@ -226,8 +230,9 @@ cd %s""" %progFolder
         cmd = ''
         for pl, w in exp_list[jobSize*k:jobSize*(k+1)]:
             temp_cmd = """
-python tracking/trajPack/thrivision.py -p %s -w %s"""
+python %s -p %s -w %s"""
             temp_cmd %= (
+                        command,
                         pl,
                         w
                         )
