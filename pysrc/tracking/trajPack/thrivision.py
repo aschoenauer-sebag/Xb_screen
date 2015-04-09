@@ -565,7 +565,7 @@ class thrivisionExtraction(object):
         return    
     
     def save(self, boxes):
-        f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate, self.well)), 'w')
+        f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:10], self.well)), 'w')
         pickle.dump(boxes, f); f.close()
         return
     

@@ -35,6 +35,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                     currR.append(classif[where_])
                 except IndexError:
                     currR.append(-1)
+            currR = np.array(currR)['label_idx'][:,0]
             result.append(currR)
             
         return result
