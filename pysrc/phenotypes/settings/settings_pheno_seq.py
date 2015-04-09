@@ -15,3 +15,5 @@ imageFilename = "--W{}--P00001--T{:>05}-"
 trackingFilename='traj_noF_densities_w{}.hdf5.pkl'
 outputFile="pheno_seq_{}_{}.pkl"
 trajFeaturesFilename='hist_tabFeatures_{}.pkl'
+
+new_h5=False
