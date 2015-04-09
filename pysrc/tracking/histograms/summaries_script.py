@@ -4,7 +4,7 @@ from collections import Counter
 import numpy as np
 import cPickle as pickle
 
-from util.listFileManagement import expSi, appendingControl, strToTuple, countingDone
+from util.listFileManagement import expSi, appendingControl, strToTuple, countingHDF5Done
 
 jobSize = 10
 progFolder = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/pysrc'
