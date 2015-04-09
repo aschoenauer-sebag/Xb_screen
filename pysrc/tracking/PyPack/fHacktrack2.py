@@ -516,6 +516,8 @@ class trajectoire():
            for point in self.lstPoints:
                 if int(point[0])==int(frame) and (self.lstPoints[point][0]-x)**2+(self.lstPoints[point][1]-y)**2<50**2:
                     return True 
+    def __get__(self):
+        return self.lstPoints
     
     def split(self, frame):
         if self.mitose<0:
@@ -539,6 +541,9 @@ class ensTraj(object):
     def __init__(self):
         self.numMitoses = 0
         self.lstTraj = []
+        
+    def __get__(self):
+        return self.lstTraj
 
     def ajouter(self, traj):
      #   print "ajout d'une trajectoire"
