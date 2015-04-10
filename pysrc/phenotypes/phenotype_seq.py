@@ -25,7 +25,7 @@ class pheno_seq_extractor(thrivisionExtraction):
             print i,
             i+=1
             try:
-                f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:10], self.well)), 'r')
+                f=open(os.path.join(self.settings.outputFolder,p, self.settings.outputFile.format(p[:10], w)), 'r')
                 pheno_seq_list, mask = pickle.load(f)
                 f.close()
             except:
