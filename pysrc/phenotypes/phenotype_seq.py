@@ -29,6 +29,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                 pheno_seq_list, mask = pickle.load(f)
                 f.close()
             except:
+		import pdb; pdb.set_trace()
                 print "Loading error for ", pl, w
                 continue
             else:
