@@ -7,7 +7,7 @@ from optparse import OptionParser
 from util.settings import Settings
 from tracking.trajPack.thrivision import thrivisionExtraction
 from vigra import impex as vi
-from util.listFileManagement import correct_from_Nan
+from util.listFileManagement import correct_from_Nan, strToTuple
 
 
 #to do jobs launch thrivision.scriptThrivision(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
@@ -15,6 +15,30 @@ from util.listFileManagement import correct_from_Nan
 class pheno_seq_extractor(thrivisionExtraction):
     def __init__(self, setting_file, plate, well):
         super(pheno_seq_extractor, self).__init__(setting_file, plate, well)
+        return
+
+    def loadResults(self,exp_list):
+        if len(exp_list[0])!=2:
+            exp_list=strToTuple(exp_list, os.listdir(self.settings.outputFolder))
+        result = None; i=0
+        for pl,w in exp_list:
+            print i,
+            i+=1
+            try:
+                f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:9], self.well)), 'r')
+                pheno_seq_list, mask = pickle.load(f)
+                f.close()
+            except:
+                print "Loading error for ", pl, w
+                continue
+            else:
+                pheno_seq_list = np.array([np.bincount(pheno_seq_list[j], minlength=18) for j in range(len(pheno_seq_list)) if j not in mask])
+                result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
+                
+        print "Saving"
+        
+        f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "hit_exp")), 'w')
+        pickle.dump(result,f); f.close()
         return
     
     def pheno_seq(self, tracklets,track_filter= (lambda x: x.fusion !=True and len(x.lstPoints)>11)):
