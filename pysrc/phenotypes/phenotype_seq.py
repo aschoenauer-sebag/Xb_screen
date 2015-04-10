@@ -8,7 +8,18 @@ from util.settings import Settings
 from tracking.trajPack.thrivision import thrivisionExtraction
 from vigra import impex as vi
 from util.listFileManagement import correct_from_Nan, strToTuple
-
+# 652 Loading error for  LT0159_17--ex2006_01_20--sp2006_01_10--tt17--c5 00134_01
+# 654 Loading error for  LT0159_50--ex2006_02_01--sp2006_01_10--tt17--c5 00134_01
+# 1150 Loading error for  LT0062_07--ex2006_03_08--sp2005_06_02--tt17--c3 00300_01
+# 1151 Loading error for  LT0062_46--ex2005_07_08--sp2005_06_02--tt18--c4 00300_01
+# 2675 Loading error for  LT0072_25--ex2005_07_15--sp2005_06_05--tt18--c2 00007_01
+# 2676 Loading error for  LT0072_35--ex2007_10_24--sp2005_06_20--tt17--c5 00007_01
+# 2677 Loading error for  LT0072_47--ex2005_09_30--sp2005_06_20--tt17--c5 00007_01
+# 2678 Loading error for  LT0159_17--ex2006_01_20--sp2006_01_10--tt17--c5 00014_01
+# 2679 Loading error for  LT0159_50--ex2006_02_01--sp2006_01_10--tt17--c5 00014_01
+# 2698 Loading error for  LT0159_17--ex2006_01_20--sp2006_01_10--tt17--c5 00109_01
+# 2699 Loading error for  LT0159_50--ex2006_02_01--sp2006_01_10--tt17--c5 00109_01
+# 2865 Loading error for  LT0084_47--ex2005_08_03--sp2005_07_07--tt17--c5 00120_01
 
 #to do jobs launch thrivision.scriptThrivision(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
 
@@ -20,25 +31,28 @@ class pheno_seq_extractor(thrivisionExtraction):
     def loadResults(self,exp_list):
         if len(exp_list[0])!=2:
             exp_list=strToTuple(exp_list, os.listdir(self.settings.outputFolder))
-        result = None; i=0
+        result = None; i=0; missed=[]
         for pl,w in exp_list:
             print i,
-            i+=1
+            
             try:
                 f=open(os.path.join(self.settings.outputFolder,pl, self.settings.outputFile.format(pl[:10], w)), 'r')
                 pheno_seq_list, mask = pickle.load(f)
                 f.close()
             except:
                 print "Loading error for ", pl, w
+                missed.append(i)
                 continue
             else:
                 pheno_seq_list = np.array([np.bincount(pheno_seq_list[j], minlength=18) for j in range(len(pheno_seq_list)) if j not in mask])
                 result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
+            finally:
+                i+=1
                 
         print "Saving"
         
         f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "hit_exp")), 'w')
-        pickle.dump(result,f); f.close()
+        pickle.dump((result, missed),f); f.close()
         return
     
     def pheno_seq(self, tracklets,track_filter= (lambda x: x.fusion !=True and len(x.lstPoints)>11)):
