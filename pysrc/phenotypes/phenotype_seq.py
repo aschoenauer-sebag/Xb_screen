@@ -1,4 +1,4 @@
-import os, sys
+import os, sys, pdb
 import numpy as np
 import cPickle as pickle
 from collections import defaultdict
@@ -24,6 +24,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         for pl,w in exp_list:
             print i,
             i+=1
+            pdb.set_trace()
             try:
                 f=open(os.path.join(self.settings.outputFolder,p, self.settings.outputFile.format(p[:10], w)), 'r')
                 pheno_seq_list, mask = pickle.load(f)
