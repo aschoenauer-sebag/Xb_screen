@@ -25,11 +25,10 @@ class pheno_seq_extractor(thrivisionExtraction):
             print i,
             i+=1
             try:
-                f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:9], self.well)), 'r')
+                f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:10], self.well)), 'r')
                 pheno_seq_list, mask = pickle.load(f)
                 f.close()
             except:
-		import pdb; pdb.set_trace()
                 print "Loading error for ", pl, w
                 continue
             else:
