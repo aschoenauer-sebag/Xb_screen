@@ -26,7 +26,7 @@ class pheno_seq_extractor(thrivisionExtraction):
             i+=1
             pdb.set_trace()
             try:
-                f=open(os.path.join(self.settings.outputFolder,p, self.settings.outputFile.format(p[:10], w)), 'r')
+                f=open(os.path.join(self.settings.outputFolder,pl, self.settings.outputFile.format(pl[:10], w)), 'r')
                 pheno_seq_list, mask = pickle.load(f)
                 f.close()
             except:
