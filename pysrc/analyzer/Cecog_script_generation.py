@@ -31,7 +31,7 @@ class BatchProcessor(object):
         
         for plate in plates:
             wells=os.listdir(os.path.join(self.oBatchSettings.baseInDir, plate))
-            r.extend([(plate, "{}_01".format(well.split('--')[0])) for well in wells])
+            r.extend([(plate, "{:>05}_01".format(int(well.split('--')[0]))) for well in wells])
             
         return r
 
