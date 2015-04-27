@@ -27,7 +27,7 @@ class BatchProcessor(object):
 
     def getListOfExperiments(self):
         r=[]
-        plates = filter(lambda x: os.path.isdir(x), os.listdir(self.oBatchSettings.baseInDir))
+        plates = filter(lambda x: os.path.isdir(os.path.join(self.oBatchSettings.baseInDir, x)), os.listdir(self.oBatchSettings.baseInDir))
         
         for plate in plates:
             wells=os.listdir(os.path.join(self.oBatchSettings.baseInDir, plate))
