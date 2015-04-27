@@ -25,6 +25,16 @@ class BatchProcessor(object):
 
         return
 
+    def getListOfExperiments(self):
+        r=[]
+        plates = filter(lambda x: os.path.isdir(x), os.listdir(self.oBatchSettings.baseInDir))
+        
+        for plate in plates:
+            wells=os.listdir(os.path.join(self.oBatchSettings.baseInDir, plate))
+            r.extend([(plate, "{}_01".format(well.split('--')[0])) for well in wells])
+            
+        return r
+
     # from a list of plate identifiers, get a dictionary of plate directories
     def getPlateDirectories(self, lstPlateId):
         lstFolders = os.listdir(self.oBatchSettings.baseInDir)
@@ -413,8 +423,8 @@ if __name__ ==  "__main__":
     oSettings = Settings(os.path.abspath(options.batch_configuration_filename), dctGlobals=globals())
     bp = BatchProcessor(oSettings)
     if (options.position_file is None):      
-        raise ValueError  
-        #lstExperiments = bp.getListOfExperiments()
+        lstExperiments = bp.getListOfExperiments()
+        import pdb; pdb.set_trace()
     else: 
         fp = open(options.position_file, 'r')
         lstExperiments = pickle.load(fp)#[x.strip('\n').split('\t') for x in fp.readlines()]
