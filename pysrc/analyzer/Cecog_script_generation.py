@@ -424,7 +424,6 @@ if __name__ ==  "__main__":
     bp = BatchProcessor(oSettings)
     if (options.position_file is None):      
         lstExperiments = bp.getListOfExperiments()
-        import pdb; pdb.set_trace()
     else: 
         fp = open(options.position_file, 'r')
         lstExperiments = pickle.load(fp)#[x.strip('\n').split('\t') for x in fp.readlines()]

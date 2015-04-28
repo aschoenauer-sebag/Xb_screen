@@ -11,7 +11,7 @@ from analyzer import CONTROLS, compoundL
 WELL_PARAMETERS = ['Name', 'Medium', 'Serum', 'Xenobiotic', 'Dose']
 
 def readPlateSetting(plateL, confDir, startAtZero = False,
-                     plateName=None, dateFormat='%d%m%y', defaultMedium = "Complet",
+                     plateName="Drug screen", dateFormat='%d%m%y',
                      addPlateWellsToDB=False):
     '''
     Function to go from csv file describing plate setup to a dictionary
@@ -26,114 +26,151 @@ def readPlateSetting(plateL, confDir, startAtZero = False,
     for plate in plateL:
         result[plate]={}         
         idL[plate]={}
-        filename = os.path.join(confDir, "%s.csv" % plate)
         try:
-            f=open(filename)
-            lines=f.readlines(); f.close()
-        except IOError:
-            r, currWell_lines, iL= readNewPlateSetting([plate], confDir, startAtZero,
+            r, currWell_lines, iL= readXBPlateSetting([plate], confDir, startAtZero,
                      plateName=plateName, dateFormat=dateFormat,
                      addPlateWellsToDB=addPlateWellsToDB)
             result.update(r)
             idL.update(iL)
             well_lines.update(currWell_lines)
-        else:  
-            lines=[line.strip("\n").split("\\") for line in lines]
+        except IOError:
+            r, currWell_lines, iL= readDSPlateSetting([plate], confDir, startAtZero,
+                     plateName=plateName, dateFormat=dateFormat,
+                     addPlateWellsToDB=addPlateWellsToDB)
             
-            #loading experiment parameters
+        finally:
+            result.update(r)
+            idL.update(iL)
+            well_lines.update(currWell_lines)
 
-            try:
-                a=int(lines[0][11])
-            except:
+    return result, WELL_PARAMETERS, well_lines, idL
+
+def readDSPlateSetting(plateL, confDir, startAtZero = False,
+                     dateFormat='%Y%m%d', 
+                     default={'Name':"A", 'Medium': "Complet", 'Serum':10},
+                     addPlateWellsToDB=False, indices={'Xenobiotic':3, 'Dose':4}):
+    '''
+    Function to go from as many csv files as there are parameters describing plate setup, to a dictionary
+    
+    The csv file should not contain spaces in the cells
+    
+    The file 'wells' should contain the information on where physically on the plate the wells with the numbers
+    are located. The numbers are the numbers as the images are saved.
+    '''
+    result = defaultdict(dict)
+    idL = {}
+    well_lines_dict = {}
+    for plate in plateL:
+        result[plate]={}         
+        idL[plate]={}
+        #getting where the existing wells are
+        try:
+            file_ =open(os.path.join(confDir,  "%s.csv" % plate))
+            well_lines = file_.readlines(); file_.close()
+        except OSError:
+            raise OSError("can't find proper file")
+        else:
+            well_lines=np.array([line.strip("\n").strip('\t').split("-") for line in well_lines[1:]])
+            print well_lines
+            well_lines_dict[plate]=well_lines
+
+        nb_col = 22; nb_row=14
+        
+        if addPlateWellsToDB:
+            date = datetime.datetime.strptime(plate.split('--')[1][2:].replace('_', ''), dateFormat)
+            p = Plate(name = plate, date = date, nb_col=nb_col, nb_row=nb_row)
+            p.save()
+        
+#         current_parameters = defaultdict(list)
+#         for parameter in WELL_PARAMETERS:
+#             print 'Loading %s parameter'%parameter
+#             try:
+#                 f=open(os.path.join(confDir, "%s_%s.csv" % (plate, parameter)))
+#                 current_lines=f.readlines()[1:]; f.close()
+#             except IOError:
+#                 pass
+#             else:
+#                 current_parameters[parameter]=np.array([line.strip("\n").split(",") for line in current_lines]).ravel()
+#                 current_parameters[parameter] = np.delete(current_parameters[parameter], 
+#                                         np.where(current_parameters[parameter]==''))
+        for k, line in enumerate(well_lines):
+            result[plate][k]=defaultdict(dict)
+            for i,param in enumerate(WELL_PARAMETERS):
                 try:
-                    a = int(lines[0][7])
-                except:
-                    raise AttributeError("Can't find the number of rows")
-                else:
-                    nb_col=8
-            else:
-                nb_col=12
-
-            nb_row = len(lines)-1 #dire le nb de lignes dans le fichier - mais en fait on a toujours huit colonnes
-            
-            if addPlateWellsToDB:
-                p = Plate(name = plateName, date = datetime.datetime.strptime(plate, dateFormat), nb_col=nb_col, nb_row=nb_row)
-                p.save()
-            
-            params=lines[0][nb_col:]
-            k=0 if startAtZero else 1
-    
-            for line in lines[1:nb_row+1]:
-                for el in line[:nb_col]:
+                    result[plate][k][param]=line[indices[param]].replace(' ', '')
+                except KeyError:
+                    result[plate][k][param]=default[param]
                     
-                    result[plate][k]={'Name': el}
-                    for i,param in enumerate(params):
-                        result[plate][k][param]=line[nb_col+i]
-                        
-                        
-                    if addPlateWellsToDB:
-                        try:
-                            medium = result[plate][k]['Medium']
-                        except KeyError:
-                            medium=defaultMedium
-                        try:
-                            serum = int(result[plate][k]['Serum'])
-                        except KeyError:
-                            serum = None
-                        
-                        conds = Cond.objects.filter(medium = medium)
-                        if len(conds)==0:
-                            cond = addConds(medium, serum) 
-                        elif len(conds)==1:
-                            if conds[0].serum!=serum:
-                                cond =addConds(medium, serum)
-                            else:
-                                cond = conds[0]
-                        else:
-                            conds = conds.filter(serum =serum)
-                            if len(conds)==0:
-                                cond =addConds(medium, serum)
-                            elif len(conds)>1:
-                                raise
-                            else:
-                                cond = conds[0]
-    
-                    if addPlateWellsToDB and 'Xenobiotic' in params:
-                        xb = result[plate][k]['Xenobiotic']
-                        dose = int(result[plate][k]['Dose'])
-                        
-                        treatments = Treatment.objects.filter(xb = xb)
-                        if len(treatments)==0:
-                            treatment = addTreatment(xb, dose)
-                        elif len(treatments)==1:
-                            if treatments[0].dose != dose:
-                                treatment = addTreatment(xb, dose)
-                            else:
-                                treatment =treatments[0]
-                        else:
-                            treatments = treatments.filter(dose =dose)
-                            if len(treatments)==0:
-                                treatment = addTreatment(xb, dose)
-                            elif len(treatments)>1:
-                                raise
-                            else:
-                                treatment =treatments[0]
-                            
-                    if addPlateWellsToDB:
-                        try:
-                            clone = result[plate][k]['Name'].split("_")[0]
-                        except:
-                            clone = None
-                        w=Well(num=k, plate=p, treatment = treatment, clone = clone)
-                        w.save()
-                #this is how to add many to many relations
-                        w.cond.add(cond); w.save()
-                        idL[plate][k]=w.id
-                    k+=1
+            if addPlateWellsToDB:
+                medium = result[plate][k]['Medium']
+                serum = int(result[plate][k]['Serum'])
+                
+                conds = Cond.objects.filter(medium = medium)
+                if len(conds)==0:
+                    cond = addConds(medium, serum) 
+                elif len(conds)==1:
+                    if conds[0].serum!=serum:
+                        cond =addConds(medium, serum)
+                    else:
+                        cond = conds[0]
+                else:
+                    conds = conds.filter(serum =serum)
+                    if len(conds)==0:
+                        cond =addConds(medium, serum)
+                    elif len(conds)>1:
+                        raise
+                    else:
+                        cond = conds[0]
+
+            if addPlateWellsToDB and 'Xenobiotic' in WELL_PARAMETERS:
+                xb = result[plate][k]['Xenobiotic']
+                try:
+                    dose = float(result[plate][k]['Dose'].replace(',', '.'))
+                except ValueError:
+                    #then it means there are letters in the field
+                    try:
+                        dose = float(result[plate][k]['Dose'].replace(',', '.')[:-2])
+                    except ValueError:
+                        #then it meants it's an empty field
+                        dose=0
+                    else:
+                        unit = result[plate][k]['Dose'][-2:]
+                        if unit=='uM':
+                            dose*=10**(-6)
+                        elif unit=='nM':
+                            dose*=10**(-9)
+                        elif unit=='pM':
+                            dose*=10**(-12)
+                
+                treatments = Treatment.objects.filter(xb = xb)
+                if len(treatments)==0:
+                    treatment = addTreatment(xb, dose)
+                elif len(treatments)==1:
+                    if treatments[0].dose != dose:
+                        treatment = addTreatment(xb, dose)
+                    else:
+                        treatment =treatments[0]
+                else:
+                    treatments = treatments.filter(dose =dose)
+                    if len(treatments)==0:
+                        treatment = addTreatment(xb, dose)
+                    elif len(treatments)>1:
+                        raise
+                    else:
+                        treatment =treatments[0]
+                    
+            if addPlateWellsToDB:
+                clone = result[plate][k]['Name'].split("_")[0]
+                w=Well(num=k, plate=p, treatment = treatment, clone = clone)
+                w.save()
+        #this is how to add many to many relations
+                w.cond.add(cond); w.save()
+                idL[plate][k]=w.id
+                
     if addPlateWellsToDB:
-        return result, WELL_PARAMETERS, well_lines, idL
+        return result, well_lines_dict, idL
     else:
-        return result, WELL_PARAMETERS, well_lines, idL
+        return result,well_lines_dict, {}
     
 def fromXBToWells(xbL=None,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_etal/plate_setups',
                    dose_filter=None, plate=None, verbose=False):
@@ -210,7 +247,7 @@ def dbNum_ZeissNumTranslator(plate, confDir, sens="toZeiss"):
         return {well_lines.ravel()[i]:i+1 for i in range(well_lines.size)}
         
     
-def readNewPlateSetting(plateL, confDir, startAtZero = False,
+def readXBPlateSetting(plateL, confDir, startAtZero = False,
                      plateName=None, dateFormat='%d%m%y', 
                      default={'Name':"Cl1", 'Medium': "Indtp", "Serum":10},
                      addPlateWellsToDB=False):
