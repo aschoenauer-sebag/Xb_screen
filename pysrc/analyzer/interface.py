@@ -101,7 +101,7 @@ class HTMLGenerator():
         print "Looking for features ", featureL
         for plate in plateL:
             listW = sorted(filter(lambda x: '.hdf5' in x or '.ch5' in x, os.listdir(os.path.join(dataFolder, plate, 'hdf5'))))
-            for filename in listW[:5]:
+            for filename in listW:
                 well=filename.split('.')[0]
                     
                 filename = os.path.join(dataFolder, plate,"hdf5", filename)
@@ -517,7 +517,6 @@ class HTMLGenerator():
                                     clef=(lambda x:int(x.split('--')[3][1:])),
                                 #because the images for the drug screen start at 2**15
                                     offset=2**15)
-        import pdb;pdb.set_trace()
         return    
     
     def changeDBWellNumbers(self,plate, well_setup, idL):

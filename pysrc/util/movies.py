@@ -125,7 +125,6 @@ def makeMovie(imgDir, outDir, plate, well,clef = lambda x:int(x.split('_')[2]), 
     shell_command = 'rm %s/*' % tempDir
     print shell_command
     os.system(shell_command)
-    pdb.set_trace()
     return
 
 def makeMovieMultiChannels(imgDir, outDir,plate, well, channels=[2,1], tempDir=None, doChannel1Only=True, 
