@@ -552,6 +552,7 @@ class HTMLGenerator():
                                              startAtZero = self.settings.startAtZero,
                                              plateName = self.settings.name,
                                              dateFormat= self.settings.date_format,
+                                             xbscreen=self.settings.xbscreen
                                              )
 
         if doQC:

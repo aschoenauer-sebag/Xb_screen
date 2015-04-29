@@ -12,7 +12,7 @@ WELL_PARAMETERS = ['Name', 'Medium', 'Serum', 'Xenobiotic', 'Dose']
 
 def readPlateSetting(plateL, confDir, startAtZero = False,
                      plateName="Drug screen", dateFormat='%d%m%y',
-                     addPlateWellsToDB=False):
+                     addPlateWellsToDB=False, xbscreen=False):
     '''
     Function to go from csv file describing plate setup to a dictionary
     
@@ -26,22 +26,21 @@ def readPlateSetting(plateL, confDir, startAtZero = False,
     for plate in plateL:
         result[plate]={}         
         idL[plate]={}
-        try:
+        if xbscreen:
             r, currWell_lines, iL= readXBPlateSetting([plate], confDir, startAtZero,
                      plateName=plateName, dateFormat=dateFormat,
                      addPlateWellsToDB=addPlateWellsToDB)
             result.update(r)
             idL.update(iL)
             well_lines.update(currWell_lines)
-        except IOError:
+        else:
             r, currWell_lines, iL= readDSPlateSetting([plate], confDir, startAtZero,
                      plateName=plateName, dateFormat=dateFormat,
                      addPlateWellsToDB=addPlateWellsToDB)
-            
-        finally:
-            result.update(r)
-            idL.update(iL)
-            well_lines.update(currWell_lines)
+        
+        result.update(r)
+        idL.update(iL)
+        well_lines.update(currWell_lines)
 
     return result, WELL_PARAMETERS, well_lines, idL
 

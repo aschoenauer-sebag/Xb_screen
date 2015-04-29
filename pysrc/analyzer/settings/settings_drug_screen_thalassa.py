@@ -36,7 +36,8 @@ well_features = ["cell_count", 'Flou_ch1']
 
 ###DATA BASE SETTINGS
 #Plate name
-name = 'Trial'
+name = 'Drug screen'
+xbscreen = False
 
 #Date format
 date_format = '%Y%m%d'
