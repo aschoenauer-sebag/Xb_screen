@@ -493,7 +493,9 @@ class HTMLGenerator():
 
         for well in well_setup[np.where(well_setup>0)]:
             #even if there are missing columns don't forget that the image directory uses Zeiss counting
-            imgDir= os.path.join(self.settings.raw_data_dir, plate, 'W{:>05}'.format(well))
+            wellFolder = filter(lambda x: well==int(self.settings.whereWell(x)), os.listdir(os.path.join(self.settings.raw_data_dir, plate)))
+            
+            imgDir= os.path.join(self.settings.raw_data_dir, plate, wellFolder)
             try:
                 l=os.listdir(imgDir)
             except OSError:
@@ -505,8 +507,12 @@ class HTMLGenerator():
                     continue
                 else:
                     secondary=np.any(np.array(['c00001' in el for el in l]))
-                    makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=self.settings.newPlateName(plate), well=np.where(well_setup==well)[0][0]+1, 
+                    if secondary:
+                        makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=self.settings.newPlateName(plate), well=np.where(well_setup==well)[0][0]+1, 
                                            ranges=[(50,1000),(200,3000)], secondary=secondary)
+                    else:
+                        pass
+                        #redo makeMovies dans util.movies
         return    
     
     def changeDBWellNumbers(self,plate, well_setup, idL):

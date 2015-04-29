@@ -21,6 +21,10 @@ confDir = os.path.join(base_result_dir, 'protocols_etal/plate_setups')
 
 #Renaming plates for filenames and visualization on the interface
 newPlateName = lambda x: x.split('_')[0]
+
+#information about well folder naming: where should the well number be indicated in the well image folder?
+whereWell = lambda x: x[1:]
+
 # if Zeiss plate setup did not include some columns, indicate it here
 missing_cols = {'11414':(1,2)}
 

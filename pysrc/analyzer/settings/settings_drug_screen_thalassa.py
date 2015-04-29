@@ -27,6 +27,9 @@ def newPlateName(plate,dateFormat = "%Y%m%d"):
     import datetime
     date = datetime.datetime.strptime(plate.split('--')[1][2:].replace('_', ''), dateFormat)
     return date.strftime('%d')+date.strftime('%m')+date.strftime('%y')
+
+#information about well folder naming: where should the well number be indicated in the well image folder?
+whereWell = lambda x: x[:3]
     
 # if Zeiss plate setup did not include some columns, indicate it here
 missing_cols = {'11414':(1,2)}
