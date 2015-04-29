@@ -453,7 +453,7 @@ class HTMLGenerator():
                     for class_ in self.classes:
                         data.append(self.wp.prepareData(resCour[well]['{}_ch1'.format(class_)]))
                         try:
-                            colors.append(self.settings.colorDict['{}_ch1'.format(class_)])
+                            colors.append(colorDict['{}_ch1'.format(class_)])
                         except KeyError:
                             colors.append('grey')
                 else:
