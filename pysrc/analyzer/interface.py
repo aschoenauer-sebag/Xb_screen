@@ -490,11 +490,11 @@ class HTMLGenerator():
     
     def generateMovies(self, plate, well_setup):
         well_setup=well_setup.flatten()
-
+        import pdb;pdb.set_trace()
         for well in well_setup[np.where(well_setup>0)]:
             #even if there are missing columns don't forget that the image directory uses Zeiss counting
             wellFolder = filter(lambda x: well==int(self.settings.whereWell(x)), os.listdir(os.path.join(self.settings.raw_data_dir, plate)))
-            import pdb;pdb.set_trace()
+            
             imgDir= os.path.join(self.settings.raw_data_dir, plate, wellFolder)
             try:
                 l=os.listdir(imgDir)
