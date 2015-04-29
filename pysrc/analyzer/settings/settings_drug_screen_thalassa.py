@@ -22,6 +22,13 @@ movie_dir = os.path.join(media_dir, "movies")
 # Plate setups directory
 confDir = os.path.join(base_result_dir, 'plate_setups')
 
+#Renaming plates for filenames and visualization on the interface
+dateFormat = "%Y%m%d"
+def newPlateName(plate):
+    import datetime
+    date = datetime.datetime.strptime(plate.split('--')[1][2:].replace('_', ''), dateFormat)
+    return date.strftime('%d')+date.strftime('%m')+date.strftime('%y')
+    
 # if Zeiss plate setup did not include some columns, indicate it here
 missing_cols = {'11414':(1,2)}
 

@@ -19,6 +19,8 @@ movie_dir = os.path.join('/media/lalil0u/New/workspace2/interface_screen/plates/
 # Plate setups directory
 confDir = os.path.join(base_result_dir, 'protocols_etal/plate_setups')
 
+#Renaming plates for filenames and visualization on the interface
+newPlateName = lambda x: x.split('_')[0]
 # if Zeiss plate setup did not include some columns, indicate it here
 missing_cols = {'11414':(1,2)}
 

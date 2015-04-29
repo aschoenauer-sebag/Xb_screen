@@ -377,7 +377,7 @@ class HTMLGenerator():
             {'min': self.settings.density_plot_settings['min_class'], 'max': self.settings.density_plot_settings['max_class'], 'int_labels': False}
             ]
         
-        plotDir = os.path.join(self.settings.plot_dir, plate)
+        plotDir = os.path.join(self.settings.plot_dir, self.settings.newPlateName(plate))
         if not os.path.isdir(plotDir):
             os.makedirs(plotDir)
 #        try:
@@ -387,7 +387,7 @@ class HTMLGenerator():
         
         ###printing plate setup
         print "working on plate setup"
-        filename = '%s--%s.png' % ('plate', plate.split('_')[0])
+        filename = '%s--%s.png' % ('plate', self.settings.newPlateName(plate))
         texts = self.ap.plotPlate(resCour,self.params, filename, where_wells = self.well_lines_dict[plate],plotDir=plotDir, title='{} {}'.format(plate, 'plate'))
         
         for pheno, setting in zip(['initObjectCount', 'initCellCount', 'proliferation', 
@@ -399,7 +399,7 @@ class HTMLGenerator():
                 continue
             
             print "working on ", pheno
-            filename = '%s--%s.png' % (pheno, plate.split('_')[0])
+            filename = '%s--%s.png' % (pheno, self.settings.newPlateName(plate))
             
             data = self.ap.prepareData(resCour, self.ap.getPhenoVal(pheno), self.well_lines_dict[plate])
             
@@ -430,7 +430,7 @@ class HTMLGenerator():
             print plate, ' not in result dictionary.'
             return
         well_setup=self.well_lines_dict[plate].ravel()
-        plotDir = os.path.join(self.settings.plot_dir, plate)
+        plotDir = os.path.join(self.settings.plot_dir, self.settings.newPlateName(plate))
         if not os.path.isdir(plotDir):
             os.makedirs(plotDir)
 
@@ -442,7 +442,7 @@ class HTMLGenerator():
         #So here I enable to take a list of data tables and labels into account for them to be plotted on the same graph
                 data=[];labels=[pheno];colors=['blue']
                 print "working on ", pheno
-                filename = '{}_{}--W{:>05}.png'.format(pheno,plate.split('_')[0], final_well_num)
+                filename = '{}_{}--W{:>05}.png'.format(pheno,self.settings.newPlateName(plate), final_well_num)
                 if pheno in list(resCour[well].keys()):
                     data.append(self.wp.prepareData(resCour[well][pheno]))
                     figsize=(8,6)
@@ -505,7 +505,7 @@ class HTMLGenerator():
                     continue
                 else:
                     secondary=np.any(np.array(['c00001' in el for el in l]))
-                    makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=plate, well=np.where(well_setup==well)[0][0]+1, 
+                    makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=self.settings.newPlateName(plate), well=np.where(well_setup==well)[0][0]+1, 
                                            ranges=[(50,1000),(200,3000)], secondary=secondary)
         return    
     
@@ -536,6 +536,7 @@ class HTMLGenerator():
             featureChannels = self.settings.featureChannels
         assert(len(featureL)==len(featureChannels)), "Not same number of features of interest and channels to consider them"
         self.FEATURE_NUMBER = len(featureL)
+        
         if self.settings.xbscreen:
             colorDict=COLORD_XB 
             #Adding roisize to be able to assess number of cells that only have fluorescent nucleus
@@ -698,10 +699,11 @@ class ArrayPlotter():
             a,b=np.where(where_wells==well)
             for x,y in zip(a,b):
                 #restricting the name to max 6 char otherwise it's not lisible
-                txt = res[well]['Name'][:6]
-                txt+='\n{} {}'.format(res[well]['Xenobiotic'][:6],res[well]['Dose'])
-                txt+='\n{} {}'.format(res[well]['Medium'][:6],res[well]['Serum'])
-                ax.text(y+0.1, nrow-x-1+0.1, txt, fontsize=10)
+                #txt = res[well]['Name'][:6]
+                txt='{}'.format(res[well]['Xenobiotic'][:6])
+                txt+='\n{}'.format(res[well]['Dose'])
+                #txt+='\n{} {}'.format(res[well]['Medium'][:6],res[well]['Serum'])
+                ax.text(y+0.1, nrow-x-1+0.1, txt, fontsize=8)
                 texts.append((y, nrow-x-1, txt))
         if show:
             p.show()
