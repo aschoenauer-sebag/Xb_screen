@@ -395,7 +395,7 @@ class HTMLGenerator():
                                    "initNucleusOnly", "endNucleusOnly",
                                    'initCircMNucleus', 'endCircMNucleus', 'endFlou'], settingL):
             if pheno not in resCour[resCour.keys()[0]]:
-                print "No {} for plate {}, well {}".format(pheno, plate, resCour.keys[0])
+                print "No {} for plate {}, well {}".format(pheno, plate, resCour.keys()[0])
                 continue
             
             print "working on ", pheno
