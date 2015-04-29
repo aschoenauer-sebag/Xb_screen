@@ -23,8 +23,7 @@ movie_dir = os.path.join(media_dir, "movies")
 confDir = os.path.join(base_result_dir, 'plate_setups')
 
 #Renaming plates for filenames and visualization on the interface
-dateFormat = "%Y%m%d"
-def newPlateName(plate):
+def newPlateName(plate,dateFormat = "%Y%m%d"):
     import datetime
     date = datetime.datetime.strptime(plate.split('--')[1][2:].replace('_', ''), dateFormat)
     return date.strftime('%d')+date.strftime('%m')+date.strftime('%y')
