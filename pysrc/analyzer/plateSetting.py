@@ -28,14 +28,14 @@ def readPlateSetting(plateL, confDir,plateName, startAtZero = False,
         idL[plate]={}
         if xbscreen:
             r, currWell_lines, iL= readXBPlateSetting([plate], confDir, startAtZero,
-                     dateFormat=dateFormat,
+                     dateFormat=dateFormat,plateName=plateName, 
                      addPlateWellsToDB=addPlateWellsToDB)
             result.update(r)
             idL.update(iL)
             well_lines.update(currWell_lines)
         else:
             r, currWell_lines, iL= readDSPlateSetting([plate], confDir, startAtZero,
-                     plateName=plateName, dateFormat=dateFormat,
+                     dateFormat=dateFormat,
                      addPlateWellsToDB=addPlateWellsToDB)
         
         result.update(r)
