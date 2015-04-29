@@ -230,7 +230,7 @@ class HTMLGenerator():
             return
         
         if not os.path.isdir(self.settings.result_dir):
-            os.mkdir(self.settigns.result_dir)
+            os.mkdir(self.settings.result_dir)
         
         f=open(os.path.join(self.settings.result_dir, 'processedDictResult_P{}.pkl'.format(plate)), 'w')
         pickle.dump(resCour, f)
@@ -453,7 +453,7 @@ class HTMLGenerator():
                     for class_ in self.classes:
                         data.append(self.wp.prepareData(resCour[well]['{}_ch1'.format(class_)]))
                         try:
-                            colors.append(colorDict['{}_ch1'.format(class_)])
+                            colors.append(colorDict['{}'.format(class_)])
                         except KeyError:
                             colors.append('grey')
                 else:
@@ -780,7 +780,7 @@ class ArrayPlotter():
         if grid: ax.grid(True)
         if texts is not None:
             for el in filter(lambda x: (x[0], x[1]) not in zip(absent[1], absent[0]), texts):
-                ax.text(el[0]+0.1, el[1]+0.1, el[2],fontsize=10)
+                ax.text(el[0]+0.1, el[1]+0.1, el[2],fontsize=8)
         if show:
             p.show()
         else:
