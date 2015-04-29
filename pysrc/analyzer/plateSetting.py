@@ -167,9 +167,9 @@ def readDSPlateSetting(plateL, confDir, startAtZero = False,
                 idL[plate][k]=w.id
                 
     if addPlateWellsToDB:
-        return result, np.reshape(range(1,309),(14,22)), idL
+        return result, {plate:np.reshape(range(1,nb_col*nb_row+1),(nb_row,nb_col))}, idL
     else:
-        return result,np.reshape(range(1,309),(14,22)), {}
+        return result,{plate:np.reshape(range(1,nb_col*nb_row+1),(nb_row,nb_col))}, {}
     
 def fromXBToWells(xbL=None,confDir='/media/lalil0u/New/projects/Xb_screen/protocols_etal/plate_setups',
                    dose_filter=None, plate=None, verbose=False):
