@@ -490,7 +490,7 @@ class HTMLGenerator():
     
     def generateMovies(self, plate, well_setup):
         well_setup=well_setup.flatten()
-        import pdb;pdb.set_trace()
+        
         for well in well_setup[np.where(well_setup>0)]:
             #even if there are missing columns don't forget that the image directory uses Zeiss counting
             wellFolder = filter(lambda x: os.path.isdir(os.path.join(self.settings.raw_data_dir, plate,x)) and well==int(self.settings.whereWell(x)), 
@@ -517,6 +517,7 @@ class HTMLGenerator():
                                     clef=(lambda x:int(x.split('--')[3][1:])),
                                 #because the images for the drug screen start at 2**15
                                     offset=2**15)
+        import pdb;pdb.set_trace()
         return    
     
     def changeDBWellNumbers(self,plate, well_setup, idL):
@@ -605,13 +606,13 @@ class HTMLGenerator():
                         print ' *** changing well numbers in db, plate ', plate
                         self.changeDBWellNumbers(plate, self.well_lines_dict[plate], idL)
                 if doMovies:
-                    try:
-                        print ' *** generate movies ***'
-                        self.generateMovies(plate, self.well_lines_dict[plate])
-             
-                    except: 
-                        print ' ERROR while working for %s' % plate
-                        continue
+                    #try:
+                    print ' *** generate movies ***'
+                    self.generateMovies(plate, self.well_lines_dict[plate])
+#              
+#                     except: 
+#                         print ' ERROR while working for %s' % plate
+#                         continue
         return
     
     
