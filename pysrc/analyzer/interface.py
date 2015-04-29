@@ -33,7 +33,6 @@ class HTMLGenerator():
     def __init__(self, settings_file):
         self.settings = settings.Settings(settings_file, globals())
         
-        self.plate = self.settings.plate
         self.ap = ArrayPlotter(plotDir=self.settings.plot_dir, 
                                legendDir=self.settings.plot_dir) 
         self.wp = WellPlotter(plotDir=self.settings.plot_dir)
