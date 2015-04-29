@@ -93,16 +93,16 @@ def readDSPlateSetting(plateL, confDir, startAtZero = False,
 #                 current_parameters[parameter] = np.delete(current_parameters[parameter], 
 #                                         np.where(current_parameters[parameter]==''))
         for k, line in enumerate(well_lines):
-            result[plate][k]=defaultdict(dict)
+            result[plate][k+1]=defaultdict(dict)
             for i,param in enumerate(WELL_PARAMETERS):
                 try:
-                    result[plate][k][param]=line[indices[param]].replace(' ', '')
+                    result[plate][k+1][param]=line[indices[param]].replace(' ', '')
                 except KeyError:
-                    result[plate][k][param]=default[param]
+                    result[plate][k+1][param]=default[param]
                     
             if addPlateWellsToDB:
-                medium = result[plate][k]['Medium']
-                serum = int(result[plate][k]['Serum'])
+                medium = result[plate][k+1]['Medium']
+                serum = int(result[plate][k+1]['Serum'])
                 
                 conds = Cond.objects.filter(medium = medium)
                 if len(conds)==0:
@@ -122,18 +122,18 @@ def readDSPlateSetting(plateL, confDir, startAtZero = False,
                         cond = conds[0]
 
             if addPlateWellsToDB and 'Xenobiotic' in WELL_PARAMETERS:
-                xb = result[plate][k]['Xenobiotic']
+                xb = result[plate][k+1]['Xenobiotic']
                 try:
-                    dose = float(result[plate][k]['Dose'].replace(',', '.'))
+                    dose = float(result[plate][k+1]['Dose'].replace(',', '.'))
                 except ValueError:
                     #then it means there are letters in the field
                     try:
-                        dose = float(result[plate][k]['Dose'].replace(',', '.')[:-2])
+                        dose = float(result[plate][k+1]['Dose'].replace(',', '.')[:-2])
                     except ValueError:
                         #then it meants it's an empty field
                         dose=0
                     else:
-                        unit = result[plate][k]['Dose'][-2:]
+                        unit = result[plate][k+1]['Dose'][-2:]
                         if unit=='uM':
                             dose*=10**(-6)
                         elif unit=='nM':
@@ -159,12 +159,12 @@ def readDSPlateSetting(plateL, confDir, startAtZero = False,
                         treatment =treatments[0]
                     
             if addPlateWellsToDB:
-                clone = result[plate][k]['Name'].split("_")[0]
-                w=Well(num=k, plate=p, treatment = treatment, clone = clone)
+                clone = result[plate][k+1]['Name'].split("_")[0]
+                w=Well(num=k+1, plate=p, treatment = treatment, clone = clone)
                 w.save()
         #this is how to add many to many relations
                 w.cond.add(cond); w.save()
-                idL[plate][k]=w.id
+                idL[plate][k+1]=w.id
                 
     if addPlateWellsToDB:
         return result, {plate:np.reshape(range(1,nb_col*nb_row+1),(nb_row,nb_col))}, idL
