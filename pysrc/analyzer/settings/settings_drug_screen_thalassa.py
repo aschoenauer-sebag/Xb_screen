@@ -29,10 +29,10 @@ missing_cols = {'11414':(1,2)}
 
 ###FEATURES OF INTEREST
 #Plate features and channel of extraction
-featuresOfInterest = ['Flou']
+featuresOfInterest = ['Focus']
 featureChannels = [0]
 #Well features
-well_features = ["cell_count", 'Flou_ch1']
+well_features = ["cell_count", 'Focus_ch1']
 
 ###DATA BASE SETTINGS
 #Plate name
@@ -66,7 +66,7 @@ density_plot_settings = {
 well_plot_settings={
                     'cell_count':(0, 300),
                     'circularity':(0, 0.75),
-                    'Flou_ch1':(0,1),
+                    'Focus_ch1':(0,1),
                     'Nuclear morphologies':(0,1)
 }
 

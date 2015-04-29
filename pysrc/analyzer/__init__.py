@@ -10,7 +10,7 @@ plates=['201114', '271114', '121214', '201214', '271214']
 lengths={'271214':96, '121214':65, '271114':65, '201214':96, '201114':93}
 total_experiment_number=415
 
-COLORD = {'Interphase_ch1': '#00d500',
+COLORD_XB = {'Interphase_ch1': '#00d500',
           'Amas_ch1': '#eee234',
           'Polylobbed_ch1': '#457a0f',
           'Metaphase_ch1': '#ff00ff',
@@ -22,8 +22,44 @@ COLORD = {'Interphase_ch1': '#00d500',
           'Frozen_ch1': '#aaaaff',
 
           'Flou_ch1':'black',
-          'Artefact_ch1': 'black',
+          'Artefact_ch1': 'grey',
           'SmallUnidentified_ch1': 'grey',
+          }
+          
+COLORD_DS={'Interphase_ch1': 'chocolate3',
+          'Large_ch1': 'darkgoldenrod1',
+          'Elongated_ch1': 'chocolate4',
+          'Binucleated_ch1': 'cornsilk3',
+          'Polylobed_ch1': '#457a0f',
+          
+#           'Shape': 'blue',
+#           'Shape1': 'blue',
+#           'Shape3': 'deepskyblue',
+          'Grape_ch1': 'dodgerblue3',
+
+#          'MitosisPhenotype': 'chartreuse',          
+          'Metaphase_ch1': 'forestgreen',
+          'Anaphase_ch1': 'darkolivegreen1',
+          'MetaphaseAlignment_ch1': 'chartreuse',
+          'Prometaphase_ch1': 'palegreen2',
+          'ADCCM_ch1': 'lightgreen',
+          
+          'Apoptosis_ch1': 'red',
+          
+        #'Dynamic': 'magenta',
+          'Hole_ch1': 'orchid1',
+          'Folded_ch1': 'purple',
+          'SmallIrregular_ch1': 'magenta3',
+          
+          'Focus_ch1':'black',
+          'Artefact_ch1': 'grey',
+          'UndefinedCondensed': 'red4',
+          
+          'proliferationDiff': 'cyan2',
+          'proliferation': 'cyan3',
+          
+          'subTrack_dist_mean_norm': 'yellow', 
+          'frameToFrame_max': 'orange'
 
           }
 

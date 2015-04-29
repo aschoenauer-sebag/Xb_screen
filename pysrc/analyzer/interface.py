@@ -128,6 +128,8 @@ class HTMLGenerator():
             featureChannels.extend([0 for k in range(len(filter(lambda x: x not in featureL, self.classes)))])
             featureL.extend(filter(lambda x: x not in featureL, self.classes))
             self.settings.well_features.append('Nuclear_morphologies')
+            
+        print'--------------', featureL
         
         for plate in frameLot.lstFrames:
             if plate not in resD:
@@ -219,7 +221,7 @@ class HTMLGenerator():
                     
                 if self.classes is not None:
             #computing the percentage of out of focus nuclei on the last image
-                    result['endFlou']=result['Flou_ch1'][-1]
+                    result['endFlou']=result['Focus_ch1'][-1]
                 resD[plate][int(well[:-3])].update(result)
         return 1
     
@@ -419,7 +421,7 @@ class HTMLGenerator():
 #TODO investigate this normalization story
         return 
     
-    def generateWellPlots(self, plate, resD):
+    def generateWellPlots(self, plate, resD, colorDict):
         try:
             resCour = resD[plate]
         except KeyError:
@@ -448,7 +450,10 @@ class HTMLGenerator():
                     figsize=(20,10)
                     for class_ in self.classes:
                         data.append(self.wp.prepareData(resCour[well]['{}_ch1'.format(class_)]))
-                        colors.append(self.settings.COLORD['{}_ch1'.format(class_)])
+                        try:
+                            colors.append(self.settings.COLORD['{}_ch1'.format(class_)])
+                        except KeyError:
+                            colors.append('grey')
                 else:
                     continue
             
@@ -524,6 +529,7 @@ class HTMLGenerator():
         Default behaviour regarding movie generation: if already done they are not recomputed
         '''
         
+        colorDict=COLORD_XB if self.settings.xbscreen else COLORD_DS
     #Getting plate list
         if plateL is None:
             plateL = [self.settings.plate] if type(self.settings.plate)!=list else self.settings.plate
@@ -578,7 +584,7 @@ class HTMLGenerator():
                     self.generatePlatePlots(plate, resD)
                     
                     print ' *** generate well plots ***'
-                    self.generateWellPlots(plate, resD)
+                    self.generateWellPlots(plate, resD, colorDict)
     
                     print ' *** saving result dictionary ***'
                     self.saveResults(plate, resD)
