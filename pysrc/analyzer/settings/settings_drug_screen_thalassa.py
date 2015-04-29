@@ -95,7 +95,3 @@ TRANSLATION_WHOLENAMED = {
     'subTrack_dist_mean_norm': 'Migration: Distance', 
     'frameToFrame_max': 'Migration: Speed'
     }
-
-# color dictionnary for the time curve plots
- 
-from analyzer import COLORD
