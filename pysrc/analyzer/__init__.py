@@ -26,42 +26,24 @@ COLORD_XB = {'Interphase_ch1': '#00d500',
           'SmallUnidentified_ch1': 'grey',
           }
           
-COLORD_DS={'Interphase_ch1': 'chocolate3',
-          'Large_ch1': 'darkgoldenrod1',
-          'Elongated_ch1': 'chocolate4',
-          'Binucleated_ch1': 'cornsilk3',
-          'Polylobed_ch1': '#457a0f',
-          
-#           'Shape': 'blue',
-#           'Shape1': 'blue',
-#           'Shape3': 'deepskyblue',
-          'Grape_ch1': 'dodgerblue3',
-
-#          'MitosisPhenotype': 'chartreuse',          
-          'Metaphase_ch1': 'forestgreen',
-          'Anaphase_ch1': 'darkolivegreen1',
-          'MetaphaseAlignment_ch1': 'chartreuse',
-          'Prometaphase_ch1': 'palegreen2',
-          'ADCCM_ch1': 'lightgreen',
-          
-          'Apoptosis_ch1': 'red',
-          
-        #'Dynamic': 'magenta',
-          'Hole_ch1': 'orchid1',
-          'Folded_ch1': 'purple',
-          'SmallIrregular_ch1': 'magenta3',
-          
-          'Focus_ch1':'black',
-          'Artefact_ch1': 'grey',
-          'UndefinedCondensed': 'red4',
-          
-          'proliferationDiff': 'cyan2',
-          'proliferation': 'cyan3',
-          
-          'subTrack_dist_mean_norm': 'yellow', 
-          'frameToFrame_max': 'orange'
-
-          }
+COLORD_DS={'ADCCM': '#94EE25',
+         'Anaphase': '#CAFF70',
+         'Apoptosis': '#FF0000',
+         'Artefact': '#FFFF00',
+         'Binucleated': '#0000FF',
+         'Elongated': '#8B4513',
+         'Focus': '#927D35',
+         'Folded': '#A020F0',
+         'Grape': '#1874CD',
+         'Hole': '#FF83FA',
+         'Interphase': '#CD661D',
+         'Large': '#FFB90F',
+         'Metaphase': '#228B22',
+         'MetaphaseAlignment': '#7FFF00',
+         'Polylobed': '#00BFFF',
+         'Prometaphase': '#90EE90',
+         'SmallIrregular': '#CD00CD'
+         }
 
 cecog_features = ['ch_acd',
                  'ch_area_ratio',
