@@ -138,7 +138,7 @@ class HTMLGenerator():
                 warn("Plate {} not in result dictionary from CSV file extraction".format(plate))
                 continue
             for well in frameLot.lstFrames[plate]:
-                secondary=frameLot.lstFrames[plate][well][0].secondary
+                secondary=frameLot.lstFrames[plate][well][frameLot.lstFrames[plate][well].keys()[0]].secondary
                 
                 if int(well[:-3]) not in resD[plate]:
                     warn("Well {} not in result dictionary from CSV file extraction".format(well))
