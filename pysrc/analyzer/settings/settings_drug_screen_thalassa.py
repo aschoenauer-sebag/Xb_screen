@@ -71,7 +71,7 @@ density_plot_settings = {
 }
 
 well_plot_settings={
-                    'cell_count':(100, 600),
+                    'cell_count':(50, 700),
                     'circularity':(0, 0.75),
                     'Focus_ch1':(0,1),
                     'Nuclear morphologies':(0,1)

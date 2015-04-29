@@ -76,7 +76,7 @@ def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None,
 
     return
 
-def makeMovie(imgDir, outDir, plate, well,clef = lambda x:int(x.split('_')[2]), filtre=None, tempDir=None):
+def makeMovie(imgDir, outDir, plate, well,clef = lambda x:int(x.split('_')[2]), filtre=None, tempDir=None, offset=0):
 #    def normWrite(img, filename):
 #        img=(img-2**15)*(2**8-1)/(2**12-1)
 #        vi.writeImage(img, filename)
@@ -108,7 +108,7 @@ def makeMovie(imgDir, outDir, plate, well,clef = lambda x:int(x.split('_')[2]), 
         print imageName
         img = vi.readImage(os.path.join(imgDir, imageName))
         normImage = vigra.VigraArray(img.shape, dtype=np.dtype('uint8'))
-        normImage[:,:,0] = (img[:,:,0])*(2**8-1)/(2**12-1)
+        normImage[:,:,0] = (img[:,:,0]-offset)*(2**8-1)/(2**12-1)
 ###WARNING if you only do normImage = (img - etc then we have a flickering effect. Apparently vigra decides to do its normalization on every image as it pleases
         suffix = imageName.split('.')[-1]
         vi.writeImage(normImage, os.path.join(tempDir, os.path.basename(imageName).replace(suffix, 'jpg')), dtype = np.dtype('uint8'))

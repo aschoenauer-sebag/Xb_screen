@@ -22,7 +22,7 @@ from analyzer import COLORD_DS, COLORD_XB
 from plateSetting import readPlateSetting
 
 from util.plots import makeColorRamp, couleurs, basic_colors
-from util.movies import makeMovieMultiChannels
+from util.movies import makeMovieMultiChannels, makeMovie
 import brewer2mpl
 import matplotlib.pyplot as p
 
@@ -101,7 +101,7 @@ class HTMLGenerator():
         print "Looking for features ", featureL
         for plate in plateL:
             listW = sorted(filter(lambda x: '.hdf5' in x or '.ch5' in x, os.listdir(os.path.join(dataFolder, plate, 'hdf5'))))
-            for filename in listW:
+            for filename in listW[:5]:
                 well=filename.split('.')[0]
                     
                 filename = os.path.join(dataFolder, plate,"hdf5", filename)
@@ -511,8 +511,11 @@ class HTMLGenerator():
                         makeMovieMultiChannels(imgDir=imgDir, outDir=self.settings.movie_dir, plate=self.settings.newPlateName(plate), well=np.where(well_setup==well)[0][0]+1, 
                                            ranges=[(50,1000),(200,3000)], secondary=secondary)
                     else:
-                        pass
-                        #redo makeMovies dans util.movies
+                        makeMovie(imgDir, outDir=self.settings.movie_dir, plate=self.settings.newPlateName(plate),
+                                    well=np.where(well_setup==well)[0][0]+1,
+                                    clef=(lambda x:int(x.split('--')[3][1:])),
+                                #because the images for the drug screen start at 2**15
+                                    offset=2**15)
         return    
     
     def changeDBWellNumbers(self,plate, well_setup, idL):
@@ -706,10 +709,10 @@ class ArrayPlotter():
             for x,y in zip(a,b):
                 #restricting the name to max 6 char otherwise it's not lisible
                 #txt = res[well]['Name'][:6]
-                txt='{}'.format(res[well]['Xenobiotic'][:6])
+                txt='{}'.format(res[well]['Xenobiotic'][:4])
                 txt+='\n{}'.format(res[well]['Dose'])
                 #txt+='\n{} {}'.format(res[well]['Medium'][:6],res[well]['Serum'])
-                ax.text(y+0.1, nrow-x-1+0.1, txt, fontsize=8)
+                ax.text(y+0.1, nrow-x-1+0.1, txt, fontsize=6)
                 texts.append((y, nrow-x-1, txt))
         if show:
             p.show()
@@ -777,16 +780,16 @@ class ArrayPlotter():
         abs[absent] = 1
         absent=np.where(np.flipud(abs)==1)
         for el in zip(absent[0], absent[1]):
-            ax.text(el[1]+0.5, el[0]+0.5, 'm', fontweight = 'bold', fontsize=20)
+            ax.text(el[1]+0.5, el[0]+0.5, 'm', fontweight = 'bold', fontsize=10)
             
         no_images = np.where(np.flipud(data)==-2)
         for el in zip(no_images[0], no_images[1]):
-            ax.text(el[1]+0.5, el[0]+0.5, 'no im.',fontsize=10)
+            ax.text(el[1]+0.5, el[0]+0.5, 'no im.',fontsize=8)
 
         if grid: ax.grid(True)
         if texts is not None:
             for el in filter(lambda x: (x[0], x[1]) not in zip(absent[1], absent[0]), texts):
-                ax.text(el[0]+0.1, el[1]+0.1, el[2],fontsize=8)
+                ax.text(el[0]+0.1, el[1]+0.1, el[2],fontsize=6)
         if show:
             p.show()
         else:
