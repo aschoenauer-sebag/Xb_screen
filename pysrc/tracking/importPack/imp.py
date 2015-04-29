@@ -91,6 +91,7 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False, se
     
     tabClassification = None if pathClassification is None else np.array(vi.readHDF5(filename, pathClassification), dtype=int)
     
+    secondary_success=False
     if secondary:
         pathSecondaryObjects = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/object/secondary__propagate"
         pathSecondaryFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/secondary__propagate/object_features"
@@ -101,7 +102,6 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False, se
             tabSecondaryFeatures = vi.readHDF5(filename, pathSecondaryFeatures)
         except:
             print "No second channel for this well ", puits
-            secondary_success=False
         else:
             secondary_success=True
     elif secondary_outside:
@@ -114,7 +114,6 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False, se
             tabSecondaryFeatures = vi.readHDF5(filename, pathSecondaryFeatures)
         except:
             print "No second channel for this well ", puits
-            secondary_success=False
         else:
             secondary_success=True
     

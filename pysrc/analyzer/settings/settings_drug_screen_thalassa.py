@@ -22,8 +22,6 @@ movie_dir = os.path.join(media_dir, "movies")
 # Plate setups directory
 confDir = os.path.join(base_result_dir, 'plate_setups')
 
-###DEFAULT PLATE
-plate = '11414'
 # if Zeiss plate setup did not include some columns, indicate it here
 missing_cols = {'11414':(1,2)}
 

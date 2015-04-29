@@ -145,8 +145,11 @@ class HTMLGenerator():
                     warn("Well {} not in result dictionary from CSV file extraction".format(well))
                     continue
                 
-                result={'object_count':[], 'cell_count':[], 'red_only':[], 'circularity':[]}
-                argL = zip(filter(lambda x: x != 'roisize', featureL), featureChannels)
+                result={'object_count':[], 'cell_count':[]}
+                if secondary:
+                    result.update({'red_only':[], 'circularity':[]})
+                
+                argL = zip(featureL, featureChannels)
                 result.update({'{}_ch{}'.format(arg[0], arg[1]+1):[] for arg in argL})
                 
                 for frame_nb in frameLot.lstFrames[plate][well]:
@@ -158,21 +161,20 @@ class HTMLGenerator():
                         if np.sum(bincount)==0:
                             print "No info frame {} well {} plate {}".format(frame_nb, well, plate)
                             continue
-                        out_of_focus = bincount[np.where(self.classes=='Flou')]
+                        out_of_focus = bincount[np.where(self.classes=='Focus')]
 #NB: no more smallUnidentified after classifier update on 2/20/15
                         artefacts = bincount[np.where(self.classes=='Artefact')] 
                         result["cell_count"].append( frame.centers.shape[0] - (out_of_focus + artefacts))
                         
                 #for each frame, the object count = all objects = cells+out of focus objects + artefacts
                     result["object_count"].append(frame.centers.shape[0])
+                    
                 #if second channel was processed, computing percentage of red only cells
-                    try:
-                        red_only_dist =self.featureComparison(frame.features, featureL.index("roisize"))
-                        result["red_only"].append(self.featureHist(red_only_dist, bins = [0, 0.95, 1], binOfInterest = 1))
-                    except:
-                        if not secondary:
-                            result["red_only"].append(np.nan)
-                        else:
+                    if secondary:
+                        try:
+                            red_only_dist =self.featureComparison(frame.features, featureL.index("roisize"))
+                            result["red_only"].append(self.featureHist(red_only_dist, bins = [0, 0.95, 1], binOfInterest = 1))
+                        except:
                             raise ValueError
                 #other parameters are specified in the setting file    
                     for arg in argL:
@@ -192,31 +194,25 @@ class HTMLGenerator():
                             result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])])
                         except:
                             if not secondary and arg[1]+1==2:
-                                result['{}_ch{}'.format(arg[0], arg[1]+1)].append(np.nan)
+                                continue
                             else:
                                 raise
                 
                 #if the second channel was processed, looking at round cells from a cytoplasmic point of view because it's the cells that are dying (or dividing but here we neglect that)
                     if "circularity_ch2" in result:
                     #circularity at well level
-                        if secondary:
-                            result['circularity'].append(self.featureHist(result["circularity_ch2"][-1], bins = [1, 1.5, 5], binOfInterest = 0))
-                        else:
-                            result['circularity'].append(np.nan)
-
+                        result['circularity'].append(self.featureHist(result["circularity_ch2"][-1], bins = [1, 1.5, 5], binOfInterest = 0))
                         
                 result["initObjectCount"]=result["object_count"][0]
                 result["initCellCount"]=result["cell_count"][0]
                 result["proliferation"]=result["cell_count"][-1]/float(result["cell_count"][0])
-        #setting nan value if second channel not processed
-                result["initNucleusOnly"]=result["red_only"][0]
-                result["endNucleusOnly"]=result["red_only"][-1]
-                try:
+
+                if secondary:
+                    result["initNucleusOnly"]=result["red_only"][0]
+                    result["endNucleusOnly"]=result["red_only"][-1]
                     result['initCircularity']= self.featureHist(result["circularity_ch2"][0], bins = [1, 1.4, 5], binOfInterest = 0)
                     result['endCircularity'] = self.featureHist(result["circularity_ch2"][-1], bins = [1, 1.4, 5], binOfInterest = 0)
-                except KeyError:
-                    pass
-                else:
+             
                     result['initCircMNucleus']= result['initCircularity']-result["initNucleusOnly"]
                     result['endCircMNucleus']= result['endCircularity']-result["endNucleusOnly"]            
                     result["death"]=result['endCircMNucleus']/float(result['initCircMNucleus']+0.0001)
@@ -399,10 +395,15 @@ class HTMLGenerator():
                                    'initCircularity', 'endCircularity',  
                                    "initNucleusOnly", "endNucleusOnly",
                                    'initCircMNucleus', 'endCircMNucleus', 'endFlou'], settingL):
+            if pheno not in resCour[resCour.keys()[0]]:
+                print "No {} for plate {}, well {}".format(pheno, plate, resCour.keys[0])
+                continue
+            
             print "working on ", pheno
             filename = '%s--%s.png' % (pheno, plate.split('_')[0])
             
             data = self.ap.prepareData(resCour, self.ap.getPhenoVal(pheno), self.well_lines_dict[plate])
+            
             try:
                 if np.isnan(data):
                     continue
@@ -475,7 +476,7 @@ class HTMLGenerator():
                     
                 if pheno=='cell_count':
                     add_line=30
-                elif pheno=='Flou_ch1':
+                elif pheno=='Flou_ch1' or pheno=='Focus_ch1':
                     add_line=0.5
                 else:
                     add_line=None
@@ -526,26 +527,25 @@ class HTMLGenerator():
         return
         
         
-    def __call__(self, plateL=None, featureL = None, featureChannels =None, saveDB=True, fillDBOnly=False, doQC=False, moviesOnly=False, doMovies=True):
+    def __call__(self, plateL, featureL = None, featureChannels =None, saveDB=True, fillDBOnly=False, doQC=False, moviesOnly=False, doMovies=True):
         '''
         Default behaviour regarding movie generation: if already done they are not recomputed
         '''
-        
-        colorDict=COLORD_XB if self.settings.xbscreen else COLORD_DS
-    #Getting plate list
-        if plateL is None:
-            plateL = [self.settings.plate] if type(self.settings.plate)!=list else self.settings.plate
     #Getting features of interest
         if featureL is None:
             featureL = self.settings.featuresOfInterest
             featureChannels = self.settings.featureChannels
         assert(len(featureL)==len(featureChannels)), "Not same number of features of interest and channels to consider them"
         self.FEATURE_NUMBER = len(featureL)
-        
-    #Adding roisize to be able to assess number of cells that only have fluorescent nucleus
-        if 'roisize' not in featureL:
-            featureL.append('roisize')
-            self.FEATURE_NUMBER +=1
+        if self.settings.xbscreen:
+            colorDict=COLORD_XB 
+            #Adding roisize to be able to assess number of cells that only have fluorescent nucleus
+            if 'roisize' not in featureL:
+                featureL.append('roisize')
+                self.FEATURE_NUMBER +=1
+        else:
+            colorDict= COLORD_DS
+
             
         #first we get the plate setting, not counting empty wells. In particular it means that 
         #wells are counted according to their Zeiss number and not number on the plate.
