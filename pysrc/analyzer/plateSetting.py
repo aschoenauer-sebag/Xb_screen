@@ -10,8 +10,8 @@ from plates.models import Plate,Cond, Treatment, Well
 from analyzer import CONTROLS, compoundL
 WELL_PARAMETERS = ['Name', 'Medium', 'Serum', 'Xenobiotic', 'Dose']
 
-def readPlateSetting(plateL, confDir, startAtZero = False,
-                     plateName="Drug screen", dateFormat='%d%m%y',
+def readPlateSetting(plateL, confDir,plateName, startAtZero = False,
+                     dateFormat='%d%m%y',
                      addPlateWellsToDB=False, xbscreen=False):
     '''
     Function to go from csv file describing plate setup to a dictionary
@@ -28,7 +28,7 @@ def readPlateSetting(plateL, confDir, startAtZero = False,
         idL[plate]={}
         if xbscreen:
             r, currWell_lines, iL= readXBPlateSetting([plate], confDir, startAtZero,
-                     plateName=plateName, dateFormat=dateFormat,
+                     dateFormat=dateFormat,
                      addPlateWellsToDB=addPlateWellsToDB)
             result.update(r)
             idL.update(iL)
