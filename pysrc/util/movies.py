@@ -5,7 +5,7 @@ import numpy as np
 
 def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data40T/aschoenauer/drug_screen',\
                                 outDir = "/cbio/donnees/aschoenauer/public_html/interface_screen/plates/static/movies",\
-                                clef=lambda x:int(x.split('_')[2][1:-4]),folderName='analyzed/{}/images/primary_classification_primary',\
+                                clef=lambda x:int(x.split('_')[2][1:-4]),folderName='analyzed/{:>05}_01/images/primary_classification_primary',\
                                 extension="jpg", redo=True, rename_pl=lambda x:x):
     
     if tempDir is None:
@@ -14,13 +14,13 @@ def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data40T/
     if idDict==None:
         idDict={3:[]}
         for pl in os.listdir(inDir):
-            idDict[3].extend([(pl, '{:>05}_01'.format(el)) for el in range(1,309)])
+            idDict[3].extend([(pl, el) for el in range(1,309)])
     
     for gene in idDict:
         for pl,w in idDict[gene]:
             print pl,w
-            if len(w.split('_'))==1 or w.split('_')[1]!='01':
-                w=w+'_01'
+#             if len(w.split('_'))==1 or w.split('_')[1]!='01':
+#                 w=w+'_01'
 #            imgInDir = os.path.join(inDir, pl, filter(lambda x: w[2:5] ==x[:3], os.listdir(os.path.join(inDir, pl)))[0])
             imgInDir=os.path.join(inDir, pl, folderName.format(w))
             try:
