@@ -12,7 +12,7 @@ def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data40T/
         tempDir = os.path.join(outDir, 'temp')
         
     if idDict==None:
-        idDict[3]=[]
+        idDict={3:[]}
         for pl in os.listdir(inDir):
             idDict[3].extend([(pl, '{:>05}_01'.format(el)) for el in range(1,309)])
     
