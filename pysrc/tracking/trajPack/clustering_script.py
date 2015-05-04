@@ -183,8 +183,8 @@ python tracking/trajPack/random_clustering.py -d %i -n %i
     print sub_cmd
     return 1
 
-def generationScript(baseName,outputname='halfM_max_05', simulated=0, algo=None, data=None, debut=None, fin=None, neighbours=None, sigma=None, density=None, covar=None, fuzzifier=None, num_samp=None):
-    jobCount = 10
+def generationScript(baseName,outputname='ap', simulated=0, algo=None, data=None, debut=None, fin=None, neighbours=None, sigma=None, density=None, covar=None, fuzzifier=None, num_samp=None):
+    jobCount = 1
 #    nb_jobs = fin-debut+1
 #    if algo==0:
 #        baseName = baseName+'_n{}_'.format(neighbours)

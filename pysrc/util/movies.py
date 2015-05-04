@@ -3,20 +3,26 @@ import vigra
 import os, pdb, shutil
 import numpy as np
 
-def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data20T/mitocheck/compressed_data',\
-                                outDir = "/cbio/donnees/aschoenauer/workspace2/Xb_screen/thrivisions",\
-                                clef=lambda x:int(x.split('--')[3][1:]),folderName='primary_classification_primary3',\
-                                extension="png", redo=True):
+def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data40T/aschoenauer/drug_screen',\
+                                outDir = "/cbio/donnees/aschoenauer/projects/drug_screen/results/movies",\
+                                clef=lambda x:int(x.split('_')[2][1:-4]),folderName='analyzed/{}/images/primary_classification_primary',\
+                                extension="jpg", redo=True):
     
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
+        
+    if idDict==None:
+        idDict[3]=[]
+        for pl in os.listdir(inDir):
+            idDict[3].extend([(pl, '{:>05}_01'.format(el)) for el in range(1,309)])
     
     for gene in idDict:
         for pl,w in idDict[gene]:
             print pl,w
             if len(w.split('_'))==1 or w.split('_')[1]!='01':
                 w=w+'_01'
-            imgInDir = os.path.join(inDir, pl, filter(lambda x: w[2:5] ==x[:3], os.listdir(os.path.join(inDir, pl)))[0])
+#            imgInDir = os.path.join(inDir, pl, filter(lambda x: w[2:5] ==x[:3], os.listdir(os.path.join(inDir, pl)))[0])
+            imgInDir=os.path.join(inDir, pl, folderName.format(w))
             try:
                 makeMovieWithoutRenorm(imgInDir, outDir, gene, pl,w, clef, tempDir,extension=extension, redo=redo)
             except OSError:
@@ -42,7 +48,7 @@ def makeRawMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitochec
 def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None, extension="png", redo=True):
 
     # movie filename
-    movieName = '{}_P{}_W{}.avi'.format(gene, plate[:9], well)
+    movieName = 'P{}_W{}_{}.avi'.format(plate, well, gene)
     # make output directory
     if not os.path.isdir(outDir):
         os.makedirs(outDir)

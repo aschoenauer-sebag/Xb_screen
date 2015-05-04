@@ -335,28 +335,28 @@ def heatmap(x, row_header, column_header, row_method,
                 axm.text(i, -0.9, '{}'.format(column_header[i]), rotation=270, verticalalignment="top", fontsize=10)
             new_column_header.append(column_header[i])
 
-#    # Plot colside colors
-#    # axc --> axes for column side colorbar
-#    if column_method != None:
-#        axc = fig.add_axes([axc_x, axc_y, axc_w, axc_h])  # axes for column side colorbar
-#        cmap_c = mpl.colors.ListedColormap(['r', 'g', 'b', 'y', 'w', 'k', 'm'])
-#        dc = numpy.array(ind2, dtype=int)
-#        dc.shape = (1,len(ind2)) 
-#        im_c = axc.matshow(dc, aspect='auto', origin='lower', cmap=cmap_c)
-#        axc.set_xticks([]) ### Hides ticks
-#        axc.set_yticks([])
-#    
-#    # Plot rowside colors
-#    # axr --> axes for row side colorbar
-#    if row_method != None:
-#        axr = fig.add_axes([axr_x, axr_y, axr_w, axr_h])  # axes for column side colorbar
-#        dr = numpy.array(ind1, dtype=int)
-#        dr.shape = (len(ind1),1)
-#        #print ind1, len(ind1)
-#        cmap_r = mpl.colors.ListedColormap(['r', 'g', 'b', 'y', 'w', 'k', 'm'])
-#        im_r = axr.matshow(dr, aspect='auto', origin='lower', cmap=cmap_r)
-#        axr.set_xticks([]) ### Hides ticks
-#        axr.set_yticks([])
+    # Plot colside colors
+    # axc --> axes for column side colorbar
+    if column_method != None:
+        axc = fig.add_axes([axc_x, axc_y, axc_w, axc_h])  # axes for column side colorbar
+        cmap_c = mpl.colors.ListedColormap(['r', 'g', 'b', 'y', 'w', 'k', 'm'])
+        dc = numpy.array(ind2, dtype=int)
+        dc.shape = (1,len(ind2)) 
+        im_c = axc.matshow(dc, aspect='auto', origin='lower', cmap=cmap_c)
+        axc.set_xticks([]) ### Hides ticks
+        axc.set_yticks([])
+    
+    # Plot rowside colors
+    # axr --> axes for row side colorbar
+    if row_method != None:
+        axr = fig.add_axes([axr_x, axr_y, axr_w, axr_h])  # axes for column side colorbar
+        dr = numpy.array(ind1, dtype=int)
+        dr.shape = (len(ind1),1)
+        #print ind1, len(ind1)
+        cmap_r = mpl.colors.ListedColormap(['r', 'g', 'b', 'y', 'w', 'k', 'm'])
+        im_r = axr.matshow(dr, aspect='auto', origin='lower', cmap=cmap_r)
+        axr.set_xticks([]) ### Hides ticks
+        axr.set_yticks([])
 
     # Plot color legend
     axcb = fig.add_axes([axcb_x, axcb_y, axcb_w, axcb_h], frame_on=False)  # axes for colorbar

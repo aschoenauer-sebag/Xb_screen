@@ -566,7 +566,7 @@ def plotClustInd(folder, x, labels=None,neighbours=None,show=False, *args):
     #exemple d'appel : plots.plotClusteringIndices(range(2,16), [BIC, RBIC, 'BIC'], [PEC, RPEC, 'PEC'], [FS, RFS, 'FS'])
     n=len(args)
     f=p.figure(figsize=(24,13))
-    colors = [ 'red','blue', 'grey']#fHacktrack2.couleurs
+    colors = [ 'red','blue', 'grey', 'green', 'yellow']#fHacktrack2.couleurs
     lignes = []
     for i, tab in enumerate(args):
         ax=f.add_subplot(1, n, i)
@@ -587,7 +587,7 @@ def plotClustInd(folder, x, labels=None,neighbours=None,show=False, *args):
                 elif labels is not None: #then labels contain the labels
                     lab=labels[k]
                 if t.shape[0]==len(x):
-                    ax.plot(x, t,  linestyle="dashed", marker=markers[k], color='#'+colors[k], label=lab)
+                    ax.plot(x, t,  linestyle="dashed", marker=markers[k], color=colors[k], label=lab)
     
                 else:
 #                    ax.plot(x, np.mean(t, 0),  linestyle="dashed", marker=markers[k], color='#'+colors[k], label=lab)

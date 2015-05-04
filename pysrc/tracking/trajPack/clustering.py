@@ -292,7 +292,7 @@ def Kmeans(data, mini, maxi, N=5, metric='euclidean', return_labels = False):
     cohesion_r=[]
     for k in range(mini, maxi+1):
         print "--------------------------------------Cluster number : ", k
-        model = KMeans(n_clusters=k, init='k-means++',n_init=100,max_iter=1000)#100, 300 puis 500,500
+        model = KMeans(n_clusters=k, init='k-means++',n_init=1000,max_iter=1000)#100, 300 puis 500,500
         #n_clusters=8, init='k-means++', n_init=10, max_iter=300, tol=0.0001, precompute_distances=True, verbose=0, random_state=None, copy_x=True, n_jobs=1, k=None)
         zou = model.fit(data)
         print 'Computing silhouette score'
