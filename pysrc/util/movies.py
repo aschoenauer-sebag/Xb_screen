@@ -24,7 +24,7 @@ def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data40T/
 #            imgInDir = os.path.join(inDir, pl, filter(lambda x: w[2:5] ==x[:3], os.listdir(os.path.join(inDir, pl)))[0])
             imgInDir=os.path.join(inDir, pl, folderName.format(w))
             try:
-                makeMovieWithoutRenorm(imgInDir, outDir, gene, pl,w, clef, tempDir,extension=extension, redo=redo)
+                makeMovieWithoutRenorm(imgInDir, outDir, gene, rename_pl(pl),w, clef, tempDir,extension=extension, redo=redo)
             except OSError:
                 print "No folder ", imgInDir
                 continue
