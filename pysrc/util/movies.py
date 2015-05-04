@@ -4,9 +4,9 @@ import os, pdb, shutil
 import numpy as np
 
 def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data40T/aschoenauer/drug_screen',\
-                                outDir = "/cbio/donnees/aschoenauer/projects/drug_screen/results/movies",\
+                                outDir = "/cbio/donnees/aschoenauer/public_html/interface_screen/plates/static/movies",\
                                 clef=lambda x:int(x.split('_')[2][1:-4]),folderName='analyzed/{}/images/primary_classification_primary',\
-                                extension="jpg", redo=True):
+                                extension="jpg", redo=True, rename_pl=lambda x:x):
     
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
