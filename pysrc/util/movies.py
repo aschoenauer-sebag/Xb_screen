@@ -67,8 +67,6 @@ def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None,
     for el in lstImageNames:
         shutil.copy(os.path.join(imgDir, el), tempDir)   
         
-    
-    
     # encode command
     encode_command = "mencoder mf://%s/*.%s -mf w=800:h=600:fps=3:type=%s -ovc copy -oac copy -o %s"
     encode_command %= (tempDir,extension, extension, os.path.join(outDir, movieName))
@@ -122,7 +120,7 @@ def makeMovie(imgDir, outDir, plate, well,clef = lambda x:int(x.split('_')[2]), 
 
     f.close()
     # encode command
-    encode_command = "mencoder mf://@%s/list.txt -mf fps=5:type=jpg -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5"
+    encode_command = "mencoder mf://@%s/list.txt -mf fps=3:type=jpg -o %s -ovc xvid -oac copy -xvidencopts fixed_quant=2.5"
     #encode_command = "mencoder mf://@list.txt -mf w=800:h=600:fps=3:type=png -ovc copy -oac copy -o %s"
     encode_command %= (tempDir, os.path.join(outDir, movieName))
     print encode_command

@@ -562,11 +562,16 @@ def plotClusteringIndices(x, *args):
     p.show()
     return
 
+def func(k, colors):
+    if k<len(colors):
+        return k
+    return k%len(colors)
+
 def plotClustInd(folder, x, labels=None,neighbours=None,show=False, *args):
     #exemple d'appel : plots.plotClusteringIndices(range(2,16), [BIC, RBIC, 'BIC'], [PEC, RPEC, 'PEC'], [FS, RFS, 'FS'])
     n=len(args)
     f=p.figure(figsize=(24,13))
-    colors = [ 'red','blue', 'grey', 'green', 'yellow']#fHacktrack2.couleurs
+    colors = fHacktrack2.couleurs
     lignes = []
     for i, tab in enumerate(args):
         ax=f.add_subplot(1, n, i)
@@ -592,7 +597,7 @@ def plotClustInd(folder, x, labels=None,neighbours=None,show=False, *args):
                 else:
 #                    ax.plot(x, np.mean(t, 0),  linestyle="dashed", marker=markers[k], color='#'+colors[k], label=lab)
                     #ax.plot(x, np.mean(t, 0),  linestyle="dashed", marker="o", color="red", label='10 neighbours')
-                    ax.errorbar(x, np.mean(t, 0), np.std(t, 0), linestyle="dashed", marker=markers[k], color=colors[k], label=lab+', {} iterations'.format(t.shape[0]))
+                    ax.errorbar(x, np.mean(t, 0), np.std(t, 0), linestyle="dashed", marker=markers[func(k, markers)], color="#"+colors[func(k, colors)], label=lab+', {} iterations'.format(t.shape[0]))
                 from matplotlib.ticker import MultipleLocator
                 ax.xaxis.set_minor_locator(MultipleLocator(1))
                 ax.xaxis.grid(True,'minor')
