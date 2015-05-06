@@ -124,7 +124,7 @@ class completeTrackExtraction(object):
                 classif = classification[where_]
                 #looking at mom or me
                 if k<3:
-                    boxes[im].append((track_id, 0, np.array(list(bounding_boxes[where_]))))
+                    boxes[im].append((track_id, 0, bounding_boxes[where_]))
                     if k==0:
                         #looking at mom
                         score[track_id][0]+= int(classif in [6,8,9])
@@ -138,7 +138,7 @@ class completeTrackExtraction(object):
                 else:
                     local_box[k-3]=np.array(list(bounding_boxes[where_]))
                     score[track_id][1]+= int(classif ==7)
-
+            print local_box
             boxes[im].append((track_id,1, np.array([min(local_box[:,0]), max(local_box[:,1]), min(local_box[:,2]), max(local_box[:,3])]) ))
             
         return boxes, score
@@ -155,14 +155,24 @@ class completeTrackExtraction(object):
         Because if they are on the border otherwise it's not the right sizes for the crop
         Crop is left, right, top, bottom points
         '''
-        X= min(self.settings.XMAX, crop_['right']+self.settings.margin)
-        x = max(0, crop_['left']-self.settings.margin)
-        x__=int(X-x)
-        
-        Y = min(self.settings.YMAX, crop_['top']+self.settings.margin)
-        y = max(0, crop_['bottom']-self.settings.margin)
-        y__=int(Y-y)
-        
+        try:
+            X= min(self.settings.XMAX, crop_['right']+self.settings.margin)
+            x = max(0, crop_['left']-self.settings.margin)
+            x__=int(X-x)
+            
+            Y = min(self.settings.YMAX, crop_['top']+self.settings.margin)
+            y = max(0, crop_['bottom']-self.settings.margin)
+            y__=int(Y-y)
+            
+        except ValueError:
+            X= min(self.settings.XMAX, crop_[1]+self.settings.margin)
+            x = max(0, crop_[0]-self.settings.margin)
+            x__=int(X-x)
+            
+            Y = min(self.settings.YMAX, crop_[3]+self.settings.margin)
+            y = max(0, crop_[2]-self.settings.margin)
+            y__=int(Y-y)
+            
         return X,x,x__, Y,y,y__
         
     def crop(self, boxes, scores):
