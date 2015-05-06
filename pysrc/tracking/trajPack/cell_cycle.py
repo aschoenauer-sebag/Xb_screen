@@ -153,13 +153,14 @@ class completeTrackExtraction(object):
     def _newImageSize(self, crop_):
         '''
         Because if they are on the border otherwise it's not the right sizes for the crop
+        Crop is left, right, top, bottom points
         '''
-        X= min(self.settings.XMAX, crop_[1]+self.settings.margin)
-        x = max(0, crop_[0]-self.settings.margin)
+        X= min(self.settings.XMAX, crop_['right']+self.settings.margin)
+        x = max(0, crop_['left']-self.settings.margin)
         x__=int(X-x)
         
-        Y = min(self.settings.YMAX, crop_[3]+self.settings.margin)
-        y = max(0, crop_[2]-self.settings.margin)
+        Y = min(self.settings.YMAX, crop_['top']+self.settings.margin)
+        y = max(0, crop_['bottom']-self.settings.margin)
         y__=int(Y-y)
         
         return X,x,x__, Y,y,y__
