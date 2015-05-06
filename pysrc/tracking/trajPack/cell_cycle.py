@@ -8,9 +8,8 @@ from util import settings
 from util.listFileManagement import usable_MITO
 
 
-class thrivisionExtraction(object):
+class completeTrackExtraction(object):
     def __init__(self, settings_file, plate, well):
-        print "Youpla"
         self.settings = settings.Settings(settings_file, globals())
         self.plate = plate
     #NB here the wells are expected in format 00***_01
@@ -113,7 +112,7 @@ class thrivisionExtraction(object):
         classification = vi.readHDF5(file_, path_classif)
         
         boxes=defaultdict(list)
-        score={t:(0,0) for t in splits}
+        score={t:[0,0] for t in splits}
         
         for track_id in splits:
             
