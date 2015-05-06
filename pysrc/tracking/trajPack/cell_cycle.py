@@ -63,7 +63,7 @@ class completeTrackExtraction(object):
                 children.extend(connexions[im][el])
     #ids of complete tracks
         complete_tracks = filter(lambda x: x in mothers, children)
-        result = {el :[] for el in complete_tracks}
+        result = {el :[] for el in complete_tracks}; siblings={}
         
         c= {im:{el: connexions[im][el] for el in connexions[im] if el[0] in complete_tracks or 
                 np.any([ww in complete_tracks for ww in connexions[im][el]])} for im in connexions}
@@ -77,26 +77,24 @@ class completeTrackExtraction(object):
                     pdb.set_trace()
                 else:
                     sorted_mom_points = sorted(traj.lstPoints.keys(), key=lambda tup:tup[0])
+#                     if el[0] in complete_tracks:
+#                         assert(len(result[el[0]])==1)
+#                         result[el[0]].extend((sorted_mom_points[0], sorted_mom_points[-1]))
+                
+                sorted_child_points= {outEl: sorted(filter(lambda x:x.id==outEl, tracklets.lstTraj)[0].lstPoints.keys(), 
+                                                    key=lambda tup:tup[0]) for outEl in c[im][el]}
+                for outEl in c[im][el]:
                     if el[0] in complete_tracks:
-                        assert(len(result[el[0]])==1)
-                        result[el[0]].extend((sorted_mom_points[0], sorted_mom_points[-1]))
-                    
-                for outcomingEl in c[im][el]:
-                    try:
-                        traj=filter(lambda x:x.id==outcomingEl, tracklets.lstTraj)[0]
-                    except IndexError:
-                        pdb.set_trace()
-                    else:
-                        sorted_child_points= sorted(traj.lstPoints.keys(), key=lambda tup:tup[0])
-                        
-                        if el[0] in complete_tracks:
-                            result[el[0]].append(sorted_child_points[0])
-                        if outcomingEl in complete_tracks:
-                            result[outcomingEl].append(sorted_mom_points[-1])
-                        
-        return result
+                        result[el[0]].append(sorted_child_points[outEl][0])
+                    if outEl in complete_tracks:
+                        result[outEl].append(sorted_mom_points[-1])
+                        result[outEl].extend((sorted_child_points[outEl][0], sorted_child_points[outEl][-1]))
+                    #ici je mets l'id des siblings de outEl pour pouvoir faire le bon crop
+                        siblings[outEl]=[sorted_child_points[sibling][0][1] for sibling in c[im][el] if sibling !=outEl]
+                            
+        return result, siblings
     
-    def findObjects(self, splits):
+    def findObjects(self, splits, siblings):
         if self.settings.new_h5:
             file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.ch5".format(self.well))
             path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary3".format(self.plate, self.well.split('_')[0])
@@ -123,23 +121,29 @@ class completeTrackExtraction(object):
                 where_=np.where((objects['time_idx']==im)&(objects['obj_label_id']==cell_id))
                 classif = classification[where_]['label_idx'][0]
                 #looking at mom or me
-                if k<3:
-                    boxes[im].append((track_id, 0, bounding_boxes[where_]))
+                if k==0 or k==2:
+                    boxes[im].append((track_id, k, bounding_boxes[where_]))
                     if k==0:
                         #looking at mom
                         score[track_id][0]+= int(classif in [6,8,9])
-                    elif k==1:
-                        #looking at me, being born
-                        score[track_id][0]+= int(classif ==7)
                     elif k==2:
                         #looking at me being a mom
                         score[track_id][1]+= int(classif in [6,8,9])
+                elif k==1:
+                    #looking at me, being born
+                    score[track_id][0]+= int(classif ==7)
+                    currSibBox = bounding_boxes[where_]
+                    for sibling in siblings[track_id]:
+                        currSibBox=np.vstack((currSibBox, bounding_boxes[np.where((objects['time_idx']==im)&(objects['obj_label_id']==sibling))]))
+                    
+                    boxes[im].append((track_id, k, np.array([min(currSibBox['left']), max(currSibBox['right']), min(currSibBox['top']), max(currSibBox['bottom'])])))
+                    
                 #looking at daughters
                 else:
                     local_box=bounding_boxes[where_] if local_box is None else np.vstack((local_box, bounding_boxes[where_]))
                     score[track_id][1]+= int(classif ==7)
                 print score[track_id]
-            boxes[im].append((track_id,1, np.array([min(local_box['left']), max(local_box['right']), min(local_box['top']), max(local_box['bottom'])]) ))
+            boxes[im].append((track_id,3, np.array([min(local_box['left']), max(local_box['right']), min(local_box['top']), max(local_box['bottom'])]) ))
             
         return boxes, score
         
@@ -223,9 +227,9 @@ class completeTrackExtraction(object):
         tracklets, connexions = self.load()
         
         #ii. find thrivisions
-        splits = self.findConnexions(tracklets, connexions)
+        splits, siblings = self.findConnexions(tracklets, connexions)
         #iii. find their bounding boxes
-        boxes, scores=self.findObjects(splits)
+        boxes, scores=self.findObjects(splits, siblings)
 
         if not os.path.isdir(self.settings.outputFolder):
             os.mkdir(self.settings.outputFolder)
