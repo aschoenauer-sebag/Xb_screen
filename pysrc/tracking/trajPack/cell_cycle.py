@@ -149,7 +149,6 @@ class completeTrackExtraction(object):
                 else:
                     local_box=bounding_boxes[where_] if local_box is None else np.vstack((local_box, bounding_boxes[where_]))
                     score[track_id][1]+= int(classif ==7)
-                print score[track_id]
             boxes[im].append((track_id,3, np.array([min(local_box['left']), max(local_box['right']), min(local_box['top']), max(local_box['bottom'])]) ))
             
         return boxes, score
