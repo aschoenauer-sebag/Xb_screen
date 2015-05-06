@@ -160,8 +160,8 @@ class completeTrackExtraction(object):
             x = max(0, crop_['left']-self.settings.margin)
             x__=int(X-x)
             
-            Y = min(self.settings.YMAX, crop_['top']+self.settings.margin)
-            y = max(0, crop_['bottom']-self.settings.margin)
+            Y = min(self.settings.YMAX, crop_['bottom']+self.settings.margin)
+            y = max(0, crop_['top']-self.settings.margin)
             y__=int(Y-y)
             
         except ValueError:
