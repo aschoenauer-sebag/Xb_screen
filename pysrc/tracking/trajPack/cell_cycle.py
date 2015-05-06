@@ -121,8 +121,7 @@ class completeTrackExtraction(object):
             for k in range(len(splits[track_id])):
                 im, cell_id= splits[track_id][k]
                 where_=np.where((objects['time_idx']==im)&(objects['obj_label_id']==cell_id))
-                classif = classification[where_]
-                pdb.set_trace()
+                classif = classification[where_]['label_idx'][0]
                 #looking at mom or me
                 if k<3:
                     boxes[im].append((track_id, 0, bounding_boxes[where_]))
@@ -139,6 +138,7 @@ class completeTrackExtraction(object):
                 else:
                     local_box=bounding_boxes[where_] if local_box is None else np.vstack((local_box, bounding_boxes[where_]))
                     score[track_id][1]+= int(classif ==7)
+                print score[track_id]
             boxes[im].append((track_id,1, np.array([min(local_box['left']), max(local_box['right']), min(local_box['top']), max(local_box['bottom'])]) ))
             
         return boxes, score
