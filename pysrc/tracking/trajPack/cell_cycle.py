@@ -116,7 +116,7 @@ class completeTrackExtraction(object):
         
         for track_id in splits:
             
-            local_box=np.zeros(shape=(len(splits[track_id])-3,4), dtype=int)
+            local_box=None
             
             for k in range(len(splits[track_id])):
                 im, cell_id= splits[track_id][k]
@@ -136,7 +136,7 @@ class completeTrackExtraction(object):
                         score[track_id][1]+= int(classif in [6,8,9])
                 #looking at daughters
                 else:
-                    local_box[k-3]=bounding_boxes[where_]
+                    local_box=bounding_boxes[where_] if local_box is None else np.vstack((local_box, bounding_boxes[where_]))
                     score[track_id][1]+= int(classif ==7)
             print local_box
             boxes[im].append((track_id,1, np.array([min(local_box['left']), max(local_box['right']), min(local_box['top']), max(local_box['bottom'])]) ))
