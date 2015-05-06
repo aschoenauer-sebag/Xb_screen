@@ -1,4 +1,4 @@
-import sys, os, pdb
+import sys, os, pdb, vigra
 import cPickle as pickle
 import numpy as np
 
