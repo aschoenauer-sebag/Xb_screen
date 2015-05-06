@@ -6,9 +6,16 @@ import vigra.impex as vi
 from collections import defaultdict
 from util import settings
 from util.listFileManagement import usable_MITO
+from optparse import OptionParser
 
 
 class completeTrackExtraction(object):
+    '''
+    So this class permits to extract the coordinates of complete tracks (ie where we both have beginning after a split
+    and end before a split) in an experiment. Furthermore, it gives two scores to all such complete tracks, based on the classification
+    of mother and daughters : the first one for the first split, and the second to the second split. With this come crops,
+    it enables to see which scores are good enough for us to take the track into consideration.
+    '''
     def __init__(self, settings_file, plate, well):
         self.settings = settings.Settings(settings_file, globals())
         self.plate = plate
@@ -240,3 +247,41 @@ class completeTrackExtraction(object):
         self.save(boxes)
         
         return
+    
+    
+    
+    
+if __name__ == '__main__':
+    verbose=0
+    description =\
+'''
+%prog - Finding division in three in an experiment
+Input:
+- plate, well: experiment of interest
+- settings file
+
+'''
+    #Surreal: apparently I need to do this because I changed the architecture of my code between the computation of the trajectories and now that I need to reopen the files
+    from tracking import PyPack
+    sys.modules['PyPack.fHacktrack2']=PyPack.fHacktrack2
+    parser = OptionParser(usage="usage: %prog [options]",
+                         description=description)
+    
+    parser.add_option("-f", "--settings_file", dest="settings_file", default='tracking/settings/settings_cell_cycle.py',
+                      help="Settings_file")
+
+    parser.add_option("-p", "--plate", dest="plate",
+                      help="The plate which you are interested in")
+    
+    parser.add_option("-w", "--well", dest="well",
+                      help="The well which you are interested in")
+
+    (options, args) = parser.parse_args()
+    
+    hh=completeTrackExtraction(options.settings_file, options.plate, options.well)
+    hh()
+    print "Done"
+    
+    
+    
+    

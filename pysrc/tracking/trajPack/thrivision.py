@@ -216,10 +216,9 @@ def trainTestClassif(loadingFolder="../resultData/thrivisions", cv=10,estimate_a
         
         return np.array(y_pred, dtype=int), model.best_estimator_, mean, std, toDel
         
-def scriptThrivision(exp_list, baseName='thri_class', command="tracking/trajPack/thrivision.py"):
+def scriptCommand(exp_list, baseName='comp_track', command="tracking/trajPack/cell_cycle.py"):
     if len(exp_list[0])!=2:
         exp_list=strToTuple(exp_list, os.listdir("/share/data20T/mitocheck/Alice/results"))
-    
     
     fileNumber = int(len(exp_list)/float(jobSize))+1
     
@@ -265,10 +264,6 @@ python %s -p %s -w %s"""
     main_script_file.write(main_content)
     os.system('chmod a+x %s' % array_script_name)
 
-    # the submission commando is:
-    #sub_cmd = 'qsub -o %s -e %s -t 1-%i %s' % (self.oBatchSettings.pbsOutDir,  
-    #                                           self.oBatchSettings.pbsErrDir, 
-    #                                           jobCount, array_script_name)
     sub_cmd = 'qsub -t 1-%i %s' % (fileNumber, array_script_name)
 
     print 'array containing %i jobs' % fileNumber
