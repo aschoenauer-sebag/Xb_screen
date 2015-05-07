@@ -25,7 +25,7 @@ def renamingDS(folder="/share/data40T/Thomas/drug_screen/ORDERED_DRUGS_screen", 
         except:
             pass
         
-        subF = os.path.join(folder, filter(lambda x: subFolder1 in x, os.listdir(os.path.join(folder, plate)))[0], subFolder2)
+        subF = os.path.join(folder, plate, filter(lambda x: subFolder1 in x, os.listdir(os.path.join(folder, plate)))[0], subFolder2)
         print subF
         images = sorted(filter(lambda x: 'tif' in x, os.listdir(subF)))
         
