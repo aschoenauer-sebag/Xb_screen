@@ -38,7 +38,7 @@ def renamingDS(folder="/share/data40T/Thomas/drug_screen/ORDERED_DRUGS_screen", 
                 pass
         
         for image in images[:200]:
-            print image, os.path.join(objectifFolder, plate, image.split('--')[1])
+#            print image, os.path.join(objectifFolder, plate, image.split('--')[1])
             try:
                 shutil.move(os.path.join(subF, image), os.path.join(objectifFolder, plate, image.split('--')[1]))
             except:
