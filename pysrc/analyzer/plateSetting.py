@@ -45,7 +45,7 @@ def readPlateSetting(plateL, confDir,plateName, startAtZero = False,
     return result, WELL_PARAMETERS, well_lines, idL
 
 def readDSPlateSetting(plateL, confDir, startAtZero = False,
-                     dateFormat='%Y%m%d', 
+                     dateFormat='%m%y%d', 
                      default={'Name':"A", 'Medium': "Complet", 'Serum':10},
                      addPlateWellsToDB=False, indices={'Xenobiotic':3, 'Dose':4}):
     '''
@@ -73,10 +73,10 @@ def readDSPlateSetting(plateL, confDir, startAtZero = False,
             print well_lines
             well_lines_dict[plate]=well_lines
 
-        nb_col = 22; nb_row=14
+        nb_col = 24; nb_row=16
         
         if addPlateWellsToDB:
-            date = datetime.datetime.strptime(plate.split('--')[1][2:].replace('_', ''), dateFormat)
+            date = datetime.datetime.strptime(plate[2:6]+plate[-2:], dateFormat)
             p = Plate(name = plate, date = date, nb_col=nb_col, nb_row=nb_row)
             p.save()
         

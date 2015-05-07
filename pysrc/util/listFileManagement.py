@@ -13,6 +13,38 @@ from util import typeD, typeD2
 import getpass
 import h5py
 
+def renamingDS(folder="/share/data40T/Thomas/drug_screen/ORDERED_DRUGS_screen", subFolder1 = "AURORA_Prestwick", subFolder2="data",
+               objectifFolder = "/share/data40T/Thomas/drug_screen/ORDERED_DRUGS_screen/data"):
+    
+    plates = filter(lambda x: 'LT' in x, os.listdir(folder))
+    
+    for plate in plates:
+        print plate
+        try:
+            os.mkdir(os.path.join(objectifFolder, plate))
+        except:
+            pass
+        
+        subF = os.path.join(folder, filter(lambda x: subFolder1 in x, os.listdir(os.path.join(folder, plate)))[0], subFolder2)
+        print subF
+        images = sorted(filter(lambda x: 'tif' in x, os.listdir(subF)))
+        
+        wells = set([el.split('--')[1] for el in images])
+        print wells
+        for well in wells:
+            try:
+                os.mkdir(os.path.join(objectifFolder,plate, well))
+            except:
+                pass
+        
+        for image in images[:200]:
+            print image, os.path.join(objectifFolder, plate, image.split('--')[1])
+            try:
+                shutil.move(os.path.join(subF, image), os.path.join(objectifFolder, plate, image.split('--')[1]))
+            except:
+                pass
+            
+            
 
 def correct_from_Nan(arr, perMovie):
 #Si movement type a un coeff de correlation inf a 0.7 pour >=2 regressions, on supprime la trajectoire

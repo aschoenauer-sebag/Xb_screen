@@ -1,8 +1,8 @@
 #SETTINGS FOR aschoenauer@cbio.ensmp.fr sur thalassa
 
 ###DIRECTORY SETTINGS
-#where the images are
-raw_data_dir = "/share/data20T/mitocheck/drug_screen/PILOT_SCREEN"
+#where the images are /share/data40T/
+raw_data_dir = "/share/data40T/Thomas/drug_screen/ORDERED_DRUGS_screen/data"
 
 base_result_dir = '/cbio/donnees/aschoenauer/projects/drug_screen'
 base_html = "/cbio/donnees/aschoenauer/public_html"
@@ -23,9 +23,9 @@ movie_dir = os.path.join(media_dir, "movies")
 confDir = os.path.join(base_result_dir, 'plate_setups')
 
 #Renaming plates for filenames and visualization on the interface
-def newPlateName(plate,dateFormat = "%Y%m%d"):
+def newPlateName(plate,dateFormat = "%m%y%d"):
     import datetime
-    date = datetime.datetime.strptime(plate.split('--')[1][2:].replace('_', ''), dateFormat)
+    date = datetime.datetime.strptime(plate[2:6]+plate[-2:], dateFormat)
     return date.strftime('%d')+date.strftime('%m')+date.strftime('%y')
 
 #information about well folder naming: where should the well number be indicated in the well image folder?
@@ -47,7 +47,7 @@ name = 'Drug screen'
 xbscreen = False
 
 #Date format
-date_format = '%Y%m%d'
+date_format = '%m%y%d'
 
 ###OTHER SETTINGS
 ###decide if the first well has number zero or 1

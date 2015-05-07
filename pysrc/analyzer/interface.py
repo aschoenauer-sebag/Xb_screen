@@ -584,7 +584,7 @@ class HTMLGenerator():
                 
                 self.formatData(frameLot, resD, featureL, featureChannels)
                 
-                self.classes=np.delete(self.classes, np.where(self.classes=='Polylobbed')[0])
+                #for xb screen only self.classes=np.delete(self.classes, np.where(self.classes=='Polylobbed')[0])
             for plate in plateL:
                 if not moviesOnly:
                     print ' *** generate density plots for %s: ***' % plate
