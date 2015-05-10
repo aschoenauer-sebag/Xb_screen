@@ -14,7 +14,7 @@ import getpass
 import h5py
 
 def renamingDS(folder="/share/data40T/Thomas/drug_screen/ORDERED_DRUGS_screen", subFolder1 = "AURORA_Prestwick", subFolder2="data",
-               objectifFolder = "/share/data40T/Thomas/drug_screen/ORDERED_DRUGS_screen/data"):
+               objectifFolder = "/share/data40T/aschoenauer/drug_screen/data"):
     
     plates = filter(lambda x: 'LT' in x, os.listdir(folder))
     
