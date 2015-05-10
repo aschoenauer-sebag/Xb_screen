@@ -23,6 +23,7 @@ def renamingDS(folder="/share/data40T/Thomas/drug_screen/ORDERED_DRUGS_screen", 
         try:
             os.mkdir(os.path.join(objectifFolder, plate))
         except:
+            print "Pbl plate creation ", plate
             pass
         
         subF = os.path.join(folder, plate, filter(lambda x: subFolder1 in x, os.listdir(os.path.join(folder, plate)))[0], subFolder2)
@@ -35,13 +36,15 @@ def renamingDS(folder="/share/data40T/Thomas/drug_screen/ORDERED_DRUGS_screen", 
             try:
                 os.mkdir(os.path.join(objectifFolder,plate, well))
             except:
+                print "Pbl well creation ", plate, well
                 pass
         
-        for image in images[:200]:
+        for image in images:
 #            print image, os.path.join(objectifFolder, plate, image.split('--')[1])
             try:
                 shutil.move(os.path.join(subF, image), os.path.join(objectifFolder, plate, image.split('--')[1]))
             except:
+                print "Pbl moving image ", subF, image
                 pass
             
             
