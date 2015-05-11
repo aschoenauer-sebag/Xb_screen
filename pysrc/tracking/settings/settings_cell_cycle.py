@@ -27,3 +27,6 @@ new_h5=False
 renumber=True
 XMAX = 1344 
 YMAX = 1024
+
+
+objective = {'function':lambda x:np.multiply(x['roisize'], x['n_avg']), 'features':['roisize', 'n_avg']}

@@ -1,4 +1,4 @@
-import sys, os, pdb, vigra
+import sys, os, pdb, vigra, getpass
 import cPickle as pickle
 import numpy as np
 
@@ -7,8 +7,69 @@ from collections import defaultdict
 from util import settings
 from util.listFileManagement import usable_MITO
 from optparse import OptionParser
+from itertools import product
 
+if getpass.getuser()=='lalil0u':
+    import matplotlib.pyplot as p
+    import brewer2mpl
+    
+def _filtering_level(liste, possibility, level):
+    r1=filter(lambda x: str(possibility)[1:-1]== x[1:5] and 'id0' in x, liste)
+    if level=='simple':
+        return r1
+    increment=lambda x:str(int(x.split('_')[-2][1:])+1)
+    r1=filter(lambda x: x[:-10]+increment(x)+'_id2.png' not in liste, r1)
+    return r1
 
+def scoreEvaluation(folder, no_folder="pasOK", yes_folder="cell_cycle", plot=True, level='simple'):
+    
+    possibilities = product(range(3), range(5))
+    
+    yes=[]; result={}
+    no=os.listdir(os.path.join(folder, no_folder))
+    for plate in filter(lambda x:'OK' in x, os.listdir(os.path.join(folder, yes_folder))):
+        yes.extend(os.listdir(os.path.join(folder, yes_folder, plate)))
+    
+    for possibility in possibilities:
+        currNo=_filtering_level(no, possibility, level)
+        currYes = _filtering_level(yes, possibility, level)
+        result[possibility]=(len(currNo)+0.0001, len(currYes)+0.0001)
+        
+    precision = np.array([[  float(100*result[(i,j)][1])/(result[(i,j)][0]+result[(i,j)][1]) for i in range(3)] for j in range(5)])
+    count = np.array([[  result[(i,j)][0]+result[(i,j)][1] for i in range(3)] for j in range(5)])-0.0002
+    
+    if plot:
+        print count
+        print precision
+        cmap = brewer2mpl.get_map('Blues', 'Sequential', 9).mpl_colormap
+        f=p.figure()
+        
+        yticklabels=range(5); yticklabels.reverse()
+        xticklabels=range(3)
+        xticks = np.array(range(3))
+        yticks = np.array(range(5))
+        
+        ax=f.add_subplot(121)
+        ax.pcolormesh(np.flipud(precision), cmap=cmap, vmin=0, vmax=100,edgecolors = 'black')
+        ax.set_xticks(xticks+0.5)
+        ax.set_xticklabels(xticklabels)
+        ax.set_yticks(yticks+0.5)
+        ax.set_yticklabels(yticklabels)
+        ax.set_xlabel('Score of the first split'); ax.set_ylabel('Score of the second split')
+        ax.set_title('Percentage mitosis/splits according to their scores')
+        
+        ax=f.add_subplot(122)
+        ax.pcolormesh(np.flipud(np.array(count, dtype=float)/np.sum(count)), cmap=cmap, vmin=0, vmax=0.4,edgecolors = 'black')
+        ax.set_xticks(xticks+0.5)
+        ax.set_xticklabels(xticklabels)
+        ax.set_xlabel('Score of the first split'); ax.set_ylabel('Score of the second split')
+        ax.set_yticks(yticks+0.5)
+        ax.set_yticklabels(yticklabels)
+        ax.set_title('Repartition of splits according to their scores')
+        p.show()
+    
+    return count,precision
+    
 class completeTrackExtraction(object):
     '''
     So this class permits to extract the coordinates of complete tracks (ie where we both have beginning after a split
@@ -101,7 +162,7 @@ class completeTrackExtraction(object):
                             
         return result, siblings
     
-    def findObjects(self, splits, siblings):
+    def findObjects(self, splits, siblings, compute_boxes=False):
         if self.settings.new_h5:
             file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.ch5".format(self.well))
             path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary3".format(self.plate, self.well.split('_')[0])
@@ -113,12 +174,13 @@ class completeTrackExtraction(object):
             path_classif="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_classification/prediction".format(self.plate, self.well.split('_')[0])
             
         objects = vi.readHDF5(file_, path_objects)
-        bounding_boxes = vi.readHDF5(file_, path_boundingBox)
+        if compute_boxes:
+            bounding_boxes = vi.readHDF5(file_, path_boundingBox)
         classification = vi.readHDF5(file_, path_classif)
         
         boxes=defaultdict(list)
         score={t:[0,0] for t in splits}
-        
+        frames={t:[0,0] for t in splits}
         for track_id in splits:
             
             local_box=None
@@ -129,29 +191,89 @@ class completeTrackExtraction(object):
                 classif = classification[where_]['label_idx'][0]
                 #looking at mom or me
                 if k==0 or k==2:
-                    boxes[im].append((track_id, k, bounding_boxes[where_]))
+                    if compute_boxes:
+                        boxes[im].append((track_id, k, bounding_boxes[where_]))
                     if k==0:
                         #looking at mom
                         score[track_id][0]+= int(classif in [6,8,9])
+                        frames[track_id][0]=im+1
                     elif k==2:
                         #looking at me being a mom
                         score[track_id][1]+= int(classif in [6,8,9])
+                        frames[track_id][1]=im
                 elif k==1:
                     #looking at me, being born
                     score[track_id][0]+= int(classif ==7)
-                    currSibBox = bounding_boxes[where_]
-                    for sibling in siblings[track_id]:
-                        currSibBox=np.vstack((currSibBox, bounding_boxes[np.where((objects['time_idx']==im)&(objects['obj_label_id']==sibling))]))
-                    
-                    boxes[im].append((track_id, k, np.array([min(currSibBox['left']), max(currSibBox['right']), min(currSibBox['top']), max(currSibBox['bottom'])])))
+                    if compute_boxes:
+                        currSibBox = bounding_boxes[where_]
+                        for sibling in siblings[track_id]:
+                            currSibBox=np.vstack((currSibBox, bounding_boxes[np.where((objects['time_idx']==im)&(objects['obj_label_id']==sibling))]))
+                        
+                        boxes[im].append((track_id, k, np.array([min(currSibBox['left']), max(currSibBox['right']), min(currSibBox['top']), max(currSibBox['bottom'])])))
                     
                 #looking at daughters
                 else:
-                    local_box=bounding_boxes[where_] if local_box is None else np.vstack((local_box, bounding_boxes[where_]))
+                    if compute_boxes:
+                        local_box=bounding_boxes[where_] if local_box is None else np.vstack((local_box, bounding_boxes[where_]))
                     score[track_id][1]+= int(classif ==7)
-            boxes[im].append((track_id,3, np.array([min(local_box['left']), max(local_box['right']), min(local_box['top']), max(local_box['bottom'])]) ))
+            if compute_boxes:
+                boxes[im].append((track_id,3, np.array([min(local_box['left']), max(local_box['right']), min(local_box['top']), max(local_box['bottom'])]) ))
+        cell_cycle_lengths={el: frames[el][1]-frames[el][0]+1 for el in frames}
+        return boxes, cell_cycle_lengths, score
+    
+    def getObjective(self,objective, lengths, scores, tracklets):
+        #no we need to filter first
+#         if objective['name'] == 'length':
+#             return {objective['name']:lengths}
+        
+        if self.settings.new_h5:
+            file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.ch5".format(self.well))
+            path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary3".format(self.plate, self.well.split('_')[0])
+            path_boundingBox="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary3/bounding_box".format(self.plate, self.well.split('_')[0])
+        else:
+            file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.hdf5".format(self.well))
+            path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary".format(self.plate, self.well.split('_')[0])
+            path_features="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_features".format(self.plate, self.well.split('_')[0])
+            path_feature_names = "definition/feature/primary__primary/object_features"
             
-        return boxes, score
+        objects = vi.readHDF5(file_, path_objects)
+        features =vi.readHDF5(file_, path_features)
+        
+        feature_names = vi.readHDF5(file_, path_feature_names)
+        result = {}
+        
+        if objective in feature_names:
+            tab1=features[:,np.where(feature_names['name']==objective)[0]]
+        else:
+            try:
+                tabs={el: features[:,np.where(feature_names['name']==el)[0]] for el in objective['features']}
+            except:
+                raise ValueError
+            else:
+                tab = objective['function'](tabs)
+        
+        for track_id in scores:
+            if scores[track_id][0]>=1 and scores[track_id][1]>=1 and lengths[track_id]>1:
+                try:
+                    traj=filter(lambda x:x.id==track_id, tracklets.lstTraj)[0]
+                except IndexError:
+                    pdb.set_trace()
+                else:
+                    result[track_id]=self._getObjective(objective, objects, tab, traj)
+            else:
+                del lengths[track_id]
+                    
+        return {objective['name']: result, 'length':lengths}
+    
+    def _getObjective(self, objective, objects, tab, traj):
+        result=[]
+        
+        for im, cell_id in sorted(traj.lstPoints.keys(), key=lambda tup:tup[0]):
+            result.append(tab[np.where((objects['time_idx']==im)&(objects['obj_label_id']==cell_id))])
+            
+        return np.array(result)
+            
+        
         
     def _findFolder(self):
         if self.settings.new_h5:
@@ -215,9 +337,21 @@ class completeTrackExtraction(object):
                 
         return    
     
-    def save(self, boxes):
+    def saveBoxes(self, boxes):
         f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:10], self.well)), 'w')
         pickle.dump(boxes, f); f.close()
+        return
+    
+    def saveResults(self, result):
+        if self.settings.outputFile.format(self.well) in os.listdir(os.path.join(self.settings.trackingFolder, self.plate)):
+            f=open(os.path.join(self.settings.trackingFolder, self.plate, self.settings.outputFile.format(self.well)), 'r')
+            d=pickle.load(f); f.close()
+        else:
+            d={}
+        d.update(result)
+        f=open(os.path.join(self.settings.trackingFolder, self.plate, self.settings.outputFile.format(self.well)), 'w')
+        pickle.dump(result, f); f.close()
+        
         return
     
     def __call__(self):
@@ -235,7 +369,7 @@ class completeTrackExtraction(object):
         #ii. find thrivisions
         splits, siblings = self.findConnexions(tracklets, connexions)
         #iii. find their bounding boxes
-        boxes, scores=self.findObjects(splits, siblings)
+        boxes, _, scores=self.findObjects(splits, siblings, compute_boxes=True)
 
         if not os.path.isdir(self.settings.outputFolder):
             os.mkdir(self.settings.outputFolder)
@@ -243,12 +377,31 @@ class completeTrackExtraction(object):
             os.mkdir(os.path.join(self.settings.outputFolder, self.plate))
         #iv. crop the boxes in the images
         self.crop(boxes, scores)
-        self.save(boxes)
+        self.saveBoxes(boxes)
         
         return
     
-    
-    
+    def findObjective(self, objective):
+        #before anything checking that it passed the qc
+        try:
+            assert self._usable()
+        except AssertionError:
+            print "QC failed"
+            return
+        
+        #i.load tracking info
+        tracklets, connexions = self.load()
+        
+        #ii. find thrivisions
+        splits, siblings = self.findConnexions(tracklets, connexions)
+        
+        #iii. find their bounding boxes
+        _, cell_cycle_lengths, scores=self.findObjects(splits, siblings, compute_boxes=False)
+        
+        noting_objective = self.getObjective(objective, cell_cycle_lengths, scores, tracklets)
+        
+        self.saveResults(noting_objective)
+        return
     
 if __name__ == '__main__':
     verbose=0
