@@ -222,14 +222,16 @@ class completeTrackExtraction(object):
         return boxes, cell_cycle_lengths, score
     
     def getObjective(self,objective, lengths, scores, tracklets):
-        #no we need to filter first
-#         if objective['name'] == 'length':
-#             return {objective['name']:lengths}
+        '''
+        This function extracts information dealing with complete tracks, ie starting with a mitosis and ending with a mitosis.
         
+        One chooses which information by setting objective in the setting file. This should be under the form :
+        objective = {'name':[name of the info to extract], 'function':[function taking as argument objective in case one wants to divide or do smt],
+        'features':[list of feature names that are going to be used in objective['function']}
+        
+        '''
         if self.settings.new_h5:
-            file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.ch5".format(self.well))
-            path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary3".format(self.plate, self.well.split('_')[0])
-            path_boundingBox="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary3/bounding_box".format(self.plate, self.well.split('_')[0])
+            raise ValueError
         else:
             file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.hdf5".format(self.well))
             path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary".format(self.plate, self.well.split('_')[0])
@@ -362,7 +364,6 @@ class completeTrackExtraction(object):
             print "QC failed"
             return
 
-        
         #i.load tracking info
         tracklets, connexions = self.load()
         
@@ -381,7 +382,7 @@ class completeTrackExtraction(object):
         
         return
     
-    def findObjective(self, objective):
+    def findObjective(self):
         #before anything checking that it passed the qc
         try:
             assert self._usable()
@@ -398,7 +399,7 @@ class completeTrackExtraction(object):
         #iii. find their bounding boxes
         _, cell_cycle_lengths, scores=self.findObjects(splits, siblings, compute_boxes=False)
         
-        noting_objective = self.getObjective(objective, cell_cycle_lengths, scores, tracklets)
+        noting_objective = self.getObjective(self.settings.objective, cell_cycle_lengths, scores, tracklets)
         
         self.saveResults(noting_objective)
         return
@@ -431,7 +432,7 @@ Input:
     (options, args) = parser.parse_args()
     
     hh=completeTrackExtraction(options.settings_file, options.plate, options.well)
-    hh()
+    hh.findObjective()
     print "Done"
     
     
