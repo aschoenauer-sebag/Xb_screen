@@ -29,4 +29,4 @@ XMAX = 1344
 YMAX = 1024
 
 
-objective = {'name':'total intensity','function':lambda x:np.multiply(x['roisize'], x['n_avg']), 'features':['roisize', 'n_avg']}
+objective = {'name':'total intensity','function':lambda x:np.multiply(x['roisize'], x['n2_avg']), 'features':['roisize', 'n2_avg']}
