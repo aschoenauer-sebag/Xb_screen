@@ -38,7 +38,9 @@ from util.kkmeans import KernelKMeans
 
 #from joblib import Parallel, delayed, Memory
 
-def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.pkl', verbose=0, hist=True, perMovie = False):
+def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.pkl',
+                      features=None,
+                       verbose=0, hist=True, perMovie = False):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; sirna=[]; genes=[]
     time_length=[]; pbl_well=[]
     histNtot={nom:[] for nom in featuresHisto}
@@ -60,7 +62,12 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
         try:
 #iii.loading data
             f=open(os.path.join(folder, pl, filename.format(w)), 'r')
-            arr, coord, histN= pickle.load(f)
+            if 'eatures' in filename:
+                arr, coord, histN= pickle.load(f)
+                
+            elif 'cell_cycle' in filename:
+                dict_=pickle.load(f)
+                arr=np.vstack((dict_[el].values() for el in features)).T #so right shape is n_cell n_features
             f.close()
         except IOError:
             sys.stderr.write("No file {}\n".format(os.path.join(pl, filename.format(w))))
@@ -96,7 +103,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                     who.append((pl, w))
                     length.append(ll)
                     
-                    if is_ctrl((pl,w)):
+                    if is_ctrl_mitocheck((pl,w)):
                         ctrlStatus.append(0)
                         genes.append('ctrl')
                     else:
@@ -109,8 +116,11 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
     if r ==[]:
         return None
 
-#log trsforming data
-    r2 = histLogTrsforming(r, verbose=verbose)        
+#log trsforming data for trajectory features
+    if 'eatures' in filename:
+        r2 = histLogTrsforming(r, verbose=verbose)
+    else:
+        r2=r        
 
     warn('The data was not normalized. Please check that it will be done before applying any algorithm.')
     
