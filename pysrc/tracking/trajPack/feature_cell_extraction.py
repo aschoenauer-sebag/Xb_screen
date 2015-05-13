@@ -1551,8 +1551,7 @@ if __name__ == '__main__':
             testCtrl='{}_{}'.format(options.testCtrl, options.solvent)
         else:
             testCtrl=options.testCtrl
-        print "TW, iter ", options.time_window, options.iter
-        extractor=cellExtractor(options.siRNA, options.settings_file,testCtrl, options.div_name,
+        extractor=cellExtractor(options.siRNA, options.settings_file,testCtrl=testCtrl,div_name= options.div_name,
                                  time_window=options.time_window,
                                  iter_=options.iter,
                                  verbose=options.verbose)
