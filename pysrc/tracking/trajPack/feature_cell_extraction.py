@@ -1515,7 +1515,7 @@ if __name__ == '__main__':
     
     '''
     parser = OptionParser(usage="usage: %prog [options]") 
-    parser.add_option('--settings_file', type=str, default='tracking/settings/settings_feature_extraction_XBSC.py')   
+    parser.add_option('--settings_file', type=str, default='tracking/settings/settings_cycle_lengthpval_extraction.py')   
     parser.add_option('--action', type=str, default=None)
     parser.add_option('--siRNA', type=str, dest='siRNA', default=None)
     parser.add_option('--testCtrl', type=str, dest='testCtrl', default=0)
@@ -1525,7 +1525,7 @@ if __name__ == '__main__':
 #    parser.add_option('--cost_type', type=str, dest="cost_type", default='number')#possible values: number or value
 #    parser.add_option('--bin_size', type=int, dest="bin_size", default=10)
     parser.add_option('--iter', type=int, dest="iter", default=0)
-    parser.add_option('--time_window', type=int, dest="time_window", default=0)
+    parser.add_option('--time_window', type=int, dest="time_window", default=None)
 #    parser.add_option("-l",type=int, dest="lambda_", default=10)
     parser.add_option("--verbose", dest="verbose", type=int,default=0)
     (options, args) = parser.parse_args()
