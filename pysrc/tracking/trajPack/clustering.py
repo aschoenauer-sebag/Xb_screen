@@ -103,10 +103,8 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                     if 'eatures' in filename:
                         time_length.extend([len(coord[k][0]) for k in filter(lambda x: x not in toDel, range(len(coord)))])
                     else:
-                        if toDel!=[]:
-                            #FIXME to implement
-                            raise ValueError
-                        time_length.extend([len(dict_['length'][el]) for el in dict_['length']])
+                        #if it's cell cycle length data then I have the time length
+                        pass
                     siCourant = yqualDict[pl[:9]+'--'+w[2:5]]
                     sirna.append(siCourant)
                     who.append((pl, w))
