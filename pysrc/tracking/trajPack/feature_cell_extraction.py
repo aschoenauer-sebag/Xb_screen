@@ -1122,6 +1122,7 @@ self.siRNA takes value CTRL_[plate]_plate
             self.currInterestFeatures.extend(['mean straight'])
             self.featuresSaved=featuresSaved
         else:
+            self.currInterestFeatures=interestFeatures
             self.featuresSaved=interestFeatures
             
         if self.settings.histDataAsWell:
