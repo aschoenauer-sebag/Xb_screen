@@ -1062,7 +1062,7 @@ def plotDistanceDist(folder = '../resultData/features_on_films',siRNA_folder = '
     
 class cellExtractor():
     def __init__(self, siRNA, settings_file,
-                 interestFeatures = 'length',
+                 interestFeatures = ['length'],
                  testCtrl = False,
                  div_name='total_variation', 
                  time_window=None,
