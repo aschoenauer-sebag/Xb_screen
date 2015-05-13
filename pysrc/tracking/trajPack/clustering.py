@@ -104,6 +104,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                         time_length.extend([len(coord[k][0]) for k in filter(lambda x: x not in toDel, range(len(coord)))])
                     else:
                         if toDel!=[]:
+                            #FIXME to implement
                             raise ValueError
                         time_length.extend([len(dict_['length'][el]) for el in dict_['length']])
                     siCourant = yqualDict[pl[:9]+'--'+w[2:5]]

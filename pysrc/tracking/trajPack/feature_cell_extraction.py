@@ -1158,7 +1158,7 @@ self.siRNA takes value CTRL_[plate]_plate
                                     self.settings.quality_control_file,
                                     filename=self.inputFile,
                                     features=self.currInterestFeatures,
-                                    verbose=self.verbose, perMovie=True)
+                                    verbose=self.verbose, perMovie=True, hist=self.settings.histDataAsWell)
         else:
             return xbConcatenation(os.path.abspath(os.path.join(self.settings.data_folder, os.pardir)), expList, xb_list='processedDictResult_P{}.pkl', 
                                    visual_qc=self.settings.visual_qc,
