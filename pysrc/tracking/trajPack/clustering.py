@@ -85,7 +85,10 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                 continue
             else:
                 try:
-                    arr, toDel = correct_from_Nan(arr, perMovie)
+                    if 'eatures' in filename:
+                        arr, toDel = correct_from_Nan(arr, perMovie)
+                    else:
+                        toDel = []
 
                     r= arr if r==[] else np.vstack((r, arr))
                     if hist:
@@ -97,7 +100,12 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                 except (TypeError, ValueError, AttributeError):
                     sys.stderr.write("Probleme avec le fichier {}".format(os.path.join(pl, filename.format(w))))
                 else:   
-                    time_length.extend([len(coord[k][0]) for k in filter(lambda x: x not in toDel, range(len(coord)))])
+                    if 'eatures' in filename:
+                        time_length.extend([len(coord[k][0]) for k in filter(lambda x: x not in toDel, range(len(coord)))])
+                    else:
+                        if toDel!=[]:
+                            raise ValueError
+                        time_length.extend([len(dict_['length'][el]) for el in dict_['length']])
                     siCourant = yqualDict[pl[:9]+'--'+w[2:5]]
                     sirna.append(siCourant)
                     who.append((pl, w))
