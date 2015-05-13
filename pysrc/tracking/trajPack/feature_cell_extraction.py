@@ -1080,7 +1080,7 @@ self.siRNA takes value CTRL_[plate]_plate
 
         self.siRNA = siRNA
         self.settings = settings.Settings(settings_file, globals())
-        self.inputFile = self.settings.filename if time_window== None else self.settings.filename_twindow.format(time_window=time_window)
+        self.inputFile = self.settings.inputFile if time_window== None else self.settings.filename_twindow.format(time_window=time_window)
         
         self.time_window = time_window
         self.verbose=verbose
