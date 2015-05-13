@@ -1084,6 +1084,9 @@ self.siRNA takes value CTRL_[plate]_plate
         
         self.time_window = time_window
         self.verbose=verbose
+        #default value: we compare experiments to negative controls on the same plate
+        self.ctrl='neg_ctrl'
+        
         if not testCtrl:
             self.plate = None
             if self.settings.xb_screen:
@@ -1094,8 +1097,7 @@ self.siRNA takes value CTRL_[plate]_plate
                 else:
                     raise ValueError
                 print "Control ", self.ctrl
-            else:
-                self.ctrl='neg_ctrl'
+                
         else:
             if self.verbose:
                 print "Testing controls for plate {}".format(testCtrl)
