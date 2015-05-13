@@ -125,13 +125,13 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
 
 #log trsforming data for trajectory features
     if 'eatures' in filename:
-        r2 = histLogTrsforming(r, verbose=verbose)
+        r2 = histLogTrsforming(r, verbose=verbose)[:,:-1]
     else:
         r2=r        
 
     warn('The data was not normalized. Please check that it will be done before applying any algorithm.')
     
-    return r2[:,:-1],  who,ctrlStatus, length, genes, sirna, time_length
+    return r2,  who,ctrlStatus, length, genes, sirna, time_length
 
 def concatenation(folder, exp_list, mitocheck, qc):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; genes=[]; sirna=[]
