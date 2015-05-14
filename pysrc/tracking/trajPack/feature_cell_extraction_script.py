@@ -165,7 +165,7 @@ python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --s
             settings_file = 'tracking/settings/settings_feature_extraction_SIMULATED_DATA.py'
             folder = '../resultData/simulated_traj/simres/plates'
         else:
-            settings_file = 'tracking/settings/settings_feature_extraction.py'
+            settings_file = 'tracking/settings/settings_cycle_lengthpval_extraction.py'
             folder = '/share/data20T/mitocheck/tracking_results'
         
         if not testCtrl:
@@ -174,7 +174,7 @@ python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --s
             f=open(siRNAFile, 'r')
             siRNAList = pickle.load(f); f.close()
             cmd ="""
-python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --bins_type %s --bin_size %s --settings_file %s --iter %i
+python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --settings_file %s --iter %i
 """
     
         else:
@@ -183,7 +183,7 @@ python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --b
             siRNAList = os.listdir(folder)
     
             cmd ="""
-python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s --bins_type %s --bin_size %s --settings_file %s --iter %i
+python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s --settings_file %s --iter %i
 """
     
         for siRNA in siRNAList:
@@ -191,7 +191,7 @@ python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s 
             i+=1; jobCount +=1
             
             cour_cmd= cmd%(
-                  siRNA, div_name, bins_type, bin_size, settings_file, iter
+                  siRNA, div_name, settings_file, iter
                   )
         
         # this is now written to a script file (simple text file)
@@ -256,7 +256,7 @@ Options:
     parser.add_option("-t", "--type", dest="type", default = "simulated", type=str, 
                       help="Use of simulated trajectories or XB SC trajectories or Mitocheck trajectories")
     
-    parser.add_option('--siRNA', type=str, dest='siRNAFile', default='../data/siRNA_Simpson.pkl')
+    parser.add_option('--siRNA', type=str, dest='siRNAFile', default='../data/siRNA_targeted_Mitocheck_2014.pkll')
 
     (options, args) = parser.parse_args()
     for k in range(options.iter_num):
