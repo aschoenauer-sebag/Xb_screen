@@ -2,6 +2,7 @@ import os, pdb, time
 from optparse import OptionParser
 import cPickle as pickle
 from analyzer import plates
+from math import ceil
 from tracking.histograms.summaries_script import jobSize, progFolder, scriptFolder, path_command, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 # path_command = """setenv PATH /cbio/donnees/nvaroquaux/.local/bin:/cbio/donnees/twalter/software/bin:${PATH}
 # setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:/cbio/donnees/nvaroquaux/.local/lib:/cbio/donnees/twalter/software/lib64/R/lib:/cbio/donnees/twalter/software/lib
@@ -176,7 +177,7 @@ python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --s
             cmd ="""
 python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --settings_file %s --iter %i
 """
-    
+            jobSize=10
         else:
             #A. DEALING WITH CONTROLS, for a specific list of plates
             baseName+='CTRL_'
@@ -185,18 +186,23 @@ python tracking/trajPack/feature_cell_extraction.py --siRNA %s --div_name %s --s
             cmd ="""
 python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s --settings_file %s --iter %i
 """
-    
-        for siRNA in siRNAList:
-            print i,
-            i+=1; jobCount +=1
+            jobSize=1
             
-            cour_cmd= cmd%(
-                  siRNA, div_name, settings_file, iter
-                  )
+        num_jobs=int(ceil(len(siRNAList)/float(jobSize)))
+        
+        for k in range(num_jobs):
+            jobCount +=1; print k
+            cour_cmd=''
+            currsiRNAList = siRNAList[k*jobSize:(k+1)*jobSize]
+            for siRNA in currsiRNAList:
+                
+                cour_cmd+= cmd%(
+                      siRNA, div_name, settings_file, iter
+                      )
         
             # this is now written to a script file (simple text file)
             # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
-            script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
+            script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(k+1))
             script_file = file(script_name, "w")
             script_file.write(head + cour_cmd)
             script_file.close()
@@ -256,7 +262,7 @@ Options:
     parser.add_option("-t", "--type", dest="type", default = "simulated", type=str, 
                       help="Use of simulated trajectories or XB SC trajectories or Mitocheck trajectories")
     
-    parser.add_option('--siRNA', type=str, dest='siRNAFile', default='../data/siRNA_targeted_Mitocheck_2014.pkll')
+    parser.add_option('--siRNA', type=str, dest='siRNAFile', default='../data/siRNA_targeted_Mitocheck_2014.pkl')
 
     (options, args) = parser.parse_args()
     for k in range(options.iter_num):
