@@ -194,15 +194,15 @@ python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s 
                   siRNA, div_name, settings_file, iter
                   )
         
-        # this is now written to a script file (simple text file)
-        # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
-        script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
-        script_file = file(script_name, "w")
-        script_file.write(head + cour_cmd)
-        script_file.close()
-
-        # make the script executable (without this, the cluster node cannot call it)
-        os.system('chmod a+x %s' % script_name)
+            # this is now written to a script file (simple text file)
+            # the script file is called ltarray<x>.sh, where x is 1, 2, 3, 4, ... and corresponds to the job index.
+            script_name = os.path.join(scriptFolder, baseName+'{}.sh'.format(i))
+            script_file = file(script_name, "w")
+            script_file.write(head + cour_cmd)
+            script_file.close()
+        
+            # make the script executable (without this, the cluster node cannot call it)
+            os.system('chmod a+x %s' % script_name)
 
 
             # write the main script
