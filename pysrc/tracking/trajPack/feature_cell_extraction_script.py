@@ -191,7 +191,7 @@ python tracking/trajPack/feature_cell_extraction.py --testCtrl %s --div_name %s 
         num_jobs=int(ceil(len(siRNAList)/float(jobSize)))
         
         for k in range(num_jobs):
-            jobCount +=1; print k
+            jobCount +=1; print k,
             cour_cmd=''
             currsiRNAList = siRNAList[k*jobSize:(k+1)*jobSize]
             for siRNA in currsiRNAList:

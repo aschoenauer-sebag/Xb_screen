@@ -79,7 +79,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                 sys.stderr.write( "Array {} is None\n".format(os.path.join(pl, filename.format(w))))
                 pbl_well.append((pl, w))
                 continue
-            elif len(arr.shape)==1 or arr.shape[0]<20:
+            elif 'eatures' in filename and (len(arr.shape)==1 or arr.shape[0]<20):
                 sys.stderr.write("Array {} has less than 20 trajectories. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
                 pbl_well.append((pl, w))
                 continue
