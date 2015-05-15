@@ -118,7 +118,7 @@ def returnInfo(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.
     return result
 
 def usable_MITO(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', 
-           filename='hist_tabFeatures_{}.pkl'):
+           filename='hist_tabFeatures_{}.pkl', min_size=20):
     
     yqualDict=expSi(qc)
     dictSiEntrez=siEntrez(mitocheck, yqualDict.values())
@@ -150,7 +150,7 @@ def usable_MITO(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck=
                 if arr==None:
                     sys.stderr.write( "Array {} is None\n".format(os.path.join(pl, filename.format(w))))
                     r.append(False)
-                elif len(arr.shape)==1 or arr.shape[0]<20:
+                elif len(arr.shape)==1 or arr.shape[0]<min_size:
                     sys.stderr.write("Array {} has less than 20 trajectories. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
                     r.append(False)
                 else:
