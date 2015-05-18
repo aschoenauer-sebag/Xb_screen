@@ -44,10 +44,10 @@ def moyMultipleCenters(centers):
         
     return (np.mean(x), np.mean(y))
 
-def importTargetedFromHDF5(filename, plaque, puits,featureL, secondary=False, secondary_outside=False):
-    primary_channel='primary__primary'
-    if filename.split('.')[-1]=='ch5':
-        primary_channel='primary__primary3'
+def importTargetedFromHDF5(filename, plaque, puits,featureL, primary_channel_name=None, secondary=False, secondary_outside=False):
+    if primary_channel_name==None:
+        primary_channel='primary__primary3' if filename.split('.')[-1]=='ch5' else 'primary__primary'
+        
     pathObjects = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/object/%s"%primary_channel
     pathFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/%s/object_features"%primary_channel
     pathCenters = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/%s/center"%primary_channel
