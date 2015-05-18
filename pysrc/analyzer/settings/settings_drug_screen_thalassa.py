@@ -2,13 +2,13 @@
 
 ###DIRECTORY SETTINGS
 #where the images are /share/data40T/
-raw_data_dir = "/share/data40T/Thomas/drug_screen/ORDERED_DRUGS_screen/data"
+raw_data_dir = "/share/data40T/aschoenauer/drug_screen/data"
 
 base_result_dir = '/cbio/donnees/aschoenauer/projects/drug_screen'
 base_html = "/cbio/donnees/aschoenauer/public_html"
 
 #where hdf5 files are
-raw_result_dir = "/share/data40T/aschoenauer/drug_screen"
+raw_result_dir = "/share/data40T/aschoenauer/drug_screen/results"
 #intensity_qc_filename='../data/xb_intensity_qc.pkl'
 
 #Where to save processed results
