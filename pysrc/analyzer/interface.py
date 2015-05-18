@@ -492,14 +492,20 @@ class HTMLGenerator():
     def generateMovies(self, plate, well_setup):
         well_setup=well_setup.flatten()
         
+        corresp_existing_names = [(x, int(self.settings.whereWell(x))) for x in sorted(os.listdir(os.path.join(self.settings.raw_data_dir, plate)))
+                                     if os.path.isdir(os.path.join(self.settings.raw_data_dir, plate,x))]
+        
         for well in well_setup[np.where(well_setup>0)]:
             #even if there are missing columns don't forget that the image directory uses Zeiss counting
             try:
-                wellFolder = filter(lambda x: os.path.isdir(os.path.join(self.settings.raw_data_dir, plate,x)) and well==int(self.settings.whereWell(x)), 
-                                    os.listdir(os.path.join(self.settings.raw_data_dir, plate)))[0]
-            except IndexError:
+                ind = corresp_existing_names.index((well, int(self.settings.whereWell(x))))
+                #wellFolder = filter(lambda x: os.path.isdir(os.path.join(self.settings.raw_data_dir, plate,x)) and well==int(self.settings.whereWell(x)), 
+                #                   os.listdir(os.path.join(self.settings.raw_data_dir, plate)))[0]
+            except ValueError:
                 print "No image for well ", np.where(well_setup==well)[0][0]+1, 'plate ', plate
                 continue
+            else:
+                wellFolder = corresp_existing_names[ind][0]
             
             imgDir= os.path.join(self.settings.raw_data_dir, plate, wellFolder)
             try:
