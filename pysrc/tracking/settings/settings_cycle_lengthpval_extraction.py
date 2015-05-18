@@ -7,6 +7,7 @@ quality_control_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_e
 
 ##filename for trajectory features
 inputFile="cell_cycle_info_{}.pkl"
+min_size=10 #minimum number of complete tracks to take the experiment into account
 
 ##filename format for the wells
 #format_='{:>05}_01'
