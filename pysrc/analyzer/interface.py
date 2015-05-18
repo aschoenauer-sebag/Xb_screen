@@ -1,4 +1,4 @@
-import string, getpass, datetime, os
+import string, getpass, datetime, os, pdb
 from warnings import warn
 from collections import defaultdict
 
@@ -101,7 +101,7 @@ class HTMLGenerator():
         print "Looking for features ", featureL
         for plate in plateL:
             listW = sorted(filter(lambda x: '.hdf5' in x or '.ch5' in x, os.listdir(os.path.join(dataFolder, plate, 'hdf5'))))
-            for filename in listW[35:36]:
+            for filename in listW[35:39]:
                 well=filename.split('.')[0]
                     
                 filename = os.path.join(dataFolder, plate,"hdf5", filename)
@@ -494,7 +494,7 @@ class HTMLGenerator():
         
         corresp_existing_names = [(x, int(self.settings.whereWell(x))) for x in sorted(os.listdir(os.path.join(self.settings.raw_data_dir, plate)))
                                      if os.path.isdir(os.path.join(self.settings.raw_data_dir, plate,x))]
-        
+        pdb.set_trace()
         for well in well_setup[np.where(well_setup>0)]:
             #even if there are missing columns don't forget that the image directory uses Zeiss counting
             try:
