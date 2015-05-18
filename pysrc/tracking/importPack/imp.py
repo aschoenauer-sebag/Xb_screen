@@ -47,6 +47,8 @@ def moyMultipleCenters(centers):
 def importTargetedFromHDF5(filename, plaque, puits,featureL, primary_channel_name=None, secondary=False, secondary_outside=False):
     if primary_channel_name==None:
         primary_channel='primary__primary3' if filename.split('.')[-1]=='ch5' else 'primary__primary'
+    else:
+        primary_channel=primary_channel_name
         
     pathObjects = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/object/%s"%primary_channel
     pathFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/%s/object_features"%primary_channel
