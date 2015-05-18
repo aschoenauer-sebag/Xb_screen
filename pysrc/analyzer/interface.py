@@ -494,11 +494,10 @@ class HTMLGenerator():
         
         corresp_existing_names = np.array([(x, int(self.settings.whereWell(x))) for x in sorted(os.listdir(os.path.join(self.settings.raw_data_dir, plate)))
                                      if os.path.isdir(os.path.join(self.settings.raw_data_dir, plate,x))])
-        pdb.set_trace()
         for well in well_setup[np.where(well_setup>0)]:
             #even if there are missing columns don't forget that the image directory uses Zeiss counting
             try:
-                ind = np.where(corresp_existing_names[:,1]==str(well))[0]
+                ind = np.where(corresp_existing_names[:,1]==str(well))[0][0]
                 #wellFolder = filter(lambda x: os.path.isdir(os.path.join(self.settings.raw_data_dir, plate,x)) and well==int(self.settings.whereWell(x)), 
                 #                   os.listdir(os.path.join(self.settings.raw_data_dir, plate)))[0]
             except IndexError:
@@ -525,6 +524,7 @@ class HTMLGenerator():
                     else:
                         makeMovie(imgDir, outDir=self.settings.movie_dir, plate=self.settings.newPlateName(plate),
                                     well=np.where(well_setup==well)[0][0]+1,
+                                    filtre = (lambda x: 'P00001' in x),
                                     clef=(lambda x:int(x.split('--')[3][1:])),
                                 #because the images for the drug screen start at 2**15
                                     offset=2**15)
