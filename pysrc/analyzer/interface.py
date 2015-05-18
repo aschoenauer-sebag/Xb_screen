@@ -106,7 +106,8 @@ class HTMLGenerator():
                     
                 filename = os.path.join(dataFolder, plate,"hdf5", filename)
                 try:
-                    featureL,classes, frameLotC= importTargetedFromHDF5(filename, plate, well,featureL, secondary=self.settings.secondaryChannel)
+                    featureL,classes, frameLotC= importTargetedFromHDF5(filename, plate, well,featureL,primary_channel_name=self.settings.primary_channel_name,
+                                                                        secondary=self.settings.secondaryChannel)
                 except ValueError:
                     print "Error at loading from hdf5 ", plate, well
                     continue
