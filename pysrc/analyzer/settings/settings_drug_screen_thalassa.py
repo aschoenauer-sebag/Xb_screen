@@ -29,7 +29,7 @@ def newPlateName(plate,dateFormat = "%m%y%d"):
     return date.strftime('%d')+date.strftime('%m')+date.strftime('%y')
 
 #information about well folder naming: where should the well number be indicated in the well image folder?
-whereWell = lambda x: "W{:>05}".format(x)
+whereWell = lambda x: x[1:]
     
 # if Zeiss plate setup did not include some columns, indicate it here
 missing_cols = {'11414':(1,2)}

@@ -494,8 +494,12 @@ class HTMLGenerator():
         
         for well in well_setup[np.where(well_setup>0)]:
             #even if there are missing columns don't forget that the image directory uses Zeiss counting
-            wellFolder = filter(lambda x: os.path.isdir(os.path.join(self.settings.raw_data_dir, plate,x)) and well==int(self.settings.whereWell(x)), 
+            try:
+                wellFolder = filter(lambda x: os.path.isdir(os.path.join(self.settings.raw_data_dir, plate,x)) and well==int(self.settings.whereWell(x)), 
                                     os.listdir(os.path.join(self.settings.raw_data_dir, plate)))[0]
+            except IndexError:
+                print "No image for well ", np.where(well_setup==well)[0][0]+1, 'plate ', plate
+                continue
             
             imgDir= os.path.join(self.settings.raw_data_dir, plate, wellFolder)
             try:
