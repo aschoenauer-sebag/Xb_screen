@@ -130,10 +130,12 @@ def usable_MITO(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck=
     #i. checking if quality control passed
             sys.stderr.write("Quality control not passed {} {} \n".format(pl[:9], w[2:5]))
             r.append(False)   
-        elif not is_ctrl_mitocheck(exp) and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
+            continue
+        if not is_ctrl_mitocheck(exp) and yqualDict[pl[:9]+'--'+w[2:5]] not in dictSiEntrez:
     #ii.checking if siRNA corresponds to a single target in the current state of knowledge
             sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(pl[:9], w[2:5]))
-            r.append(False)  
+            r.append(False)
+            continue  
         try:
 #iii.checking the feature array shape, if we're talking about features
             f=open(os.path.join(folder, pl, filename.format(w)), 'r')
