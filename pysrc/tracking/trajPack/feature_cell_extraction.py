@@ -686,7 +686,10 @@ def collectingDistances(filename, folder,
 #                        continue 
                     who[currParams['iter']].extend(currParams['wells'])
                     result[currParams['iter']] = d[param_set] if result[currParams['iter']]==None else np.vstack((result[currParams['iter']], d[param_set]))
-
+        
+#         if not testCtrl:
+#             result = np.
+        
         f=open(os.path.join(folder, filename), 'w')
         pickle.dump((result, who, siRNAList, genes), f); f.close()
 
@@ -1166,6 +1169,9 @@ self.siRNA takes value CTRL_[plate]_plate
             ctrl = np.array(appendingControl([self.plate]))
             return ctrl[np.where(usable_MITO(self.settings.data_folder, 
                                 ctrl, 
+                                filename=self.inputFile,
+                                features=self.currInterestFeatures,
+                                min_size=self.settings.min_size,
                                 qc=self.settings.quality_control_file, 
                                 mitocheck=self.settings.mitocheck_file))]
         else:
