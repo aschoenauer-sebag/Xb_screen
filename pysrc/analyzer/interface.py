@@ -101,7 +101,7 @@ class HTMLGenerator():
         print "Looking for features ", featureL
         for plate in plateL:
             listW = sorted(filter(lambda x: '.hdf5' in x or '.ch5' in x, os.listdir(os.path.join(dataFolder, plate, 'hdf5'))))
-            for filename in listW:
+            for filename in listW[45:50]:
                 well=filename.split('.')[0]
                     
                 filename = os.path.join(dataFolder, plate,"hdf5", filename)
@@ -395,8 +395,8 @@ class HTMLGenerator():
                                    'initCircularity', 'endCircularity',  
                                    "initNucleusOnly", "endNucleusOnly",
                                    'initCircMNucleus', 'endCircMNucleus', 'endFlou'], settingL):
-            if pheno not in resCour[resCour.keys()[0]]:
-                print "No {} for plate {}, well {}".format(pheno, plate, resCour.keys()[0])
+            if pheno not in set([el for k in resCour for el in resCour[k]]):
+                print "No {} for plate {}".format(pheno, plate)
                 continue
             
             print "working on ", pheno
