@@ -655,9 +655,19 @@ def collectingDistances(filename, folder,
             f.close()
             if not testCtrl:
                 siRNA = file_.split('_')[-1][:-4]
-                shape = set([d[el].shape[0] for el in d])
-                assert(len(shape)==1)
-                shape = list(shape)[0]
+                shape = list(set([d[el].shape[0] for el in d]))
+                try:
+                    assert(len(shape)==1)
+                except:
+                    print [d[el].shape[0] for el in d]
+                    import pdb; pdb.set_trace()
+                    if len(d)==6:#meaning we have one time iteratiom 0 with less wells
+                        key_ = [el for el in d if d[el].shape[0]==np.min(shape)][0]
+                        del d[key_]
+                        f=open(os.path.join(folder, file_), 'w')
+                        pickle.dump(d,f); f.close()
+                        
+                shape = np.max(shape)
                 siRNAList.extend([siRNA for k in range(shape)])
                 gene = dictSiEntrez[siRNA]
                 genes.extend([gene for k in range(shape)])
