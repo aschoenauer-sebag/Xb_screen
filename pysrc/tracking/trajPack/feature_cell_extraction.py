@@ -655,8 +655,9 @@ def collectingDistances(filename, folder,
             f.close()
             if not testCtrl:
                 siRNA = file_.split('_')[-1][:-4]
-                shape = set([d[el].shape for el in d])
+                shape = set([d[el].shape[0] for el in d])
                 assert(len(shape)==1)
+                shape = list(shape)[0]
                 siRNAList.extend([siRNA for k in range(shape)])
                 gene = dictSiEntrez[siRNA]
                 genes.extend([gene for k in range(shape)])
