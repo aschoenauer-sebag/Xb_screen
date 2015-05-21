@@ -660,7 +660,6 @@ def collectingDistances(filename, folder,
                     assert(len(shape)==1)
                 except:
                     print [d[el].shape[0] for el in d]
-                    import pdb; pdb.set_trace()
                     if len(d)==6:#meaning we have one time iteratiom 0 with less wells
                         key_ = [el for el in d if d[el].shape[0]==np.min(shape)][0]
                         del d[key_]
