@@ -620,8 +620,10 @@ def hitDistances(folder,key_name = 'distances_whole_5Ctrl{}', filename='all_dist
 #             p.savefig(os.path.join(outputFolder, filename.format(compound)))
 
 def collectingDistances(filename, folder, 
-                        key_name = 'distances_whole_5Ctrl3',
-                        qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', testCtrl =False,
+                        key_name = 'distances_length_5CtrlC',
+                        qc_filename='../data/mapping_2014/qc_export.txt',mapping_filename='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', 
+                        testCtrl =False,
+                        iter_range=range(5),
                         redo=False, siRNAFilterList=None,long_version=False, usable_file='../resultData/features_on_films/usable_experiments_whole_mitocheck.pkl'):
     '''
     Function to collect p-values from applying CellExtractor to the Mitocheck data, hardly generalizing to the xenobiotic screen data (sorry Will) 
@@ -634,72 +636,49 @@ def collectingDistances(filename, folder,
             files = filter(lambda x: key_name in x and 'CTRL' not in x and 'all' not in x, os.listdir(folder))
             yqualDict=expSi(qc_filename, sens=0)
             dictSiEntrez=siEntrez(mapping_filename, yqualDict.keys())
-            if long_version:
-                f=open(usable_file)
-                usable=pickle.load(f); f.close()
-            pp=parameters
+#             if long_version:
+#                 f=open(usable_file)
+#                 usable=pickle.load(f); f.close()
         else:
-            pp=parameters[:1]
             files = filter(lambda x: key_name in x and 'CTRL' in x  and 'all' not in x, os.listdir(folder))
             
         print len(files)
         files.sort()
-        result={param:[[], [], [], None] for param in parameters}
-        bad_si=[]
+        result=[None for k in iter_range]
+        who=defaultdict(list)
+        siRNAList=[]
+        genes=[]
+        
         for file_ in files:
             f=open(os.path.join(folder, file_))
             d=pickle.load(f)
             f.close()
             if not testCtrl:
                 siRNA = file_.split('_')[-1][:-4]
+                shape = set([d[el].shape for el in d])
+                assert(len(shape)==1)
+                siRNAList.extend([siRNA for k in range(shape)])
+                gene = dictSiEntrez[siRNA]
+                genes.extend([gene for k in range(shape)])
+                
             else:
                 siRNA=file_[-13:-4]
-            if siRNAFilterList is not None and siRNA not in siRNAFilterList:
-                continue
-            if len(d.keys())!=len(pp):
-                bad_si.append(siRNA)
-                continue
-#            if np.any(np.array([Counter(np.where(~np.isnan(d[param]))[0]).keys() for param in pp])==[]):
-#                print 'Some NaN ', file_
-#                continue
 
-            for param in pp:                
-                l= Counter(np.where(~np.isnan(d[param]))[0]).keys()
+            for param_set in d:
+                currParams = dict(param_set)
+                
+                l= Counter(np.where(~np.isnan(d[param_set]))[0]).keys()
                 if l==[]:
-                    bad_si.append(siRNA)
                     continue
                 else:
 #                    if len(l)==1 and not testCtrl:
 #                        #meaning it is an orphan siRNA with only one experiment. But do we really want to take them out? The experiment is real after all
 #                        continue 
-#                    
-                    result[param][0].extend([siRNA for k in range(len(l))])
-                    if not testCtrl:
-                        gene = dictSiEntrez[siRNA]
-                        if gene!='Sim':
-                            expList = np.array(strToTuple(yqualDict[siRNA], os.listdir('/share/data20T/mitocheck/tracking_results')))
-                       
-                            if d[param].shape[0]==len(expList):
-                                used_experiments = expList[l]
-                            else:
-                                if long_version:
-                                    used_experiments = expList[usable[siRNA]]
-                                    used_experiments = used_experiments[l]
-                                else:
-                                    used_experiments=expList[l]
-                                
-                            result[param][1].extend([el[0][:9]+'--'+el[1][2:5] for el in used_experiments])
-                        else:
-                            if len(l)!=3:
-                                bad_si.append(siRNA)
-                            result[param][1].extend(yqualDict[siRNA])
-                            
-                        result[param][2].extend([gene for k in range(len(l))])
-                    
-                    result[param][3]=np.vstack((result[param][3], d[param][l])) if result[param][3] is not None else d[param][l]
+                    who[currParams['iter']].extend(currParams['wells'])
+                    result[currParams['iter']] = d[currParams] if result[currParams['iter']]==None else np.vstack((result[currParams['iter'], d[currParams]]))
 
         f=open(os.path.join(folder, filename), 'w')
-        pickle.dump(result, f); f.close()
+        pickle.dump((result, who, siRNAList, genes), f); f.close()
 
     else:
         f=open(os.path.join(folder, filename))
