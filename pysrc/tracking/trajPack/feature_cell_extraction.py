@@ -675,7 +675,7 @@ def collectingDistances(filename, folder,
 #                        #meaning it is an orphan siRNA with only one experiment. But do we really want to take them out? The experiment is real after all
 #                        continue 
                     who[currParams['iter']].extend(currParams['wells'])
-                    result[currParams['iter']] = d[currParams] if result[currParams['iter']]==None else np.vstack((result[currParams['iter']], d[currParams]))
+                    result[currParams['iter']] = d[param_set] if result[currParams['iter']]==None else np.vstack((result[currParams['iter']], d[param_set]))
 
         f=open(os.path.join(folder, filename), 'w')
         pickle.dump((result, who, siRNAList, genes), f); f.close()
