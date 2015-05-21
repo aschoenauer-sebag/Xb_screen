@@ -73,7 +73,7 @@ density_plot_settings = {
     'min_circularity': 0.1,
     'max_circularity': 0.8,
     'min_proliferation': 1, 
-    'max_proliferation': 3.0,
+    'max_proliferation': 5.0,
     'min_death': 0.1, 
     'max_death': 2.5
 }
