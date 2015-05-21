@@ -34,6 +34,13 @@ whereWell = lambda x: x[1:]
 # if Zeiss plate setup did not include some columns, indicate it here
 missing_cols = {'11414':(1,2)}
 
+###QUALITY CONTROL
+#Limit on initial number of cells
+qc_init_cell=50
+#Limit on the final percentage of out of focus objects
+focusFeature='Focus_ch1'
+qc_end_OOF=0.4
+
 ###FEATURES OF INTEREST
 #Plate features and channel of extraction
 featuresOfInterest = ['Focus']

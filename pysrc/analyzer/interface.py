@@ -183,12 +183,12 @@ class HTMLGenerator():
                             continue
                         
                         if self.classes is not None and arg[0] in self.classes:
-                            if arg[0] not in ['Polylobbed', 'WMicronuclei']:
-                                result['{}_ch1'.format(arg[0])].append(bincount[np.where(self.classes==arg[0])]/float(np.sum(bincount)))
-                            elif arg[0]=='WMicronuclei':
-                                s = bincount[np.where(self.classes==arg[0])] + bincount[np.where(self.classes=='Polylobbed')]
-                                result['{}_ch1'.format(arg[0])].append(s/float(np.sum(bincount)))
-                            continue
+# if arg[0] not in ['Polylobbed', 'WMicronuclei']:
+                            result['{}_ch1'.format(arg[0])].append(bincount[np.where(self.classes==arg[0])]/float(np.sum(bincount)))
+#                             elif arg[0]=='WMicronuclei':
+#                                 s = bincount[np.where(self.classes==arg[0])] + bincount[np.where(self.classes=='Polylobbed')]
+#                                 result['{}_ch1'.format(arg[0])].append(s/float(np.sum(bincount)))
+#                             continue
                         
                         try:
                             result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])])
@@ -223,12 +223,49 @@ class HTMLGenerator():
                 resD[plate][int(well[:-3])].update(result)
         return 1
     
-    def saveResults(self, plate, resD):
+    def count_qc(self, failed_qc, plate, resD):
+        qc_init_cell = self.settings.qc_init_cell
+        qc_end_OOF = self.settings.qc_end_OOF
+        
         try:
             resCour = resD[plate]
         except KeyError:
             print plate, ' not in result dictionary.'
             return
+        
+        for well in resCour:
+            if 'object_count' not in resCour[well] and 'cell_count' not in resCour[well]:
+                continue
+            if 'cell_count' not in resCour[well]:
+                #do count QC on object_count because we don't have the classification
+                if np.mean(resCour[well]['object_count'][:10])<qc_init_cell:
+                    print "Failing initial object count QC ", plate, well
+                    failed_qc[plate].append(well)
+                    continue
+            else:
+                #do count QC on cell_count
+                if np.mean(resCour[well]['cell_count'][:10])<qc_init_cell:
+                    print "Failing initial cell count QC ", plate, well
+                    failed_qc[plate].append(well)
+                    continue
+                if np.mean(resCour[well][self.settings.focusFeature][-10:])<qc_end_OOF:
+                    print "Failing out of focus end count QC ", plate, well
+                    failed_qc[plate].append(well)
+                    continue
+                
+        return 1
+        
+        
+    def saveResults(self,failed_qc, plate, resD):
+        '''
+        Saving results for data extraction as well as quality control results
+        '''
+        try:
+            resCour = resD[plate]
+        except KeyError:
+            print plate, ' not in result dictionary.'
+            return
+        resCour['FAILED QC'] = failed_qc[plate]
         
         if not os.path.isdir(self.settings.result_dir):
             os.mkdir(self.settings.result_dir)
@@ -354,13 +391,14 @@ class HTMLGenerator():
             
 
     
-    def generatePlatePlots(self, plate, resD):
+    def generatePlatePlots(self, plate, resD, failed_qc):
         
         try:
             resCour = resD[plate]
         except KeyError:
             print plate, ' not in result dictionary.'
             return
+        
 
         settingL = [
             {'min': self.settings.density_plot_settings['min_count'], 'max': self.settings.density_plot_settings['max_count'], 'int_labels': True},
@@ -389,7 +427,8 @@ class HTMLGenerator():
         ###printing plate setup
         print "working on plate setup"
         filename = '%s--%s.png' % ('plate', self.settings.newPlateName(plate))
-        texts = self.ap.plotPlate(resCour,self.params, filename, where_wells = self.well_lines_dict[plate],plotDir=plotDir, title='{} {}'.format(plate, 'plate'))
+        texts = self.ap.plotPlate(resCour,self.params, filename, where_wells = self.well_lines_dict[plate],plotDir=plotDir, title='{} {}'.format(plate, 'plate'),
+                                  qc_info=failed_qc[plate])
         
         for pheno, setting in zip(['initObjectCount', 'initCellCount', 'proliferation', 
                                    'initCircularity', 'endCircularity',  
@@ -567,6 +606,7 @@ class HTMLGenerator():
         else:
             colorDict= COLORD_DS
 
+        failed_qc=defaultdict(list)
             
         #first we get the plate setting, not counting empty wells. In particular it means that 
         #wells are counted according to their Zeiss number and not number on the plate.
@@ -598,19 +638,22 @@ class HTMLGenerator():
                 #for xb screen only self.classes=np.delete(self.classes, np.where(self.classes=='Polylobbed')[0])
             for plate in plateL:
                 if not moviesOnly:
+                    print ' *** Quality control for %s: ***' % plate
+                    self.count_qc(failed_qc, plate, resD)
+
                     print ' *** generate density plots for %s: ***' % plate
                     #well_setup is an array representing the plate with the Zeiss well numbers
                     #on the plate. So well_setup.flatten() gives the following: on absolute position
                     #final well_number there is either a zero either the Zeiss well number.
                     
-                    #This function is used to generate all 
-                    self.generatePlatePlots(plate, resD)
+                    #This function is used to generate all plate plots
+                    self.generatePlatePlots(plate, resD, failed_qc)
                     
                     print ' *** generate well plots ***'
                     self.generateWellPlots(plate, resD, colorDict)
     
                     print ' *** saving result dictionary ***'
-                    self.saveResults(plate, resD)
+                    self.saveResults(failed_qc, plate, resD)
     
                     if len(np.where(self.well_lines_dict[plate]==-1)[0])>1 and saveDB:
                         print ' *** changing well numbers in db, plate ', plate
@@ -675,7 +718,7 @@ class ArrayPlotter():
             return np.nan
         return hitData    
   
-    def plotPlate(self, res,params, filename, where_wells, plotDir=None, title='', show=False):
+    def plotPlate(self, res,params, filename, where_wells, plotDir=None, title='', show=False, qc_info=[]):
         
         if plotDir is None:
             plotDir = self.plotDir
@@ -723,8 +766,12 @@ class ArrayPlotter():
                 #txt = res[well]['Name'][:6]
                 txt='{}'.format(res[well]['Xenobiotic'][:4])
                 txt+='\n{}'.format(res[well]['Dose'])
-                #txt+='\n{} {}'.format(res[well]['Medium'][:6],res[well]['Serum'])
                 ax.text(y+0.1, nrow-x-1+0.1, txt, fontsize=6)
+                if well in qc_info:
+                    ax.text(y+0.5, nrow-x-1+0.5, 'QC', fontweight = 'bold', fontsize=10)
+                    txt='QC'
+                #txt+='\n{} {}'.format(res[well]['Medium'][:6],res[well]['Serum'])
+                
                 texts.append((y, nrow-x-1, txt))
         if show:
             p.show()
@@ -801,7 +848,10 @@ class ArrayPlotter():
         if grid: ax.grid(True)
         if texts is not None:
             for el in filter(lambda x: (x[0], x[1]) not in zip(absent[1], absent[0]), texts):
-                ax.text(el[0]+0.1, el[1]+0.1, el[2],fontsize=6)
+                if 'QC' not in el[2]:
+                    ax.text(el[0]+0.1, el[1]+0.1, el[2],fontsize=6)
+                else:
+                    ax.text(el[1]+0.5, el[0]+0.5, 'QC', fontweight = 'bold', fontsize=10)
         if show:
             p.show()
         else:
