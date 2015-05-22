@@ -75,6 +75,7 @@ class HTMLGenerator():
                         ax.plot(range(len(mean_intensity)), local_mean-3*dev_intensity, color='red', label='Sliding average-3sigmas')
                         ax.set_ylim((0,1000)); ax.legend()
                         p.savefig(os.path.join(self.settings.plot_dir,plate, 'mean_intensity_{}--W{:>05}.png'.format(plate, np.where(well_setup==well)[0][0]+1)))
+                        p.close(f)
                         result[plate][well]=toDelFin
         if result[plateL[0]]!={}:
             try:
@@ -777,6 +778,7 @@ class ArrayPlotter():
             p.show()
         else:
             p.savefig(full_filename)
+        p.close(fig)
         print where_wells
         return texts
         
@@ -856,6 +858,7 @@ class ArrayPlotter():
             p.show()
         else:
             p.savefig(full_filename)
+        p.close(fig)
         
         if legend_plot:
             self.plotNumLegend(cmap,max_, min_, title, filename=filename, legendDir=plotDir, int_labels=int_labels)
@@ -885,7 +888,7 @@ class ArrayPlotter():
         ax.set_title("Legend {}".format(title))
         ax.grid(True)
         p.savefig(full_filename)
-   
+        p.close(fig)
         return
     
     
@@ -938,5 +941,6 @@ class WellPlotter():
             p.show()
         else:
             p.savefig(full_filename)
+        p.close(fig)
             
         return
