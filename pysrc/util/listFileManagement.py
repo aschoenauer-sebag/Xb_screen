@@ -13,6 +13,23 @@ from util import typeD, typeD2
 import getpass
 import h5py
 
+def turningPlate(folder="/share/data40T/aschoenauer/drug_screen/data/LT0900_01"):
+    new_num=lambda x:384-x+1
+    
+    wells = filter(lambda x: os.path.isdir(os.path.join(folder, x)), os.listdir(folder))
+    for well in wells:
+        well_num=int(well[1:])
+        new_well_num=new_num(well_num)
+        
+        images = os.listdir(os.path.join(folder, well))
+        
+        for image in images:
+            os.rename(os.path.join(folder, well, image), os.path.join(folder, well, image.replace(well_num, new_well_num, 1)) )
+            
+        os.rename(os.path.join(folder, well), os.path.join(folder, well.replace(well_num, new_well_num)))
+        
+    return 
+
 def renamingDS(folder="/share/data40T/Thomas/drug_screen/ORDERED_DRUGS_screen", subFolder1 = "AURORA_Prestwick", subFolder2="data",
                objectifFolder = "/share/data40T/aschoenauer/drug_screen/data"):
     
