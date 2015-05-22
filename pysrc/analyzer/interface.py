@@ -869,9 +869,9 @@ class ArrayPlotter():
         tickL = np.array([float(x)/(nb_breaks - 1) for x in range(nb_breaks)])
         
         if int_labels:
-            colBreaksL = np.array([float(x) / (nb_breaks - 1) * (max_ - min_) for x in range(nb_breaks)], dtype=int)
+            colBreaksL = np.array([min_+ float(x) / (nb_breaks - 1) * (max_ - min_) for x in range(nb_breaks)], dtype=int)
         else:
-            colBreaksL = np.array([float(x) / (nb_breaks - 1) * (max_ - min_) for x in range(nb_breaks)])
+            colBreaksL = np.array([min_ + float(x) / (nb_breaks - 1) * (max_ - min_) for x in range(nb_breaks)])
 
         full_filename = os.path.join(legendDir, filename)
         
