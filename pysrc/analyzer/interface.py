@@ -456,6 +456,7 @@ class HTMLGenerator():
                 label_colors = False, #labeledPosD=labeledPosD,
                 legend_plot = True, legend_filename='legend_%s' % filename,
                 texts=texts)
+            p.close('all')
 #TODO investigate this normalization story
         return 
     
@@ -522,6 +523,7 @@ class HTMLGenerator():
                         labels=labels, data=data, colors=colors,figsize=figsize)
                 except IndexError:
                     pass
+                p.close('all')
         return
     
     def generateMovies(self, plate, well_setup):
