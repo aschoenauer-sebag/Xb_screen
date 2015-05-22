@@ -102,7 +102,7 @@ class HTMLGenerator():
         print "Looking for features ", featureL
         for plate in plateL:
             listW = sorted(filter(lambda x: '.hdf5' in x or '.ch5' in x, os.listdir(os.path.join(dataFolder, plate, 'hdf5'))))
-            for filename in listW:
+            for filename in listW[50:55]:
                 well=filename.split('.')[0]
                     
                 filename = os.path.join(dataFolder, plate,"hdf5", filename)
@@ -244,7 +244,7 @@ class HTMLGenerator():
                     print "Failing initial cell count QC ", plate, well
                     failed_qc[plate].append(well)
                     continue
-                if np.mean(resCour[well][self.settings.focusFeature][-10:])<qc_end_OOF:
+                if np.mean(resCour[well][self.settings.focusFeature][-10:])>qc_end_OOF:
                     print "Failing out of focus end count QC ", plate, well
                     failed_qc[plate].append(well)
                     continue
@@ -764,7 +764,7 @@ class ArrayPlotter():
                 txt+='\n{}'.format(res[well]['Dose'])
                 ax.text(y+0.1, nrow-x-1+0.1, txt, fontsize=6)
                 if well in qc_info:
-                    ax.text(y+0.5, nrow-x-1+0.5, 'QC', fontweight = 'bold', fontsize=10)
+                    ax.text(y+0.1, nrow-x-1+0.1, 'QC', fontweight = 'bold', fontsize=10)
                     txt='QC'
                 #txt+='\n{} {}'.format(res[well]['Medium'][:6],res[well]['Serum'])
                 
@@ -848,7 +848,7 @@ class ArrayPlotter():
                 if 'QC' not in el[2]:
                     ax.text(el[0]+0.1, el[1]+0.1, el[2],fontsize=6)
                 else:
-                    ax.text(el[1]+0.5, el[0]+0.5, 'QC', fontweight = 'bold', fontsize=10)
+                    ax.text(el[0]+0.5, el[1]+0.5, 'QC', fontweight = 'bold', fontsize=10)
         if show:
             p.show()
         else:
