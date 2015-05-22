@@ -14,7 +14,7 @@ def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data40T/
     if idDict==None:
         idDict={3:[]}
         for pl in os.listdir(inDir):
-            idDict[3].extend([(pl, el) for el in range(1,309)])
+            idDict[3].extend([(pl, el) for el in range(1,384)])
     
     for gene in idDict:
         for pl,w in idDict[gene]:

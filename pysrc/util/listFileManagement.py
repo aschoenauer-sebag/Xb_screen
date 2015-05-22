@@ -14,19 +14,28 @@ import getpass
 import h5py
 
 def turningPlate(folder="/share/data40T/aschoenauer/drug_screen/data/LT0900_01"):
-    new_num=lambda x:384-x+1
+    new_well_name=lambda x:"W{:>05}".format(384-x+1)
     
     wells = filter(lambda x: os.path.isdir(os.path.join(folder, x)), os.listdir(folder))
     for well in wells:
         well_num=int(well[1:])
-        new_well_num=new_num(well_num)
+        new_well=new_well_name(well_num)
         
         images = os.listdir(os.path.join(folder, well))
         
         for image in images:
-            os.rename(os.path.join(folder, well, image), os.path.join(folder, well, image.replace(well_num, new_well_num, 1)) )
+            os.rename(os.path.join(folder, well, image), os.path.join(folder, well, image.replace(well, new_well, 1)) )
             
-        os.rename(os.path.join(folder, well), os.path.join(folder, well.replace(well_num, new_well_num)))
+    #can't do it in one row because we have the same names otherwise    
+    new_well_name=lambda x:"WW{:>05}".format(384-x+1)
+    for well in wells:
+        well_num=int(well[1:])
+        new_well=new_well_name(well_num)
+        os.rename(os.path.join(folder, well), os.path.join(folder, well.replace(well, new_well)))
+        
+    wells=filter(lambda x: os.path.isdir(os.path.join(folder, x)), os.listdir(folder))
+    for well in wells:
+        os.rename(os.path.join(folder, well), os.path.join(folder, well[1:]))
         
     return 
 
