@@ -184,20 +184,15 @@ class HTMLGenerator():
                             continue
                         
                         if self.classes is not None and arg[0] in self.classes:
-# if arg[0] not in ['Polylobbed', 'WMicronuclei']:
                             result['{}_ch1'.format(arg[0])].append(bincount[np.where(self.classes==arg[0])]/float(np.sum(bincount)))
-#                             elif arg[0]=='WMicronuclei':
-#                                 s = bincount[np.where(self.classes==arg[0])] + bincount[np.where(self.classes=='Polylobbed')]
-#                                 result['{}_ch1'.format(arg[0])].append(s/float(np.sum(bincount)))
-#                             continue
-                        
-                        try:
-                            result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])])
-                        except:
-                            if not secondary and arg[1]+1==2:
-                                continue
-                            else:
-                                raise
+                        else:
+                            try:
+                                result['{}_ch{}'.format(arg[0], arg[1]+1)].append(frame.features[:,arg[1]*self.FEATURE_NUMBER+featureL.index(arg[0])])
+                            except:
+                                if not secondary and arg[1]+1==2:
+                                    continue
+                                else:
+                                    raise
                 
                 #if the second channel was processed, looking at round cells from a cytoplasmic point of view because it's the cells that are dying (or dividing but here we neglect that)
                     if "circularity_ch2" in result:
