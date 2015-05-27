@@ -650,9 +650,13 @@ def collectingDistances(filename, folder,
         genes=[]
         
         for file_ in files:
-            f=open(os.path.join(folder, file_))
-            d=pickle.load(f)
-            f.close()
+            try:
+                f=open(os.path.join(folder, file_))
+                d=pickle.load(f)
+                f.close()
+            except OSError, IOError:
+                print "Issue with ", file_
+                continue
             if not testCtrl:
                 siRNA = file_.split('_')[-1][:-4]
                 shape = list(set([d[el].shape[0] for el in d]))
