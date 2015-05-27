@@ -659,8 +659,8 @@ def collectingDistances(filename, folder,
                 try:
                     assert(len(shape)==1)
                 except:
-                    print [d[el].shape[0] for el in d]
                     if len(d)==6:#meaning we have one time iteratiom 0 with less wells
+                        print [d[el].shape[0] for el in d]
                         key_ = [el for el in d if d[el].shape[0]==np.min(shape)][0]
                         del d[key_]
                         f=open(os.path.join(folder, file_), 'w')
