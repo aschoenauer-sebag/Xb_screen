@@ -1329,7 +1329,6 @@ self.siRNA takes value CTRL_[plate]_plate
         return tuple(sorted(zip(r.keys(), r.values()), key=itemgetter(0)))
     
     def calculateDistances(self, plates, histogrammes, ctrl_histogrammes):
-        pdb.set_trace()
         distances = np.zeros(shape=(len(self.expList),len(self.currInterestFeatures)))
         for i,experiment in enumerate(self.expList):
             corresponding_ctrl = plates.index(experiment[0])
