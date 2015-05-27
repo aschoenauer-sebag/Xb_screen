@@ -16,6 +16,6 @@ min_size=10 #minimum number of complete tracks to take the experiment into accou
 histDataAsWell=False
 
 #Option to say if we want to redo experiments anyway
-redo=False
+redo=True
 #to tell it's not the xb screen
 xb_screen=False
