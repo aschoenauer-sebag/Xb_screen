@@ -183,7 +183,7 @@ def usable_MITO(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck=
             if arr==None:
                 sys.stderr.write( "Array {} is None\n".format(os.path.join(pl, filename.format(w))))
                 r.append(False)
-            elif len(arr.shape)==1 or arr.shape[0]<min_size:
+            elif ('eatures' in filename and len(arr.shape)==1) or arr.shape[0]<min_size:
                 sys.stderr.write("Array {} has less than 20 trajectories. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
                 r.append(False)
             else:
