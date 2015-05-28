@@ -76,7 +76,7 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution.png", file
                         print "Pas ", os.path.join(inDir, folder, filename.format(well))
                         continue
                     else:
-                        controls[folder].append(d['length'].values())
+                        controls[folder].extend(d['length'].values())
                         
             try:
                 f=open(os.path.join(inDir, folder, filename.format(exp[11:]+'_01')))
