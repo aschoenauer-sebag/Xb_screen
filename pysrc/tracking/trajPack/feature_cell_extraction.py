@@ -58,6 +58,42 @@ parameters=[
   (('div_name', 'KS'),
   ('iter', z)) for z in range(5)]
 
+def plotComparison(expDict, inDir,outputFile ="{}_length_distribution.png", filename="cell_cycle_info_{}.pkl", b=50):
+    controls=defaultdict(list)
+
+    for gene in expDict:
+        f,axes=p.subplots(1, len(expDict[gene]),sharey=True)
+        
+        for i,exp in enumerate(expDict[gene]):
+            folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))[0]
+            if folder not in controls:
+                for well in ["00074_01", "00315_01"]:
+                    try:
+                        f=open(os.path.join(inDir, folder, filename.format(well)))
+                        d=pickle.load(f)
+                        f.close()
+                    except:
+                        print "Pas ", os.path.join(inDir, folder, filename.format(well))
+                        continue
+                    else:
+                        controls[folder].append(d['length'].values())
+                        
+            try:
+                f=open(os.path.join(inDir, folder, filename.format(exp+'_01')))
+                d=pickle.load(f)
+                f.close()
+            except:
+                print "Pas ", os.path.join(inDir, folder, filename.format(exp+'_01'))
+                continue
+            else:
+                axes[i].hist(d['length'].values(), bins=b, color='red', normed=True, label=exp)
+                axes[i].hist(controls[folder], bins=b, color='green', normed=True, label='Ctrl')
+                
+        p.savefig(os.path.join('../resultData/cell_cycle/movies_median', outputFile.format(gene)))
+        p.close('all')
+        
+    return
+
 #def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all_distances_whole_CTRL.pkl", sigma=0.1, binSize=10,texts=None):
 #    f=open(os.path.join(folder, filename))
 #    distances = pickle.load(f);f.close()
