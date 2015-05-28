@@ -89,6 +89,7 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution.png", file
                 axes[i].hist(d['length'].values(), bins=b, color='red', normed=True, alpha=0.5, label=exp)
                 axes[i].hist(controls[folder], bins=b, color='green', normed=True, alpha=0.5, label='Ctrl 74 and 315 same pl')
                 axes[i].legend()
+        f.suptitle(gene)
         p.savefig(os.path.join('../resultData/cell_cycle/movies_median', outputFile.format(gene)))
         p.close('all')
         
