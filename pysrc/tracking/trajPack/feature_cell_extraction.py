@@ -25,8 +25,8 @@ from tracking.trajPack import featuresSaved, featuresHisto, featuresNumeriques,\
 from util.listFileManagement import fromShareToCBIO, appendingControl, txtToList
 from tracking.trajPack.clustering import histConcatenation,outputBin, correct_from_Nan
 from tracking.PyPack.fHacktrack2 import initXml, finirXml
-from tracking.histograms.k_means_transportation import DIVERGENCES, _distances
-from tracking.histograms.transportation import costMatrix, computingBins
+#from tracking.histograms.k_means_transportation import DIVERGENCES, _distances
+#from tracking.histograms.transportation import costMatrix, computingBins
 from util.listFileManagement import expSi, strToTuple, siEntrez, EnsemblEntrezTrad, geneListToFile, usable_MITO
 from util.sandbox import concatCtrl
 from util.plots import couleurs, markers
@@ -88,7 +88,7 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution.png", file
             else:
                 axes[i].hist(d['length'].values(), bins=b, color='red', normed=True, label=exp)
                 axes[i].hist(controls[folder], bins=b, color='green', normed=True, label='Ctrl')
-                
+        p.legend()
         p.savefig(os.path.join('../resultData/cell_cycle/movies_median', outputFile.format(gene)))
         p.close('all')
         
