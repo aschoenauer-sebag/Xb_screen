@@ -79,11 +79,11 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution.png", file
                         controls[folder].append(d['length'].values())
                         
             try:
-                f=open(os.path.join(inDir, folder, filename.format(exp+'_01')))
+                f=open(os.path.join(inDir, folder, filename.format(exp[11:]+'_01')))
                 d=pickle.load(f)
                 f.close()
             except:
-                print "Pas ", os.path.join(inDir, folder, filename.format(exp+'_01'))
+                print "Pas ", os.path.join(inDir, folder, filename.format(exp[11:]+'_01'))
                 continue
             else:
                 axes[i].hist(d['length'].values(), bins=b, color='red', normed=True, label=exp)
