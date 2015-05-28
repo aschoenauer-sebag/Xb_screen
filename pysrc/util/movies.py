@@ -48,7 +48,7 @@ def makeRawMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitochec
 def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None, extension="png", redo=True):
 
     # movie filename
-    movieName = 'P{}_W{}_{}.avi'.format(plate, well, gene)
+    movieName = '{}_P{}_W{}.avi'.format(gene, plate, well)
     # make output directory
     if not os.path.isdir(outDir):
         os.makedirs(outDir)
