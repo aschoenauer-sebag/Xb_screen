@@ -736,7 +736,7 @@ def empiricalPvalues(dist_controls, dist_exp, folder, name, sup=False, also_pval
     if also_pval:
         return np.array(empirical_pval), np.array(empirical_qval)
     
-    return empirical_qval
+    return np.array(empirical_qval)
 
 #def empiricalDistributions(dist_controls, dist_exp, folder,iteration=1, sup=False, union=False, redo=False, renorm_first_statistic=False, renorm_second_statistic=True,
 #                           without_mean_persistence=True):

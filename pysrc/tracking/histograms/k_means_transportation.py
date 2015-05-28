@@ -10,10 +10,8 @@ from sklearn.base import BaseEstimator, ClusterMixin, TransformerMixin
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.cluster.k_means_ import _mini_batch_convergence, _tolerance
 from sklearn.metrics.pairwise import euclidean_distances
-from sklearn.utils.sparsefuncs import mean_variance_axis0
-from sklearn.utils import check_arrays
+from sklearn.utils import check_array
 from sklearn.utils import check_random_state
-from sklearn.utils import atleast2d_or_csr
 from sklearn.utils import as_float_array
 from sklearn.externals.joblib import Parallel
 from sklearn.externals.joblib import delayed
@@ -1251,7 +1249,7 @@ class histogramMiniKMeans(MiniBatchKMeans):
         """
         random_state = check_random_state(self.random_state)
 #SO THIS SHOULD NOT HAPPEN
-        X = check_arrays(X, sparse_format="csr", copy=False,
+        X = check_array(X, sparse_format="csr", copy=False,
                          check_ccontiguous=True, dtype=np.float64)[0]
         n_samples, n_features = X.shape
         if n_samples < self.n_clusters:

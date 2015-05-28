@@ -32,7 +32,7 @@ def makeClassifMovieFromExpDict(idDict, tempDir = None, inDir = '/share/data40T/
 
 
 def makeRawMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitocheck/compressed_data', \
-                         outDir='/cbio/donnees/aschoenauer/cluster', clef=lambda x:int(x.split('_')[2])):
+                         outDir='/cbio/donnees/aschoenauer/cluster', clef=lambda x:int(x.split('--')[3][1:])):
     if tempDir is None:
         tempDir = os.path.join(outDir, 'temp')
     
@@ -40,9 +40,9 @@ def makeRawMovieFromExpDict(idDict, tempDir=None, inDir='/share/data20T/mitochec
         for exp in idDict[gene]:
             print exp[:9], exp[11:]
             folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))[0]
-            imgInDir = filter(lambda x: x[:3] == exp[11:], os.listdir(os.path.join(inDir, folder)))[0]
+            imgInDir = filter(lambda x: x[:3] == exp[13:], os.listdir(os.path.join(inDir, folder)))[0]
             imgInDir = os.path.join(inDir, folder, imgInDir)
-            makeMovieWithoutRenorm(imgInDir, outDir, gene, exp[:9], exp[11:], clef, tempDir)
+            makeMovieWithoutRenorm(imgInDir, outDir, gene, exp[:9], exp[13:], clef, tempDir)
     return
 
 def makeMovieWithoutRenorm(imgDir, outDir,gene, plate, well, clef, tempDir=None, extension="png", redo=True):
