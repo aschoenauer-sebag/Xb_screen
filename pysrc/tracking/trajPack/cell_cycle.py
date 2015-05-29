@@ -115,22 +115,19 @@ class completeTrackExtraction(object):
             except IOError:
                 print "Non existing trajectory file"
                 sys.exit()
-        t,c, _ = d['tracklets dictionary'], d['connexions between tracklets'], d['movie_length']
+        t,c, m = d['tracklets dictionary'], d['connexions between tracklets'], d['movie_length']
     #NB this dictionary starts with image number 0
+    
+        self.movie_length = m[self.plate][self.well]
         return t[self.plate][self.well], c[self.plate][self.well]
     
-    def findConnexions(self, tracklets, connexions):
+    def _completeConnexions(self, complete_tracks, tracklets, connexions):
         '''
-        We need to find the cells for which we have the first appearance after a split, and the disappearance
-        After a quick look at the crops, I find that we also need a crop of the cells in the next image
+        Here we're interested in getting objects ids when they're complete tracks.
+        
+        In result we are going to have {object_id : [mom_id, me_id at first frame, me_id at last frame, children id (1,2 or 3) ]
+        In siblings we are going to have {object_id : siblings id (1 or 2), appearing also at my first frame}.
         '''
-        children=[]; mothers=[]
-        for im in connexions:
-            for el in filter(lambda x: len(connexions[im][x]) in [2,3] and x!=(-1,), connexions[im]):
-                mothers.extend(el)
-                children.extend(connexions[im][el])
-    #ids of complete tracks
-        complete_tracks = filter(lambda x: x in mothers, children)
         result = {el :[] for el in complete_tracks}; siblings={}
         
         c= {im:{el: connexions[im][el] for el in connexions[im] if el[0] in complete_tracks or 
@@ -161,26 +158,74 @@ class completeTrackExtraction(object):
                         siblings[outEl]=[sorted_child_points[sibling][0][1] for sibling in c[im][el] if sibling !=outEl]
                             
         return result, siblings
-    
-    def findObjects(self, splits, siblings, compute_boxes=False):
-        if self.settings.new_h5:
-            file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.ch5".format(self.well))
-            path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary3".format(self.plate, self.well.split('_')[0])
-            path_boundingBox="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary3/bounding_box".format(self.plate, self.well.split('_')[0])
-        else:
-            file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.hdf5".format(self.well))
-            path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary".format(self.plate, self.well.split('_')[0])
-            path_boundingBox="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/bounding_box".format(self.plate, self.well.split('_')[0])
-            path_classif="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_classification/prediction".format(self.plate, self.well.split('_')[0])
-            
-        objects = vi.readHDF5(file_, path_objects)
-        if compute_boxes:
-            bounding_boxes = vi.readHDF5(file_, path_boundingBox)
-        classification = vi.readHDF5(file_, path_classif)
         
-        boxes=defaultdict(list)
-        score={t:[0,0] for t in splits}
-        frames={t:[0,0] for t in splits}
+    def _incompleteConnexions(self, incomplete_tracks, tracklets, connexions):
+        '''
+        Here we do the same as _completeConnexions except we're not bothering about my children since they don't exist in the video
+        '''
+        result = {el :[] for el in incomplete_tracks}; siblings={}
+        
+        c= {im:{el: connexions[im][el] for el in connexions[im] if el[0] in incomplete_tracks or 
+                np.any([ww in incomplete_tracks for ww in connexions[im][el]])} for im in connexions}
+        c= {im:c[im] for im in filter(lambda x: c[x]!={},c)}
+        
+        for im in sorted(c):
+            for el in c[im]:
+                try:
+                    traj=filter(lambda x:x.id==el[0], tracklets.lstTraj)[0]
+                except IndexError:
+                    pdb.set_trace()
+                else:
+                    sorted_mom_points = sorted(traj.lstPoints.keys(), key=lambda tup:tup[0])
+                
+                sorted_child_points= {outEl: sorted(filter(lambda x:x.id==outEl, tracklets.lstTraj)[0].lstPoints.keys(), 
+                                                    key=lambda tup:tup[0]) for outEl in c[im][el]}
+                for outEl in c[im][el]:
+                    if el[0] in incomplete_tracks:
+                        #we should not have mothers in incomplete tracks as it is precisely the definition of
+                        #incomplete tracks that they're not mothers (sorry dudes)
+                        pdb.set_trace()
+                    if outEl in incomplete_tracks:
+                        result[outEl].append(sorted_mom_points[-1])
+                        result[outEl].append(sorted_child_points[outEl][0])
+                    #ici je mets l'id des siblings de outEl pour pouvoir faire le bon crop
+                        siblings[outEl]=[sorted_child_points[sibling][0][1] for sibling in c[im][el] if sibling !=outEl]
+                            
+        return result, siblings
+    
+    def findConnexions(self, tracklets, connexions):
+        '''
+        We need to find the cells for which we have the first appearance after a split, and the disappearance
+        After a quick look at the crops, I find that we also need a crop of the cells in the next image
+        
+        Following Thomas' remark on the 5/29, adding the possibility to also take into account tracks that
+        start with a mitosis and end with the end of the movie
+        
+        '''
+        children=[]; mothers=[]
+        for im in connexions:
+            for el in filter(lambda x: len(connexions[im][x]) in [2,3] and x!=(-1,), connexions[im]):
+                mothers.extend(el)
+                children.extend(connexions[im][el])
+    #ids of complete tracks
+        complete_tracks = filter(lambda x: x in mothers, children)
+        c_result, c_siblings = self._completeConnexions(complete_tracks, connexions)
+        
+    #looking at other tracks if we want to, according to settings file
+        if self.settings.not_ending_track:
+            incomplete_tracks = filter(lambda y: sorted(filter(lambda x:x.id==y, tracklets.lstTraj)[0].lstPoints.keys(), 
+                                                        key=lambda tup:tup[0])[-1][0]==self.movie_length-1, mothers)
+            i_result, i_siblings = self._incompleteConnexions(incomplete_tracks, connexions)
+            
+        else:
+            i_result, i_siblings=None, None
+            
+        return c_result, c_siblings, i_result, i_siblings
+        
+    def _findCompleteObjects(self, splits, objects, classification, boxes, compute_boxes, bounding_boxes, siblings, score, frames):
+        '''
+        Modifies frames and boxes in place to add information about complete tracks
+        '''
         for track_id in splits:
             
             local_box=None
@@ -218,7 +263,82 @@ class completeTrackExtraction(object):
                     score[track_id][1]+= int(classif ==7)
             if compute_boxes:
                 boxes[im].append((track_id,3, np.array([min(local_box['left']), max(local_box['right']), min(local_box['top']), max(local_box['bottom'])]) ))
+                
+        return
+    def _findIncompleteObjects(self, isplits, objects, classification, score, frames):
+        '''
+        Modifies frames and boxes in place to add information about complete tracks
+        '''
+        for track_id in isplits:
+            for k in range(len(isplits[track_id])):
+                im, cell_id= isplits[track_id][k]
+                where_=np.where((objects['time_idx']==im)&(objects['obj_label_id']==cell_id))
+                classif = classification[where_]['label_idx'][0]
+                #looking at mom or me
+                if k==0 or k==2:
+#                     if compute_boxes:
+#                         boxes[im].append((track_id, k, bounding_boxes[where_]))
+                    if k==0:
+                        #looking at mom
+                        score[track_id][0]+= int(classif in [6,8,9])
+                        frames[track_id][0]=im+1
+                    elif k==2:
+                        #looking at me being a mom - SHOULD NOT HAPPEN HERE
+#                         score[track_id][1]+= int(classif in [6,8,9])
+#                         frames[track_id][1]=im
+                        pdb.set_trace()
+                elif k==1:
+                    #looking at me, being born
+                    score[track_id][0]+= int(classif ==7)
+#                     if compute_boxes:
+#                         currSibBox = bounding_boxes[where_]
+#                         for sibling in siblings[track_id]:
+#                             currSibBox=np.vstack((currSibBox, bounding_boxes[np.where((objects['time_idx']==im)&(objects['obj_label_id']==sibling))]))
+#                         
+#                         boxes[im].append((track_id, k, np.array([min(currSibBox['left']), max(currSibBox['right']), min(currSibBox['top']), max(currSibBox['bottom'])])))
+                    
+                #looking at daughters
+                else:#so k=3 4 5, should not happen here
+                    pdb.set_trace()
+                    
+#                     if compute_boxes:
+#                         local_box=bounding_boxes[where_] if local_box is None else np.vstack((local_box, bounding_boxes[where_]))
+#                     score[track_id][1]+= int(classif ==7)
+#             if compute_boxes:
+#                 boxes[im].append((track_id,3, np.array([min(local_box['left']), max(local_box['right']), min(local_box['top']), max(local_box['bottom'])]) ))
+                
+        return
+    
+    def findObjects(self, splits, siblings,isplits, compute_boxes=False):
+        if self.settings.new_h5:
+            file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.ch5".format(self.well))
+            path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary3".format(self.plate, self.well.split('_')[0])
+            path_boundingBox="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary3/bounding_box".format(self.plate, self.well.split('_')[0])
+        else:
+            file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.hdf5".format(self.well))
+            path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary".format(self.plate, self.well.split('_')[0])
+            path_boundingBox="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/bounding_box".format(self.plate, self.well.split('_')[0])
+            path_classif="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_classification/prediction".format(self.plate, self.well.split('_')[0])
+            
+        objects = vi.readHDF5(file_, path_objects)
+        if compute_boxes:
+            bounding_boxes = vi.readHDF5(file_, path_boundingBox)
+        classification = vi.readHDF5(file_, path_classif)
+        
+        boxes=defaultdict(list)
+        score={t:[0,0] for t in splits}
+        frames={t:[0,0] for t in splits}
+
+        
+        self._findCompleteObjects(splits, objects, classification, boxes, compute_boxes, bounding_boxes, siblings, score, frames)
+        
+        if self.settings.not_ending_track:
+            score.update({t:[0, None] for t in isplits})
+            frames.update({t:[0, self.movie_length-1] for t in isplits})            
+            self._findIncompleteObjects(isplits, objects, classification, score, frames)
+        
         cell_cycle_lengths={el: frames[el][1]-frames[el][0]+1 for el in frames}
+
         return boxes, cell_cycle_lengths, score
     
     def getObjective(self,objective, lengths, scores, tracklets):
@@ -255,7 +375,8 @@ class completeTrackExtraction(object):
                 tab = objective['function'](tabs)
         
         for track_id in scores:
-            if scores[track_id][0]>=1 and scores[track_id][1]>=1 and lengths[track_id]>1:
+            if ((scores[track_id][1] is not None and scores[track_id][0]>=1 and scores[track_id][1]>=1) or (scores[track_id][0]>=1 and scores[track_id][1]==None))\
+                    and lengths[track_id]>1:
                 try:
                     traj=filter(lambda x:x.id==track_id, tracklets.lstTraj)[0]
                 except IndexError:
@@ -274,8 +395,6 @@ class completeTrackExtraction(object):
             result.append(tab[np.where((objects['time_idx']==im)&(objects['obj_label_id']==cell_id))])
             
         return np.array(result)
-            
-        
         
     def _findFolder(self):
         if self.settings.new_h5:
@@ -394,10 +513,10 @@ class completeTrackExtraction(object):
         tracklets, connexions = self.load()
         
         #ii. find thrivisions
-        splits, siblings = self.findConnexions(tracklets, connexions)
+        splits, siblings, isplits, isiblings = self.findConnexions(tracklets, connexions)
         
         #iii. find their bounding boxes
-        _, cell_cycle_lengths, scores=self.findObjects(splits, siblings, compute_boxes=False)
+        _, cell_cycle_lengths, scores=self.findObjects(splits, siblings, isplits, compute_boxes=False)
         
         noting_objective = self.getObjective(self.settings.objective, cell_cycle_lengths, scores, tracklets)
         

@@ -14,11 +14,14 @@ trackingFolder = '/share/data20T/mitocheck/tracking_results'
 imageFilename = "--W{}--P00001--T{:>05}-"
 trackingFilename='traj_noF_densities_w{}.hdf5.pkl'
 outputImage="{}crop_P{}_W{}_{}_t{}_id{}.png"
-outputFile="cell_cycle_info_{}.pkl"
+outputFile="cell_cycle_cens_{}.pkl"
 #modelFilename = "best_model_split.pkl"
 #outputTrainingFilename = "thrivisions_featureMatrix_training.pkl"
 #outputTestingFilename="thrivisions_featureMatrix_testing.pkl"
 #outputPredictingFilename = "thripred_{}_{}.pkl"
+
+#Say if you also want trajectories that start with a mitosis and end with the end of the movie
+not_ending_track=True
 
 min_=1
 max_=2**8
