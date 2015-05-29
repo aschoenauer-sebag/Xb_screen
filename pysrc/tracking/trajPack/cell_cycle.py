@@ -217,9 +217,9 @@ class completeTrackExtraction(object):
         
     #looking at other tracks if we want to, according to settings file
         if self.settings.not_ending_track:
-            pdb.set_trace()  
             incomplete_tracks = filter(lambda y: sorted(filter(lambda x:x.id==y, tracklets.lstTraj)[0].lstPoints.keys(), 
-                                                        key=lambda tup:tup[0])[-1][0]==self.movie_length-1, mothers)
+                                                        key=lambda tup:tup[0])[-1][0]==self.movie_length-1, children)
+            pdb.set_trace()  
             i_result, i_siblings = self._incompleteConnexions(incomplete_tracks, tracklets, connexions)
             
         else:
