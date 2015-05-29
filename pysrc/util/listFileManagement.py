@@ -144,7 +144,7 @@ def returnInfo(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.
     return result
 
 def usable_MITO(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', 
-           filename='hist_tabFeatures_{}.pkl', min_size=20, features=None):
+           filename='hist_tabFeatures_{}.pkl', min_size=20, features=None, check_size=True):
     
     yqualDict=expSi(qc)
     dictSiEntrez=siEntrez(mitocheck, yqualDict.values())
@@ -171,6 +171,9 @@ def usable_MITO(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck=
             elif 'cell_cycle' in filename:
                 dict_=pickle.load(f)
                 arr=np.vstack((dict_[el].values() for el in features)).T 
+                
+            elif 'traj' in filename:
+                dict_=pickle.load(f)
 
             f.close()
         except IOError:
@@ -183,7 +186,7 @@ def usable_MITO(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck=
             if arr==None:
                 sys.stderr.write( "Array {} is None\n".format(os.path.join(pl, filename.format(w))))
                 r.append(False)
-            elif ('eatures' in filename and len(arr.shape)==1) or arr.shape[0]<min_size:
+            elif check_size and (('eatures' in filename and len(arr.shape)==1) or arr.shape[0]<min_size):
                 sys.stderr.write("Array {} has less than 20 trajectories. One needs to investigate why. \n".format(os.path.join(pl, filename.format(w))))
                 r.append(False)
             else:
