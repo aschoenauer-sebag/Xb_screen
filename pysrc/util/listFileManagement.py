@@ -173,7 +173,7 @@ def usable_MITO(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck=
                 arr=np.vstack((dict_[el].values() for el in features)).T 
                 
             elif 'traj' in filename:
-                dict_=pickle.load(f)
+                arr=pickle.load(f)
 
             f.close()
         except IOError:
