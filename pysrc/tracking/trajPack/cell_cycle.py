@@ -82,6 +82,8 @@ class completeTrackExtraction(object):
         self.plate = plate
     #NB here the wells are expected in format 00***_01
         self.well = well
+        
+        print "Taking tracks that end with movie into account", self.settings.not_ending_track
     
     def _usable(self):
         if not self.settings.new_h5:
@@ -164,6 +166,7 @@ class completeTrackExtraction(object):
         '''
         Here we do the same as _completeConnexions except we're not bothering about my children since they don't exist in the video
         '''
+        pdb.set_trace()
         result = {el :[] for el in incomplete_tracks}; siblings={}
         
         c= {im:{el: connexions[im][el] for el in connexions[im] if el[0] in incomplete_tracks or 
@@ -191,7 +194,7 @@ class completeTrackExtraction(object):
                         result[outEl].append(sorted_child_points[outEl][0])
                     #ici je mets l'id des siblings de outEl pour pouvoir faire le bon crop
                         siblings[outEl]=[sorted_child_points[sibling][0][1] for sibling in c[im][el] if sibling !=outEl]
-                            
+        pdb.set_trace()               
         return result, siblings
     
     def findConnexions(self, tracklets, connexions):
@@ -270,6 +273,7 @@ class completeTrackExtraction(object):
         '''
         Modifies frames and boxes in place to add information about complete tracks
         '''
+        pdb.set_trace()  
         for track_id in isplits:
             for k in range(len(isplits[track_id])):
                 im, cell_id= isplits[track_id][k]
@@ -307,7 +311,7 @@ class completeTrackExtraction(object):
 #                     score[track_id][1]+= int(classif ==7)
 #             if compute_boxes:
 #                 boxes[im].append((track_id,3, np.array([min(local_box['left']), max(local_box['right']), min(local_box['top']), max(local_box['bottom'])]) ))
-                
+        pdb.set_trace()         
         return
     
     def findObjects(self, splits, siblings,isplits, compute_boxes=False):
@@ -333,6 +337,7 @@ class completeTrackExtraction(object):
         self._findCompleteObjects(splits, objects, classification, boxes, compute_boxes, bounding_boxes, siblings, score, frames)
         
         if self.settings.not_ending_track:
+            pdb.set_trace()  
             score.update({t:[0, None] for t in isplits})
             frames.update({t:[0, self.movie_length-1] for t in isplits})            
             self._findIncompleteObjects(isplits, objects, classification, score, frames)
