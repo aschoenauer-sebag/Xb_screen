@@ -210,13 +210,13 @@ class completeTrackExtraction(object):
                 children.extend(connexions[im][el])
     #ids of complete tracks
         complete_tracks = filter(lambda x: x in mothers, children)
-        c_result, c_siblings = self._completeConnexions(complete_tracks, connexions)
+        c_result, c_siblings = self._completeConnexions(complete_tracks, tracklets, connexions)
         
     #looking at other tracks if we want to, according to settings file
         if self.settings.not_ending_track:
             incomplete_tracks = filter(lambda y: sorted(filter(lambda x:x.id==y, tracklets.lstTraj)[0].lstPoints.keys(), 
                                                         key=lambda tup:tup[0])[-1][0]==self.movie_length-1, mothers)
-            i_result, i_siblings = self._incompleteConnexions(incomplete_tracks, connexions)
+            i_result, i_siblings = self._incompleteConnexions(incomplete_tracks, tracklets, connexions)
             
         else:
             i_result, i_siblings=None, None
