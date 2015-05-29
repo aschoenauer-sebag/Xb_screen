@@ -322,8 +322,7 @@ class completeTrackExtraction(object):
             path_classif="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/object_classification/prediction".format(self.plate, self.well.split('_')[0])
             
         objects = vi.readHDF5(file_, path_objects)
-        if compute_boxes:
-            bounding_boxes = vi.readHDF5(file_, path_boundingBox)
+        bounding_boxes = vi.readHDF5(file_, path_boundingBox) if compute_boxes else None
         classification = vi.readHDF5(file_, path_classif)
         
         boxes=defaultdict(list)
