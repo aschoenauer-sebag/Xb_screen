@@ -38,14 +38,18 @@ def comprehensiveIntensityPlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", o
         for i,el in enumerate(d['total intensity'].values()):
             arr[i,:el.shape[0]]=el[:,0,0]/float(el[0,0,0])
             if el.shape[0]>=10:
-                der = [arr[i, u+5]- arr[i,u] for u in range(el.shape[0]-5)]
-                acc=[der[u+1]-der[u] for u in range(len(der)-1)]
+                #der = [arr[i, u+5]- arr[i,u] for u in range(el.shape[0]-5)]
+                #acc=[der[u+1]-der[u] for u in range(len(der)-1)]
+                #intensity.append(np.max(acc))
+                intensity.append(arr[i,el.shape[0]-1])
                 
-                intensity.append(np.max(acc))
-            if intensity[-1]<0.8 and intensity[-1]>0.5:
-                ax2.plot(range(len(acc)), acc, label=i)
-                ax.plot(range(el.shape[0]), el[:,0,0]/float(el[0,0,0]), label=i)
-                ax2.legend()
+        for i,el in enumerate(d['total intensity'].values()):
+            if arr[i, el.shape[0]-1]>scoreatpercentile(intensity, 80):
+                #ax2.plot(range(len(acc)), acc, label=i)
+                ax.plot(range(el.shape[0]), arr[i, :el.shape[0]], label=i)
+                ax.text(el.shape[0]-1, arr[i, el.shape[0]-1])
+                
+                #ax2.legend()
         print np.max(intensity), scoreatpercentile(intensity, 90)
         
         ax=f.add_subplot(121)
