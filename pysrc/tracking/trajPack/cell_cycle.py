@@ -47,7 +47,7 @@ def comprehensiveIntensityPlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", o
             if arr[i, el.shape[0]-1]>scoreatpercentile(intensity, 80):
                 #ax2.plot(range(len(acc)), acc, label=i)
                 ax.plot(range(el.shape[0]), arr[i, :el.shape[0]], label=i)
-                ax.text(el.shape[0]-1, arr[i, el.shape[0]-1])
+                ax.text(el.shape[0]-1, arr[i, el.shape[0]-1], i)
                 
                 #ax2.legend()
         print np.max(intensity), scoreatpercentile(intensity, 90)
