@@ -107,11 +107,11 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png",
                 axes[0,i].hist(controls_info[folder], bins=b, color='green', normed=True, alpha=0.5, label='Ctrl 74 and 315 same pl', range=range_)
                 axes[0,i].legend()
                 
-                exp=filter_(d_cens['length'].values(), d_info['length'].values())
+                exp_data=filter_(d_cens['length'].values(), d_info['length'].values())
                 ctrl = filter_(controls_cens[folder], controls_info[folder])
                     
                 
-                axes[1,i].hist(exp, bins=b, color='red', normed=True, alpha=0.5, label=exp, range=range_)
+                axes[1,i].hist(exp_data, bins=b, color='red', normed=True, alpha=0.5, label=exp, range=range_)
                 axes[1,i].hist(ctrl, bins=b, color='green', normed=True, alpha=0.5, label='Ctrl 74 and 315 same pl', range=range_)
                 
         fig.suptitle(gene)
