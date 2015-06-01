@@ -122,7 +122,7 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png",
 
 def filter_(incomplete, complete):
     result=[]
-    l=np.bincount(incomplete)-np.bincount(complete)
+    l=np.bincount(incomplete)-np.bincount(complete, minlength=np.max(incomplete)+1)
     if np.any(np.where(l<0)):
         pdb.set_trace()
     for i, el in enumerate(l):
