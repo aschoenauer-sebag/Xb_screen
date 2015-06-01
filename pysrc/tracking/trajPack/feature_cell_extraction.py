@@ -58,42 +58,77 @@ parameters=[
   (('div_name', 'KS'),
   ('iter', z)) for z in range(5)]
 
-def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png", filename="cell_cycle_cens_{}.pkl", b=50, range_=(5,90)):
-    controls=defaultdict(list)
-
+def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png", filename_info="cell_cycle_info_{}.pkl",
+                                         filename_cens="cell_cycle_cens_{}.pkl",
+                                        b=50, range_=(5,90)):
+    controls_cens=defaultdict(list)
+    controls_info=defaultdict(list)
     for gene in expDict:
-        fig,axes=p.subplots(1, len(expDict[gene]),sharey=True)
+        print "Working on ", gene
+        fig,axes=p.subplots(2, len(expDict[gene]),sharey=True)
         
         for i,exp in enumerate(expDict[gene]):
             folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))[0]
-            if folder not in controls:
+            if folder not in controls_info:
                 for well in ["00074_01", "00315_01"]:
                     try:
-                        f=open(os.path.join(inDir, folder, filename.format(well)))
+                        f=open(os.path.join(inDir, folder, filename_info.format(well)))
                         d=pickle.load(f)
                         f.close()
                     except:
-                        print "Pas ", os.path.join(inDir, folder, filename.format(well))
+                        print "Pas ", os.path.join(inDir, folder, filename_info.format(well))
                         continue
                     else:
-                        controls[folder].extend(d['length'].values())
+                        controls_info[folder].extend(d['length'].values())
+                    try:
+                        f=open(os.path.join(inDir, folder, filename_cens.format(well)))
+                        d=pickle.load(f)
+                        f.close()
+                    except:
+                        print "Pas ", os.path.join(inDir, folder, filename_cens.format(well))
+                        continue
+                    else:
+                        controls_cens[folder].extend(d['length'].values())
+
                         
             try:
-                f=open(os.path.join(inDir, folder, filename.format(exp[11:]+'_01')))
-                d=pickle.load(f)
+                f=open(os.path.join(inDir, folder, filename_info.format(exp[11:]+'_01')))
+                d_info=pickle.load(f)
                 f.close()
+                f=open(os.path.join(inDir, folder, filename_cens.format(exp[11:]+'_01')))
+                d_cens=pickle.load(f)
+                f.close()
+                
             except:
-                print "Pas ", os.path.join(inDir, folder, filename.format(exp[11:]+'_01'))
+                print "Pas ", os.path.join(inDir, folder, filename_info.format(exp[11:]+'_01'))
                 continue
             else:
-                axes[i].hist(d['length'].values(), bins=b, color='red', normed=True, alpha=0.5, label=exp, range=range_)
-                axes[i].hist(controls[folder], bins=b, color='green', normed=True, alpha=0.5, label='Ctrl 74 and 315 same pl', range=range_)
-                axes[i].legend()
+                axes[0,i].hist(d_info['length'].values(), bins=b, color='red', normed=True, alpha=0.5, label=exp, range=range_)
+                axes[0,i].hist(controls_info[folder], bins=b, color='green', normed=True, alpha=0.5, label='Ctrl 74 and 315 same pl', range=range_)
+                axes[0,i].legend()
+                
+                exp=filter_(d_cens['length'].values(), d_info['length'].values())
+                ctrl = filter_(controls_cens[folder], controls_info[folder])
+                    
+                
+                axes[1,i].hist(exp, bins=b, color='red', normed=True, alpha=0.5, label=exp, range=range_)
+                axes[1,i].hist(ctrl, bins=b, color='green', normed=True, alpha=0.5, label='Ctrl 74 and 315 same pl', range=range_)
+                
         fig.suptitle(gene)
         p.savefig(os.path.join('../resultData/cell_cycle/movies_median', outputFile.format(gene)))
         p.close('all')
         
     return
+
+def filter_(incomplete, complete):
+    result=[]
+    l=np.bincount(incomplete)-np.bincount(complete)
+    if np.any(np.where(l<0)):
+        pdb.set_trace()
+    for i, el in enumerate(l):
+        result.extend([i for k in range(el)])
+        
+    return result
 
 #def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all_distances_whole_CTRL.pkl", sigma=0.1, binSize=10,texts=None):
 #    f=open(os.path.join(folder, filename))
