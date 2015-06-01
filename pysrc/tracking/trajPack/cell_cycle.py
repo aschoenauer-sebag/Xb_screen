@@ -1,6 +1,11 @@
 import sys, os, pdb, vigra, getpass
 import cPickle as pickle
 import numpy as np
+import matplotlib as mpl
+if getpass.getuser()=='aschoenauer':
+    mpl.use('Agg')
+import matplotlib.pyplot as p
+import brewer2mpl
 
 import vigra.impex as vi
 from collections import defaultdict
@@ -8,12 +13,34 @@ from util import settings
 from util.listFileManagement import usable_MITO
 from optparse import OptionParser
 from itertools import product
-
-if getpass.getuser()=='lalil0u':
-    import matplotlib.pyplot as p
-    import brewer2mpl
     
 #ax.imshow(arr, cmap=cm.RdBu_r, interpolation=None)
+
+def comprehensiveIntensityPlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", outputFile='intensity_{}.png'):
+    folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))[0]
+    try:
+        f=open(os.path.join(inDir, folder, inputFile.format(exp[11:]+'_01')))
+        d=pickle.load(f)
+        f.close()
+    except:
+        print "Pas ", os.path.join(inDir, folder, inputFile.format(exp[11:]+'_01'))
+        return
+    else:
+        num_track = len(d['length']); max_length = np.max(d['length'])
+        arr=np.zeros(shape=(num_track, max_length))
+        arr.fill(-1)
+        for i,el in enumerate(d['total intensity'].values()):
+            arr[i,:el.shape[0]]=el[:,0,0]/float(el[0,0,0])
+            
+        f=p.figure(figsize=(12,12))
+        ax=f.add_subplot(121)
+        ax.imshow(arr, cmap=mpl.cm.RdBu_r, interpolation=None)
+        ax.set_xticks(range(num_track)+0.5)
+        
+        f.savefig(os.path.join('../resultData/cell_cycle/movies_median', outputFile.format(exp)))
+        p.close('all')
+        
+    return
     
 def _filtering_level(liste, possibility, level):
     r1=filter(lambda x: str(possibility)[1:-1]== x[1:5] and 'id0' in x, liste)
