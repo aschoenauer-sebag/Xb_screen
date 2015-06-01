@@ -1,12 +1,12 @@
 result_folder = '../resultData/cell_cycle'
-outputFile = 'distances_length_5CtrlC_{}.pkl'
+outputFile = 'incomp_length_5CtrlC_{}.pkl'
 ctrl_exp_filename = 'ctrl_exp_{}.pkl'
 data_folder = '/share/data20T/mitocheck/tracking_results'
 mitocheck_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens75.txt'
 quality_control_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt'
 
 ##filename for trajectory features
-inputFile="cell_cycle_info_{}.pkl"
+inputFile="cell_cycle_cens_{}.pkl"
 min_size=10 #minimum number of complete tracks to take the experiment into account
 
 ##filename format for the wells
