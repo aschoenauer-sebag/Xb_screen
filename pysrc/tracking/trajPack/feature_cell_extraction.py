@@ -58,7 +58,7 @@ parameters=[
   (('div_name', 'KS'),
   ('iter', z)) for z in range(5)]
 
-def plotComparison(expDict, inDir,outputFile ="{}_length_distribution.png", filename="cell_cycle_info_{}.pkl", b=50):
+def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png", filename="cell_cycle_cens_{}.pkl", b=50):
     controls=defaultdict(list)
 
     for gene in expDict:

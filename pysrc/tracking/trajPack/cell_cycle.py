@@ -13,6 +13,8 @@ if getpass.getuser()=='lalil0u':
     import matplotlib.pyplot as p
     import brewer2mpl
     
+#ax.imshow(arr, cmap=cm.RdBu_r, interpolation=None)
+    
 def _filtering_level(liste, possibility, level):
     r1=filter(lambda x: str(possibility)[1:-1]== x[1:5] and 'id0' in x, liste)
     if level=='simple':
