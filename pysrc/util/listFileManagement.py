@@ -143,6 +143,21 @@ def returnInfo(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.
 
     return result
 
+def filter_(incomplete, complete):
+    '''
+    If you have two lists of integers and you want to substract the second to the first
+    '''
+    
+    result=[]
+    l=np.bincount(incomplete)-np.bincount(complete, minlength=np.max(incomplete)+1)
+    if np.any(np.where(l[6:]<0)):
+        pdb.set_trace()
+    l[np.where(l<0)]=0
+    for i, el in enumerate(l):
+        result.extend([i for k in range(el)])
+        
+    return result
+
 def usable_MITO(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck='../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt', 
            filename='hist_tabFeatures_{}.pkl', min_size=20, features=None, check_size=True):
     
@@ -170,7 +185,15 @@ def usable_MITO(folder, expL, qc='../data/mapping_2014/qc_export.txt',mitocheck=
             
             elif 'cell_cycle' in filename:
                 dict_=pickle.load(f)
-                arr=np.vstack((dict_[el].values() for el in features)).T 
+                #petit hack pour avoir uniquement les incomplete tracks
+                try:
+                    f=open(os.path.join(folder, pl, "cell_cycle_info_{}.pkl".format(w)), 'r')
+                    dict_info=pickle.load(f); f.close()
+                except:
+                    sys.stderr.write("No file {}\n".format(os.path.join(pl, "cell_cycle_info_{}.pkl".format(w))))
+                    continue
+                
+                arr=np.vstack((filter_(dict_[el].values(), dict_info[el].values()) for el in features)).T 
                 
             elif 'traj' in filename:
                 arr=pickle.load(f)

@@ -27,7 +27,7 @@ from tracking.trajPack.clustering import histConcatenation,outputBin, correct_fr
 from tracking.PyPack.fHacktrack2 import initXml, finirXml
 #from tracking.histograms.k_means_transportation import DIVERGENCES, _distances
 #from tracking.histograms.transportation import costMatrix, computingBins
-from util.listFileManagement import expSi, strToTuple, siEntrez, EnsemblEntrezTrad, geneListToFile, usable_MITO
+from util.listFileManagement import expSi, strToTuple, siEntrez, EnsemblEntrezTrad, geneListToFile, usable_MITO, filter_
 from util.sandbox import concatCtrl
 from util.plots import couleurs, markers
 from analyzer import CONTROLS, compoundL, xbL, plates
@@ -119,17 +119,6 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png",
         p.close('all')
         
     return
-
-def filter_(incomplete, complete):
-    result=[]
-    l=np.bincount(incomplete)-np.bincount(complete, minlength=np.max(incomplete)+1)
-    if np.any(np.where(l[6:]<0)):
-        pdb.set_trace()
-    l[np.where(l<0)]=0
-    for i, el in enumerate(l):
-        result.extend([i for k in range(el)])
-        
-    return result
 
 #def plotDistances(folder, filename='all_distances_whole.pkl', ctrl_filename ="all_distances_whole_CTRL.pkl", sigma=0.1, binSize=10,texts=None):
 #    f=open(os.path.join(folder, filename))

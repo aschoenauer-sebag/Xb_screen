@@ -30,7 +30,7 @@ from tracking.trajPack import featuresHisto, featuresNumeriques
 from tracking.plots import plotClustInd, makeColorRamp, plotMovies, plotKMeansPerFilm, markers
 from util.sandbox import cleaningLength, logTrsforming, subsampling, dist, histLogTrsforming, homeMadeGraphLaplacian
 from util.listFileManagement import gettingSiRNA, expSi, siEntrez, typeD, typeD2, is_ctrl_mitocheck,\
-    strToTuple, correct_from_Nan
+    strToTuple, correct_from_Nan, filter_
 from util.plots import basic_colors, couleurs
 
 from tracking.histograms import *
@@ -67,7 +67,15 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                 
             elif 'cell_cycle' in filename:
                 dict_=pickle.load(f)
-                arr=np.vstack((dict_[el].values() for el in features)).T #so right shape is n_cell n_features
+                #petit hack pour avoir uniquement les incomplete tracks
+                try:
+                    f=open(os.path.join(folder, pl, "cell_cycle_info_{}.pkl".format(w)), 'r')
+                    dict_info=pickle.load(f); f.close()
+                except:
+                    sys.stderr.write("No file {}\n".format(os.path.join(pl, "cell_cycle_info_{}.pkl".format(w))))
+                    continue
+                
+                arr=np.vstack((filter_(dict_[el].values(), dict_info[el].values()) for el in features)).T #so right shape is n_cell n_features
             f.close()
         except IOError:
             sys.stderr.write("No file {}\n".format(os.path.join(pl, filename.format(w))))

@@ -355,7 +355,7 @@ def sq_norm(X, Y):
     return result
     
 
-def filter_(t,X,Y, a,d):
+def filter_mitosis_related_moves(t,X,Y, a,d):
     if a==2:
         t=t[2:]; X=X[2:]; Y=Y[2:]
     if d in [2,3]:
@@ -413,7 +413,7 @@ def computingHisto(traj, average, movie_start, verbose, a,d, training):
     Y-=Y.min()
 
 #iii. i remove the points that are <= 2 frames from merge or split    
-    t,X,Y = filter_(t,X,Y,a,d)
+    t,X,Y = filter_mitosis_related_moves(t,X,Y,a,d)
     debut=min(t); fin = max(t)
     
     compteur=np.zeros(shape=(len(moments),int(len(t)/3)), dtype=float); p=True
