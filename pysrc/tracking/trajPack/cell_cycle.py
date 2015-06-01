@@ -26,7 +26,7 @@ def comprehensiveIntensityPlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", o
         print "Pas ", os.path.join(inDir, folder, inputFile.format(exp[11:]+'_01'))
         return
     else:
-        num_track = len(d['length']); max_length = np.max(d['length'])
+        num_track = len(d['length']); max_length = np.max(d['length'].values())
         arr=np.zeros(shape=(num_track, max_length))
         arr.fill(-1)
         for i,el in enumerate(d['total intensity'].values()):
