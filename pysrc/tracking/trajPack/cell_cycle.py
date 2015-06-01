@@ -43,9 +43,11 @@ def comprehensiveIntensityPlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", o
                 
                 intensity.append(np.max(acc))
             if arr[i, el.shape[0]-1]>3.5:
-                ax.plot(range(el.shape[0]), el[:,0,0]/float(el[0,0,0]))
-            if intensity[-1]>1:
-                ax2.plot(range(len(acc)), acc)
+                ax.plot(range(el.shape[0]), el[:,0,0]/float(el[0,0,0]), label=i)
+                ax.legend()
+            if intensity[-1]>0.7:
+                ax2.plot(range(len(acc)), acc, label=i)
+                ax2.legend()
         print np.max(intensity), scoreatpercentile(intensity, 90)
         
         ax=f.add_subplot(121)
