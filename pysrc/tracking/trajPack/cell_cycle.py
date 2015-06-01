@@ -2,6 +2,7 @@ import sys, os, pdb, vigra, getpass
 import cPickle as pickle
 import numpy as np
 import matplotlib as mpl
+from scipy.stats.stats import scoreatpercentile
 if getpass.getuser()=='aschoenauer':
     mpl.use('Agg')
 import matplotlib.pyplot as p
@@ -29,13 +30,15 @@ def comprehensiveIntensityPlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", o
         num_track = len(d['length']); max_length = np.max(d['length'].values())
         arr=np.zeros(shape=(num_track, max_length))
         arr.fill(-1)
+        intensity=[]
         for i,el in enumerate(d['total intensity'].values()):
             arr[i,:el.shape[0]]=el[:,0,0]/float(el[0,0,0])
-            
+            intensity.append(arr[i, el.shape[0]-1])
+        print np.max(intensity), scoreatpercentile(intensity, 90)
         f=p.figure(figsize=(12,12))
         ax=f.add_subplot(121)
         ax.imshow(arr, cmap=mpl.cm.RdBu_r, interpolation=None)
-        ax.set_yticks(np.array(range(num_track))+0.5)
+        ax.set_yticks(np.array(range(num_track), dtype=float)+0.5)
         
         f.savefig(os.path.join('../resultData/cell_cycle/movies_median', outputFile.format(exp)))
         p.close('all')
