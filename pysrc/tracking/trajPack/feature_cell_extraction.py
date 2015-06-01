@@ -58,7 +58,7 @@ parameters=[
   (('div_name', 'KS'),
   ('iter', z)) for z in range(5)]
 
-def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png", filename="cell_cycle_cens_{}.pkl", b=50):
+def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png", filename="cell_cycle_cens_{}.pkl", b=50, range_=(5,90)):
     controls=defaultdict(list)
 
     for gene in expDict:
@@ -86,8 +86,8 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png",
                 print "Pas ", os.path.join(inDir, folder, filename.format(exp[11:]+'_01'))
                 continue
             else:
-                axes[i].hist(d['length'].values(), bins=b, color='red', normed=True, alpha=0.5, label=exp)
-                axes[i].hist(controls[folder], bins=b, color='green', normed=True, alpha=0.5, label='Ctrl 74 and 315 same pl')
+                axes[i].hist(d['length'].values(), bins=b, color='red', normed=True, alpha=0.5, label=exp, range=range_)
+                axes[i].hist(controls[folder], bins=b, color='green', normed=True, alpha=0.5, label='Ctrl 74 and 315 same pl', range=range_)
                 axes[i].legend()
         fig.suptitle(gene)
         p.savefig(os.path.join('../resultData/cell_cycle/movies_median', outputFile.format(gene)))
