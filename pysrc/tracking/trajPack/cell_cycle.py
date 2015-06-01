@@ -35,7 +35,7 @@ def comprehensiveIntensityPlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", o
         f=p.figure(figsize=(12,12))
         ax=f.add_subplot(121)
         ax.imshow(arr, cmap=mpl.cm.RdBu_r, interpolation=None)
-        ax.set_xticks(range(num_track)+0.5)
+        ax.set_xticks(np.array(range(num_track))+0.5)
         
         f.savefig(os.path.join('../resultData/cell_cycle/movies_median', outputFile.format(exp)))
         p.close('all')
