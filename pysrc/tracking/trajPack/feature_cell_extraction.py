@@ -65,7 +65,7 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png",
     controls_info=defaultdict(list)
     for gene in expDict:
         print "Working on ", gene
-        fig,axes=p.subplots(2, len(expDict[gene]),sharey=True, sharex=True, figsize=(12,12))
+        fig,axes=p.subplots(2, len(expDict[gene]), sharex=True, figsize=(12,12))
         
         for i,exp in enumerate(expDict[gene]):
             folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))[0]
