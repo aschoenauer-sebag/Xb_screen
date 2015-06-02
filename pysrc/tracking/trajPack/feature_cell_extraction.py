@@ -65,7 +65,7 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png",
     controls_info=defaultdict(list)
     for gene in expDict:
         print "Working on ", gene
-        fig,axes=p.subplots(2, len(expDict[gene]), sharex=True, figsize=(12,12))
+        fig,axes=p.subplots(2, len(expDict[gene]),sharey=True, sharex=True, figsize=(12,12))
         
         for i,exp in enumerate(expDict[gene]):
             folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))[0]
@@ -111,8 +111,8 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png",
                 ctrl = filter_(controls_cens[folder], controls_info[folder])
                     
                 
-                axes[1,i].hist(exp_data, bins=b, color='red', normed=True, alpha=0.5, label=exp, range=range_)
-                axes[1,i].hist(ctrl, bins=b, color='green', normed=True, alpha=0.5, label='Ctrl 74 and 315 same pl', range=range_)
+                axes[1,i].hist(exp_data, bins=b, color='red', normed=False, alpha=0.5, label=exp, range=range_)
+                axes[1,i].hist(ctrl, bins=b, color='green', normed=False, alpha=0.5, label='Ctrl 74 and 315 same pl', range=range_)
                 
         fig.suptitle(gene)
         p.savefig(os.path.join('../resultData/cell_cycle/movies_median', outputFile.format(gene)))
