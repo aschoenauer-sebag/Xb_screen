@@ -103,8 +103,8 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png",
                 print "Pas ", os.path.join(inDir, folder, filename_info.format(exp[11:]+'_01'))
                 continue
             else:
-                axes[0,i].hist(d_info['length'].values(), bins=b, color='red', normed=True, alpha=0.5, label=exp, range=range_)
-                axes[0,i].hist(controls_info[folder], bins=b, color='green', normed=True, alpha=0.5, label='Ctrl 74 and 315 same pl', range=range_)
+                axes[0,i].hist(d_info['length'].values(), bins=b, color='red', normed=False, alpha=0.5, label=exp, range=range_)
+                axes[0,i].hist(controls_info[folder], bins=b, color='green', normed=False, alpha=0.5, label='Ctrl 74 and 315 same pl', range=range_)
                 axes[0,i].legend()
                 
                 exp_data=filter_(d_cens['length'].values(), d_info['length'].values())
