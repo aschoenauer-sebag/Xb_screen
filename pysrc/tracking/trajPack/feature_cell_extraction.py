@@ -115,7 +115,7 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png",
                 axes[1,i].hist(ctrl, bins=b, color='green', normed=False, alpha=0.5, label='Ctrl 74 and 315 same pl', range=range_)
                 
         fig.suptitle(gene)
-        p.savefig(os.path.join('../resultData/cell_cycle/movies_median', outputFile.format(gene)))
+        p.savefig(os.path.join('../resultData/cell_cycle/proliferation', outputFile.format(gene)))
         p.close('all')
         
     return
