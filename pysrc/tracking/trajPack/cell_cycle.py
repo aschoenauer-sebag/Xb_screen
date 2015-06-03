@@ -414,7 +414,7 @@ class completeTrackExtraction(object):
         feature_names = vi.readHDF5(file_, path_feature_names)
         result = {}
         
-        if objective in feature_names:
+        if objective in feature_names['name']:
             tab=features[:,np.where(feature_names['name']==objective)[0]]
         else:
             try:
