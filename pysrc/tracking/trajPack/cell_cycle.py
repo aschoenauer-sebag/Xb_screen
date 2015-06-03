@@ -415,7 +415,7 @@ class completeTrackExtraction(object):
         result = {}
         
         if objective in feature_names:
-            tab1=features[:,np.where(feature_names['name']==objective)[0]]
+            tab=features[:,np.where(feature_names['name']==objective)[0]]
         else:
             try:
                 tabs={el: features[:,np.where(feature_names['name']==el)[0]] for el in objective['features']}
