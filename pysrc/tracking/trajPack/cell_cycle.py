@@ -517,6 +517,7 @@ class completeTrackExtraction(object):
     
     def saveResults(self, result):
         if self.settings.outputFile.format(self.well) in os.listdir(os.path.join(self.settings.trackingFolder, self.plate)):
+            print "Re-opening existing file"
             f=open(os.path.join(self.settings.trackingFolder, self.plate, self.settings.outputFile.format(self.well)), 'r')
             d=pickle.load(f); f.close()
         else:

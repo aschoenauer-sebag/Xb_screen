@@ -32,6 +32,6 @@ XMAX = 1344
 YMAX = 1024
 
 #Objective to get total intensity
-#objective = {'name':'total intensity','function':lambda x:np.multiply(x['roisize'], x['n2_avg']), 'features':['roisize', 'n2_avg']}
+objective = {'name':'total intensity','function':lambda x:np.multiply(x['roisize'], x['n2_avg']), 'features':['roisize', 'n2_avg']}
 #Objective to get nucleus size
-objective='roisize'
+#objective='roisize'
