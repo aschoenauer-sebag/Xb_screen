@@ -92,10 +92,10 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png",
 
                         
             try:
-                f=open(os.path.join(inDir, folder, filename_info.format(exp[11:]+'_01')))
+                f=open(os.path.join(inDir, folder, filename_info.format('00{}_01'.format(exp[11:]))))
                 d_info=pickle.load(f)
                 f.close()
-                f=open(os.path.join(inDir, folder, filename_cens.format(exp[11:]+'_01')))
+                f=open(os.path.join(inDir, folder, filename_cens.format('00{}_01'.format(exp[11:]))))
                 d_cens=pickle.load(f)
                 f.close()
                 
@@ -103,6 +103,8 @@ def plotComparison(expDict, inDir,outputFile ="{}_length_distribution_cens.png",
                 print "Pas ", os.path.join(inDir, folder, filename_info.format(exp[11:]+'_01'))
                 continue
             else:
+                if d_info['length']=={}:
+                    continue
                 axes[0,i].hist(d_info['length'].values(), bins=b, color='red', normed=False, alpha=0.5, label=exp, range=range_)
                 axes[0,i].hist(controls_info[folder], bins=b, color='green', normed=False, alpha=0.5, label='Ctrl 74 and 315 same pl', range=range_)
                 axes[0,i].legend()
