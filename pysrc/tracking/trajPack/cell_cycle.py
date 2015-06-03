@@ -435,8 +435,10 @@ class completeTrackExtraction(object):
                     result[track_id]=self._getObjective(objective, objects, tab, traj)
             else:
                 del lengths[track_id]
-                    
-        return {objective['name']: result, 'length':lengths}
+        if type(objective)==dict:
+            return {objective['name']: result, 'length':lengths}
+        else:
+            return {objective: result, 'length':lengths}
     
     def _getObjective(self, objective, objects, tab, traj):
         result=[]
