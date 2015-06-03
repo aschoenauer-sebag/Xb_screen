@@ -524,7 +524,7 @@ class completeTrackExtraction(object):
             d={}
         d.update(result)
         f=open(os.path.join(self.settings.trackingFolder, self.plate, self.settings.outputFile.format(self.well)), 'w')
-        pickle.dump(result, f); f.close()
+        pickle.dump(d, f); f.close()
         
         return
     
