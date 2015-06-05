@@ -17,16 +17,30 @@ from itertools import product
     
 #ax.imshow(arr, cmap=cm.RdBu_r, interpolation=None)
 
-def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", feature='roisize'):
+def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", feature='roisize', only_complete=False):
     folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))[0]
     try:
         f=open(os.path.join(inDir, folder, inputFile.format(exp[11:]+'_01')))
         d=pickle.load(f)
         f.close()
+        
     except:
         print "Pas ", os.path.join(inDir, folder, inputFile.format(exp[11:]+'_01'))
         return
     else:
+        filter_=lambda x:True
+        if only_complete:
+            try:
+                f=open(os.path.join(inDir, folder, inputFile.format(exp[11:]+'_01')))
+                d_complete=pickle.load(f)
+                f.close()
+            except:
+                print "Not able to doing it complete only"
+            else:
+                filter_=lambda x: x in d_complete['length']
+            for el in d:
+                d[el]=filter(filter_, d[el])
+        
         num_track = len(d['length']); max_length = np.max(d['length'].values())
         arr=np.zeros(shape=(num_track, max_length))
         arr.fill(-1)
@@ -48,8 +62,8 @@ def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", feature='r
                 
         for i in np.random.randint(0, len(d[feature].values()), 25):
             el=d[feature].values()[i]
-#            if arr[i, el.shape[0]-1]>scoreatpercentile(feat_array, 70) and arr[i, el.shape[0]-1]<scoreatpercentile(feat_array, 90):
-                #ax2.plot(range(len(acc)), acc, label=i)
+            if acceleration[i]>scoreatpercentile(acceleration, 70) and acceleration<scoreatpercentile(acceleration, 90):
+                ax2.plot(range(len(acc)), acc, label=i)
             ax.plot(range(el.shape[0]), arr[i, :el.shape[0]], label=i)
             ax.text(el.shape[0]-1, arr[i, el.shape[0]-1], i)
                 
