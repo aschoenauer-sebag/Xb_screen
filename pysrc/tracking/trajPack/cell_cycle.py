@@ -17,7 +17,7 @@ from itertools import product
     
 #ax.imshow(arr, cmap=cm.RdBu_r, interpolation=None)
 
-def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", outputFile='intensity_{}.png', feature='roisize'):
+def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", feature='roisize'):
     folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))[0]
     try:
         f=open(os.path.join(inDir, folder, inputFile.format(exp[11:]+'_01')))
@@ -59,7 +59,7 @@ def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", outputFile
         ax.imshow(arr, cmap=mpl.cm.RdBu_r, interpolation=None)
         ax.set_yticks(np.linspace(1, num_track), num_track/5)
         
-        f.savefig(os.path.join('../resultData/cell_cycle/movies_median', outputFile.format(exp)))
+        f.savefig(os.path.join('../resultData/cell_cycle/movies_median', '{}-{}.png'.format(feature, exp)))
         p.close('all')
         
     return
