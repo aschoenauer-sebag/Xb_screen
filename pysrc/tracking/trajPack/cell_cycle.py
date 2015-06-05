@@ -62,7 +62,7 @@ def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", feature='r
                 
         for i in np.random.randint(0, len(d[feature].values()), 25):
             el=d[feature].values()[i]
-            if acceleration[i]>scoreatpercentile(acceleration, 70) and acceleration<scoreatpercentile(acceleration, 90):
+            if acceleration[i]>scoreatpercentile(acceleration, 70) and acceleration[i]<scoreatpercentile(acceleration, 90):
                 ax2.plot(range(len(acc)), acc, label=i)
             ax.plot(range(el.shape[0]), arr[i, :el.shape[0]], label=i)
             ax.text(el.shape[0]-1, arr[i, el.shape[0]-1], i)
