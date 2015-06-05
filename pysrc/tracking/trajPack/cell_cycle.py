@@ -46,8 +46,8 @@ def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", feature='r
                 acceleration.append(np.max(acc))
                 feat_array.append(arr[i,el.shape[0]-1])
                 
-        aa=list(d[feature].values()); np.random.shuffle(aa)
-        for i,el in enumerate(aa[:25]):
+        for i in np.random.randint(0, len(d[feature].values()), 25):
+            el=d[feature].values()[i]
 #            if arr[i, el.shape[0]-1]>scoreatpercentile(feat_array, 70) and arr[i, el.shape[0]-1]<scoreatpercentile(feat_array, 90):
                 #ax2.plot(range(len(acc)), acc, label=i)
             ax.plot(range(el.shape[0]), arr[i, :el.shape[0]], label=i)
