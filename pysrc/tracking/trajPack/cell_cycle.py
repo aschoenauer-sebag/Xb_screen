@@ -17,7 +17,7 @@ from itertools import product
     
 #ax.imshow(arr, cmap=cm.RdBu_r, interpolation=None)
 
-def comprehensiveIntensityPlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", outputFile='intensity_{}.png'):
+def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", outputFile='intensity_{}.png', feature='roisize'):
     folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))[0]
     try:
         f=open(os.path.join(inDir, folder, inputFile.format(exp[11:]+'_01')))
@@ -30,29 +30,30 @@ def comprehensiveIntensityPlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", o
         num_track = len(d['length']); max_length = np.max(d['length'].values())
         arr=np.zeros(shape=(num_track, max_length))
         arr.fill(-1)
-        intensity=[]
+        feat_array=[]
+        acceleration=[]
         f=p.figure(figsize=(12,12))
         ax=f.add_subplot(222)
         ax2=f.add_subplot(224)
         
-        for i,el in enumerate(d['total intensity'].values()):
+        for i,el in enumerate(d[feature].values()):
             arr[i,:el.shape[0]]=el[:,0,0]/float(el[0,0,0])
             if el.shape[0]>=10:
                 der = [arr[i, u+5]- arr[i,u] for u in range(el.shape[0]-5)]
                 acc=[der[u+1]-der[u] for u in range(len(der)-1)]
-                if np.max(acc)>0.2 and np.max(acc)<0.6:
-                    ax2.plot(range(len(acc)), acc, label=i)
-                #intensity.append(np.max(acc))
-                intensity.append(arr[i,el.shape[0]-1])
+#                 if np.max(acc)>0.2 and np.max(acc)<0.6:
+#                     ax2.plot(range(len(acc)), acc, label=i)
+                acceleration.append(np.max(acc))
+                feat_array.append(arr[i,el.shape[0]-1])
                 
-        for i,el in enumerate(d['total intensity'].values()):
-            if arr[i, el.shape[0]-1]>scoreatpercentile(intensity, 90):
+        for i,el in enumerate(d[feature].values()[:20]):
+#            if arr[i, el.shape[0]-1]>scoreatpercentile(feat_array, 70) and arr[i, el.shape[0]-1]<scoreatpercentile(feat_array, 90):
                 #ax2.plot(range(len(acc)), acc, label=i)
-                ax.plot(range(el.shape[0]), arr[i, :el.shape[0]], label=i)
-                ax.text(el.shape[0]-1, arr[i, el.shape[0]-1], i)
+            ax.plot(range(el.shape[0]), arr[i, :el.shape[0]], label=i)
+            ax.text(el.shape[0]-1, arr[i, el.shape[0]-1], i)
                 
                 #ax2.legend()
-        print np.max(intensity), scoreatpercentile(intensity, 90)
+        print np.max(feat_array), scoreatpercentile(feat_array, 90)
         
         ax=f.add_subplot(121)
         ax.imshow(arr, cmap=mpl.cm.RdBu_r, interpolation=None)
