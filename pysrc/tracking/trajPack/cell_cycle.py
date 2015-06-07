@@ -164,6 +164,8 @@ class completeTrackExtraction(object):
         self.plate = plate
     #NB here the wells are expected in format 00***_01
         self.well = well
+        self.outputFolder=self.settings.outputFolder
+
         
         print "Taking tracks that end with movie into account", self.settings.not_ending_track
     
@@ -564,14 +566,14 @@ class completeTrackExtraction(object):
                 croppedImage = vigra.VigraArray((x__, y__, 1), dtype=np.dtype('uint8'))
                 croppedImage[:,:,0]=(image[x:X, y:Y,0]-self.settings.min_)*(2**8-1)/(self.settings.max_-self.settings.min_)  
                 vi.writeImage(croppedImage, \
-                              os.path.join(self.settings.outputFolder, self.plate, 
+                              os.path.join(self.outputFolder, self.plate, 
                                            self.settings.outputImage.format(scores[id_], self.plate, self.well.split('_')[0],id_, im,  num)),\
                               dtype=np.dtype('uint8'))
                 
         return    
     
     def saveBoxes(self, boxes):
-        f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:10], self.well)), 'w')
+        f=open(os.path.join(self.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:10], self.well)), 'w')
         pickle.dump(boxes, f); f.close()
         return
     
@@ -614,10 +616,10 @@ class completeTrackExtraction(object):
         #iii. find their bounding boxes
         boxes, _, scores=self.findObjects(splits, siblings, compute_boxes=True)
 
-        if not os.path.isdir(self.settings.outputFolder):
-            os.mkdir(self.settings.outputFolder)
-        if not os.path.isdir(os.path.join(self.settings.outputFolder, self.plate)):
-            os.mkdir(os.path.join(self.settings.outputFolder, self.plate))
+        if not os.path.isdir(self.outputFolder):
+            os.mkdir(self.outputFolder)
+        if not os.path.isdir(os.path.join(self.outputFolder, self.plate)):
+            os.mkdir(os.path.join(self.outputFolder, self.plate))
         #iv. crop the boxes in the images
         self.crop(boxes, scores)
         self.saveBoxes(boxes)
@@ -646,7 +648,7 @@ class completeTrackExtraction(object):
         self.saveResults(noting_objective)
         return noting_objective['length'].keys()
     
-    def exportGalerieImages(self):
+    def exportGalerieImages(self, outputFolder):
         '''
         Exporting galerie images.
         '''
@@ -660,12 +662,15 @@ class completeTrackExtraction(object):
         tracklets, _ = self.load()
         
         tracklets=filter(lambda x: x.id in track_ids and len(x.lstPoints)>5, tracklets.lstTraj)
+        
+        if outputFolder!=None:
+            self.outputFolder= outputFolder
 
         boxes=self.findGaleries(tracklets)
-        if not os.path.isdir(self.settings.outputFolder):
-            os.mkdir(self.settings.outputFolder)
-        if not os.path.isdir(os.path.join(self.settings.outputFolder, self.plate)):
-            os.mkdir(os.path.join(self.settings.outputFolder, self.plate))
+        if not os.path.isdir(self.outputFolder):
+            os.mkdir(self.outputFolder)
+        if not os.path.isdir(os.path.join(self.outputFolder, self.plate)):
+            os.mkdir(os.path.join(self.outputFolder, self.plate))
         self.crop(boxes, scores=None)
         
         return
@@ -695,6 +700,9 @@ Input:
     parser.add_option("-w", "--well", dest="well",
                       help="The well which you are interested in")
     
+    parser.add_option("-o", dest="outputFolder",default=None,
+                      help="Output folder")
+    
     parser.add_option('--action', type=str, default=None,
                       help='Leave None for finding settings.objective, galerie for extracting images of complete tracks')
 
@@ -703,7 +711,7 @@ Input:
     hh=completeTrackExtraction(options.settings_file, options.plate, options.well)
     
     if options.action=='galerie':
-        hh.exportGalerieImages()
+        hh.exportGalerieImages(options.outputFolder)
     else:
         hh.findObjective()
     print "Done"
