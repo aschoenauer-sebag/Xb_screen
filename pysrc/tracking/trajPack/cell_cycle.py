@@ -406,13 +406,13 @@ class completeTrackExtraction(object):
         bounding_boxes = vi.readHDF5(file_, path_boundingBox)
         boxes=defaultdict(list)
         
-        for track_id in tracklets:
-            lstFrames=sorted(tracklets[track_id].keys(), key=itemgetter(0))
+        for track in tracklets:
+            lstFrames=sorted(track.lstPoints.keys(), key=itemgetter(0))
             k=0#permits to order the images
             
             for im, cell_id in lstFrames:
                 where_=np.where((objects['time_idx']==im)&(objects['obj_label_id']==cell_id))
-                boxes[im].append((track_id, k, bounding_boxes[where_]))
+                boxes[im].append((track.id, k, bounding_boxes[where_]))
                 k+=1
 
         return boxes
@@ -660,7 +660,7 @@ class completeTrackExtraction(object):
         tracklets, _ = self.load()
         
         tracklets=filter(lambda x: x.id in track_ids, tracklets.lstTraj)
-        import pdb; pdb.set_trace()
+
         boxes=self.findGaleries(tracklets)
         if not os.path.isdir(self.settings.outputFolder):
             os.mkdir(self.settings.outputFolder)
