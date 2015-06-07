@@ -659,7 +659,7 @@ class completeTrackExtraction(object):
             
         tracklets, _ = self.load()
         
-        tracklets=filter(lambda x: x.id in track_ids, tracklets.lstTraj)
+        tracklets=filter(lambda x: x.id in track_ids and len(x.lstPoints)>5, tracklets.lstTraj)
 
         boxes=self.findGaleries(tracklets)
         if not os.path.isdir(self.settings.outputFolder):
