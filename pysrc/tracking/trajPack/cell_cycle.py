@@ -542,6 +542,9 @@ class completeTrackExtraction(object):
         '''
         In the crop filename, I add the number of the image in the galerie so that they're by default ordered in time
         '''
+        if scores==None:
+            scores=defaultdict(int)
+        
         folderName=self._findFolder()
         for im in boxes:
             if not self.settings.new_h5:
@@ -657,8 +660,12 @@ class completeTrackExtraction(object):
         tracklets, _ = self.load()
         tracklets=filter(lambda x: x in track_ids, tracklets)
         
-        
-        
+        boxes=self.findGaleries(tracklets)
+        if not os.path.isdir(self.settings.outputFolder):
+            os.mkdir(self.settings.outputFolder)
+        if not os.path.isdir(os.path.join(self.settings.outputFolder, self.plate)):
+            os.mkdir(os.path.join(self.settings.outputFolder, self.plate))
+        self.crop(boxes, scores=None)
         
         return
     

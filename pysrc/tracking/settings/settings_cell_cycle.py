@@ -3,7 +3,7 @@ mitocheck_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_
 qc_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt'
 
 #folders
-outputFolder = '../resultData/cell_cycle'
+outputFolder = '../resultData/cell_cycle/galeries'
 hdf5Folder = '/share/data20T/mitocheck/Alice/results'
 rawDataFolder='/share/data20T/mitocheck/compressed_data'
 trackingFolder = '/share/data20T/mitocheck/tracking_results'
@@ -21,7 +21,7 @@ outputFile="cell_cycle_cens_{}.pkl"
 #outputPredictingFilename = "thripred_{}_{}.pkl"
 
 #Say if you also want trajectories that start with a mitosis and end with the end of the movie
-not_ending_track=True
+not_ending_track=False
 
 min_=1
 max_=2**8
