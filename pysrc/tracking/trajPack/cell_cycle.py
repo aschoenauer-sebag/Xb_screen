@@ -658,9 +658,9 @@ class completeTrackExtraction(object):
             track_ids = self.findObjective()
             
         tracklets, _ = self.load()
+        
+        tracklets=filter(lambda x: x.id in track_ids, tracklets.lstTraj)
         import pdb; pdb.set_trace()
-        tracklets=filter(lambda x: x in track_ids, tracklets)
-
         boxes=self.findGaleries(tracklets)
         if not os.path.isdir(self.settings.outputFolder):
             os.mkdir(self.settings.outputFolder)
