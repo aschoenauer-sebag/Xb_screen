@@ -3,6 +3,7 @@ import cPickle as pickle
 import numpy as np
 import matplotlib as mpl
 from scipy.stats.stats import scoreatpercentile
+from operator import itemgetter
 if getpass.getuser()=='aschoenauer':
     mpl.use('Agg')
 import matplotlib.pyplot as p
@@ -11,13 +12,21 @@ import brewer2mpl
 import vigra.impex as vi
 from collections import defaultdict
 from util import settings
+from util.plots import couleurs, markers
 from util.listFileManagement import usable_MITO
 from optparse import OptionParser
 from itertools import product
     
 #ax.imshow(arr, cmap=cm.RdBu_r, interpolation=None)
 
-def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", feature='roisize', only_complete=False):
+def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl",
+                      outputDir = '../resultData/cell_cycle/movies_median', 
+                      features=['roisize','total intensity'], 
+                      only_complete=False, complete_File = "cell_cycle_info_{}.pkl"):
+    '''
+    OK. So some trajectories are going to be complete and not be in the second _cens_ file because of their length, which we limited to min 5 frames
+    
+    '''
     folder = filter(lambda x: x[:9] == exp[:9], os.listdir(inDir))[0]
     try:
         f=open(os.path.join(inDir, folder, inputFile.format(exp[11:]+'_01')))
@@ -31,51 +40,57 @@ def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl", feature='r
         filter_=lambda x:True
         if only_complete:
             try:
-                f=open(os.path.join(inDir, folder, inputFile.format(exp[11:]+'_01')))
+                f=open(os.path.join(inDir, folder, complete_File.format(exp[11:]+'_01')))
                 d_complete=pickle.load(f)
                 f.close()
             except:
-                print "Not able to doing it complete only"
+                print "Not able to do it complete only"
             else:
                 filter_=lambda x: x in d_complete['length']
-            for el in d:
-                d[el]=filter(filter_, d[el])
+            d={el: {x: d[el][x] for x in filter(filter_, d[el])} for el in d}
         
         num_track = len(d['length']); max_length = np.max(d['length'].values())
-        arr=np.zeros(shape=(num_track, max_length))
-        arr.fill(-1)
-        feat_array=[]
-        acceleration=[]
-        f=p.figure(figsize=(12,12))
-        ax=f.add_subplot(222)
-        ax2=f.add_subplot(224)
+        arr=[np.zeros(shape=(num_track, max_length)) for k in range(len(features))]
+        for k in range(len(arr)):
+            arr[k].fill(-1)
         
-        for i,el in enumerate(d[feature].values()):
-            arr[i,:el.shape[0]]=el[:,0,0]/float(el[0,0,0])
-            if el.shape[0]>=10:
-                der = [arr[i, u+5]- arr[i,u] for u in range(el.shape[0]-5)]
-                acc=[der[u+1]-der[u] for u in range(len(der)-1)]
-#                 if np.max(acc)>0.2 and np.max(acc)<0.6:
-#                     ax2.plot(range(len(acc)), acc, label=i)
-                acceleration.append(np.max(acc))
-                feat_array.append(arr[i,el.shape[0]-1])
-                
-        for i in np.random.randint(0, len(d[feature].values()), 25):
-            el=d[feature].values()[i]
-            if acceleration[i]>scoreatpercentile(acceleration, 70) and acceleration[i]<scoreatpercentile(acceleration, 90):
-                ax2.plot(range(len(acc)), acc, label=i)
-            ax.plot(range(el.shape[0]), arr[i, :el.shape[0]], label=i)
-            ax.text(el.shape[0]-1, arr[i, el.shape[0]-1], i)
-                
-                #ax2.legend()
-        print feature, np.max(feat_array), scoreatpercentile(feat_array, 90)
-        print "Acceleration ", np.max(acceleration), scoreatpercentile(acceleration, 90)
+        f, axes=p.subplots(10,(num_track/10+1),sharex=True, sharey=True, figsize=(12,12))
         
+        for i,el in enumerate(d['roisize']):
+            val=d['roisize'][el]
+            arr[0][i,:val.shape[0]]=val[:,0,0]/float(val[0,0,0])
+            arr[1][i,:val.shape[0]]=d['total intensity'][el][:,0,0]/float(d['total intensity'][el][0,0,0])
+            
+            if val.shape[0]>=10:
+                for k in range(len(arr)):
+                    der = [arr[k][i, u+5]- arr[k][i,u] for u in range(val.shape[0]-5)]
+                    acc=[der[u+1]-der[u] for u in range(len(der)-1)]
+
+                    try:
+                        #Plotting feature
+                        axes.flatten()[i].plot(range(val.shape[0]), arr[k][i, :val.shape[0]], label=features[k], color=couleurs[k])
+                        axes.flatten()[i].plot(range(len(acc)), acc,color=couleurs[k], linewidth=3)
+                        
+                        axes.flatten()[i].set_title(i)
+                    except:
+                        pass
+            
+        axes.flatten()[i].legend()
+                    
+        f.savefig(os.path.join(outputDir, '{}_ranges-{}.png'.format(features[0], exp)))
+        
+        f=p.figure()
         ax=f.add_subplot(121)
-        ax.imshow(arr, cmap=mpl.cm.RdBu_r, interpolation=None)
+        ax.imshow(arr[0], cmap=mpl.cm.RdBu_r, interpolation=None)
         ax.set_yticks(np.linspace(1, num_track), num_track/5)
+        ax.set_title(features[0])
         
-        f.savefig(os.path.join('../resultData/cell_cycle/movies_median', '{}-{}.png'.format(feature, exp)))
+        ax=f.add_subplot(122)
+        ax.imshow(arr[1], cmap=mpl.cm.RdBu_r, interpolation=None)
+        ax.set_yticks(np.linspace(1, num_track), num_track/5)
+        ax.set_title(features[1])
+        
+        f.savefig(os.path.join(outputDir, '{}-{}.png'.format(features[0], exp)))
         p.close('all')
         
     return
@@ -377,6 +392,32 @@ class completeTrackExtraction(object):
 #                 boxes[im].append((track_id,3, np.array([min(local_box['left']), max(local_box['right']), min(local_box['top']), max(local_box['bottom'])]) ))
         return
     
+    def findGaleries(self, tracklets):
+        if self.settings.new_h5:
+            file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.ch5".format(self.well))
+            path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary3".format(self.plate, self.well.split('_')[0])
+            path_boundingBox="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary3/bounding_box".format(self.plate, self.well.split('_')[0])
+        else:
+            file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.hdf5".format(self.well))
+            path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary".format(self.plate, self.well.split('_')[0])
+            path_boundingBox="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary/bounding_box".format(self.plate, self.well.split('_')[0])
+            
+        objects = vi.readHDF5(file_, path_objects)
+        bounding_boxes = vi.readHDF5(file_, path_boundingBox)
+        boxes=defaultdict(list)
+        
+        for track_id in tracklets:
+            lstFrames=sorted(tracklets[track_id].keys(), key=itemgetter(0))
+            k=0#permits to order the images
+            
+            for im, cell_id in lstFrames:
+                where_=np.where((objects['time_idx']==im)&(objects['obj_label_id']==cell_id))
+                boxes[im].append((track_id, k, bounding_boxes[where_]))
+                k+=1
+
+        return boxes
+
+    
     def findObjects(self, splits, siblings,isplits, compute_boxes=False):
         if self.settings.new_h5:
             file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.ch5".format(self.well))
@@ -499,8 +540,7 @@ class completeTrackExtraction(object):
         
     def crop(self, boxes, scores):
         '''
-        In the crop filename, I add the id of the cell on the image. Otherwise it won't be possible to find it again afterwards,
-        for classification purposes
+        In the crop filename, I add the number of the image in the galerie so that they're by default ordered in time
         '''
         folderName=self._findFolder()
         for im in boxes:
@@ -515,14 +555,14 @@ class completeTrackExtraction(object):
             image=vi.readImage(os.path.join(self.settings.rawDataFolder, self.plate, folderName, image_name))
             
             for crop_ in boxes[im]:
-                id_, cell_id, crop_coordinates = crop_
+                id_, num, crop_coordinates = crop_
                 X,x,x__, Y,y,y__=self._newImageSize(crop_coordinates)
                 
                 croppedImage = vigra.VigraArray((x__, y__, 1), dtype=np.dtype('uint8'))
                 croppedImage[:,:,0]=(image[x:X, y:Y,0]-self.settings.min_)*(2**8-1)/(self.settings.max_-self.settings.min_)  
                 vi.writeImage(croppedImage, \
                               os.path.join(self.settings.outputFolder, self.plate, 
-                                           self.settings.outputImage.format(scores[id_], self.plate, self.well.split('_')[0],id_, im,  cell_id)),\
+                                           self.settings.outputImage.format(scores[id_], self.plate, self.well.split('_')[0],id_, im,  num)),\
                               dtype=np.dtype('uint8'))
                 
         return    
@@ -544,6 +584,16 @@ class completeTrackExtraction(object):
         pickle.dump(d, f); f.close()
         
         return
+    
+    def loadTracks(self):
+        try:
+            f=open(os.path.join(self.settings.trackingFolder, self.plate, self.settings.outputFile.format(self.well)), 'r')
+            d=pickle.load(f); f.close()
+        except:
+            print "Not able to load pre-existing tracks"
+            return -1
+        else:
+            return d['length'].keys()
     
     def __call__(self):
     #before anything checking that it passed the qc
@@ -591,6 +641,25 @@ class completeTrackExtraction(object):
         noting_objective = self.getObjective(self.settings.objective, cell_cycle_lengths, scores, tracklets)
         
         self.saveResults(noting_objective)
+        return noting_objective['length'].keys()
+    
+    def exportGalerieImages(self):
+        '''
+        Exporting galerie images.
+        '''
+        track_ids=-1
+        if not self.settings.redo:
+            #If fail to open existing track file, will return -1
+            track_ids = self.loadTracks()
+        if track_ids==-1:
+            track_ids = self.findObjective()
+            
+        tracklets, _ = self.load()
+        tracklets=filter(lambda x: x in track_ids, tracklets)
+        
+        
+        
+        
         return
     
 if __name__ == '__main__':
@@ -617,11 +686,18 @@ Input:
     
     parser.add_option("-w", "--well", dest="well",
                       help="The well which you are interested in")
+    
+    parser.add_option('--action', type=str, default=None,
+                      help='Leave None for finding settings.objective, galerie for extracting images of complete tracks')
 
     (options, args) = parser.parse_args()
     
     hh=completeTrackExtraction(options.settings_file, options.plate, options.well)
-    hh.findObjective()
+    
+    if options.action=='galerie':
+        hh.exportGalerieImages()
+    else:
+        hh.findObjective()
     print "Done"
     
     
