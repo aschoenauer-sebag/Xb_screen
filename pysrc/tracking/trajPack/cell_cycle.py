@@ -659,7 +659,7 @@ class completeTrackExtraction(object):
             
         tracklets, _ = self.load()
         tracklets=filter(lambda x: x in track_ids, tracklets)
-        
+        import pdb; pdb.set_trace()
         boxes=self.findGaleries(tracklets)
         if not os.path.isdir(self.settings.outputFolder):
             os.mkdir(self.settings.outputFolder)
