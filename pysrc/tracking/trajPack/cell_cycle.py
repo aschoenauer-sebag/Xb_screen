@@ -608,7 +608,7 @@ class completeTrackExtraction(object):
             newImage = vigra.VigraArray((x_max, y_size, 1), dtype=np.dtype('uint8'))
             currY=0
             for croppedImage in new_boxes[id_]:
-                newImage[:croppedImage.shape[0], currY:currY+croppedImage.shape[1], 0]=croppedImage
+                newImage[:croppedImage.shape[0], currY:currY+croppedImage.shape[1], 0]=croppedImage[:,:,0]
                 currY+=croppedImage.shape[1]
         
             vi.writeImage(newImage, \
