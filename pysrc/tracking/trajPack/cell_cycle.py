@@ -540,7 +540,7 @@ class completeTrackExtraction(object):
             
         return X,x,x__, Y,y,y__
         
-    def crop(self, boxes, scores):
+    def crop_to_sequence(self, boxes, scores):
         '''
         In the crop filename, I add the number of the image in the galerie so that they're by default ordered in time
         '''
@@ -570,7 +570,54 @@ class completeTrackExtraction(object):
                                            self.settings.outputImage.format(scores[id_], self.plate, self.well.split('_')[0],id_, im,  num)),\
                               dtype=np.dtype('uint8'))
                 
+        return
+    
+    def crop_to_single_image(self, boxes, scores=None):
+        '''
+        In the crop filename, I add the number of the image in the galerie so that they're by default ordered in time
+        '''
+        if scores==None:
+            scores=defaultdict(int)
+            
+        new_boxes=defaultdict(list)
+        
+        folderName=self._findFolder()
+        for im in boxes:
+            if not self.settings.new_h5:
+                #renumbering according to mitocheck image numbering
+                local_im=30*im
+            else:
+                #renumbering according to xb screen image numbering
+                local_im=im+1
+            image_name=filter(lambda x: self.settings.imageFilename.format(self.well.split('_')[0], local_im) in x, \
+                              os.listdir(os.path.join(self.settings.rawDataFolder, self.plate, folderName)))[0]
+            image=vi.readImage(os.path.join(self.settings.rawDataFolder, self.plate, folderName, image_name))
+            
+            for crop_ in boxes[im]:
+                id_, num, crop_coordinates = crop_
+                X,x,x__, Y,y,y__=self._newImageSize(crop_coordinates)
+                
+                croppedImage = vigra.VigraArray((x__, y__, 1), dtype=np.dtype('uint8'))
+                croppedImage[:,:,0]=(image[x:X, y:Y,0]-self.settings.min_)*(2**8-1)/(self.settings.max_-self.settings.min_)
+                
+                new_boxes[id_].append(croppedImage)
+                
+        for id_ in new_boxes:
+            x_max = np.max([el.shape[0] for el in new_boxes[id_]])
+            y_size = np.sum([el.shape[1] for el in new_boxes[id_]])
+            newImage = vigra.VigraArray((x_max, y_size, 1), dtype=np.dtype('uint8'))
+            currY=0
+            for croppedImage in new_boxes[id_]:
+                newImage[:croppedImage.shape[0], currY:currY+croppedImage.shape[1], 0]=croppedImage
+                currY+=croppedImage.shape[1]
+        
+            vi.writeImage(newImage, \
+                              os.path.join(self.outputFolder, self.plate, 
+                                           self.settings.outputImage.format(scores[id_], self.plate, self.well.split('_')[0],id_, 0,  0)),\
+                              dtype=np.dtype('uint8'))
+                
         return    
+    
     
     def saveBoxes(self, boxes):
         f=open(os.path.join(self.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:10], self.well)), 'w')
@@ -621,7 +668,7 @@ class completeTrackExtraction(object):
         if not os.path.isdir(os.path.join(self.outputFolder, self.plate)):
             os.mkdir(os.path.join(self.outputFolder, self.plate))
         #iv. crop the boxes in the images
-        self.crop(boxes, scores)
+        self.crop_to_sequence(boxes, scores)
         self.saveBoxes(boxes)
         
         return
@@ -671,7 +718,7 @@ class completeTrackExtraction(object):
             os.mkdir(self.outputFolder)
         if not os.path.isdir(os.path.join(self.outputFolder, self.plate)):
             os.mkdir(os.path.join(self.outputFolder, self.plate))
-        self.crop(boxes, scores=None)
+        self.crop_to_single_image(boxes)
         
         return
     
