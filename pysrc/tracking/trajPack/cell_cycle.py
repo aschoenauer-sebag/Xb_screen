@@ -603,13 +603,13 @@ class completeTrackExtraction(object):
                 new_boxes[id_].append(croppedImage)
                 
         for id_ in new_boxes:
-            x_max = int(np.max([el.shape[0] for el in new_boxes[id_]]))
-            y_size = int(np.sum([el.shape[1] for el in new_boxes[id_]]))
-            newImage = vigra.VigraArray((x_max, y_size, 1), dtype=np.dtype('uint8'))
-            currY=0
+            y_max = int(np.max([el.shape[1] for el in new_boxes[id_]]))
+            x_size = int(np.sum([el.shape[0] for el in new_boxes[id_]]))
+            newImage = vigra.VigraArray((x_size, y_max, 1), dtype=np.dtype('uint8'))
+            currX=0
             for croppedImage in new_boxes[id_]:
-                newImage[:croppedImage.shape[0], currY:currY+croppedImage.shape[1], 0]=croppedImage[:,:,0]
-                currY+=croppedImage.shape[1]
+                newImage[currX:currX+croppedImage.shape[0], :croppedImage.shape[1], 0]=croppedImage[:,:,0]
+                currX+=croppedImage.shape[0]
         
             vi.writeImage(newImage, \
                               os.path.join(self.outputFolder, self.plate, 
