@@ -603,8 +603,8 @@ class completeTrackExtraction(object):
                 new_boxes[id_].append(croppedImage)
                 
         for id_ in new_boxes:
-            x_max = np.max([el.shape[0] for el in new_boxes[id_]])
-            y_size = np.sum([el.shape[1] for el in new_boxes[id_]])
+            x_max = int(np.max([el.shape[0] for el in new_boxes[id_]]))
+            y_size = int(np.sum([el.shape[1] for el in new_boxes[id_]]))
             newImage = vigra.VigraArray((x_max, y_size, 1), dtype=np.dtype('uint8'))
             currY=0
             for croppedImage in new_boxes[id_]:
