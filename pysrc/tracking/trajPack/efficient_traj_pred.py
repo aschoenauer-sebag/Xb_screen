@@ -1,4 +1,4 @@
-import os
+import os, shutil
 import cPickle as pickle
 from optparse import OptionParser
 import sys, pdb
@@ -6,7 +6,9 @@ import numpy as np
 
 from tracking.importPack.imp import importRawSegFromHDF5, frameLots
 from tracking.dataPack import classify, joining
+from tracking.trajPack.trajFeatures import trackletBuilder
 from util.settings import Settings
+import psutil
 
 class TrackPrediction(object):
     def __init__(self, plate, w, settings,# loadingFolder, dataFolder, outputFolder, training = False, first=True, 
@@ -194,6 +196,16 @@ class TrackPrediction(object):
                 x.truth = r1
          
         return new_sol
+    
+    def trackletBuilderPrep(self,num_batches, from_batches=True):
+        if self.settings.training or not from_batches:
+            raise ValueError('You are not in the right place to do what you want to do')
+        totalSolutions=[]
+        for k in range(num_batches):
+            f=open(os.path.join(self.outputFolder, 'temp', 'solutions{}{}{}.pkl'.format(self.plate, self.well,k)))
+            totalSolutions.append(pickle.load(f)); f.close()
+            
+        return trackletBuilder(totalSolutions, self.settings.outputFolder, training=self.settings.training)
         
 
 if __name__ == '__main__':
@@ -281,63 +293,76 @@ THEN it doesn't replace the first $ww with
         settings.outputFolder=outputFolder
         predictor = TrackPrediction(options.plate, options.well, settings,new_cecog_files=bool(options.cecog_file))
         totalFrameLots, FEATURE_NUMBER = predictor.gettingSolu()
+        print psutil.virtual_memory()
         del predictor
+        print psutil.virtual_memory()
         
-        if totalFrameLots is not None:
-            if not os.path.isdir(os.path.join(outputFolder, 'temp')):
-                os.mkdir(os.path.join(outputFolder, 'temp'))
-            f=open(os.path.join(outputFolder, 'temp', 'frameLots{}{}.pkl'.format(options.plate, options.well)), 'w')
-            pickle.dump(totalFrameLots, f); f.close()
+        if totalFrameLots is None:
+            sys.stderr.write('Pbl computing framelots for {}, {}'.format(options.plate, options.well))
+            sys.exit()
             
-        #ii. From framelots, computing batches of predicted solutions and saving them to be opened in the track builder
-            #Need to decide how many batches
-            num_batches = len(frameLots[options.plate][options.well])/100+1
-            num_frames = np.max([el for el in frameLots[options.plate][options.well]])
+        if not os.path.isdir(os.path.join(outputFolder, 'temp')):
+            os.mkdir(os.path.join(outputFolder, 'temp'))
+        f=open(os.path.join(outputFolder, 'temp', 'frameLots{}{}.pkl'.format(options.plate, options.well)), 'w')
+        pickle.dump(totalFrameLots, f); f.close()
+        
+    #ii. From framelots, computing batches of predicted solutions and saving them to be opened in the track builder
+        #Need to decide how many batches
+        num_batches = len(frameLots[options.plate][options.well])/100+1
+        num_frames = np.max([el for el in frameLots[options.plate][options.well]])
+        
+        #loading normalization
+        fichier = open(os.path.join(settings.loadingFolder,"minMax_data_all.pkl"), "r")  
+        minMax = pickle.load(fichier)
+        fichier.close()
+        
+        print psutil.virtual_memory()
+        
+        for k in range(num_batches):
+            print "Going from {} to {} in batch mode".format(k*100, min((k+1)*100+1, num_frames))
+            currFrameLots=frameLots()
+            currFrameLots.lstFrames={options.plate:
+                                     {options.well:#+1 is important here, it is the link between the consecutive pair frames
+                                      {el:totalFrameLots[options.plate][options.well][el] for el in range(k*100, min((k+1)*100+1, num_frames))}}}
             
-            #loading normalization
-            fichier = open(os.path.join(settings.loadingFolder,"minMax_data_all.pkl"), "r")  
-            minMax = pickle.load(fichier)
-            fichier.close()
-            
-            
-            for k in range(num_batches):
-                currFrameLots=frameLots()
-                currFrameLots.lstFrames={options.plate:
-                                         {options.well:#+1 is important here, it is the link between the consecutive pair frames
-                                          {el:totalFrameLots[options.plate][options.well][el] for el in range(k*100, min((k+1)*100+1, num_frames))}}}
-                
 #ICI ON RECUPERE DONC LES SINGLETS ET DOUBLETS AVEC LA VALEUR DU TRAINING DANS CELL.TO SI ILS Y SONT, NONE SINON
-    #POUR LE CENTRE ET LES FEATURES C'EST LA MOYENNE DES OBJETS DU SINGLET
+#POUR LE CENTRE ET LES FEATURES C'EST LA MOYENNE DES OBJETS DU SINGLET
 
-                if settings.training == False:
-                    singlets, doublets = currFrameLots.getAllUplets(outputFolder)
-                else:
-                    singlets, doublets = currFrameLots.getTrainingUplets(outputFolder)
-                # print "TIME TIME TIME after getting all uplets", time.clock()
-                print "Joining uplets now"
-
-                solutions = TrackPrediction.frameJoin(singlets, doublets, FEATURE_NUMBER, settings.training)
+            if settings.training == False:
+                singlets, doublets = currFrameLots.getAllUplets(outputFolder)
+            else:
+                singlets, doublets = currFrameLots.getTrainingUplets(outputFolder)
+            # print "TIME TIME TIME after getting all uplets", time.clock()
+            print "Joining uplets now"
+            print psutil.virtual_memory()
+            solutions = TrackPrediction.frameJoin(singlets, doublets, FEATURE_NUMBER, settings.training)
+            print psutil.virtual_memory()
+            del singlets, doublets
+            print psutil.virtual_memory()
+            print "Feature normalization"
+            try:
+                solutions.normalisation(minMax)
+            except AttributeError:
+                sys.stderr.write('No tracking hypotheses could be computed for this video. It is very likely that there is only one frame.')
+                continue
+            else:
+                new_sol = TrackPrediction.predict(solutions, settings.loadingFolder)
+                print psutil.virtual_memory()
+                f=open(os.path.join(outputFolder, 'temp', 'solutions{}{}{}.pkl'.format(options.plate, options.well,k)), 'w')
+                pickle.dump(new_sol, f); f.close()
+                del new_sol
+                print psutil.virtual_memory()
                 
-                print "normalization"
-                try:
-                    solutions.normalisation(minMax)
-                except AttributeError:
-                    sys.stderr.write('No tracking hypotheses could be computed for this video. It is very likely that there is only one frame.')
-                    continue
-                else:
-                    new_sol = TrackPrediction.predict(solutions, settings.loadingFolder)
-                    
-                    
-# # #         print "Building trajectories for predicted data"
-# # #         dicTraj, conn, movie_length =trackletBuilder(new_sol, outputFolder, training=False)
+        print "Building trajectories for predicted data"
+        predictor = TrackPrediction(options.plate, options.well, settings,new_cecog_files=bool(options.cecog_file))
+        dicTraj, conn, movie_length =predictor.trackletBuilderPrep(batch_number=num_batches, from_batches=True)                
 
-#         if d is not None:
-#             #saving results
-#             
-#             f=open(os.path.join(outputFolder, fi), 'w')
-#             pickle.dump(dict(zip(['tracklets dictionary', 'connexions between tracklets', 'movie_length'], [d, c, movie_length])), f)
-#             f.close()
-#     #    pickle.dump(dict(zip(['tracklets dictionary', 'connexions between tracklets', 'tracklets features', 'tracklets coordinates'], 
-#     #                         [d, c, features, coordonnees])), f); f.close()
-#         else:
-#             sys.stderr.write('No output for plate {}, well {}'.format(options.plate, options.well))
+        if dicTraj is not None:
+            #saving results
+            f=open(os.path.join(outputFolder, fi), 'w')
+            pickle.dump(dict(zip(['tracklets dictionary', 'connexions between tracklets', 'movie_length'], [dicTraj, conn, movie_length])), f)
+            f.close()
+
+        else:
+            sys.stderr.write('No output for plate {}, well {}'.format(options.plate, options.well))
+            
