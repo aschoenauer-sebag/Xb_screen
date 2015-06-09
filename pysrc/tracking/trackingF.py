@@ -130,19 +130,16 @@ def sousProcessClassify(sol, loadingFolder, loadingFile= None, i =None, n_f =Non
     mesPoids = pickle.load(f)
     f.close()
     new_sol = []
-    #pdb.set_trace()
     zz=0
     if loadingFile == None:
         for solu in sol.lstSolutions:
             new_sol.append((solu, solu.truthVec()))
             zz+=1
-#            if zz>3:
-#                break
     else:
         new_sol = classify.read_examples(loadingFile)
 
-    for (x,y) in new_sol:
-        r1=[]; r2=[]; truths=[]
+    for x,_ in new_sol:
+        r1=[]
         try:
             ybar = classify.classify_example(x, mesPoids)
         except:
@@ -153,7 +150,6 @@ def sousProcessClassify(sol, loadingFolder, loadingFile= None, i =None, n_f =Non
             for k in range(len(ybar)):
                 r1.extend(ybar[k]) 
             x.truth = r1
-            truths.append(r1)
      
     return new_sol
 

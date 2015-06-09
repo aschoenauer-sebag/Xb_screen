@@ -22,7 +22,8 @@ from util import settings
 '''
 
     
-def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = False, first=True, new_cecog_files=False, intensity_qc_dict=None):
+def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = False, first=True, new_cecog_files=False, intensity_qc_dict=None,
+                separating_function=None):
     global FEATURE_NUMBER
     
     tabF = None
@@ -36,21 +37,17 @@ def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = Fa
     if w is not None:
         listP = [w] 
     for well in listP:
-        well=well[:-5]
+        filename = os.path.join(dataFolder, well)
+        name_primary_channel='primary__primary' if not new_cecog_files else 'primary__primary3'
         
-        if not new_cecog_files:
-            filename = os.path.join(dataFolder, well+".hdf5")
-            name_primary_channel='primary__primary'
-        else:
-            filename = os.path.join(dataFolder, well+".ch5")
-            name_primary_channel='primary__primary3'
-            
+        well=well.split('.')[0]    
         if training:
             filenameT = '/media/lalil0u/New/workspace2/Tracking/data/trainingset/PL'+plate+"___P"+well+"___T00000.xml"
         else:
             filenameT = None
-        if intensity_qc_dict is not None and int(well[:-3]) in intensity_qc_dict and intensity_qc_dict[int(well[:-3])].shape[0]>0:
-            frames_to_skip=intensity_qc_dict[int(well[:-3])]
+            
+        if intensity_qc_dict is not None and int(well) in intensity_qc_dict and intensity_qc_dict[int(well)].shape[0]>0:
+            frames_to_skip=intensity_qc_dict[int(well)]
             for el in frames_to_skip:
                 if el+1 in frames_to_skip:
                     ind=np.where(frames_to_skip==el)
@@ -60,7 +57,8 @@ def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = Fa
         else:
             frames_to_skip=None
         
-        frameLotC, tabFC = gettingRaw(filename, filenameT, plate, well, name_primary_channel=name_primary_channel, frames_to_skip=frames_to_skip)
+        frameLotC, tabFC = gettingRaw(filename, filenameT, plate, well, name_primary_channel=name_primary_channel, frames_to_skip=frames_to_skip, 
+                                      separating_function=separating_function)
         if newFrameLot == None:
             newFrameLot = frameLotC 
         else: newFrameLot.addFrameLot(frameLotC)
@@ -104,16 +102,15 @@ def gettingSolu(plate, w, loadingFolder, dataFolder, outputFolder, training = Fa
     
     return solutions
 
-def output(plate,  well, allDataFolder, outputFolder, training_only=True):
+def output(plate,  well, allDataFolder, outputFolder, training_only=True, new_cecog_files= False,
+           separating_function=None):
     #listD = os.listdir('/media/lalil0u/New/workspace2/Tracking/data/raw')
     first = True; 
     dataFolder = os.path.join(allDataFolder, plate, 'hdf5')
     loadingFolder = "../prediction"
     if 'LT' in plate:
-        new_cecog_files= False
-        intensity_qc_file=None
+        intensity_qc_dict=None
     else:
-        new_cecog_files= True
         w=int(well.split('_')[0])
         print "Loading manual and out of focus qc files"
         f=open('../data/xb_manual_qc.pkl', 'r')
@@ -132,7 +129,8 @@ def output(plate,  well, allDataFolder, outputFolder, training_only=True):
         intensity_qc_dict=pickle.load(intensity_qc_file); intensity_qc_file.close()    
         intensity_qc_dict=intensity_qc_dict[plate] if plate in intensity_qc_dict else None
         
-    tSol=gettingSolu(plate, well, loadingFolder, dataFolder, outputFolder, training_only, first, new_cecog_files = new_cecog_files, intensity_qc_dict=intensity_qc_dict)
+    tSol=gettingSolu(plate, well, loadingFolder, dataFolder, outputFolder, training_only, first, new_cecog_files = new_cecog_files, intensity_qc_dict=intensity_qc_dict,
+                     separating_function=separating_function)
     first=False
     new_sol = sousProcessClassify(tSol, loadingFolder)
     print "Building trajectories for predicted data"
@@ -165,7 +163,7 @@ THEN it doesn't replace the first $ww with
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
-    parser.add_option("-f", "--settings_file", dest="settings_file", default='tracking/trajPack/settings/settings_trajFeatures_XBSC.py',
+    parser.add_option("-f", "--settings_file", dest="settings_file", default='tracking/settings/settings_trajFeatures.py',
                       help="Settings_file")
 
     parser.add_option("-p", "--plate", dest="plate",
@@ -182,8 +180,8 @@ THEN it doesn't replace the first $ww with
 
     parser.add_option("-s", "--simulated", dest="simulated", default = 0, type=int, 
                       help="Use of simulated trajectories or no")
-#     parser.add_option("-n", "--name", dest="filename", default = 'features_intQC_{}.pkl', 
-#                       help="Filename for trajectory features")    
+    parser.add_option("--cecog_file", dest="cecog_file", default = False, type=int, 
+                       help="True for new type, False for old")    
 #     parser.add_option("-r", "--repeat", dest="repeat", default = False, 
 #                       help="False to do only videos that haven't been treated yet and true to compute features even if already computed")
 #     
@@ -225,12 +223,14 @@ THEN it doesn't replace the first $ww with
         elif options.choice and fi_trajfeatures in os.listdir(outputFolder):
             print "Trajectories features already calculated"
             sys.exit()
-        
+    
+    print options.cecog_file
     if not options.choice: 
         print '### \n # \n ###\n We are going to predict trajectories for plate {}, well {}'.format(options.plate, options.well)
         print 'Densities distance ', densities
 #FOR PREDICTED DATA
-        d, c, movie_length=output(options.plate,options.well, settings.dataFolder,outputFolder, settings.training); 
+        d, c, movie_length=output(options.plate,options.well, settings.dataFolder,outputFolder, settings.training, 
+                                  new_cecog_files=bool(options.cecog_file), separating_function=settings.separating_function) 
 
         if d is not None:
             #saving results

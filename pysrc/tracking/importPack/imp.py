@@ -145,12 +145,23 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, primary_channel_nam
         frameLot.append(newFrame)
     return featureL, classes, frameLot
 
-def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, name_primary_channel='primary__primary', frames_to_skip=None):
+def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, name_primary_channel='primary__primary', frames_to_skip=None, 
+                         separating_function=None):
+    '''
+    Separating_function is used to say how to compute well and position from global well name (ex 00015_01)
+    '''
 
-    pathObjects = "/sample/0/plate/{}/experiment/{}/position/{}/object/{}".format(plaque, puits[:-3], puits[-1], name_primary_channel)
-    pathFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/{}/object_features".format(name_primary_channel)
-    pathCenters = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/{}/center".format(name_primary_channel)
-    pathOrientation = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/{}/orientation".format(name_primary_channel)
+    if separating_function is None:
+        well = puits[:-3]
+        position = puits[-1]
+    else:
+        well=separating_function(puits)[0]
+        position=separating_function(puits)[1]
+
+    pathObjects = "/sample/0/plate/{}/experiment/{}/position/{}/object/{}".format(plaque, well, position, name_primary_channel)
+    pathFeatures = "/sample/0/plate/"+plaque+"/experiment/"+well+"/position/"+position+"/feature/{}/object_features".format(name_primary_channel)
+    pathCenters = "/sample/0/plate/"+plaque+"/experiment/"+well+"/position/"+position+"/feature/{}/center".format(name_primary_channel)
+    pathOrientation = "/sample/0/plate/"+plaque+"/experiment/"+well+"/position/"+position+"/feature/{}/orientation".format(name_primary_channel)
     #not loading segmentation nor raw data since we only use the features that are computed by Cell Cognition
     print pathObjects, filename
     tabObjects = vi.readHDF5(filename, pathObjects)
@@ -158,8 +169,8 @@ def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, 
     tabCenters = vi.readHDF5(filename, pathCenters)
     
     if secondary:
-        pathSecondaryObjects = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/object/secondary__propagate"
-        pathSecondaryFeatures = "/sample/0/plate/"+plaque+"/experiment/"+puits[:-3]+"/position/"+puits[-1]+"/feature/secondary__propagate/object_features"
+        pathSecondaryObjects = "/sample/0/plate/"+plaque+"/experiment/"+well+"/position/"+position+"/object/secondary__propagate"
+        pathSecondaryFeatures = "/sample/0/plate/"+plaque+"/experiment/"+well+"/position/"+position+"/feature/secondary__propagate/object_features"
         
         tabSecondaryObjects =vi.readHDF5(filename, pathSecondaryObjects)
         if len(tabSecondaryObjects)!=len(tabObjects):
@@ -176,15 +187,6 @@ def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, 
     frameNumber = np.max(frameList)+1#otherwise we forget the last frame
     frameLot = frameLots()
     
-#    if frames_to_skip is not None:
-#        l=np.array(range(frameNumber))
-#        for frame in frames_to_skip:
-#            ind = np.where(l==frame)
-#            l[ind:]+=1
-#            l=np.delete(l, ind)
-#        
-#    else:
-#        new_frame_numbers=
     for i in range(frameNumber):
         if frames_to_skip is not None and i in frames_to_skip:
             print "##########################################################Skipping frame {}".format(i)

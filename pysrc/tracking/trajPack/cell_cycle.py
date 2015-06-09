@@ -71,7 +71,7 @@ def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl",
                         axes.flatten()[i].plot(range(val.shape[0]), arr[k][i, :val.shape[0]], label=features[k], color=couleurs[k])
                         axes.flatten()[i].plot(range(len(acc)), acc,color=couleurs[k], linewidth=3)
                         
-                        axes.flatten()[i].set_title(i)
+                        axes.flatten()[i].set_title(el)
                     except:
                         pass
             
@@ -80,15 +80,23 @@ def comprehensivePlot(exp, inDir, inputFile="cell_cycle_cens_{}.pkl",
         f.savefig(os.path.join(outputDir, '{}_ranges-{}.png'.format(features[0], exp)))
         
         f=p.figure()
-        ax=f.add_subplot(121)
+        ax=f.add_subplot(221)
         ax.imshow(arr[0], cmap=mpl.cm.RdBu_r, interpolation=None)
-        ax.set_yticks(np.linspace(1, num_track), num_track/5)
+        ax.set_yticks(np.linspace(1, num_track, num_track))
+        ax.set_yticklabels(d['roisize'].keys(), fontsize=5)
         ax.set_title(features[0])
         
-        ax=f.add_subplot(122)
+        ax=f.add_subplot(222)
         ax.imshow(arr[1], cmap=mpl.cm.RdBu_r, interpolation=None)
         ax.set_yticks(np.linspace(1, num_track), num_track/5)
         ax.set_title(features[1])
+        
+        ax=f.add_subplot(212); l=list(d['roisize'].keys())
+        ax.set_title(features[0])
+        for i,el in enumerate(arr[0]):
+            where_=np.where(el>0)[0]
+            ax.plot(range(where_.shape[0]), el[where_])
+            ax.text(where_[-1], el[where_][-1], l[i])
         
         f.savefig(os.path.join(outputDir, '{}-{}.png'.format(features[0], exp)))
         p.close('all')
