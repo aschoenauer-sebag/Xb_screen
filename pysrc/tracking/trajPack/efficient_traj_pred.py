@@ -5,8 +5,8 @@ import sys, pdb
 import numpy as np
 
 from tracking.importPack.imp import importRawSegFromHDF5, frameLots
-
-from util import settings
+from tracking.dataPack import classify, joining
+from util.settings import Settings
 
 class TrackPrediction(object):
     def __init__(self, plate, w, settings,# loadingFolder, dataFolder, outputFolder, training = False, first=True, 
@@ -125,6 +125,75 @@ class TrackPrediction(object):
     
         #cleaning from NaNs
         return self._cleanNaNs(newFrameLot, features_deleted_in_model, tabF, first)
+    
+    @staticmethod    
+    def frameJoin(singlets, doublets, featSize, training= True):
+        solutions= None
+        for plate in singlets:
+                print plate
+                for well in singlets[plate]:
+                    print well
+                    sys.stderr.write("\n plate {}, well {}\n".format(plate, well))
+                    for index in singlets[plate][well]:
+                        print '-- ',
+                        if index+1 not in singlets[plate][well] or singlets[plate][well][index+1]==[]:
+                            continue
+                        singletsL = singlets[plate][well][index]
+                        nextSinglets = singlets[plate][well][index+1]
+                        doubletsL = doublets[plate][well][index]
+                        nextDoublets = doublets[plate][well][index+1]
+                        if len(nextSinglets)==1:
+                            continue
+                        solution = joining.Solution(plate, well, index, singletsL, nextSinglets, doubletsL, nextDoublets, featSize, training)
+                        if solutions == None:
+                            solutions= joining.Solutions(solution, lstSolutions = None)
+                        else:
+                            solutions.append(solution)    
+        return solutions
+    
+    @staticmethod
+    def predict(sol, loadingFolder, loadingFile= None, i =None, n_f =None, n_big_f=None):
+        #subprocess.call(["/media/lalil0u/New/software2/downloads/unpacked/svm-python-v204/svm_python_classify", "--m", "test", "-v", "3", "results/data_TEST_fold"+str(n_fold)+".pkl", "results/modelfile_"+c+"_"+str(n_fold)+".pkl"])
+        if i==None:
+            f = open(os.path.join(loadingFolder,"modelfile_all.pkl"), 'r')
+        elif n_f==None:
+            c = "{:f}".format(10**i)
+            if n_big_f==None:
+                f = open(os.path.join(loadingFolder,"modelfile_all"+c+".pkl"), 'r')
+            else:
+                f = open(os.path.join(loadingFolder,"modelfile_all"+c+"_"+str(n_big_f)+".pkl"), 'r')
+        else:
+            c = "{:f}".format(10**i)
+            if n_big_f is not None:
+                f = open(os.path.join(loadingFolder,"modelfile_"+c+"_"+str(n_big_f)+'_'+str(n_f)+".pkl"), 'r')
+            else:
+                f = open(os.path.join(loadingFolder,"modelfile_"+c+"_"+str(n_f)+".pkl"), 'r')
+            
+        mesPoids = pickle.load(f)
+        f.close()
+        new_sol = []
+        zz=0
+        if loadingFile == None:
+            for solu in sol.lstSolutions:
+                new_sol.append((solu, solu.truthVec()))
+                zz+=1
+        else:
+            new_sol = classify.read_examples(loadingFile)
+    
+        for x,_ in new_sol:
+            r1=[]
+            try:
+                ybar = classify.classify_example(x, mesPoids)
+            except:
+                print "pbl de NaN"
+                x.truth = "PROBLEME DE NaN"
+                continue
+            else:
+                for k in range(len(ybar)):
+                    r1.extend(ybar[k]) 
+                x.truth = r1
+         
+        return new_sol
         
 
 if __name__ == '__main__':
@@ -175,7 +244,7 @@ THEN it doesn't replace the first $ww with
         sys.exit()
     if type(options.choice)!=bool: options.choice=int(options.choice)
     
-    settings = settings.Settings(options.settings_file, globals())
+    settings = Settings(options.settings_file, globals())
     outputFolder = os.path.join(settings.outputFolder, options.plate)
     fi=settings.traj_filename.format(options.well)
 #     
@@ -187,7 +256,7 @@ THEN it doesn't replace the first $ww with
 # #        time_window=None
         
     if options.simulated:
-        training=True
+        settings.training=True
         outputFolder = os.path.join('../resultData/simulated_traj/simres/plates', options.plate)
         fi='{}--{}.pickle'.format(options.plate, options.well)
     
@@ -225,51 +294,40 @@ THEN it doesn't replace the first $ww with
             num_batches = len(frameLots[options.plate][options.well])/100+1
             num_frames = np.max([el for el in frameLots[options.plate][options.well]])
             
+            #loading normalization
+            fichier = open(os.path.join(settings.loadingFolder,"minMax_data_all.pkl"), "r")  
+            minMax = pickle.load(fichier)
+            fichier.close()
+            
+            
             for k in range(num_batches):
                 currFrameLots=frameLots()
                 currFrameLots.lstFrames={options.plate:
-                                         {options.well:
-                                          {el:totalFrameLots[options.plate][options.well][el] for el in range(k*100, min((k+1)*100, num_frames))}}}
-                if training == False:
+                                         {options.well:#+1 is important here, it is the link between the consecutive pair frames
+                                          {el:totalFrameLots[options.plate][options.well][el] for el in range(k*100, min((k+1)*100+1, num_frames))}}}
+                
+#ICI ON RECUPERE DONC LES SINGLETS ET DOUBLETS AVEC LA VALEUR DU TRAINING DANS CELL.TO SI ILS Y SONT, NONE SINON
+    #POUR LE CENTRE ET LES FEATURES C'EST LA MOYENNE DES OBJETS DU SINGLET
+
+                if settings.training == False:
                     singlets, doublets = currFrameLots.getAllUplets(outputFolder)
                 else:
                     singlets, doublets = currFrameLots.getTrainingUplets(outputFolder)
                 # print "TIME TIME TIME after getting all uplets", time.clock()
-                print "joining uplets now"
-                #j est dans tracking.test
-                solutions = j(singlets, doublets, FEATURE_NUMBER, training)
-                #print "TIME TIME TIME after joining", time.clock()
-                print "normalization"
+                print "Joining uplets now"
+
+                solutions = TrackPrediction.frameJoin(singlets, doublets, FEATURE_NUMBER, settings.training)
                 
-        
-        
-#ICI ON RECUPERE DONC LES SINGLETS ET DOUBLETS AVEC LA VALEUR DU TRAINING DANS CELL.TO SI ILS Y SONT, NONE SINON
-    #POUR LE CENTRE ET LES FEATURES C'EST LA MOYENNE DES OBJETS DU SINGLET
-
-# # # 
-# # #     solutions = j(singlets, doublets, FEATURE_NUMBER, training)
-# # #     #print "TIME TIME TIME after joining", time.clock()
-# # #     print "normalization"
-# # #     
-# # #     fichier = open(os.path.join(loadingFolder,"minMax_data_all.pkl"), "r")  
-# # #     minMax = pickle.load(fichier)
-# # #     fichier.close()
-# # #     try:
-# # #         solutions.normalisation(minMax)
-# # #     except AttributeError:
-# # #         sys.stderr.write('No tracking hypotheses could be computed for this video. It is very likely that there is only one frame.')
-# # #         sys.exit()
-# # #     #print "TIME TIME TIME after normalization", time.clock()
-# # #     
-# # #     return solutions
-
-
-
-
-# # #         tSol=gettingSolu(plate, well, loadingFolder, dataFolder, outputFolder, training_only, first, new_cecog_files = new_cecog_files, intensity_qc_dict=intensity_qc_dict,
-# # #                      separating_function=separating_function)
-# # #         first=False
-# # #         new_sol = sousProcessClassify(tSol, loadingFolder)
+                print "normalization"
+                try:
+                    solutions.normalisation(minMax)
+                except AttributeError:
+                    sys.stderr.write('No tracking hypotheses could be computed for this video. It is very likely that there is only one frame.')
+                    continue
+                else:
+                    new_sol = TrackPrediction.predict(solutions, settings.loadingFolder)
+                    
+                    
 # # #         print "Building trajectories for predicted data"
 # # #         dicTraj, conn, movie_length =trackletBuilder(new_sol, outputFolder, training=False)
 
