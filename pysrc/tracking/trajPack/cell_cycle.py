@@ -182,18 +182,19 @@ class completeTrackExtraction(object):
             return usable_MITO(self.settings.trackingFolder, [(self.plate, self.well)], self.settings.qc_file, self.settings.mitocheck_file, self.settings.trackingFilename,
                                check_size=False)[0]
         else:
-            f=open(self.settings.qc_file, 'r')
-            visual_d=pickle.load(f); f.close()
-            
-            f=open(self.settings.qc_file2, 'r')
-            flou_d=pickle.load(f); f.close()
-            
-            if self.plate in visual_d and int(self.well.split('_')[0]) in visual_d[self.plate]:
-                sys.stderr.write("Visual quality control not passed {} {} \n".format(self.plate, self.well))
-                return False   
-            if self.plate in flou_d and int(self.well.split('_')[0]) in flou_d[self.plate]:
-                sys.stderr.write("Flou quality control not passed {} {} \n".format(self.plate, self.well))
-                return False
+            if self.settings.exist_QC==True:
+                f=open(self.settings.qc_file, 'r')
+                visual_d=pickle.load(f); f.close()
+                
+                f=open(self.settings.qc_file2, 'r')
+                flou_d=pickle.load(f); f.close()
+                
+                if self.plate in visual_d and int(self.well.split('_')[0]) in visual_d[self.plate]:
+                    sys.stderr.write("Visual quality control not passed {} {} \n".format(self.plate, self.well))
+                    return False   
+                if self.plate in flou_d and int(self.well.split('_')[0]) in flou_d[self.plate]:
+                    sys.stderr.write("Flou quality control not passed {} {} \n".format(self.plate, self.well))
+                    return False
             return True
             
     def load(self):
@@ -405,8 +406,10 @@ class completeTrackExtraction(object):
     def findGaleries(self, tracklets):
         if self.settings.new_h5:
             file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.ch5".format(self.well))
-            path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary3".format(self.plate, self.well.split('_')[0])
-            path_boundingBox="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary3/bounding_box".format(self.plate, self.well.split('_')[0])
+            path_objects="/sample/0/plate/{}/experiment/{}/position/{}/object/primary__primary3".format(self.plate, self.well.split('_')[0],
+                                                                                                         self.well.split('_')[1])
+            path_boundingBox="/sample/0/plate/{}/experiment/{}/position/{}/feature/primary__primary3/bounding_box".format(self.plate, self.well.split('_')[0],
+                                                                                                         self.well.split('_')[1])
         else:
             file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.hdf5".format(self.well))
             path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary".format(self.plate, self.well.split('_')[0])
@@ -431,8 +434,13 @@ class completeTrackExtraction(object):
     def findObjects(self, splits, siblings,isplits, compute_boxes=False):
         if self.settings.new_h5:
             file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.ch5".format(self.well))
-            path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary3".format(self.plate, self.well.split('_')[0])
-            path_boundingBox="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary3/bounding_box".format(self.plate, self.well.split('_')[0])
+            path_objects="/sample/0/plate/{}/experiment/{}/position/{}/object/primary__primary3".format(self.plate, self.well.split('_')[0],
+                                                                                            self.well.split('_')[1])
+            path_boundingBox="/sample/0/plate/{}/experiment/{}/position/{}/feature/primary__primary3/bounding_box".format(self.plate, self.well.split('_')[0],
+                                                                                            self.well.split('_')[1])
+            path_classif="/sample/0/plate/{}/experiment/{}/position/{}/feature/primary__primary3/object_classification/prediction".format(self.plate, self.well.split('_')[0],
+                                                                                            self.well.split('_')[1])
+            
         else:
             file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.hdf5".format(self.well))
             path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary".format(self.plate, self.well.split('_')[0])
@@ -469,7 +477,13 @@ class completeTrackExtraction(object):
         
         '''
         if self.settings.new_h5:
-            raise ValueError
+            file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.ch5".format(self.well))
+            path_objects="/sample/0/plate/{}/experiment/{}/position/{}/object/primary__primary3".format(self.plate, self.well.split('_')[0],
+                                                                                            self.well.split('_')[1])
+            path_features="/sample/0/plate/{}/experiment/{}/position/{}/feature/primary__primary3/object_features".format(self.plate, self.well.split('_')[0],
+                                                                                            self.well.split('_')[1])
+            path_feature_names = "definition/feature/primary__primary3/object_features"
+
         else:
             file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.hdf5".format(self.well))
             path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary".format(self.plate, self.well.split('_')[0])
@@ -518,7 +532,7 @@ class completeTrackExtraction(object):
         
     def _findFolder(self):
         if self.settings.new_h5:
-            folderName="W{:>05}".format(self.well.split('_')[0])
+            folderName="W{}".format(self.well)
         else:
             folderName = filter(lambda x: self.well.split('_')[0][2:]==x[:3], os.listdir(os.path.join(self.settings.rawDataFolder, self.plate)))[0]
         return folderName
@@ -560,10 +574,13 @@ class completeTrackExtraction(object):
             if not self.settings.new_h5:
                 #renumbering according to mitocheck image numbering
                 local_im=30*im
+                splitting_index=0
             else:
-                #renumbering according to xb screen image numbering
+                #renumbering according to xb screen/PCNA image numbering
                 local_im=im+1
-            image_name=filter(lambda x: self.settings.imageFilename.format(self.well.split('_')[0], local_im) in x, \
+                splitting_index=1
+                
+            image_name=filter(lambda x: self.settings.imageFilename.format(self.well.split('_')[splitting_index], local_im) in x, \
                               os.listdir(os.path.join(self.settings.rawDataFolder, self.plate, folderName)))[0]
             image=vi.readImage(os.path.join(self.settings.rawDataFolder, self.plate, folderName, image_name))
             
@@ -594,10 +611,13 @@ class completeTrackExtraction(object):
             if not self.settings.new_h5:
                 #renumbering according to mitocheck image numbering
                 local_im=30*im
+                splitting_index=0
             else:
-                #renumbering according to xb screen image numbering
+                #renumbering according to xb screen/PCNA image numbering
                 local_im=im+1
-            image_name=filter(lambda x: self.settings.imageFilename.format(self.well.split('_')[0], local_im) in x, \
+                splitting_index=1
+                
+            image_name=filter(lambda x: self.settings.imageFilename.format(self.well.split('_')[splitting_index], local_im) in x, \
                               os.listdir(os.path.join(self.settings.rawDataFolder, self.plate, folderName)))[0]
             image=vi.readImage(os.path.join(self.settings.rawDataFolder, self.plate, folderName, image_name))
             
@@ -736,7 +756,7 @@ if __name__ == '__main__':
 '''
 %prog - Finding division in three in an experiment
 Input:
-- plate, well: experiment of interest
+- plate, well: experiment of interest. Well name without the suffix hdf5/ch5
 - settings file
 
 '''
@@ -766,9 +786,14 @@ Input:
     hh=completeTrackExtraction(options.settings_file, options.plate, options.well)
     
     if options.action=='galerie':
+        #This will compute galerie images for complete tracks of the plate,well given
         hh.exportGalerieImages(options.outputFolder)
-    else:
+        
+    elif options.action=='objective':
+        #This will compute length + intensity or roisize of the plate,well given
         hh.findObjective()
+    else:
+        raise AttributeError('This is not a valid action yet')
     print "Done"
     
     
