@@ -90,7 +90,10 @@ def trackletBuilder(new_sol, centresFolder, training=False):
                     continue
                 singlets = solC.singlets
                 nextSinglets = solC.nextSinglets
-                result =filter(lambda x: x[1]==1, zip(solC.hypotheses, solC.truth))
+                try:
+                    result =solC.result
+                except AttributeError:
+                    result = filter(lambda x: x[1]==1, zip(solC.hypotheses, solC.truth))
                 
                 for hyp in result:
                     s, t = hyp[0]; source = [] ; target = []; 

@@ -972,12 +972,20 @@ class frameLots():
 
 def savingCenters(plate, well, outputFolder, centersDict):
     try:
-        f=open(os.path.join(outputFolder, 'centers_P{}_w{}.pkl'.format(plate, well)), 'w')
-        pickle.dump(centersDict,f)
+        f=open(os.path.join(outputFolder, 'centers_P{}_w{}.pkl'.format(plate, well)), 'r')
+        centers=pickle.load(f)
         f.close()
-    except IOError:
-        sys.stderr.write("Saving centers for plate {}, well {} failed".format(plate, well))
-        sys.exit()
+        centers.update(centersDict)
+    except:
+        centers=centersDict
+    finally:
+        try:
+            f=open(os.path.join(outputFolder, 'centers_P{}_w{}.pkl'.format(plate, well)), 'w')
+            pickle.dump(centers,f)
+            f.close()
+        except:
+            sys.stderr.write("Saving centers for plate {}, well {} failed".format(plate, well))
+            sys.exit()
     return 1
 
 

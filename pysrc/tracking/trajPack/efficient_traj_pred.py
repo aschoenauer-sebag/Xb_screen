@@ -1,4 +1,4 @@
-import os, shutil
+import os, shutil, gc
 import cPickle as pickle
 from optparse import OptionParser
 import sys, pdb
@@ -201,9 +201,10 @@ class TrackPrediction(object):
         if self.settings.training or not from_batches:
             raise ValueError('You are not in the right place to do what you want to do')
         totalSolutions=[]
+
         for k in range(num_batches):
-            f=open(os.path.join(self.outputFolder, 'temp', 'solutions{}{}{}.pkl'.format(self.plate, self.well,k)))
-            totalSolutions.append(pickle.load(f)); f.close()
+            f=open(os.path.join(self.settings.outputFolder, 'temp', 'solutions{}{}{}.pkl'.format(self.plate, self.well,k)))
+            totalSolutions.extend(pickle.load(f)); f.close()
             
         return trackletBuilder(totalSolutions, self.settings.outputFolder, training=self.settings.training)
         
@@ -287,47 +288,52 @@ THEN it doesn't replace the first $ww with
     
     print options.cecog_file
     if not options.choice: 
-        print '### \n # \n ###\n We are going to predict trajectories for plate {}, well {}'.format(options.plate, options.well)
+        print '### \n# \n###\n We are going to predict trajectories for plate {}, well {}'.format(options.plate, options.well)
 #FOR PREDICting DATA
         #i. Compute frameLots and save it
         settings.outputFolder=outputFolder
         predictor = TrackPrediction(options.plate, options.well, settings,new_cecog_files=bool(options.cecog_file))
         totalFrameLots, FEATURE_NUMBER = predictor.gettingSolu()
         print psutil.virtual_memory()
-        del predictor
+        predictor=None; gc.collect()
         print psutil.virtual_memory()
-        
+         
+        well=options.well.split('.')[0]
+         
         if totalFrameLots is None:
-            sys.stderr.write('Pbl computing framelots for {}, {}'.format(options.plate, options.well))
+            sys.stderr.write('Pbl computing framelots for {}, {}'.format(options.plate, well))
             sys.exit()
-            
+             
         if not os.path.isdir(os.path.join(outputFolder, 'temp')):
             os.mkdir(os.path.join(outputFolder, 'temp'))
-        f=open(os.path.join(outputFolder, 'temp', 'frameLots{}{}.pkl'.format(options.plate, options.well)), 'w')
+        f=open(os.path.join(outputFolder, 'temp', 'frameLots{}{}.pkl'.format(options.plate, well)), 'w')
         pickle.dump(totalFrameLots, f); f.close()
-        
+         
     #ii. From framelots, computing batches of predicted solutions and saving them to be opened in the track builder
         #Need to decide how many batches
-        num_batches = len(frameLots[options.plate][options.well])/100+1
-        num_frames = np.max([el for el in frameLots[options.plate][options.well]])
-        
+        num_batches = len(totalFrameLots.lstFrames[options.plate][well])/100+1
+        num_frames = np.max([el for el in totalFrameLots.lstFrames[options.plate][well]])
+         
         #loading normalization
         fichier = open(os.path.join(settings.loadingFolder,"minMax_data_all.pkl"), "r")  
         minMax = pickle.load(fichier)
         fichier.close()
-        
+         
         print psutil.virtual_memory()
         
         for k in range(num_batches):
-            print "Going from {} to {} in batch mode".format(k*100, min((k+1)*100+1, num_frames))
+            if not settings.redo and 'solutions{}{}{}.pkl'.format(options.plate, well,k) in os.listdir(os.path.join(outputFolder, 'temp')):
+                continue
+            
             currFrameLots=frameLots()
             currFrameLots.lstFrames={options.plate:
-                                     {options.well:#+1 is important here, it is the link between the consecutive pair frames
-                                      {el:totalFrameLots[options.plate][options.well][el] for el in range(k*100, min((k+1)*100+1, num_frames))}}}
-            
+                                     {well:#(k+1)*100+1 is important here, it is the link between the consecutive pair frames. num_frames+1 is important as well to take the last frame
+                                            #into account
+                                      {el:totalFrameLots.lstFrames[options.plate][well][el] for el in range(k*100, min((k+1)*100+1, num_frames+1))}}}
+             
 #ICI ON RECUPERE DONC LES SINGLETS ET DOUBLETS AVEC LA VALEUR DU TRAINING DANS CELL.TO SI ILS Y SONT, NONE SINON
 #POUR LE CENTRE ET LES FEATURES C'EST LA MOYENNE DES OBJETS DU SINGLET
-
+            print "Going from {} to {} in batch mode".format(k*100, min((k+1)*100+1, num_frames))
             if settings.training == False:
                 singlets, doublets = currFrameLots.getAllUplets(outputFolder)
             else:
@@ -337,7 +343,7 @@ THEN it doesn't replace the first $ww with
             print psutil.virtual_memory()
             solutions = TrackPrediction.frameJoin(singlets, doublets, FEATURE_NUMBER, settings.training)
             print psutil.virtual_memory()
-            del singlets, doublets
+            singlets=None ; doublets=None ; gc.collect()
             print psutil.virtual_memory()
             print "Feature normalization"
             try:
@@ -347,15 +353,32 @@ THEN it doesn't replace the first $ww with
                 continue
             else:
                 new_sol = TrackPrediction.predict(solutions, settings.loadingFolder)
-                print psutil.virtual_memory()
-                f=open(os.path.join(outputFolder, 'temp', 'solutions{}{}{}.pkl'.format(options.plate, options.well,k)), 'w')
-                pickle.dump(new_sol, f); f.close()
-                del new_sol
-                print psutil.virtual_memory()
+                solutions=None; gc.collect()
+                print "After prediction ", psutil.virtual_memory()
                 
+                
+                #Cleaning the solution before saving it because otherwise it's very heavy, and there's a lot of info used for prediction that
+                #we're not going to need again when building tracks
+                
+#TODO ask Nelle the elegant way to do this fonction cachee __set__ ou __setattribute__?
+#                 for attribute in ['constraints', 'events', 'features', 'hypotheses']:
+                
+                for solution, _ in new_sol:
+                    solution.result =filter(lambda x: x[1]==1, zip(solution.hypotheses, solution.truth))
+                    
+                    solution.constraints=None
+                    solution.events=None
+                    solution.features=None
+                    solution.hypotheses=None
+                    
+                f=open(os.path.join(outputFolder, 'temp', 'solutions{}{}{}.pkl'.format(options.plate, well,k)), 'w')
+                pickle.dump(new_sol, f); f.close()
+                new_sol=None; gc.collect()
+                print psutil.virtual_memory()
+#
         print "Building trajectories for predicted data"
-        predictor = TrackPrediction(options.plate, options.well, settings,new_cecog_files=bool(options.cecog_file))
-        dicTraj, conn, movie_length =predictor.trackletBuilderPrep(batch_number=num_batches, from_batches=True)                
+        predictor = TrackPrediction(options.plate, well, settings,new_cecog_files=bool(options.cecog_file))
+        dicTraj, conn, movie_length =predictor.trackletBuilderPrep(num_batches=num_batches, from_batches=True)                
 
         if dicTraj is not None:
             #saving results
@@ -364,5 +387,8 @@ THEN it doesn't replace the first $ww with
             f.close()
 
         else:
-            sys.stderr.write('No output for plate {}, well {}'.format(options.plate, options.well))
+            sys.stderr.write('No output for plate {}, well {}'.format(options.plate, well))
+            
+        if settings.removeTempFiles:
+            shutil.rmtree(os.path.join(outputFolder, 'temp'))
             
