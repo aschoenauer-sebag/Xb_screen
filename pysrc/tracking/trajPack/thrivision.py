@@ -409,9 +409,10 @@ class thrivisionExtraction(object):
     #NB here the wells are expected in format 00***_01
         self.well = well
     
-    def _usable(self):
+    def _usable(self, check_size=True):
         if not self.settings.new_h5:
-            return usable_MITO(self.settings.trackingFolder, [(self.plate, self.well)], self.settings.qc_file, self.settings.mitocheck_file, self.settings.trackingFilename)[0]
+            return usable_MITO(self.settings.trackingFolder, [(self.plate, self.well)], self.settings.qc_file, self.settings.mitocheck_file, self.settings.trackingFilename,
+                               check_size=check_size)[0]
         else:
             f=open(self.settings.qc_file, 'r')
             visual_d=pickle.load(f); f.close()

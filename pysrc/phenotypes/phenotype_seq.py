@@ -93,7 +93,7 @@ class pheno_seq_extractor(thrivisionExtraction):
     def __call__(self):
             #before anything checking that it passed the qc
         try:
-            assert self._usable()
+            assert self._usable(check_size=False)
         except AssertionError:
             print "QC failed"
             return
