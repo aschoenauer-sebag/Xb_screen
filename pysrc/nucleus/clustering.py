@@ -28,7 +28,7 @@ from scipy.spatial import KDTree
 from peach import FuzzyCMeans
 
 
-from util.fileManagement import ArffReader
+from util.listFileManagement import ArffReader
 from util.kkmeans import KernelKMeans
 from util.plots import couleurs, markers, makeColorRamp
 from util.sandbox import dist, homeMadeGraphLaplacian
@@ -58,9 +58,10 @@ def getData(filename, pca=26, whiten=False):
     labels = np.delete(labels, np.where(np.isnan(data))[0],0)
     data = np.delete(data, np.where(np.isnan(data))[0],0)
     
-    #We standardize the matrix prior to PCA to rescale the different features
-    data=(data-np.mean(data, 0))/np.std(data,0)
     if type(pca)==int:
+        #We standardize the matrix prior to PCA to rescale the different features
+        data=(data-np.mean(data, 0))/np.std(data,0)
+
         #perform PCA
         print "Performing PCA, retaining {} components".format(pca)
         pca = PCA(n_components = pca, whiten =whiten)
