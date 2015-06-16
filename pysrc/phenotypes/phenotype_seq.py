@@ -1,4 +1,4 @@
-import os, sys, pdb
+import os, sys, pdb, getpass
 import numpy as np
 import cPickle as pickle
 from collections import defaultdict
@@ -8,6 +8,11 @@ from util.settings import Settings
 from tracking.trajPack.thrivision import thrivisionExtraction
 from vigra import impex as vi
 from util.listFileManagement import correct_from_Nan, strToTuple
+
+if getpass.getuser()=='lalil0u':
+    import matplotlib.pyplot as p
+    from util.plots import couleurs
+
 # 652 Loading error for  LT0159_17--ex2006_01_20--sp2006_01_10--tt17--c5 00134_01
 # 654 Loading error for  LT0159_50--ex2006_02_01--sp2006_01_10--tt17--c5 00134_01
 # 1150 Loading error for  LT0062_07--ex2006_03_08--sp2005_06_02--tt17--c3 00300_01
@@ -22,6 +27,46 @@ from util.listFileManagement import correct_from_Nan, strToTuple
 # 2865 Loading error for  LT0084_47--ex2005_08_03--sp2005_07_07--tt17--c5 00120_01
 
 #to do jobs launch thrivision.scriptThrivision(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
+
+
+def trajectory_phenotype_comparison(inputFolder, maskFile, inputData):
+#     Ordre des phenotypes:
+#     Grape
+#     increased proliferation
+#     Cell Death
+#     Binuclear
+#     Dynamic changes
+#     Large
+#     Polylobed
+#     Mitotic delay/arrest
+
+#     #i. How were the labels pre-computed?
+
+    #Loading mask
+    f=open(os.path.join(inputFolder, maskFile))
+    _, mask=pickle.load(f); f.close()
+    
+    f=open(os.path.join('../data/mitocheck_exp_hitlist_perPheno.pkl'))
+    hit_experiments=pickle.load(f); f.close()
+    phenos=list(hit_experiments.keys())
+    colors = dict(zip(hit_experiments.keys(), couleurs))
+    
+    new_hit_experiments=[]
+    for el in hit_experiments:
+        for exp in hit_experiments[el]:
+            new_hit_experiments.append((exp, el))
+            
+    new_hit_experiments=np.array(new_hit_experiments)
+    
+    f,axes=p.subplots(4,2,sharex=True, sharey=True); k=0
+    for i,el in enumerate(new_hit_experiments):
+        if i not in mask:
+            exp, pheno=el
+            axes.flatten()[phenos.index(pheno)].scatter(inputData[k,0],inputData[k,1], color=colors[pheno])
+            k+=1
+        
+    p.show()
+    
 
 class pheno_seq_extractor(thrivisionExtraction):
     def __init__(self, setting_file, plate, well):

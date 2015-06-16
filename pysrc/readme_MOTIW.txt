@@ -108,6 +108,12 @@ vii. Cluster trajectories
 	f=open('../resultData/features_on_films/labels.pkl', 'w')
 	pickle.dump(labels,f); f.close()
 	
+	f=open('../resultData/features_on_films/all_distances_whole_dataonly.pkl') : contient les donnees des hits de motility ET les controles. On a fait les clusters la-dessus,
+	apres une PCA et la retenue des 7 premieres composantes principales, a partir des features numeriques ET de mean straight. Je range les informations relatives au clustering dans le
+	fichier ci-dessous: ATTENTION du coup on n'a pas les clusters dans le meme ordre que pour les papiers
+	
+	f=open('../resultData/features_on_films/kmeans_model.pkl')
+	model, mean, std, pca, pstd=pickle.load(f); f.close()
 	
 	
 	

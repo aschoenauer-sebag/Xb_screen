@@ -139,7 +139,7 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
 
     warn('The data was not normalized. Please check that it will be done before applying any algorithm.')
     
-    return r2,  who,ctrlStatus, length, genes, sirna, time_length
+    return r2, who,ctrlStatus, length, genes, sirna, time_length
 
 def concatenation(folder, exp_list, mitocheck, qc):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; genes=[]; sirna=[]
