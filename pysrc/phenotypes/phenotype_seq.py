@@ -49,7 +49,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                 continue
             else:
                 pheno_seq_list = np.sum( np.array([np.bincount(pheno_seq_list[j], minlength=17) for j in range(len(pheno_seq_list)) if j not in mask]), 0)
-                pheno_seq_list/=float(np.sum(pheno_seq_list))
+                pheno_seq_list=pheno_seq_list/float(np.sum(pheno_seq_list))
                 
                 result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
             finally:
