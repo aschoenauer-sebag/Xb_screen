@@ -301,7 +301,7 @@ def finding_hit(curr_qval,threshold, siRNAL, geneL, expL,mapping_filename,trad=T
         geneListToFile(gene_highconf_Ensembl, 'gene_high_conf_KS.txt')
         geneListToFile(gene_Ensembl, 'gene_list_KS.txt')
 
-    return exp_hit, gene_hit, gene_highconf, exp_of_highconfsiRNAs, siRNA_highconf
+    return exp_hit, gene_hit, gene_highconf, gene_highconf_Ensembl, exp_of_highconfsiRNAs, siRNA_highconf
         
         
 
