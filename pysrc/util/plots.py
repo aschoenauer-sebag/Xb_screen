@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as p
 import os
-
+from operator import itemgetter
 import cPickle as pickle
 
 basic_colors = ["#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00" ]
@@ -32,27 +32,37 @@ couleurs.append("#9e0142")
 couleurs.append("#5e4fa2")
 
 
-#f46d43
-#fdae61
-#fee08b
-#ffffbf
-#d9ef8b
-#a6d96a
-#66bd63
-#1a9850
-#006837
+def plotBar(counts, second_counts, legends=['Very low (Uncertain)', 'Low (Uncertain)', 'Medium (Supportive)', 'High (Supportive)']):
+    values=[counts[0][el] for el in legends]
+    f=p.figure()
+    ax=f.add_subplot(121)
+    ax.bar(range(len(values)), values, alpha=0.7, color='blue', label="Scilifelab")
+    for i,el in enumerate(legends):
+        ax.text(i, counts[0][el]+2, el)
+    ax.set_xticklabels([])
+    
+    if second_counts !=None:
+        values=[second_counts[0][el] for el in legends]
+    ax.bar(range(len(values)), values, alpha=0.7, color='green', label="Intersection w/ Mitocheck as found by MotIW")
+    ax.legend()
+        
+    width=0.8
+    values=sorted(counts[1].iteritems(), key=itemgetter(1))
+    
+    ax=f.add_subplot(122)
+    ax.bar(range(len(counts[1])), [el[1] for el in values], width, color='blue', alpha=0.7)
+    ax.set_xticklabels([])
+    for i,el in enumerate(values):
+        if el[1]>20:
+            ax.text(i, el[1]-2, el[0], rotation='vertical')
+        else:
+            ax.text(i, len(el[0])-2, el[0], rotation='vertical')
+    if second_counts is not None:
+        values=[second_counts[1][el[0]] for el in values]
+        ax.bar(range(len(values)), values, width, color='green', alpha=0.7)
+    
+    p.show()
 
-#couleurs.extend(basic_colors)
-
-
-#couleurs.append("#A50026")
-#couleurs.append("#D73027")
-#couleurs.append("#4575B4")
-#couleurs.append("#ABDDA4")
-#couleurs.append("#F46D43")
-#couleurs.append("#FDAE61")
-#couleurs.append("#A50026")
-#couleurs.append("#D73027")
 
 def plotLabelDistributions(distributions, nb_experiments, nb_dist=8):
     f,axes=p.subplots(1,nb_dist, sharey=True)

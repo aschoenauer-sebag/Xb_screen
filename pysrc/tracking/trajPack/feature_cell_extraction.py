@@ -159,7 +159,7 @@ def multipleHitDistances(folder, key_name,
                          threshold=0.05, 
                          qc_filename='../data/mapping_2014/qc_export.txt',
                          mapping_filename = '../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt',
-                         filename='all_distances_whole_5Ctrl', 
+                         filename='all_distances_whole_', 
                          combination='min', redo=False,
                          trad=True,
                          without_mitotic_hits=False,
@@ -168,8 +168,9 @@ def multipleHitDistances(folder, key_name,
     features = list(featuresNumeriques)
     features.append('mean persistence')
     features.append('mean straight')
-    
+    param = (('div_name', 'KS'),('iter', 0))
     expL=None
+    
     if 'comb_empirical_p_qval{}{}.pkl'.format(combination,without_mean_persistence) not in os.listdir(folder) or redo:
         if 'all_distances_{}.pkl'.format(without_mean_persistence) not in os.listdir(folder) or redo:
             expL, geneL, siRNAL, global_result = hitDistances(folder,
@@ -202,6 +203,7 @@ def multipleHitDistances(folder, key_name,
             f=open(os.path.join(folder, 'all_distances_{}.pkl'.format(without_mean_persistence)), 'w')
             pickle.dump([expL, siRNAL, geneL, global_result], f);f.close()
         else:
+            print "Loading experiment pvalue"
             f=open(os.path.join(folder, 'all_distances_{}.pkl'.format(without_mean_persistence)))
             expL, siRNAL, geneL, global_result=pickle.load(f); f.close()
 
@@ -214,11 +216,16 @@ def multipleHitDistances(folder, key_name,
             global_pval=np.max(global_result,1)
         elif combination=='mean':
             global_pval=np.mean(global_result,1)
-        
-        ctrl = collectingDistances("{}_CTRL.pkl".format(filename), folder,key_name =key_name,
+            
+        if "{}_CTRL.pkl".format(filename) in os.listdir(folder):
+            print "Loading ctrl pvalues"
+            f=open(os.path.join(folder, "{}_CTRL.pkl".format(filename)))
+            ctrl=pickle.load(f); f.close()
+        else:
+            ctrl = collectingDistances("{}_CTRL.pkl".format(filename), folder,key_name =key_name,
                                    testCtrl=True, qc_filename=qc_filename,mapping_filename=mapping_filename,
                                    redo=redo)
-        param = (('div_name', 'KS'),('iter', 0))
+        
         ctrl_pval=ctrl[param][-1]
         if without_mean_persistence:
             ctrl_pval=np.delete(ctrl_pval, features.index('mean persistence'),1)
@@ -241,7 +248,7 @@ def multipleHitDistances(folder, key_name,
         ctrl_qval, empirical_qval=pickle.load(f); f.close()
 
     empirical_qval=np.array(empirical_qval)
-    exp_hit, gene_hit, gene_highconf, exp_of_highconfsiRNAs, siRNA_highconf=finding_hit(empirical_qval, threshold=threshold, siRNAL=list(siRNAL), geneL=list(geneL), expL=list(expL),
+    exp_hit, gene_hit, gene_highconf,gene_highconf_Ensembl,  exp_of_highconfsiRNAs, siRNA_highconf=finding_hit(empirical_qval, threshold=threshold, siRNAL=list(siRNAL), geneL=list(geneL), expL=list(expL),
                                                                     mapping_filename=mapping_filename,
                                                                     trad=trad, without_mitotic_hits=without_mitotic_hits)
     if save:
@@ -249,7 +256,7 @@ def multipleHitDistances(folder, key_name,
         pickle.dump(exp_of_highconfsiRNAs,f)
         f.close()
         
-    return empirical_qval,siRNAL, exp_hit,siRNA_highconf, exp_of_highconfsiRNAs, gene_highconf
+    return empirical_qval,siRNAL, geneL, gene_highconf_Ensembl
 
 def finding_hit(curr_qval,threshold, siRNAL, geneL, expL,mapping_filename,trad=True, without_mitotic_hits=False):
     exp_hit=[]
