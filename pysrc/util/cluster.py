@@ -30,7 +30,7 @@ python %s -p %s -w %s"""
                         )
             else:
                 temp_cmd = """
-python %s -w %i"""
+python %s -i %i"""
                 temp_cmd %= (
                         command,
                         exp
