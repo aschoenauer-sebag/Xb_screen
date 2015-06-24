@@ -32,7 +32,6 @@ if getpass.getuser()=='lalil0u':
 #to do jobs launch thrivision.scriptCommand(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
 
 def collectingDistance(type_, folder='../resultData/pheno_seq/pheno_hit', len_=None):
-    files=sorted(filter(lambda x: type_ in x, os.listdir(folder)), key=(lambda x:x.split('.')[0][14:]))
     if len_==None:
         if type_=='traj':
             len_=6226
@@ -40,7 +39,8 @@ def collectingDistance(type_, folder='../resultData/pheno_seq/pheno_hit', len_=N
             len_=6214
     
     result=np.zeros(shape=(len_, len_))
-    for i,el in enumerate(files):
+    for i in range(len_):
+        el='{}_distance{}.pkl'.format(type_, i)
         try:
             f=open(os.path.join(folder, el))
             d=pickle.load(f); f.close()
