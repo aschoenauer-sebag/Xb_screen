@@ -16,7 +16,7 @@ def scriptCommand(exp_list, baseName='comp_track', command="tracking/trajPack/ce
     head = """#!/bin/sh
 cd %s""" %progFolder
     for keyword in kwargs:
-        command = command +" {} {}".format(keyword, kwargs[keyword])
+        command = command +" -{} {}".format(keyword, kwargs[keyword])
     
     for k in range(fileNumber):
         cmd = ''
