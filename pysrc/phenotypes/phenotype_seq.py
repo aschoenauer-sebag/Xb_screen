@@ -120,9 +120,10 @@ class pheno_seq_extractor(thrivisionExtraction):
                 missed.append(i)
                 continue
             else:
-                pheno_seq_list = np.sum( np.array([np.bincount(pheno_seq_list[j], minlength=17) for j in range(len(pheno_seq_list)) if j not in mask]), 0)
+                pheno_seq_list = np.sum( np.array([np.bincount(pheno_seq_list[j], minlength=17) for j in range(len(pheno_seq_list)) if j not in mask]), 0)[:-2]
+            #15 and 16 are respectively out of focus and artefact objects. We don't want them
                 pheno_seq_list=pheno_seq_list/float(np.sum(pheno_seq_list))
-                
+                print pheno_seq_list.shape
                 result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
             finally:
                 i+=1
