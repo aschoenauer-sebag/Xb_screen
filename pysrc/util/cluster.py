@@ -7,7 +7,7 @@ from tracking.trajPack.tracking_script import path_command
 
 def scriptCommand(exp_list, baseName='comp_track', command="tracking/trajPack/cell_cycle.py"):
     perExperiment=False
-    if len(exp_list[0])!=2 and type(exp_list[0])!=int:
+    if type(exp_list[0])!=int and len(exp_list[0])!=2:
         exp_list=strToTuple(exp_list, os.listdir("/share/data20T/mitocheck/Alice/results"))
         perExperiment=True
     
