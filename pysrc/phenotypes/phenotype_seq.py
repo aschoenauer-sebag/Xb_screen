@@ -34,7 +34,7 @@ if getpass.getuser()=='lalil0u':
 def collectingDistance(type_, folder='../resultData/pheno_seq/pheno_hit', len_=None):
     if len_==None:
         if type_=='traj':
-            len_=6226
+            len_=6230
         elif type_=='pheno':
             len_=6214
     
