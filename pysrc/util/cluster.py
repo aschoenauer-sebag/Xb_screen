@@ -5,7 +5,7 @@ from util import jobSize, progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, p
 from tracking.trajPack.tracking_script import path_command
 
 
-def scriptCommand(exp_list, baseName='comp_track', command="tracking/trajPack/cell_cycle.py"):
+def scriptCommand(exp_list, baseName='comp_track', command="tracking/trajPack/cell_cycle.py", **kwargs):
     perExperiment=False
     if type(exp_list[0])!=int and len(exp_list[0])!=2:
         exp_list=strToTuple(exp_list, os.listdir("/share/data20T/mitocheck/Alice/results"))
@@ -15,6 +15,8 @@ def scriptCommand(exp_list, baseName='comp_track', command="tracking/trajPack/ce
     
     head = """#!/bin/sh
 cd %s""" %progFolder
+    for keyword in kwargs:
+        command = command +" {} {}".format(keyword, kwargs[keyword])
     
     for k in range(fileNumber):
         cmd = ''
