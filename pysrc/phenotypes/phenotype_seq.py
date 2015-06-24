@@ -31,12 +31,13 @@ if getpass.getuser()=='lalil0u':
 
 #to do jobs launch thrivision.scriptCommand(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
 
-def collectingDistance(type_, folder='../resultData/pheno_seq/pheno_hit'):
+def collectingDistance(type_, folder='../resultData/pheno_seq/pheno_hit', len_=None):
     files=sorted(filter(lambda x: type_ in x, os.listdir(folder)), key=(lambda x:x.split('.')[0][14:]))
-    if type_=='traj':
-        len_=6225
-    elif type_=='pheno':
-        len_=6214
+    if len_==None:
+        if type_=='traj':
+            len_=6226
+        elif type_=='pheno':
+            len_=6214
     
     result=np.zeros(shape=(len_, len_))
     for i,el in enumerate(files):
