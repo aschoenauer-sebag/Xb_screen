@@ -31,7 +31,29 @@ if getpass.getuser()=='lalil0u':
 
 #to do jobs launch thrivision.scriptCommand(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
 
+def collectingDistance(type_, folder='../resultData/pheno_seq/pheno_hit'):
+    
+    files=sorted(filter(lambda x: type_ in x, os.listdir(folder)), key=(lambda x:x.split('.')[0][14:]))
+    
+    result=np.zeros(shape=(len(files), len(files)))
+    for i,el in enumerate(files):
+        try:
+            f=open(os.path.join(folder, el))
+            d=pickle.load(f); f.close()
+        except:
+            print "Unopenable ", el
+        else:
+            result[i, i+1:]=d
+            result[i+1:, i]= result[i,i+1:].T
+            
+    return result
+    
+
+
 def computingDistance(percentages, who, distance='transport', M=None):
+    '''
+    To compute distances without parallelizing
+    '''
     if len(set(who))!=len(who):
         unred_perc=[]; unred_who=[]
         for i,el in enumerate(who):
