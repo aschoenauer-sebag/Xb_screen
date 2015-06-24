@@ -806,15 +806,23 @@ if __name__ == '__main__':
     #MAINTENANT ON VOUDRAIT CALCULER LES DISTANCES ENTRE LES POINTS, ON VA REPARTIR CA SUR PLUSIEURS NOEUDS
     parser = OptionParser(usage="usage: %prog [options]")
     
-    parser.add_option('--sim', type=int, dest='simulated')
-    parser.add_option('--div_name', type=str, dest='div_name', default='transportation')
-    parser.add_option('-c', type=int, dest='choice', default=0)
-    parser.add_option('-f', type=int, dest='intrand', default=0)
-    
-    parser.add_option("-d", type=int, dest="debut")
     parser.add_option("-l",type=int, dest="lamb")
-    parser.add_option("-s", dest="size", type=int,default=1000)
+    parser.add_option("-i", dest="who", type=int,default=0)
     (options, args) = parser.parse_args()
+    
+    #loading data
+    f=open('../resultData/pheno_seq/pheno_hit/traj_percentage_prediction.pkl')
+    unred_who, unred_percentages=pickle.load(f); f.close()
+    
+    #loading cost matrix
+    f=open('../resultData/pheno_seq/pheno_hit/traj_costs.pkl')
+    M=pickle.load(f)
+    f.close()
+    
+    dist=multSinkhorn(M, lamb=options.lamb, r=unred_percentages[options.who], C=unred_percentages[options.who+1:].T)
+    f=open('../resultData/pheno_seq/pheno_hit/traj_distance{}.pkl'.format(options.who), 'w')
+    pickle.dump(dist,f); f.close()
+
 #    if options.simulated:
 #        f=open('../resultData/simulated_traj/histogramsNtotSim.pkl')
 #    else:

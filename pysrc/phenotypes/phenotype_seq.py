@@ -3,11 +3,14 @@ import numpy as np
 import cPickle as pickle
 from collections import defaultdict
 from optparse import OptionParser
+from scipy.spatial.distance import squareform, pdist
 
 from util.settings import Settings
 from tracking.trajPack.thrivision import thrivisionExtraction
 from vigra import impex as vi
 from util.listFileManagement import correct_from_Nan, strToTuple
+
+from tracking.histograms import transportation
 
 if getpass.getuser()=='lalil0u':
     import matplotlib.pyplot as p
@@ -26,7 +29,31 @@ if getpass.getuser()=='lalil0u':
 # 2699 Loading error for  LT0159_50--ex2006_02_01--sp2006_01_10--tt17--c5 00109_01
 # 2865 Loading error for  LT0084_47--ex2005_08_03--sp2005_07_07--tt17--c5 00120_01
 
-#to do jobs launch thrivision.scriptThrivision(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
+#to do jobs launch thrivision.scriptCommand(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
+
+def computingDistance(percentages, who, distance='transport', M=None):
+    if len(set(who))!=len(who):
+        unred_perc=[]; unred_who=[]
+        for i,el in enumerate(who):
+            if el not in unred_who:
+                unred_perc.append(percentages[i])
+                unred_who.append(el)
+    
+    if distance=='transport':
+        result=np.zeros(shape=(percentages.shape[0], percentages.shape[0]))
+        for i in range(percentages.shape[0]-1):
+            print i,
+            result[i, i+1:]=transportation.multSinkhorn(M, lamb=10, r=percentages[i], C=percentages[i+1:].T)
+            result[i+1:, i]= result[i,i+1:].T
+        return result
+    try:
+        result=squareform(pdist(percentages, metric=distance))
+    except:
+        print "Bad distance value"
+        return None
+    else:
+        return result
+    
 
 
 def trajectory_phenotype_comparison(inputFolder, maskFile, inputData):
