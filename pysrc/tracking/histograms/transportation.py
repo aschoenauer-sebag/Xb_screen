@@ -811,16 +811,17 @@ if __name__ == '__main__':
     (options, args) = parser.parse_args()
     
     #loading data
-    f=open('../resultData/pheno_seq/pheno_hit/traj_percentage_prediction.pkl')
-    unred_who, unred_percentages=pickle.load(f); f.close()
+    #f=open('../resultData/pheno_seq/pheno_hit/traj_percentage_prediction.pkl')
+    f=open('../resultData/pheno_seq/pheno_hit/phenotype_seq_pheno_hit.pkl')
+    percentages, _,_=pickle.load(f); f.close()
     
     #loading cost matrix
-    f=open('../resultData/pheno_seq/pheno_hit/traj_costs.pkl')
+    f=open('../resultData/pheno_seq/pheno_hit/pheno_costs.pkl')
     M=pickle.load(f)
     f.close()
     
-    dist=multSinkhorn(M, lamb=options.lamb, r=unred_percentages[options.who], C=unred_percentages[options.who+1:].T)
-    f=open('../resultData/pheno_seq/pheno_hit/traj_distance{}.pkl'.format(options.who), 'w')
+    dist=multSinkhorn(M, lamb=options.lamb, r=percentages[options.who], C=percentages[options.who+1:].T)
+    f=open('../resultData/pheno_seq/pheno_hit/pheno_distance{}.pkl'.format(options.who), 'w')
     pickle.dump(dist,f); f.close()
 
 #    if options.simulated:
