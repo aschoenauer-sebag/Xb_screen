@@ -39,7 +39,35 @@ def graphWorking(trajdist, mds_transformed):
     
     G=nx.from_numpy_matrix(newtrajdist)
     #maintenant les edges ont bien les poids que l'on voudrait mais on ne peut pas faire de plots pcq il faut donner les positions des noeuds. Utiliser les resultats MDS pr ca
+    for el in G.nodes():
+        G.node[el]['pos']=mds_transformed[el][:2]
     
+    pos=nx.get_node_attributes(G,'pos')
+    
+    # find node near center (0.5,0.5)
+    dmin=1
+    ncenter=0
+    for n in pos:
+        x,y=pos[n]
+        d=(x-0.5)**2+(y-0.5)**2
+        if d<dmin:
+            ncenter=n
+            dmin=d
+    
+    # color by path length from node near center
+    path_=nx.single_source_shortest_path_length(G,ncenter)
+    
+    p.figure(figsize=(8,8))
+    nx.draw_networkx_edges(G,pos,nodelist=[ncenter],alpha=0.4)
+    nx.draw_networkx_nodes(G,pos,nodelist=path_.keys(),
+                           node_size=60,
+                           node_color=path_.values(),
+                           cmap=p.cm.Reds_r)
+    
+    p.axis('off')
+    p.show()
+        
+
     
 def collectingDistance(type_, folder='../resultData/pheno_seq/pheno_hit', len_=None):
     if len_==None:
