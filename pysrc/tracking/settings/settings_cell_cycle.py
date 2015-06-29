@@ -43,7 +43,7 @@ outputImage="{}crop_P{}_W{}_{}_t{}_id{}.png"
 #outputPredictingFilename = "thripred_{}_{}.pkl"
 
 #Say if you also want trajectories that start with a mitosis and end with the end of the movie. Put to True for that
-not_ending_track=False
+not_ending_track=True
 if not_ending_track:
     outputFile="cell_cycle_cens_{}.pkl"
 else:

@@ -4,6 +4,7 @@ import cPickle as pickle
 from collections import defaultdict
 from optparse import OptionParser
 from scipy.spatial.distance import squareform, pdist
+import networkx as nx
 
 from util.settings import Settings
 from tracking.trajPack.thrivision import thrivisionExtraction
@@ -11,6 +12,7 @@ from vigra import impex as vi
 from util.listFileManagement import correct_from_Nan, strToTuple
 
 from tracking.histograms import transportation
+from scipy.stats.stats import scoreatpercentile
 
 if getpass.getuser()=='lalil0u':
     import matplotlib.pyplot as p
@@ -31,6 +33,14 @@ if getpass.getuser()=='lalil0u':
 
 #to do jobs launch thrivision.scriptCommand(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
 
+def graphWorking(trajdist, mds_transformed):
+    newtrajdist=np.array(trajdist)
+    newtrajdist[np.where(newtrajdist>scoreatpercentile(newtrajdist.flatten(), 20))]=0
+    
+    G=nx.from_numpy_matrix(newtrajdist)
+    #maintenant les edges ont bien les poids que l'on voudrait mais on ne peut pas faire de plots pcq il faut donner les positions des noeuds. Utiliser les resultats MDS pr ca
+    
+    
 def collectingDistance(type_, folder='../resultData/pheno_seq/pheno_hit', len_=None):
     if len_==None:
         if type_=='traj':
