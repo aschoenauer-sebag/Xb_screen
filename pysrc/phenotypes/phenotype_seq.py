@@ -4,7 +4,6 @@ import cPickle as pickle
 from collections import defaultdict
 from optparse import OptionParser
 from scipy.spatial.distance import squareform, pdist
-import networkx as nx
 
 from util.settings import Settings
 from tracking.trajPack.thrivision import thrivisionExtraction
@@ -17,6 +16,7 @@ from scipy.stats.stats import scoreatpercentile
 if getpass.getuser()=='lalil0u':
     import matplotlib.pyplot as p
     from util.plots import couleurs
+    import networkx as nx
 
 # 652 Loading error for  LT0159_17--ex2006_01_20--sp2006_01_10--tt17--c5 00134_01
 # 654 Loading error for  LT0159_50--ex2006_02_01--sp2006_01_10--tt17--c5 00134_01
