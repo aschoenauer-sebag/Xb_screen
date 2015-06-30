@@ -7,9 +7,11 @@ from tracking.trajPack.tracking_script import path_command
 
 def scriptCommand(exp_list, baseName='comp_track', command="tracking/trajPack/cell_cycle.py", **kwargs):
     perExperiment=False
-    if type(exp_list[0])!=int and len(exp_list[0])!=2:
-        exp_list=strToTuple(exp_list, os.listdir("/share/data20T/mitocheck/Alice/results"))
+    if type(exp_list[0])!=int:
         perExperiment=True
+        
+        if len(exp_list[0])!=2:
+            exp_list=strToTuple(exp_list, os.listdir("/share/data20T/mitocheck/Alice/results"))
     
     fileNumber = int(len(exp_list)/float(jobSize))+1
     
