@@ -33,17 +33,35 @@ if getpass.getuser()=='lalil0u':
 
 #to do jobs launch thrivision.scriptCommand(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
 
-def graphWorking(trajdist, mds_transformed):
-    newtrajdist=np.array(trajdist)
-    newtrajdist[np.where(newtrajdist>scoreatpercentile(newtrajdist.flatten(), 20))]=0
+def getMedians(distances, siRNAs, genes):
+    siRNA=np.array(siRNAs)
+    distinct_siRNAs=list(set(siRNAs)); distinct_genes=[]
+    result=np.zeros(shape=(len(distinct_siRNAs), len(distinct_siRNAs))) 
     
-    G=nx.from_numpy_matrix(newtrajdist)
+    for i,siRNA in enumerate(distinct_siRNAs):
+        where_=np.where(siRNAs==siRNA)
+        distinct_genes.append(genes[where_[0][0]])
+        
+        for j in range(i+1, len(distinct_siRNAs)):
+            other_=np.where(siRNAs==distinct_siRNAs[j])
+            
+            result[i][j] = np.median(distances[where_][:,other_])
+            result[j][i]=result[i][j]
+            
+    return result, distinct_siRNAs, distinct_genes    
+
+def graphWorking(trajdist, mds_transformed, genes=None, percentile=10, only_high_degree=True):
+    newtrajdist=np.array(trajdist)
+    newtrajdist[np.where(newtrajdist>scoreatpercentile(newtrajdist.flatten(), percentile))]=0
+    
+    G=nx.from_numpy_matrix(newtrajdist); labels={}
     #maintenant les edges ont bien les poids que l'on voudrait mais on ne peut pas faire de plots pcq il faut donner les positions des noeuds. Utiliser les resultats MDS pr ca
     for el in G.nodes():
         G.node[el]['pos']=mds_transformed[el][:2]
+        if genes is not None:
+            labels[el]=genes[el]
     
     pos=nx.get_node_attributes(G,'pos')
-    
     # find node near center (0.5,0.5)
     dmin=1
     ncenter=0
@@ -58,15 +76,38 @@ def graphWorking(trajdist, mds_transformed):
     path_=nx.single_source_shortest_path_length(G,ncenter)
     
     p.figure(figsize=(8,8))
-    nx.draw_networkx_edges(G,pos,nodelist=[ncenter],alpha=0.4)
-    nx.draw_networkx_nodes(G,pos,nodelist=path_.keys(),
+    
+    if not only_high_degree:
+        nx.draw_networkx_edges(G,pos,nodelist=[ncenter],alpha=0.4)
+        node_color=[float(G.degree(v)) for v in G]
+        nx.draw_networkx_nodes(G,pos,
                            node_size=60,
-                           node_color=path_.values(),
+                           node_color=node_color,
                            cmap=p.cm.Reds_r)
+    else:
+        degrees=np.array([float(G.degree(v)) for v in G])
+        wh_=np.where(degrees>=scoreatpercentile(degrees, 90))[0]
+        
+        pos={x:pos[x] for x in pos if x in wh_}
+        labels={x:labels[x] for x in pos}
+        
+        for k in range(len(genes)):
+            if k not in pos:
+                G.remove_node(k)
+        node_color=[float(G.degree(v)) for v in G]
+        nx.draw_networkx_edges(G,pos,alpha=0.4)
+        nx.draw_networkx_nodes(G,pos,
+                           node_size=60,
+                           node_color=node_color,
+                           cmap=p.cm.Reds_r)
+        
+    
+    nx.draw_networkx_labels(G, pos, labels, font_size=10)
     
     p.axis('off')
     p.show()
         
+    return G
 
     
 def collectingDistance(type_, folder='../resultData/pheno_seq/pheno_hit', len_=None):
