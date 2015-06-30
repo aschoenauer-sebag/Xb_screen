@@ -812,17 +812,17 @@ if __name__ == '__main__':
     
     #loading data
     #f=open('../resultData/pheno_seq/pheno_hit/traj_percentage_prediction.pkl')
-    #f=open('../resultData/pheno_seq/pheno_hit/phenotype_seq_pheno_hit.pkl')
-    f=open('../resultData/features_on_films/labelsKM_whole_k8.pkl')
-    _,percentages, _,_=pickle.load(f); f.close()
+    f=open('../resultData/pheno_seq/motility_hit/phenotype_seq_motility_hit.pkl')
+    #f=open('../resultData/features_on_films/labelsKM_whole_k8.pkl')
+    percentages, _=pickle.load(f); f.close()
     
     #loading cost matrix
-    f=open('../resultData/pheno_seq/pheno_hit/traj_costs.pkl')
+    f=open('../resultData/pheno_seq/pheno_hit/pheno_costs.pkl')
     M=pickle.load(f)
     f.close()
     
     dist=multSinkhorn(M, lamb=options.lamb, r=percentages[options.who], C=percentages[options.who+1:].T)
-    f=open('../resultData/features_on_films/transport/traj_transport_distance{}.pkl'.format(options.who), 'w')
+    f=open('../resultData/features_on_films/transport/pheno_transport_distance{}.pkl'.format(options.who), 'w')
     pickle.dump(dist,f); f.close()
 
 #    if options.simulated:
