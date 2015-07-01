@@ -119,7 +119,7 @@ def collectingDistance(type_, folder='../resultData/pheno_seq/pheno_hit', len_=N
     
     result=np.zeros(shape=(len_, len_))
     for i in range(len_):
-        el='{}_distance{}.pkl'.format(type_, i)
+        el='{}_{}.pkl'.format(type_, i)
         try:
             f=open(os.path.join(folder, el))
             d=pickle.load(f); f.close()
