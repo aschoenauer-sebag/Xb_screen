@@ -3,7 +3,7 @@ import numpy as np
 import cPickle as pickle
 from collections import defaultdict
 from optparse import OptionParser
-from scipy.spatial.distance import squareform, pdist
+from scipy.spatial.distance import squareform, pdist, cdist
 
 from util.settings import Settings
 from tracking.trajPack.thrivision import thrivisionExtraction
@@ -12,6 +12,7 @@ from util.listFileManagement import correct_from_Nan, strToTuple
 
 from tracking.histograms import transportation
 from scipy.stats.stats import scoreatpercentile
+from sklearn.cluster.spectral import SpectralClustering
 
 if getpass.getuser()=='lalil0u':
     import matplotlib.pyplot as p
@@ -33,6 +34,34 @@ if getpass.getuser()=='lalil0u':
 
 #to do jobs launch thrivision.scriptCommand(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
 
+def computeIntersectionSC_pheno(medians, medGENES, medSI, delta_l, k_l, phenotypic_labels):
+    result=np.empty(shape=(len(delta_l), len(k_l)), dtype=float)
+    
+    for j,delta in enumerate(delta_l):
+        affinity=np.exp(-delta*medians**2)
+        
+        for i,k in enumerate(k_l):
+            print '----', delta, k  
+            model=SpectralClustering(affinity='precomputed', n_clusters=k)
+            model.fit(affinity)
+            
+            result[j,i]=intersection(model.labels_, phenotypic_labels, medSI)
+            
+    return result
+            
+            
+def intersection(model_labels, phenotypic_labels, medSI):
+    count=np.zeros(shape=(len(set(model_labels)), 8))
+    
+    for i,siRNA in enumerate(medSI):
+        spec=model_labels[i]
+        
+        for el in phenotypic_labels[siRNA]:
+            count[spec, el]+=1
+    print count
+    return np.sum(np.max(count,0))/float(np.sum(count))
+            
+
 def getMedians(distances, siRNAs, genes):
     siRNA=np.array(siRNAs)
     distinct_siRNAs=list(set(siRNAs)); distinct_genes=[]
@@ -48,9 +77,24 @@ def getMedians(distances, siRNAs, genes):
             result[i][j] = np.median(distances[where_][:,other_])
             result[j][i]=result[i][j]
             
-    return result, distinct_siRNAs, distinct_genes    
+    return result, distinct_siRNAs, distinct_genes 
 
-def graphWorking(trajdist, mds_transformed, genes=None, percentile=10, only_high_degree=True):
+def graphVisualClustering(genesTarget, mds_dist, genes, G):
+    result=[[] for k in range(len(genesTarget))]
+    arr=np.array([gene in genesTarget for gene in genes])
+    degrees=np.array([float(G.degree(v)) for v in G])
+    high_degrees=np.where(degrees>=scoreatpercentile(degrees, 90))[0]
+    
+    for el in high_degrees:
+        gene=genes[el]
+        distances=cdist(mds_dist[np.newaxis, el], mds_dist[np.where(arr)])
+        print el, gene, np.argmax(distances)
+        result[np.argmax(distances)].append(gene)
+        
+    return result
+
+def graphWorking(trajdist, mds_transformed, genes=None, percentile=10, only_high_degree=True, clustering_labels=None):
+    couleurs=['green', 'red', 'blue', 'orange', 'yellow', "white", 'purple', 'pink', 'grey']
     newtrajdist=np.array(trajdist)
     newtrajdist[np.where(newtrajdist>scoreatpercentile(newtrajdist.flatten(), percentile))]=0
     
@@ -62,24 +106,12 @@ def graphWorking(trajdist, mds_transformed, genes=None, percentile=10, only_high
             labels[el]=genes[el]
     
     pos=nx.get_node_attributes(G,'pos')
-    # find node near center (0.5,0.5)
-    dmin=1
-    ncenter=0
-    for n in pos:
-        x,y=pos[n]
-        d=(x-0.5)**2+(y-0.5)**2
-        if d<dmin:
-            ncenter=n
-            dmin=d
-    
-    # color by path length from node near center
-    path_=nx.single_source_shortest_path_length(G,ncenter)
-    
+
     p.figure(figsize=(8,8))
     
     if not only_high_degree:
-        nx.draw_networkx_edges(G,pos,nodelist=[ncenter],alpha=0.4)
-        node_color=[float(G.degree(v)) for v in G]
+        nx.draw_networkx_edges(G,pos,alpha=0.4)
+        node_color=[float(G.degree(v)) for v in G] if clustering_labels is None else [couleurs[k] for k in clustering_labels]
         nx.draw_networkx_nodes(G,pos,
                            node_size=60,
                            node_color=node_color,

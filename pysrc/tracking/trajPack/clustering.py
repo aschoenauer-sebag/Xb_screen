@@ -472,7 +472,7 @@ def outputBin(data, ctrlSize,nbPheno, lPheno, binSize, sigma):#, nbDim=2, nbNeig
     plotMovies('/media/lalil0u/New/workspace2/Xb_screen/resultData/features_on_films', result, 'pattern_b{}_s{}'.format(binSize, sigma))
     return result
 
-def homeMadeSpectralClust(data, cluster_nb_min, cluster_nb_max, neighbours_nb, sig, show=False, affinity =None):
+def homeMadeSpectralClust(data, cluster_nb_min, cluster_nb_max, neighbours_nb, sig, show=False, affinity =None, other_indicators=False):
     '''
     Affinity if we provide an affinity matrix not using affinity(x,y)=exp(-sigma*||x-y||^2)
     '''
@@ -499,16 +499,18 @@ def homeMadeSpectralClust(data, cluster_nb_min, cluster_nb_max, neighbours_nb, s
 #                W[couple[0],n] = W[n,couple[0]]
         D = np.diag(np.sum(W,0))
         Lrw = homeMadeGraphLaplacian(W, normed=True)
+        if np.any(np.diagonal(Lrw)==0):
+            print "Important outliers that are only connected to themselves, I take them off"
+            
+            outliersGraves = np.where(np.diagonal(Lrw)==0)
+            dataBis = np.delete(data, outliersGraves, 0)
+            Wbis = np.delete(np.delete(W, outliersGraves, 0), outliersGraves, 1)
+            f=open("outliersGraves{}.pkl".format(time.clock()), 'w'); pickle.dump(data[outliersGraves],f); f.close()
+            
+            return homeMadeSpectralClust(dataBis, cluster_nb_min, cluster_nb_max, neighbours_nb, sig, show=show, affinity = Wbis)
     else:
         Lrw = homeMadeGraphLaplacian(affinity, normed=True)
         
-    if np.any(np.diagonal(Lrw)==0):
-        outliersGraves = np.where(np.diagonal(Lrw)==0)
-        dataBis = np.delete(data, outliersGraves, 0)
-        Wbis = np.delete(np.delete(W, outliersGraves, 0), outliersGraves, 1)
-        f=open("outliersGraves{}.pkl".format(time.clock()), 'w'); pickle.dump(data[outliersGraves],f); f.close()
-        print "Important outliers that are only connected to themselves, I take them off"
-        return homeMadeSpectralClust(dataBis, cluster_nb_min, cluster_nb_max, neighbours_nb, sig, show=show, affinity = Wbis)
     #nL, dd = graph_laplacian(W, normed=True, return_diag=True) #here we are computing Lsym using sklearn.utils. dd is the diagonal of the laplacian
     #we will need it to normalize the obtained matrix of eigenvectors (cf tutorial)
     #uL = D-W        #chaque ligne de u est donc l'embedding d'une ligne de data. Maintenant on peut faire KMeans dessus. On peut aussi plotter sur les deux premieres composantes
@@ -534,35 +536,15 @@ def homeMadeSpectralClust(data, cluster_nb_min, cluster_nb_max, neighbours_nb, s
         #first indicator of wise cluster_nb choice : 
         eigengap_r.append(vals_rw[cluster_nb] - vals_rw[cluster_nb-1])
         
-        #let's look at the Gaussian mixture result
-        BIC, FS, score, partition_entropy = GaussianMixture(U, cluster_nb, cluster_nb)
-        BIC_r.extend(BIC); FS_r.extend(FS); PEC_r.extend(partition_entropy)
+        if other_indicators:
+            #let's look at the Gaussian mixture result
+            BIC, FS, score, partition_entropy = GaussianMixture(U, cluster_nb, cluster_nb)
+            BIC_r.extend(BIC); FS_r.extend(FS); PEC_r.extend(partition_entropy)
+            
+            #let's look at the kmeans result
+            sil, coh= Kmeans(U, cluster_nb, cluster_nb, return_labels=False); sil_r.extend(sil); coh_r.extend(coh)
         
-        #let's look at the kmeans result
-        sil, coh= Kmeans(U, cluster_nb, cluster_nb, return_labels=False); sil_r.extend(sil); coh_r.extend(coh); 
-        
-#        #computing correlation between affinity matrix and ideal affinity matrix containing clustering labels
-#        ideal_W = np.zeros(shape=(data.shape[0], data.shape[0]))
-#        ordre_cluster = []
-#        for p in range(cluster_nb):
-#            points = np.where(labels==p)[0]
-#            ordre_cluster.extend(points)
-#            for i, j in combinations(points, 2):  
-#                ideal_W[i, i]=1
-#                ideal_W[j,j]=1      
-#                ideal_W[i,j]=1
-#                ideal_W[j,i]=1
-#        W = W[ordre_cluster,]; W=W[:,ordre_cluster]
-#        #plotting that
-#        method = None; metric = None; color = 'red_black_sky'
-#        heatmap(W, range(0, W.shape[0]), range(0, W.shape[0]), method, method, metric, metric, color, "SpecClust_{}_{}_{}".format("Reality", neighbours_nb, cluster_nb), show)
-#        ideal_W = ideal_W[ordre_cluster,]; ideal_W=ideal_W[:,ordre_cluster]
-#        heatmap(ideal_W, range(0, W.shape[0]), range(0, W.shape[0]), method, method, metric, metric, color, "SpecClust_{}_{}_{}".format("Ideal", neighbours_nb, cluster_nb), show)
-#        
-#        variance_r.append(1-pearsonr(W.flatten(), ideal_W.flatten())[0]**2)
-        
-        
-    return eigengap_r, BIC_r, FS_r, PEC_r, sil_r, coh_r, variance_r
+    return eigengap_r, vals_rw
         
         
 def printFigures(folder, data, X, Y, length,indexWell):
