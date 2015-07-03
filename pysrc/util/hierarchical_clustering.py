@@ -120,11 +120,12 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
 
 def heatmap(x, row_header, column_header, row_method,
             column_method, row_metric, column_metric,
-            color_gradient, filename, log=False, trad=False, level=0.4,
+            color_gradient, filename, other_data=None, 
+            log=False, trad=False, level=0.4,
             range_normalization=(-2,2), colorbar_ticks=[-2, 0, 2],
             colorbar_ticklabels=['$ <\mu-2 \sigma$', '$\mu$', '$> \mu+2 \sigma$'],
             colorbar_title='Feature range',
-             save=True):
+             save=False):
     
     print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric),
     if numpy.any(numpy.isnan(x)):
@@ -147,7 +148,11 @@ def heatmap(x, row_header, column_header, row_method,
     This is a modified version to work with "big data" (starting with m=50,000). Indeed, the previous version actually stores
     the distance matrix in the memory which makes it crash. Here, we use the package fastcluster (see http://danifold.net/fastcluster.html)
     in its memory-efficient implementation.
-    The parameter method must be one of 'single', 'centroid', 'median', 'ward'
+    The parameter method must be one of 'single', 'centroid', 'median', 'ward', complete, average, weighted.
+    It can take a dissimilarity matrix in input, ie we don't necessarily have to use a metric which is already implemented
+    
+    If one wants to plot another data than that which is used for the clustering, then this can be inputed in other_data.
+    If X is n_row, n_columns, then other_data should be n_row, m_col
     
     """
     print level
@@ -256,8 +261,10 @@ def heatmap(x, row_header, column_header, row_method,
 #        d1 = dist.pdist(x)
 #        D1 = dist.squareform(d1)  # full matrix
         ax1 = fig.add_axes([ax1_x, ax1_y, ax1_w, ax1_h], frame_on=True) # frame_on may be False
-        
-        Y1 = fastcluster.linkage_vector(x, method=row_method, metric=row_metric) ### gene-clustering metric - 'average', 'single', 'centroid', 'complete'
+        if row_metric==None:
+            Y1 = fastcluster.linkage_vector(x, method=row_method) ### gene-clustering metric - 'average', 'single', 'centroid', 'complete'
+        else:
+            Y1 = fastcluster.linkage_vector(x, method=row_method, metric=row_metric) ### gene-clustering metric - 'average', 'single', 'centroid', 'complete'
         Z1 = sch.dendrogram(Y1, orientation='right')
         ind1 = sch.fcluster(Y1,level*max(Y1[:,2]),'distance') ### This is the default behavior of dendrogram
         ax1.set_xticks([]) ### Hides ticks
@@ -307,9 +314,15 @@ def heatmap(x, row_header, column_header, row_method,
     if row_method != None:
         idx1 = Z1['leaves'] ### apply the clustering for the gene-dendrograms to the actual matrix data
         xt = xt[idx1,:]   # xt is transformed x
-        ind1 = ind1[idx1,:] ### reorder the flat cluster to match the order of the leaves the dendrogram
+        if other_data is not None:
+            other_data=other_data[idx1,:]
+        
+        ind1 = ind1[idx1] ### reorder the flat cluster to match the order of the leaves the dendrogram
     ### taken from http://stackoverflow.com/questions/2982929/plotting-results-of-hierarchical-clustering-ontop-of-a-matrix-of-data-in-python/3011894#3011894
-    im = axm.matshow(xt, aspect='auto', origin='lower', cmap=cmap, norm=norm) ### norm=norm added to scale coloring of expression with zero = white or black
+    if other_data is None:
+        im = axm.matshow(xt, aspect='auto', origin='lower', cmap=cmap, norm=norm) ### norm=norm added to scale coloring of expression with zero = white or black
+    else:
+        im = axm.matshow(other_data, aspect='auto', origin='lower', cmap=cmap, norm=norm) ### norm=norm added to scale coloring of expression with zero = white or black
     axm.set_xticks([]) ### Hides x-ticks
     axm.set_yticks([])
 
@@ -325,7 +338,9 @@ def heatmap(x, row_header, column_header, row_method,
             if len(row_header)<200: ### Don't visualize gene associations when more than 100 rows
                 axm.text(x.shape[1]-0.5, i, ' {}'.format(row_header[i]), fontsize=10) ### When not clustering rows
             new_row_header.append(row_header[i])
-    for i in range(x.shape[1]):
+            
+    column_decider=x if other_data is None else other_data
+    for i in range(column_decider.shape[1]):
         if column_method != None:
             if len(column_header)<200:
                 axm.text(i, -0.9, '{}'.format(column_header[idx2[i]]), rotation=270, verticalalignment="top", fontsize=10) # rotation could also be degrees
@@ -365,7 +380,7 @@ def heatmap(x, row_header, column_header, row_method,
                                    ticks=colorbar_ticks)
     cb.ax.set_xticklabels(colorbar_ticklabels, fontsize=15)
     
-    filename = 'Clustering-%s-hierarchical_%s_%s.pdf' % (filename[:10],column_metric,column_method)
+    filename = 'Clustering-%s-hierarchical_%s_%s.pdf' % (filename[:10],column_method,row_method)
     exportFlatClusterData(filename, new_row_header,new_column_header,xt,ind1,ind2)
 
 #    ### Render the graphic

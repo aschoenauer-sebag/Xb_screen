@@ -65,17 +65,23 @@ def intersection(model_labels, phenotypic_labels, medSI):
 def getMedians(distances, siRNAs, genes):
     siRNA=np.array(siRNAs)
     distinct_siRNAs=list(set(siRNAs)); distinct_genes=[]
-    result=np.zeros(shape=(len(distinct_siRNAs), len(distinct_siRNAs))) 
+    if distances.shape[0]==distances.shape[1]:
+        result=np.zeros(shape=(len(distinct_siRNAs), len(distinct_siRNAs)))
+    else:
+        result=np.zeros(shape=(len(distinct_siRNAs), distances.shape[1]))
     
     for i,siRNA in enumerate(distinct_siRNAs):
         where_=np.where(siRNAs==siRNA)
         distinct_genes.append(genes[where_[0][0]])
         
-        for j in range(i+1, len(distinct_siRNAs)):
-            other_=np.where(siRNAs==distinct_siRNAs[j])
-            
-            result[i][j] = np.median(distances[where_][:,other_])
-            result[j][i]=result[i][j]
+        if distances.shape[0]==distances.shape[1]:
+            for j in range(i+1, len(distinct_siRNAs)):
+                other_=np.where(siRNAs==distinct_siRNAs[j])
+                
+                result[i][j] = np.median(distances[where_][:,other_])
+                result[j][i]=result[i][j]
+        else:
+            result[i]=np.median(distances[where_], 0)
             
     return result, distinct_siRNAs, distinct_genes 
 
