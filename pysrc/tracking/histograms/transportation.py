@@ -807,6 +807,7 @@ if __name__ == '__main__':
     parser = OptionParser(usage="usage: %prog [options]")
     
     parser.add_option("-l",type=float, dest="lamb")
+    parser.add_option("-d",type=str, dest="distance", defaut='Sinkhorn')
     parser.add_option("-i", dest="who", type=int,default=0)
     (options, args) = parser.parse_args()
     
@@ -820,9 +821,14 @@ if __name__ == '__main__':
     f=open('../resultData/pheno_seq/pheno_hit/traj_costs.pkl')
     M=pickle.load(f)
     f.close()
-    
-    dist=multSinkhorn(M, lamb=options.lamb, r=percentages[options.who], C=percentages[options.who+1:].T)
-    f=open('../resultData/features_on_films/transport/traj_distance{}_{}.pkl'.format(options.lamb,options.who), 'w')
+    if options.distance=='Sinkhorn':
+        dist=multSinkhorn(M, lamb=options.lamb, r=percentages[options.who], C=percentages[options.who+1:].T)
+        filename = '../resultData/features_on_films/transport/traj_distance{}_{}.pkl'.format(options.lamb,options.who)
+    elif options.distance=='EMD':
+        dist=multEMD1d(M, r=percentages[options.who], C=percentages[options.who+1:].T)
+        filename = '../resultData/features_on_films/transport/traj_distanceE_{}.pkl'.format(options.who)
+        
+    f=open(filename, 'w')
     pickle.dump(dist,f); f.close()
 
 #    if options.simulated:
