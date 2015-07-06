@@ -806,7 +806,7 @@ if __name__ == '__main__':
     #MAINTENANT ON VOUDRAIT CALCULER LES DISTANCES ENTRE LES POINTS, ON VA REPARTIR CA SUR PLUSIEURS NOEUDS
     parser = OptionParser(usage="usage: %prog [options]")
     
-    parser.add_option("-l",type=int, dest="lamb")
+    parser.add_option("-l",type=float, dest="lamb")
     parser.add_option("-i", dest="who", type=int,default=0)
     (options, args) = parser.parse_args()
     
