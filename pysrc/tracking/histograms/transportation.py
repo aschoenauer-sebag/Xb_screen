@@ -807,7 +807,7 @@ if __name__ == '__main__':
     parser = OptionParser(usage="usage: %prog [options]")
     
     parser.add_option("-l",type=float, dest="lamb")
-    parser.add_option("-d",type=str, dest="distance", defaut='Sinkhorn')
+    parser.add_option("-d",type=str, dest="distance", default='Sinkhorn')
     parser.add_option("-i", dest="who", type=int,default=0)
     (options, args) = parser.parse_args()
     
