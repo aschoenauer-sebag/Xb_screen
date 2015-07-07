@@ -583,7 +583,8 @@ def EMD1d(r,c,M):
     for i in range(r.shape[0]):
         j=0
         print i
-        while not np.testing.assert_approx_equal(currR[i], 0, 0.00001):
+        while not currR[i]< 0.0000001:
+            #Otherwise we have errors due to arrondis
             print j,
             
             diff=min(currR[i],currC[j])
@@ -602,35 +603,6 @@ def EMD1d(r,c,M):
                 
     return result
                  
-
-# def find_(begin, r):
-#     try:
-#         return np.where(r>begin)[0][0]
-#     except IndexError:
-#         return -1
-# 
-# def EMD1d(r,c,M):
-#     if np.all(r==c):
-#         return 0
-#     
-#     r=np.cumsum(r)
-#     c=np.cumsum(c)
-# 
-#     intervalles=Counter(r).keys()
-#     intervalles.extend(Counter(c).keys())
-#     intervalles.append(0)
-#     intervalles=Counter(intervalles).keys()
-#     intervalles.sort()
-#     result=0
-#     for i in range(len(intervalles)-1):
-#         begin = intervalles[i]
-#         end = intervalles[i+1]
-#         
-#         k=find_(begin, r)
-#         l=find_(begin, c)
-#         result+=(end-begin)*M[(k,l)]
-#     return result
-
 def multEMD1d(M, r,C):
     """
     ATTENTION THE CENTER MATRIX IS OF SHAPE N_FEATURES, N_CENTERS
