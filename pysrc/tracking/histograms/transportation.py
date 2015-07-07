@@ -8,6 +8,7 @@ from collections import Counter
 from itertools import product
 from math import fabs
 from matplotlib import pyplot as p
+import matplotlib as mpl
 from numpy import diag, dot
 from numpy.linalg import inv, norm
 from sklearn.utils import check_random_state
@@ -253,6 +254,35 @@ def computingComparisons(X, name):
         compaHistogramDivergences(name, X, lamb_sink, None, 100, power)
         
     return
+
+def plotDivergenceComparison(distances_all):
+    len_=len(distances_all)
+    correlation=np.zeros(shape=(len_,len_))
+    for i in range(len_):
+        correlation[i,i]=1
+        for j in range(i+1,len_):
+            correlation[i,j]=pearsonr(distances_all[i].flatten(), distances_all[j].flatten())[0]
+            correlation[j,i]=correlation[i,j]
+
+    iu=np.triu_indices(distances_all[0].shape[0], 1)
+    diff=[(distances_all[i]-distances_all[-1]) for i in range(len_-1)]
+    
+    f=p.figure()
+    ax=f.add_subplot(121)
+    ax.matshow(correlation, cmap=mpl.cm.bwr)
+    ax.set_yticklabels(['','S 0.01', 'S 0.1', 'S 1', 'S 10', 'EMD'])
+    ax.set_xticklabels(['','S 0.01', 'S 0.1', 'S 1', 'S 10', 'EMD'])
+    ax.set_title('Pearson correlation between distances', fontsize='small')
+
+    ax=f.add_subplot(122)
+    ax.boxplot(diff)
+    ax.set_ylabel('(Distance-EMD)/EMD')
+    ax.set_ylim([-1,5]); ax.grid(True)
+    ax.set_xticklabels(['S 0.01', 'S 0.1', 'S 1', 'S 10'])
+    ax.set_title('Variation coefficient of Sinkhorn divergences with respect to EMD', fontsize='small')
+    p.show()
+
+    return 
 
 def compaHistogramDivergences(name, X, lamb_sink, M, nb_centers=100, power=1, eps=0.00001):
     """
@@ -547,34 +577,53 @@ def multSinkhorn(M, lamb, r,C, eps=0.001, returnAlphas = False):
 #With or without does not change the value of the barycenter in the end
         #alphas-=alphas[0]        
         return alphas.T
-
-def find_(begin, r):
-    try:
-        return np.where(r>begin)[0][0]
-    except IndexError:
-        return -1
-
-def EMD1d(r,c,M):
-    if np.all(r==c):
-        return 0
     
-    r=np.cumsum(r)
-    c=np.cumsum(c)
-
-    intervalles=Counter(r).keys()
-    intervalles.extend(Counter(c).keys())
-    intervalles.append(0)
-    intervalles=Counter(intervalles).keys()
-    intervalles.sort()
+def EMD1d(r,c,M):
     result=0
-    for i in range(len(intervalles)-1):
-        begin = intervalles[i]
-        end = intervalles[i+1]
-        
-        k=find_(begin, r)
-        l=find_(begin, c)
-        result+=(end-begin)*M[(k,l)]
+    for i in range(r.shape[0]):
+        j=0
+        while r[i]>0:
+            diff=r[i]-c[j]
+            win=np.sign(diff)
+            result+=np.abs(diff)*M[i,j]
+            
+            if win>=0:
+                r[i]-=c[j]
+                c[j]=0
+                j+=1
+            else:
+                c[j]-=r[i]
+                r[i]=0
     return result
+                 
+
+# def find_(begin, r):
+#     try:
+#         return np.where(r>begin)[0][0]
+#     except IndexError:
+#         return -1
+# 
+# def EMD1d(r,c,M):
+#     if np.all(r==c):
+#         return 0
+#     
+#     r=np.cumsum(r)
+#     c=np.cumsum(c)
+# 
+#     intervalles=Counter(r).keys()
+#     intervalles.extend(Counter(c).keys())
+#     intervalles.append(0)
+#     intervalles=Counter(intervalles).keys()
+#     intervalles.sort()
+#     result=0
+#     for i in range(len(intervalles)-1):
+#         begin = intervalles[i]
+#         end = intervalles[i+1]
+#         
+#         k=find_(begin, r)
+#         l=find_(begin, c)
+#         result+=(end-begin)*M[(k,l)]
+#     return result
 
 def multEMD1d(M, r,C):
     """
