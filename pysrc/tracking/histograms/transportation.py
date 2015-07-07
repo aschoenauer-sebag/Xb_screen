@@ -584,11 +584,11 @@ def EMD1d(r,c,M):
         j=0
         print i
         while currR[i]>0:
-            print j
+            print j,
             diff=currR[i]-currC[j]
             win=np.sign(diff)
             result+=np.abs(diff)*M[i,j]
-            print result
+            print result,
             if win>=0:
                 currR[i]-=currC[j]
                 currC[j]=0
@@ -596,6 +596,8 @@ def EMD1d(r,c,M):
             else:
                 currC[j]-=currR[i]
                 currR[i]=0
+                
+            print currR, currC
     return result
                  
 
