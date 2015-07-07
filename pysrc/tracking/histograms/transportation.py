@@ -579,21 +579,21 @@ def multSinkhorn(M, lamb, r,C, eps=0.001, returnAlphas = False):
         return alphas.T
     
 def EMD1d(r,c,M):
-    result=0
+    result=0; currR=np.array(r); currC=np.array(c)
     for i in range(r.shape[0]):
         j=0
-        while r[i]>0:
-            diff=r[i]-c[j]
+        while currR[i]>0:
+            diff=currR[i]-currC[j]
             win=np.sign(diff)
             result+=np.abs(diff)*M[i,j]
             
             if win>=0:
-                r[i]-=c[j]
-                c[j]=0
+                currR[i]-=currC[j]
+                currC[j]=0
                 j+=1
             else:
-                c[j]-=r[i]
-                r[i]=0
+                currC[j]-=currR[i]
+                currR[i]=0
     return result
                  
 
