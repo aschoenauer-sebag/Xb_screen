@@ -582,11 +582,13 @@ def EMD1d(r,c,M):
     result=0; currR=np.array(r); currC=np.array(c)
     for i in range(r.shape[0]):
         j=0
+        print i
         while currR[i]>0:
+            print j
             diff=currR[i]-currC[j]
             win=np.sign(diff)
             result+=np.abs(diff)*M[i,j]
-            
+            print result
             if win>=0:
                 currR[i]-=currC[j]
                 currC[j]=0
