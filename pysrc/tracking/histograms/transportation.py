@@ -585,10 +585,12 @@ def EMD1d(r,c,M):
         print i
         while currR[i]>0:
             print j,
-            pdb.set_trace()
-            diff=currR[i]-currC[j]
-            win=np.sign(diff)
-            result+=np.abs(diff)*M[i,j]
+            
+            diff=min(currR[i],currC[j])
+            win=np.sign(currR[i]-currC[j])
+            
+            result+=diff*M[i,j]
+            
             print result,
             if win>=0:
                 currR[i]-=currC[j]
@@ -598,7 +600,6 @@ def EMD1d(r,c,M):
                 currC[j]-=currR[i]
                 currR[i]=0
                 
-            print currR[i], currC[j]
     return result
                  
 
