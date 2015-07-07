@@ -583,7 +583,7 @@ def EMD1d(r,c,M):
     for i in range(r.shape[0]):
         j=0
         print i
-        while currR[i]>0:
+        while np.testing.assert_approx_equal(currR[i], 0, 0.00001):
             print j,
             
             diff=min(currR[i],currC[j])
