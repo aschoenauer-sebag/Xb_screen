@@ -542,7 +542,7 @@ def multSinkhorn(M, lamb, r,C, eps=0.001, returnAlphas = False):
     ind=np.where(r>0); ind2=np.where(r<=0)
     r=r[ind]; M=M[ind[0], :]
     K=np.exp(-lamb*M)
-    U_old=np.ones(shape=(len(ind[0]), C.shape[1]))  #bien la bonne initialisation suivant Sinkhorn et Knopp, 1967
+    U_old=np.ones(shape=(len(ind[0]), C.shape[1]))/float(len(ind[0]))  #bien la bonne initialisation suivant Sinkhorn et Knopp, 1967
     K_tild = dot(diag(1./r), K)
     
     for k in range(100000):
@@ -849,7 +849,7 @@ if __name__ == '__main__':
     M=pickle.load(f)
     f.close()
     if options.distance=='Sinkhorn':
-        dist=multSinkhorn(M, lamb=options.lamb, r=percentages[options.who], C=percentages[options.who+1:].T)
+        dist=multSinkhorn(M, lamb=options.lamb, r=percentages[options.who], C=percentages[options.who+1:].T, eps=0.00000000001)
         filename = '../resultData/features_on_films/transport/traj_distance{}_{}.pkl'.format(options.lamb,options.who)
     elif options.distance=='EMD':
         dist=multEMD1d(M, r=percentages[options.who], C=percentages[options.who+1:].T)
