@@ -263,23 +263,24 @@ def plotDivergenceComparison(distances_all):
         for j in range(i+1,len_):
             correlation[i,j]=pearsonr(distances_all[i].flatten(), distances_all[j].flatten())[0]
             correlation[j,i]=correlation[i,j]
-
+    print correlation
     iu=np.triu_indices(distances_all[0].shape[0], 1)
-    diff=[(distances_all[i]-distances_all[-1]) for i in range(len_-1)]
+    diff=[(distances_all[i][iu]-distances_all[-1][iu])/distances_all[-1][iu] for i in range(len_-1)]
     
     f=p.figure()
     ax=f.add_subplot(121)
     ax.matshow(correlation, cmap=mpl.cm.bwr)
-    ax.set_yticklabels(['','S 0.01', 'S 0.1', 'S 1', 'S 10', 'EMD'])
-    ax.set_xticklabels(['','S 0.01', 'S 0.1', 'S 1', 'S 10', 'EMD'])
+    ax.set_yticklabels(['','S 0.01', 'S 0.1', 'S 1', 'S 10', 'S 30'])
+    ax.set_xticklabels(['','S 0.01', 'S 0.1', 'S 1', 'S 10', 'S 30'])
     ax.set_title('Pearson correlation between distances', fontsize='small')
 
     ax=f.add_subplot(122)
     ax.boxplot(diff)
-    ax.set_ylabel('(Distance-EMD)/EMD')
-    ax.set_ylim([-1,5]); ax.grid(True)
+    ax.set_ylabel('(Distance-S30)/S30')
+    #ax.set_ylim([-1,5]); 
+    ax.grid(True)
     ax.set_xticklabels(['S 0.01', 'S 0.1', 'S 1', 'S 10'])
-    ax.set_title('Variation coefficient of Sinkhorn divergences with respect to EMD', fontsize='small')
+    ax.set_title('Variation coef. of Sinkhorn divergences while varying lambda', fontsize='small')
     p.show()
 
     return 
