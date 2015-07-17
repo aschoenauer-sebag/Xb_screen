@@ -9,7 +9,7 @@ from util.settings import Settings
 from tracking.trajPack.thrivision import thrivisionExtraction
 from vigra import impex as vi
 from util.listFileManagement import correct_from_Nan, strToTuple, EnsemblEntrezTrad
-
+from tracking.trajPack import featuresNumeriques, featuresSaved
 from tracking.histograms import transportation
 from scipy.stats.stats import scoreatpercentile
 from sklearn.cluster.spectral import SpectralClustering
@@ -77,6 +77,44 @@ def forMatthieu(file_='../resultData/features_on_films/labelsKM_whole_k8.pkl', o
         
         
     return
+
+def forMatthieu2(file_features='../resultData/features_on_films/all_distances_whole_dataonly.pkl', file_labels='../resultData/features_on_films/labelsKM_whole_k8.pkl',
+                 file_coordinates='../resultData/features_on_films/coordinates_1000first.pkl',
+                 out_feature_file='../resultData/features_on_films/traj_cluster{}_trajectory_features.csv',
+                 out_coordinate_file='../resultData/features_on_films/traj_cluster{}_trajectory_coordinates.csv'):
+    
+    small_nr=None; small_coordinates=None
+    
+    f=open(file_features)
+    data=pickle.load(f); f.close()
+    data=data[0][:356905]
+    r=np.hstack((data[:,:len(featuresNumeriques)], data[:,featuresSaved.index('mean persistence'), np.newaxis], data[:, featuresSaved.index('mean straight'), np.newaxis]))
+    
+    f=open(file_labels)
+    labels=pickle.load(f); f.close()
+    labels=labels[0][:356905]
+    
+    f=open(file_coordinates)
+    coordinates=np.array(pickle.load(f));f.close()
+    i=0
+    for k in [7,0,3,5,4,2,6,1]:#range(begin_, num_clusters):#ORDRE UTILISE POUR LE PAPIER ISBI 
+        where_=np.where(np.array(labels)==k)[0]
+        np.random.shuffle(where_)
+        
+        f=open(out_feature_file.format(i), 'w')
+        writer=csv.writer(f)
+        writer.writerows(r[where_[:1000]])
+        f.close()
+        
+        f=open(out_coordinate_file.format(i), 'w')
+        writer=csv.writer(f)
+        for el in coordinates[where_[:1000]]:
+            writer.writerow(zip(el[:,0], el[:,1]))
+        f.close()
+        
+        i+=1
+    
+    
 
 
 def computeIntersectionSC_pheno(medians, medGENES, medSI, delta_l, k_l, phenotypic_labels):
