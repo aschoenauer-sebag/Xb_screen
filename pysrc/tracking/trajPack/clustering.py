@@ -40,9 +40,13 @@ from util.kkmeans import KernelKMeans
 
 def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatures_{}.pkl',
                       features=None, min_size=20,
-                       verbose=0, hist=True, perMovie = False):
+                       verbose=0, hist=True, perMovie = False,
+                       coordinates_only=False):
     who=[]; length=[]; r=[]; X=[]; Y=[]; ctrlStatus = []; sirna=[]; genes=[]
     time_length=[]; pbl_well=[]
+    
+    coordinates=[]
+    
     histNtot={nom:[] for nom in featuresHisto}
 
     yqualDict=expSi(qc)
@@ -109,7 +113,10 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                     sys.stderr.write("Probleme avec le fichier {}".format(os.path.join(pl, filename.format(w))))
                 else:   
                     if 'eatures' in filename:
-                        time_length.extend([len(coord[k][0]) for k in filter(lambda x: x not in toDel, range(len(coord)))])
+#                        time_length.extend([len(coord[k][0]) for k in filter(lambda x: x not in toDel, range(len(coord)))])
+                        for k in filter(lambda x: x not in toDel, range(len(coord))):
+                            time_length.append(len(coord[k][0]))
+                            coordinates.append(np.vstack((coord[k][1], coord[k][2])).T)
                     else:
                         #if it's cell cycle length data then I have the time length
                         pass
@@ -130,6 +137,9 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
                             continue
     if r ==[]:
         return None
+    
+    if coordinates_only:
+        return coordinates
 
 #log trsforming data for trajectory features
     if 'eatures' in filename:

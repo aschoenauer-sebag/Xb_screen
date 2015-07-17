@@ -1,4 +1,4 @@
-import os, sys, pdb, getpass
+import os, sys, pdb, getpass, csv
 import numpy as np
 import cPickle as pickle
 from collections import defaultdict
@@ -8,7 +8,7 @@ from scipy.spatial.distance import squareform, pdist, cdist
 from util.settings import Settings
 from tracking.trajPack.thrivision import thrivisionExtraction
 from vigra import impex as vi
-from util.listFileManagement import correct_from_Nan, strToTuple
+from util.listFileManagement import correct_from_Nan, strToTuple, EnsemblEntrezTrad
 
 from tracking.histograms import transportation
 from scipy.stats.stats import scoreatpercentile
@@ -33,6 +33,51 @@ if getpass.getuser()=='lalil0u':
 # 2865 Loading error for  LT0084_47--ex2005_08_03--sp2005_07_07--tt17--c5 00120_01
 
 #to do jobs launch thrivision.scriptCommand(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
+
+def forMatthieu(file_='../resultData/features_on_films/labelsKM_whole_k8.pkl', out_file='../resultData/features_on_films/traj_cluster{}.csv'):
+    order=[7,0,3,5,4,2,6,1]
+    trad=EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+    trad['ctrl']='ctrl'
+    f=open(file_, 'r')
+    labels=pickle.load(f)
+    f.close()
+    #ATTENTION A L'ORDRE DES CLUSTERS POUR ETRE CORRECT PAR RAPPORT A LA HEATMAP
+    percentages=labels[1][:,order]
+    movie_perc=percentages[:2929]
+    
+    f=open('../resultData/features_on_films/labelsKM_whole_k8_NEWMODEL.pkl')
+    new_labels=pickle.load(f)
+    f.close()
+    siRNAs=np.array(new_labels[4])
+    genes=np.array(new_labels[5])
+
+    d_percentages=getMedians(movie_perc, siRNAs[:2929], genes[:2929])
+    d_genes=np.hstack((np.array(d_percentages[2]), genes[2929:]))
+    d_siRNAs=np.hstack((np.array(d_percentages[1]), siRNAs[2929:]))
+    
+    d_percentages2=np.vstack((d_percentages[0], percentages[2929:]))
+    
+    fig,axes=p.subplots(4,2,sharex=True, figsize=(24,24))
+    for k in range(8):
+        f=open(out_file.format(k), 'w')
+        writer=csv.writer(f)
+        currGenes = d_genes[np.argsort(-d_percentages2[:,k])]
+        currValues=d_percentages2[:,k][np.argsort(-d_percentages2[:,k])]
+        currColors=[]
+        for i in range(currGenes.shape[0]):
+            writer.writerow([currGenes[i], currValues[i], trad[currGenes[i]]])
+            if currGenes[i]=='ctrl':
+                axes.flatten()[k].scatter(i,currValues[i], color='green', s=8)
+            else:
+                axes.flatten()[k].scatter(i,currValues[i], color='red', s=5, marker='+')
+        f.close()
+        
+        axes.flatten()[k].set_title('Cluster {}'.format(k))
+    fig.savefig('../resultData/features_on_films/traj_clusters.png')
+        
+        
+    return
+
 
 def computeIntersectionSC_pheno(medians, medGENES, medSI, delta_l, k_l, phenotypic_labels):
     result=np.empty(shape=(len(delta_l), len(k_l)), dtype=float)
