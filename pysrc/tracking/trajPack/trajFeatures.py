@@ -394,10 +394,12 @@ def computingHisto(traj, average, movie_start, verbose, a,d, training):
     Y = np.array([traj.lstPoints[k][1] for k in l])
     t=[el[0] for el in l]
     
-#also keeping raw coordinates in case i want to do smt with cell visualization in cell cognition
+#also keeping raw coordinates in case i want to do smt with cell visualization in cell cognition - but also deleting mitosis related moves to be able to link this info
+#with features
     raw_t = list(t)    
     raw_X = np.array(X)
     raw_Y = np.array(Y)
+    raw_t, raw_X, raw_Y = filter_mitosis_related_moves(raw_t, raw_X, raw_Y,a,d)
     
 #i.removing average displacement in movie to correct for plate movement
     if average is not None:
@@ -518,7 +520,6 @@ def computingHisto(traj, average, movie_start, verbose, a,d, training):
         r['ball number'][i]=len(bb.lstBoules)/float(sqrt(r['time length']))
         if verbose>5:
             msg+='radius {}, entropy {}'.format(ll, r['entropy'][i])
-
 #UNNORMALIZED FEATURES
     #FEATURE : trajectory length 
     r['total space length']=r['moments'][0][0]

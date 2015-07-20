@@ -285,7 +285,7 @@ THEN it doesn't replace the first $ww with
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
-    parser.add_option("-f", "--settings_file", dest="settings_file", default='tracking/settings/settings_trajFeatures.py',
+    parser.add_option("-f", "--settings_file", dest="settings_file", default='bgeig/settings/settings_trajFeatures.py',
                       help="Settings_file")
 
     parser.add_option("-p", "--plate", dest="plate",
