@@ -7,8 +7,11 @@ elif getpass.getuser()=='lalil0u':
     dataFolder="/media/lalil0u/New/projects/H2B_PCNA"
     
 loadingFolder='../prediction'
-    
+
+intensity_qc_file=None
 traj_filename = 'traj_intQC_w{}.pkl'
+all_trajectory_xml=False
+
 feature_filename='features_intQC_{}.pkl'
 
 training = False
@@ -18,7 +21,7 @@ filtering_fusion=False
 
 time_windows=[(0, 48), (0,24), (12, 36), (24,48),(36, 60)] 
 
-separating_function=lambda x: x.split('_')
+separating_function=lambda x: x.split('_')[1]
 
 removeTempFiles=True
 

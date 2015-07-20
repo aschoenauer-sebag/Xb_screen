@@ -6,6 +6,7 @@ import numpy as np
 
 from tracking.importPack.imp import importRawSegFromHDF5, frameLots
 from tracking.dataPack import classify, joining
+from tracking.PyPack.fHacktrack2 import initXml, ecrireXml, finirXml, sortiesAll
 from tracking.trajPack.trajFeatures import trackletBuilder
 from util.settings import Settings
 import psutil
@@ -207,7 +208,67 @@ class TrackPrediction(object):
             totalSolutions.extend(pickle.load(f)); f.close()
             
         return trackletBuilder(totalSolutions, self.settings.outputFolder, training=self.settings.training)
+    
+    @staticmethod
+    def writeTracks(self,inputFolder, plate,
+        #outputFolder='tracking_annotations/annotations', 
+        all_=False, intensity_qc_file=None,
+        feature_filename='hist_tabFeatures'):
+        '''
+        To produce annotated tracklets, either all tracklets (option all_=True) or only those used for feature extraction (option all=False)
+        '''
         
+        intensity_qc_dict = self._getIntensityQC()
+        
+        if 'tracking_annotations' not in os.listdir(inputFolder):
+            os.mkdir(os.path.join(inputFolder, 'tracking_annotations'))
+        if 'annotations' not in os.listdir(os.path.join(inputFolder, 'tracking_annotations')):
+            os.mkdir(os.path.join(os.path.join(inputFolder, 'tracking_annotations', 'annotations')))
+        
+        if all_:
+            well_files = filter(lambda x: 'traj_noF_densities' in x, os.listdir(os.path.join(inputFolder, plate)))
+            rang=3
+        else:
+            well_files = filter(lambda x: feature_filename in x, os.listdir(os.path.join(inputFolder, plate)))
+            rang=2
+        for file_ in well_files:
+            well_num=int(file_.split('_')[rang][1:])
+            well = '{:>05}_01'.format(well_num)
+            
+            nomFichier = "PL"+plate+"___P"+well+"___T00001.xml"
+            nomFichier = os.path.join(inputFolder, outputFolder, nomFichier)
+    
+            if all_:
+                f=open(os.path.join(inputFolder, plate, file_), 'r')
+                d=pickle.load(f); f.close()
+                ensTraj = d['tracklets dictionary'][plate][well]
+                _ = sortiesAll(nomFichier, ensTraj)
+            else:
+                f=open(os.path.join(inputFolder, plate, file_), 'r')
+                _,coord,_=pickle.load(f); f.close()
+                
+                compteur =1
+                fichierX = open(nomFichier, "w")
+                fichierX.write(initXml())
+                if intensity_qc_dict is not None and well_num in intensity_qc_dict:
+                    frames_to_skip = intensity_qc_dict[well_num]
+                else:
+                    frames_to_skip=None
+    
+                for lstPoints in coord:
+                    frameL=lstPoints[0]; X=lstPoints[1]; Y=lstPoints[2]
+                    d={(frameL[k]+len(np.where(frames_to_skip<=frameL[k])[0]),0):(X[k], Y[k]) for k in range(len(frameL))}
+                    txt, coord = ecrireXml(compteur,d, True)
+                    fichierX.write(txt)
+                    compteur+=1
+                    if compteur>1600:
+                        break
+            
+                fichierX.write(finirXml())
+                fichierX.close()
+                print 'finally ', compteur, 'trajectories'
+            
+        return
 
 if __name__ == '__main__':
     verbose=0
@@ -242,8 +303,8 @@ THEN it doesn't replace the first $ww with
     parser.add_option("-w", "--well", dest="well",
                       help="The well which you are interested in")
     
-    parser.add_option("-c", "--choice", dest="choice", default = False, 
-                      help="False to build trajectories and true to compute features from existing trajectories")
+    parser.add_option("-c", "--choice", dest="choice", default = False, type=int,
+                      help="0 to build trajectories, 1 to compute xml files from trajectories, 2 to compute features from existing trajectories")
 
     parser.add_option("-s", "--simulated", dest="simulated", default = 0, type=int, 
                       help="Use of simulated trajectories or no")
@@ -258,15 +319,14 @@ THEN it doesn't replace the first $ww with
     if type(options.choice)!=bool: options.choice=int(options.choice)
     
     settings = Settings(options.settings_file, globals())
+    if not os.path.isdir(settings.outputFolder):
+        os.mkdir(settings.outputFolder)
+        
     outputFolder = os.path.join(settings.outputFolder, options.plate)
-    fi=settings.traj_filename.format(options.well)
-#     
-#     if options.time_window is not None:
-#         fi_trajfeatures = settings.feature_filename.format(options.well[:-5], options.time_window)
-# #        time_window=time_windows[options.time_window]
-#     else:
-#         fi_trajfeatures = settings.feature_filename.format(options.well[:-5],'N')
-# #        time_window=None
+    if not os.path.isdir(outputFolder):
+        os.mkdir(outputFolder)
+        
+#    fi=settings.traj_filename.format(options.well)
         
     if options.simulated:
         settings.training=True
@@ -282,12 +342,12 @@ THEN it doesn't replace the first $ww with
         if not options.choice and fi in os.listdir(outputFolder):
             print "Trajectories already generated"
             sys.exit()
-        elif options.choice and fi_trajfeatures in os.listdir(outputFolder):
-            print "Trajectories features already calculated"
-            sys.exit()
+#         elif options.choice and fi_trajfeatures in os.listdir(outputFolder):
+#             print "Trajectories features already calculated"
+#             sys.exit()
     
     print options.cecog_file
-    if not options.choice: 
+    if options.choice==0: 
         print '### \n# \n###\n We are going to predict trajectories for plate {}, well {}'.format(options.plate, options.well)
 #FOR PREDICting DATA
         #i. Compute frameLots and save it
@@ -319,7 +379,7 @@ THEN it doesn't replace the first $ww with
         minMax = pickle.load(fichier)
         fichier.close()
          
-        print psutil.virtual_memory()
+#        print psutil.virtual_memory()
         
         for k in range(num_batches):
             if not settings.redo and 'solutions{}{}{}.pkl'.format(options.plate, well,k) in os.listdir(os.path.join(outputFolder, 'temp')):
@@ -340,11 +400,11 @@ THEN it doesn't replace the first $ww with
                 singlets, doublets = currFrameLots.getTrainingUplets(outputFolder)
             # print "TIME TIME TIME after getting all uplets", time.clock()
             print "Joining uplets now"
-            print psutil.virtual_memory()
+            #print psutil.virtual_memory()
             solutions = TrackPrediction.frameJoin(singlets, doublets, FEATURE_NUMBER, settings.training)
-            print psutil.virtual_memory()
+            #print psutil.virtual_memory()
             singlets=None ; doublets=None ; gc.collect()
-            print psutil.virtual_memory()
+            #print psutil.virtual_memory()
             print "Feature normalization"
             try:
                 solutions.normalisation(minMax)
@@ -374,7 +434,7 @@ THEN it doesn't replace the first $ww with
                 f=open(os.path.join(outputFolder, 'temp', 'solutions{}{}{}.pkl'.format(options.plate, well,k)), 'w')
                 pickle.dump(new_sol, f); f.close()
                 new_sol=None; gc.collect()
-                print psutil.virtual_memory()
+                #print psutil.virtual_memory()
 #
         print "Building trajectories for predicted data"
         predictor = TrackPrediction(options.plate, well, settings,new_cecog_files=bool(options.cecog_file))
@@ -391,4 +451,12 @@ THEN it doesn't replace the first $ww with
             
         if settings.removeTempFiles:
             shutil.rmtree(os.path.join(outputFolder, 'temp'))
+            
+            
+    elif options.choice==1:
+        print "We are going to write xml files from predicted trajectories"
+        TrackPrediction.writeTracks(inputFolder=settings.outputFolder, plate=options.plate, all_=settings.all_trajectory_xml, intensity_qc_file=settings.intensity_qc_file,
+                                     feature_filename=settings.feature_filename)
+        
+        
             

@@ -533,62 +533,10 @@ def writeTracks(plate, inputFolder='/media/lalil0u/New/projects/Xb_screen/dry_la
                 feature_filename='hist_tabFeatures'):
     '''
     To produce annotated tracklets, either all tracklets (option all_=True) or only those used for feature extraction (option all=False)
+    
+    FUNCTION MOVED TO TRACKING.TRAJPACK.EFFICIENT_TRACK_PREDICTION
     '''
     
-    if intensity_qc_file is not None:
-        f=open(intensity_qc_file, 'r')
-        intensity_qc_dict=pickle.load(f); f.close()
-        intensity_qc_dict=None if plate not in intensity_qc_dict else intensity_qc_dict[plate]
-    
-    if 'tracking_annotations' not in os.listdir(inputFolder):
-        os.mkdir(os.path.join(inputFolder, 'tracking_annotations'))
-    if 'annotations' not in os.listdir(os.path.join(inputFolder, 'tracking_annotations')):
-        os.mkdir(os.path.join(os.path.join(inputFolder, 'tracking_annotations', 'annotations')))
-    
-    if all_:
-        well_files = filter(lambda x: 'traj_noF_densities' in x, os.listdir(os.path.join(inputFolder, plate)))
-        rang=3
-    else:
-        well_files = filter(lambda x: feature_filename in x, os.listdir(os.path.join(inputFolder, plate)))
-        rang=2
-    for file_ in well_files:
-        well_num=int(file_.split('_')[rang][1:])
-        well = '{:>05}_01'.format(well_num)
-        
-        nomFichier = "PL"+plate+"___P"+well+"___T00001.xml"
-        nomFichier = os.path.join(inputFolder, outputFolder, nomFichier)
-
-        if all_:
-            raise
-#            f=open(os.path.join(inputFolder, plate, file_), 'r')
-#            d=pickle.load(f); f.close()
-#            ensTraj = d[plate][well]
-#            coord = sortiesAll(nomFichier, ensTraj)
-        else:
-            f=open(os.path.join(inputFolder, plate, file_), 'r')
-            _,coord,_=pickle.load(f); f.close()
-            
-            compteur =1
-            fichierX = open(nomFichier, "w")
-            fichierX.write(initXml())
-            if intensity_qc_dict is not None and well_num in intensity_qc_dict:
-                frames_to_skip = intensity_qc_dict[well_num]
-            else:
-                frames_to_skip=None
-
-            for lstPoints in coord:
-                frameL=lstPoints[0]; X=lstPoints[1]; Y=lstPoints[2]
-                d={(frameL[k]+len(np.where(frames_to_skip<=frameL[k])[0]),0):(X[k], Y[k]) for k in range(len(frameL))}
-                txt, coord = ecrireXml(compteur,d, True)
-                fichierX.write(txt)
-                compteur+=1
-                if compteur>1600:
-                    break
-        
-            fichierX.write(finirXml())
-            fichierX.close()
-            print 'finally ', compteur, 'trajectories'
-        
     return
 
 def featureEvolOverTime(dicT, outputFolder, verbose, movie_length,xenobiotic, plot=False,

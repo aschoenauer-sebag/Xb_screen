@@ -155,13 +155,13 @@ def importRawSegFromHDF5(filename, plaque, puits, old = False, secondary=False, 
         well = puits[:-3]
         position = puits[-1]
     else:
-        well=separating_function(puits)[0]
-        position=separating_function(puits)[1]
+        well=puits.split('_')[0]
+        position=separating_function(puits)
 
     pathObjects = "/sample/0/plate/{}/experiment/{}/position/{}/object/{}".format(plaque, well, position, name_primary_channel)
-    pathFeatures = "/sample/0/plate/"+plaque+"/experiment/"+well+"/position/"+position+"/feature/{}/object_features".format(name_primary_channel)
-    pathCenters = "/sample/0/plate/"+plaque+"/experiment/"+well+"/position/"+position+"/feature/{}/center".format(name_primary_channel)
-    pathOrientation = "/sample/0/plate/"+plaque+"/experiment/"+well+"/position/"+position+"/feature/{}/orientation".format(name_primary_channel)
+    pathFeatures = "/sample/0/plate/{}/experiment/{}/position/{}/feature/{}/object_features".format(plaque, well, position, name_primary_channel)
+    pathCenters = "/sample/0/plate/{}/experiment/{}/position/{}/feature/{}/center".format(plaque, well, position, name_primary_channel)
+    pathOrientation = "/sample/0/plate/{}/experiment/{}/position/{}/feature/{}/orientation".format(plaque, well, position, name_primary_channel)
     #not loading segmentation nor raw data since we only use the features that are computed by Cell Cognition
     print pathObjects, filename
     tabObjects = vi.readHDF5(filename, pathObjects)
