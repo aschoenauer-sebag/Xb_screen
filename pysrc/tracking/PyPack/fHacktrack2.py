@@ -252,11 +252,12 @@ def sortiesCarre(nomFichier, ensembleTraj):
     fichierX.close()
     return
 
-def sortiesAll(nomFichier, ensembleTraj):
+def sortiesAll(filename, ensembleTraj):
 #pour sortir toutes les predictions Cecog
     compteur =1
     ecrites = []
-    fichierX = open(nomFichier, "w")
+    print filename
+    fichierX = open(filename, "w")
     fichierX.write(initXml())
     
     for trajectoire in ensembleTraj.lstTraj:

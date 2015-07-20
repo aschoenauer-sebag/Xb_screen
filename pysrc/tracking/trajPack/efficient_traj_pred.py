@@ -7,13 +7,12 @@ import numpy as np
 from tracking.importPack.imp import importRawSegFromHDF5, frameLots
 from tracking.dataPack import classify, joining
 from tracking.PyPack.fHacktrack2 import initXml, ecrireXml, finirXml, sortiesAll
-from tracking.trajPack.trajFeatures import trackletBuilder
+from tracking.trajPack.trajFeatures import trackletBuilder, histogramPreparationFromTracklets
 from util.settings import Settings
 import psutil
 
 class TrackPrediction(object):
-    def __init__(self, plate, w, settings,# loadingFolder, dataFolder, outputFolder, training = False, first=True, 
-                 new_cecog_files=False):#, intensity_qc_dict=None, separating_function=None):
+    def __init__(self, plate, w, settings, new_cecog_files=False):
         self.plate=plate
         self.well = w
         
@@ -23,9 +22,8 @@ class TrackPrediction(object):
         self.dataFolder=os.path.join(self.settings.dataFolder, plate, 'hdf5')
         
     def _getIntensityQC(self):
-        if 'LT' in self.plate:
-            intensity_qc_dict=None
-        else:
+        intensity_qc_dict=None
+        if self.settings.intensity_qc_file is not None:
             w=int(self.well.split('_')[0])
             print "Loading manual and out of focus qc files"
             f=open('../data/xb_manual_qc.pkl', 'r')
@@ -209,42 +207,35 @@ class TrackPrediction(object):
             
         return trackletBuilder(totalSolutions, self.settings.outputFolder, training=self.settings.training)
     
-    @staticmethod
-    def writeTracks(self,inputFolder, plate,
-        #outputFolder='tracking_annotations/annotations', 
-        all_=False, intensity_qc_file=None,
-        feature_filename='hist_tabFeatures'):
+    def writeTracks(self):
         '''
         To produce annotated tracklets, either all tracklets (option all_=True) or only those used for feature extraction (option all=False)
         '''
-        
         intensity_qc_dict = self._getIntensityQC()
         
-        if 'tracking_annotations' not in os.listdir(inputFolder):
-            os.mkdir(os.path.join(inputFolder, 'tracking_annotations'))
-        if 'annotations' not in os.listdir(os.path.join(inputFolder, 'tracking_annotations')):
-            os.mkdir(os.path.join(os.path.join(inputFolder, 'tracking_annotations', 'annotations')))
+        if 'tracking_annotations' not in os.listdir(self.settings.outputFolder):
+            os.mkdir(os.path.join(self.settings.outputFolder, 'tracking_annotations'))
+        if 'annotations' not in os.listdir(os.path.join(self.settings.outputFolder, 'tracking_annotations')):
+            os.mkdir(os.path.join(os.path.join(self.settings.outputFolder, 'tracking_annotations', 'annotations')))
         
-        if all_:
-            well_files = filter(lambda x: 'traj_noF_densities' in x, os.listdir(os.path.join(inputFolder, plate)))
-            rang=3
+        if self.settings.all_trajectory_xml:
+            well_files = filter(lambda x: self.settings.traj_filename.split('{}')[0] in x, os.listdir(os.path.join(self.settings.outputFolder, self.plate)))
         else:
-            well_files = filter(lambda x: feature_filename in x, os.listdir(os.path.join(inputFolder, plate)))
-            rang=2
+            well_files = filter(lambda x: self.settings.feature_filename.split('{}')[0] in x, os.listdir(os.path.join(self.settings.outputFolder, self.plate)))
         for file_ in well_files:
-            well_num=int(file_.split('_')[rang][1:])
+            well_num=int(file_.split('_')[2][1:])
             well = '{:>05}_01'.format(well_num)
             
-            nomFichier = "PL"+plate+"___P"+well+"___T00001.xml"
-            nomFichier = os.path.join(inputFolder, outputFolder, nomFichier)
+            nomFichier = "PL"+self.plate+"___P"+well+"___T00001.xml"
+            nomFichier = os.path.join(self.settings.outputFolder,'tracking_annotations', 'annotations', nomFichier)
     
-            if all_:
-                f=open(os.path.join(inputFolder, plate, file_), 'r')
+            if self.settings.all_trajectory_xml:
+                f=open(os.path.join(self.settings.outputFolder, self.plate, file_), 'r')
                 d=pickle.load(f); f.close()
-                ensTraj = d['tracklets dictionary'][plate][well]
+                ensTraj = d['tracklets dictionary'][self.plate][well]
                 _ = sortiesAll(nomFichier, ensTraj)
             else:
-                f=open(os.path.join(inputFolder, plate, file_), 'r')
+                f=open(os.path.join(self.settings.outputFolder, self.plate, file_), 'r')
                 _,coord,_=pickle.load(f); f.close()
                 
                 compteur =1
@@ -326,25 +317,21 @@ THEN it doesn't replace the first $ww with
     if not os.path.isdir(outputFolder):
         os.mkdir(outputFolder)
         
-#    fi=settings.traj_filename.format(options.well)
-        
+    fi=settings.traj_filename.format(options.well)
+    fi_trajfeatures = settings.feature_filename.format(options.well.split('.')[0])
+                                                       
     if options.simulated:
         settings.training=True
         outputFolder = os.path.join('../resultData/simulated_traj/simres/plates', options.plate)
         fi='{}--{}.pickle'.format(options.plate, options.well)
     
-    try:
-        os.mkdir(outputFolder)
-    except OSError:
-        print "Folder ", outputFolder, 'already created'
-    
     if not settings.repeat:
-        if not options.choice and fi in os.listdir(outputFolder):
+        if options.choice==0 and fi in os.listdir(outputFolder):
             print "Trajectories already generated"
             sys.exit()
-#         elif options.choice and fi_trajfeatures in os.listdir(outputFolder):
-#             print "Trajectories features already calculated"
-#             sys.exit()
+        elif options.choice==2 and fi_trajfeatures in os.listdir(outputFolder):
+            print "Trajectories features already calculated"
+            sys.exit()
     
     print options.cecog_file
     if options.choice==0: 
@@ -420,9 +407,6 @@ THEN it doesn't replace the first $ww with
                 #Cleaning the solution before saving it because otherwise it's very heavy, and there's a lot of info used for prediction that
                 #we're not going to need again when building tracks
                 
-#TODO ask Nelle the elegant way to do this fonction cachee __set__ ou __setattribute__?
-#                 for attribute in ['constraints', 'events', 'features', 'hypotheses']:
-                
                 for solution, _ in new_sol:
                     solution.result =filter(lambda x: x[1]==1, zip(solution.hypotheses, solution.truth))
                     
@@ -455,8 +439,35 @@ THEN it doesn't replace the first $ww with
             
     elif options.choice==1:
         print "We are going to write xml files from predicted trajectories"
-        TrackPrediction.writeTracks(inputFolder=settings.outputFolder, plate=options.plate, all_=settings.all_trajectory_xml, intensity_qc_file=settings.intensity_qc_file,
-                                     feature_filename=settings.feature_filename)
+        predictor = TrackPrediction(options.plate, None, settings,new_cecog_files=bool(options.cecog_file))
+        predictor.writeTracks()
+        
+    elif options.choice==2:
+        print "### \n # \n ###\n  We are going to compute features from existing trajectories for plate {}\n Adding density information".format(options.plate)
+        try:
+            filename = os.path.join(outputFolder, fi)
+            f=open(filename, 'r')
+            dataDict = pickle.load(f)
+            f.close()
+        except:
+            sys.stderr.write('Folder {} does not contain densities trajectories file.'.format(outputFolder))
+            sys.exit()
+                    
+        else:
+            if not options.simulated:
+                d,c, movie_length = dataDict['tracklets dictionary'], dataDict['connexions between tracklets'], dataDict['movie_length']
+                res = histogramPreparationFromTracklets(d, c, outputFolder, False, verbose, movie_length, name=fi_trajfeatures,
+                                                        filtering_fusion=settings.filtering_fusion) 
+            else:
+                raise AttributeError
+#                 d=ensTraj()
+#                 for traj in dataDict:
+#                     t = trajectoire(1, xi=None, yi=None, frame=None, idC=None, id=1)
+#                     t.lstPoints = traj
+#                     d.lstTraj.append(t)
+#                 res=histogramPreparationFromTracklets({options.plate : {options.well : d}}, None, 
+#                                                       outputFolder,training =True, verbose=verbose, movie_length={options.plate : {options.well :99}}, 
+#                                                       name=fi_trajfeatures)  #(d,c, outputFolder, False, verbose, tab=True, length=movie_length)
         
         
             
