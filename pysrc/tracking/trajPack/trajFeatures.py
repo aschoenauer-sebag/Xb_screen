@@ -396,7 +396,7 @@ def computingHisto(traj, average, movie_start, verbose, a,d, training):
     
 #also keeping raw coordinates in case i want to do smt with cell visualization in cell cognition - but also deleting mitosis related moves to be able to link this info
 #with features
-    raw_t = list(t)    
+    raw_t = np.array(l)
     raw_X = np.array(X)
     raw_Y = np.array(Y)
     raw_t, raw_X, raw_Y = filter_mitosis_related_moves(raw_t, raw_X, raw_Y,a,d)
