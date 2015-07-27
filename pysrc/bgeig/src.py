@@ -3,12 +3,66 @@ import numpy as np
 import cPickle as pickle
 import vigra.impex as vi
 from optparse import OptionParser
-
+import matplotlib.pyplot as p
 
 from tracking.PyPack.fHacktrack2 import initXml, ecrireXml, finirXml
 from util.settings import Settings
 from collections import defaultdict, Counter
+from _collections import deque
 
+couleurs=['black', 'orange', 'blue', 'red', 'green', 'purple', 'pink']
+y_lim={'nucleus_area':(0,500),
+       'cell_area':(0,5000),
+       'nuclear_pos_ratio':(0,1),
+       'nuclear_axial_ratio':(0,1),
+       'cell_axial_ratio':(0,1),
+       'nuclear_pos_max':(0,200),
+       'nuclear_pos_min':(0,100),
+       }
+
+def visualization(setting_file='bgeig/settings/settings_bgeig.py'):
+    settings=Settings(setting_file, globals())
+    f=open(os.path.join(settings.outputFolder, 'dict_nuclei_sharpmov_10pixelmin.pkl'))
+    sharp=pickle.load(f)
+    f.close()
+    
+    f=open(os.path.join(settings.outputFolder, 'dict_track_contact.pkl'))
+    contact=pickle.load(f); f.close()
+    
+    plates=os.listdir(settings.dataFolder)
+    wells=['{:>05}_01'.format(k) for k in range(21, 25)]
+    
+    for plate in plates:
+        for well in wells:
+            currSharp=sharp[plate][well]
+            currContact=contact[plate][well]
+            
+            f=open(os.path.join(settings.outputFolder, plate, settings.outputFile.format(well+'.ch5')))
+            d=pickle.load(f)
+            f.close()
+            
+            for track_id in currSharp:
+                print track_id,
+                debut = currSharp[track_id][0]
+                
+                f,axes=p.subplots(2,4,figsize=(24,12))
+                
+                for i,el in enumerate(d.keys()):
+                    axes.flatten()[i].plot(range(len(d[el][track_id])),d[el][track_id], color=couleurs[i], label=el)
+                    axes.flatten()[i].set_ylim(y_lim[el])
+                    
+                    for frame in currContact[track_id]:
+                        axes.flatten()[i].axvline(x=frame-debut, color='red', ls='-.', linewidth=3)
+                    for s in currSharp[track_id][1:]:
+                        axes.flatten()[i].axvline(x=s-debut, color='green', ls='--')
+                        
+                    axes.flatten()[i].legend()
+                axes.flatten()[i].set_title("{} {} {}".format(plate, well, track_id))
+                p.savefig(os.path.join(settings.outputFolder, plate, settings.figname.format(well, track_id)))
+                p.close('all')
+                
+    return
+                
 def imageRenaming(folder):
     currFolder=os.getcwd()
     os.chdir(folder)
@@ -58,22 +112,30 @@ def findingSharpMovementDistribution(setting_file='bgeig/settings/settings_bgeig
                 
     return result
 
-def findingSharpMovements(setting_file='bgeig/settings/settings_bgeig.py', measure='turningangle', speed_filter=10):
+def findingSharpMovements(setting_file='bgeig/settings/settings_bgeig.py', measure='turningangle', 
+                          speed_filter=10, nocontact=True):
     settings=Settings(setting_file, globals())
     
     f=open(settings.dict_corresp_nuclei_cyto)
     dict_corresp=pickle.load(f); f.close()
     
     plates=os.listdir(settings.dataFolder)
+    sharp={}; contact={}
+    
     for plate in plates:
         print '-----', plate, '<br>'
         wells=['{:>05}_01'.format(k) for k in range(21, 25)]
+        sharp[plate]={}; contact[plate]={}
+        
         for well in wells:
             print well, '<br>'
-            contact=0
-            not_contact=0
+            sharp[plate][well]=defaultdict(list)
+            contact[plate][well]=defaultdict(list)
+            
+            contact_count=0; not_contact=0
+            
             f=open(os.path.join(settings.outputFolder, plate, settings.feature_filename.format(well)))
-            arr, coord, hist=pickle.load(f); f.close()
+            _, coord, hist, id_list=pickle.load(f); f.close()
             
             nomFichier = "PL"+plate+"___P"+well+"___T00001.xml"
             nomFichier = os.path.join(settings.outputFolder,'sharp_mov', 'annotations', nomFichier)
@@ -87,34 +149,46 @@ def findingSharpMovements(setting_file='bgeig/settings/settings_bgeig.py', measu
                     if wh_.shape[0]==0:
                         continue
                     d={}
-                    
+                    id_=id_list[i]
                     currcoord=np.array(zip(*coord[i]))
-
-                    for index in wh_:
+                    sharp[plate][well][id_].append(currcoord[0][0][0])
+                    
+                    for index in range(len(el)):
                         el=currcoord[index]
                         im, cell_id=el[0]
-                        try:
-                            previous_im, previous_id = currcoord[index-1][0]
-                        except IndexError:
-                            previous_im=im
-                            previous_id=cell_id
-                        try:
-                            next_im, next_id = currcoord[index+1][0]
-                        except IndexError:
-                            next_im=im
-                            next_id=cell_id
-                        
                         corresp_cytoplasm = dict_corresp[plate][well][im][cell_id]
-                        previous_cytoplasm = dict_corresp[plate][well][previous_im][previous_id]
-                        next_cytoplasm=dict_corresp[plate][well][next_im][next_id]
-                        
-                        if Counter(dict_corresp[plate][well][im].values())[corresp_cytoplasm]==1\
-                            and Counter(dict_corresp[plate][well][previous_im].values())[previous_cytoplasm]==1\
-                            and Counter(dict_corresp[plate][well][next_im].values())[next_cytoplasm]==1:
-                            d[tuple(el[0])]=(el[1], el[2])
-                            not_contact+=1
-                        else:
-                            contact+=1
+                        if Counter(dict_corresp[plate][well][im].values())[corresp_cytoplasm]>1:
+                            contact[plate][well][id_].append(im)
+                            
+                        if index in wh_:                        
+                            sharp[plate][well][id_].append(im)
+                            
+                            if nocontact:
+                                try:
+                                    previous_im, previous_id = currcoord[index-1][0]
+                                except IndexError:
+                                    previous_im=im
+                                    previous_id=cell_id
+                                try:
+                                    next_im, next_id = currcoord[index+1][0]
+                                except IndexError:
+                                    next_im=im
+                                    next_id=cell_id
+                                
+                                previous_cytoplasm = dict_corresp[plate][well][previous_im][previous_id]
+                                next_cytoplasm=dict_corresp[plate][well][next_im][next_id]
+                                
+                                test = Counter(dict_corresp[plate][well][im].values())[corresp_cytoplasm]==1\
+                                and Counter(dict_corresp[plate][well][previous_im].values())[previous_cytoplasm]==1\
+                                and Counter(dict_corresp[plate][well][next_im].values())[next_cytoplasm]==1
+                            else:
+                                test=True
+                            
+                            if test:
+                                d[tuple(el[0])]=(el[1], el[2])
+                                not_contact+=1
+                            else:
+                                contact_count+=1
                             
                     txt, _ = ecrireXml(compteur,d, True)
                     fichierX.write(txt)
@@ -122,10 +196,10 @@ def findingSharpMovements(setting_file='bgeig/settings/settings_bgeig.py', measu
             
             fichierX.write(finirXml())
             fichierX.close()
-            print 'Cells with sharp movements + contact', contact, '<br>'
+            print 'Cells with sharp movements + contact', contact_count, '<br>'
             print 'Cells with sharp movements + alone', not_contact, '<br>'
                 
-    return
+    return sharp, contact
 
 def findingCellsInContact(setting_file='bgeig/settings/settings_bgeig.py'):
     settings=Settings(setting_file, globals())
@@ -204,43 +278,6 @@ class geigTrackExtraction(object):
         #self.movie_length = m[self.plate][self.well]
         return t[self.plate][self.well.split('.')[0]], c[self.plate][self.well.split('.')[0]]
     
-#     def _completeConnexions(self, complete_tracks, tracklets, connexions):
-#         '''
-#         Here we're interested in getting objects ids when they're complete tracks.
-#         
-#         In result we are going to have {object_id : [mom_id, me_id at first frame, me_id at last frame, children id (1,2 or 3) ]
-#         In siblings we are going to have {object_id : siblings id (1 or 2), appearing also at my first frame}.
-#         '''
-#         result = {el :[] for el in complete_tracks}; siblings={}
-#         
-#         c= {im:{el: connexions[im][el] for el in connexions[im] if el[0] in complete_tracks or 
-#                 np.any([ww in complete_tracks for ww in connexions[im][el]])} for im in connexions}
-#         c= {im:c[im] for im in filter(lambda x: c[x]!={},c)}
-#         
-#         for im in sorted(c):
-#             for el in c[im]:
-#                 try:
-#                     traj=filter(lambda x:x.id==el[0], tracklets.lstTraj)[0]
-#                 except IndexError:
-#                     pdb.set_trace()
-#                 else:
-#                     sorted_mom_points = sorted(traj.lstPoints.keys(), key=lambda tup:tup[0])
-# #                     if el[0] in complete_tracks:
-# #                         assert(len(result[el[0]])==1)
-# #                         result[el[0]].extend((sorted_mom_points[0], sorted_mom_points[-1]))
-#                 
-#                 sorted_child_points= {outEl: sorted(filter(lambda x:x.id==outEl, tracklets.lstTraj)[0].lstPoints.keys(), 
-#                                                     key=lambda tup:tup[0]) for outEl in c[im][el]}
-#                 for outEl in c[im][el]:
-#                     if el[0] in complete_tracks:
-#                         result[el[0]].append(sorted_child_points[outEl][0])
-#                     if outEl in complete_tracks:
-#                         result[outEl].append(sorted_mom_points[-1])
-#                         result[outEl].extend((sorted_child_points[outEl][0], sorted_child_points[outEl][-1]))
-#                     #ici je mets l'id des siblings de outEl pour pouvoir faire le bon crop
-#                         siblings[outEl]=[sorted_child_points[sibling][0][1] for sibling in c[im][el] if sibling !=outEl]
-#                             
-#         return result, siblings
     
     def findConnexions(self, tracklets, connexions):
         '''
@@ -297,28 +334,38 @@ class geigTrackExtraction(object):
                 features =vi.readHDF5(file_, path_features.format(objective['channel']))
                 tab=features[:,np.where(feature_names['name']==objective['feature'])[0]]
                 for track in tracklets:  
-                    result[objective['name']][track.id]=self._getObjective(objective, objects, tab, track, 
-                                channel=objective['channel'])
-            else:
-                tabs={}
+                    result[objective['name']][track.id]=self._getObjective(objects, tab, track, 
+                                channel=objective['channel'])[:,0,0]
+            elif objective['name'] in ['nuclear_pos_min', 'nuclear_pos_max']:
+                tabs=defaultdict(dict)
 #meaning we're going to actually do calculations on extracted tables
                 for el in objective['feature']:
-#                     if el in feature_names['name']:
-#                         tabs[el]=features[:,np.where(feature_names['name']==el)[0]]
                     if el=='center':
-                        tabs[el]=vi.readHDF5(file_, path_centers.format('secondary__primary3'))
+                        
+                        objects = vi.readHDF5(file_, path_objects.format('secondary__primary3'))
+                        center_=vi.readHDF5(file_, path_centers.format('secondary__primary3'))
+                        
+                        for track in tracklets:
+                            tabs[track.id][el]=self._getObjective(objects, center_, track, channel='secondary__primary3')
+                            
                     elif el=='bounding_box':
-                        tabs[el]=vi.readHDF5(file_, path_boundingBox.format('primary__primary3'))
+                        objects = vi.readHDF5(file_, path_objects.format('primary__primary3'))
+                        bb_=vi.readHDF5(file_, path_boundingBox.format('primary__primary3'))
+                        
+                        for track in tracklets:
+                            tabs[track.id][el]=self._getObjective(objects, bb_, track, channel='primary__primary3')
+                        
                     else:
                         raise ValueError
-                tab = objective['function'](tabs)
+                
+                result[objective['name']] = {el :objective['function'](tabs[el]) for el in sorted(tabs.keys())} 
         
         for track_id in result['nuclear_pos_min']:
-            result['nuclear_pos_ratio'][track_id]=result['nuclear_pos_min'][track_id]/float(result['nuclear_pos_max'][track_id])
+            result['nuclear_pos_ratio'][track_id]=result['nuclear_pos_min'][track_id]/result['nuclear_pos_max'][track_id]
 
         return result
     
-    def _getObjective(self, objective, objects, tab, traj, channel):
+    def _getObjective(self, objects, tab, traj, channel):
         result=[]
         
         if channel=='primary__primary3' or channel=='tertiary__expanded':

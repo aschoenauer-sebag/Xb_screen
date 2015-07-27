@@ -12,6 +12,7 @@ all_trajectory_xml=True
 
 feature_filename='features_intQC_{}.pkl'
 outputFile = 'bgeig_features_{}.pkl' 
+figname='evolution_features_{}_{}.png'
 
 training = False
 predict = True
@@ -71,13 +72,21 @@ objective = [
     #NUCLEAR POSITION WITH RESPECT TO NUCLEUS
              {'name':'nuclear_pos_min',
               'feature':['bounding_box','center'],
-              'function': lambda x: min(x['bounding_box']['left']-x['center']['x'], x['bounding_box']['right']-x['center']['x'],
-                                        x['bounding_box']['top']-x['center']['y'], x['bounding_box']['bottom']-x['center']['y'])
+              'function': lambda x: np.minimum(
+                                           np.minimum(np.fabs(x['bounding_box']['left']-x['center']['x'])[:,0], 
+                                                      np.fabs(x['bounding_box']['right']-x['center']['x'])[:,0]),
+                                           np.minimum(np.fabs(x['bounding_box']['top']-x['center']['y'])[:,0],  
+                                                      np.fabs(x['bounding_box']['bottom']-x['center']['y'])[:,0])
+                                           )
               },
              {'name':'nuclear_pos_max',
               'feature':['bounding_box','center'],
-              'function': lambda x: max(x['bounding_box']['left']-x['center']['x'], x['bounding_box']['right']-x['center']['x'],
-                                        x['bounding_box']['top']-x['center']['y'], x['bounding_box']['bottom']-x['center']['y'])
+              'function': lambda x: np.maximum(
+                                           np.maximum(np.fabs(x['bounding_box']['left']-x['center']['x'])[:,0], 
+                                                      np.fabs(x['bounding_box']['right']-x['center']['x'])[:,0]),
+                                           np.maximum(np.fabs(x['bounding_box']['top']-x['center']['y'])[:,0],  
+                                                      np.fabs(x['bounding_box']['bottom']-x['center']['y'])[:,0])
+                                           )
               },
              {'name':'nuclear_pos_ratio',
               'feature':['nuclear_pos_max','nuclear_pos_min'],

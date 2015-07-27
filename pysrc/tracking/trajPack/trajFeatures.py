@@ -678,7 +678,7 @@ def computingDensity(track):
 def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, verbose, movie_length, name, filtering_fusion=True,
                                       time_window=None, time_lapse=4):
     print 'histogram version'
-    coord=[]; tabF={}
+    coord=[]; tabF={}; id_list=[]
 
     if filtering_fusion:
         track_filter= (lambda x: x.fusion !=True and len(x.lstPoints)>11)
@@ -752,7 +752,7 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
                 trackDensity = computingDensity(track).flatten() if not training else [4]
                 arr.extend(trackDensity)
                 arr=np.array(arr, dtype=float)
-                coord.append(rawCoordC)
+                coord.append(rawCoordC); id_list.append(track.id)
                 tabFeatures = arr if tabFeatures==None else np.vstack((tabFeatures, arr))
                 for nom in histNC:
                     histNC[nom].append(histN[nom])
@@ -761,7 +761,7 @@ def histogramPreparationFromTracklets(dicT, connexions, outputFolder, training, 
                     #r[plate][well].append(featuredTraj(track.id, labelsSequence, min(t)[0], max(t)[0], track.numCellule, features=None))
     
             f=open(os.path.join(outputFolder, name), 'w')
-            pickle.dump([tabFeatures, coord, histNC], f)
+            pickle.dump([tabFeatures, coord, histNC, id_list], f)
             f.close()    
             tabF[plate][well]=tabFeatures
             
