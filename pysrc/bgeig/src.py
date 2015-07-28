@@ -4,6 +4,9 @@ import cPickle as pickle
 import vigra.impex as vi
 from optparse import OptionParser
 import matplotlib.pyplot as p
+from operator import itemgetter
+from vigra import VigraArray
+from skimage.draw import line_aa
 
 from tracking.PyPack.fHacktrack2 import initXml, ecrireXml, finirXml
 from util.settings import Settings
@@ -48,13 +51,13 @@ def visualization(setting_file='bgeig/settings/settings_bgeig.py'):
                 f,axes=p.subplots(2,4,figsize=(24,12))
                 
                 for i,el in enumerate(d.keys()):
-                    axes.flatten()[i].plot(range(len(d[el][track_id])),d[el][track_id], color=couleurs[i], label=el)
+                    axes.flatten()[i].plot(range(debut, debut+len(d[el][track_id])),d[el][track_id], color=couleurs[i], label=el)
                     axes.flatten()[i].set_ylim(y_lim[el])
                     
                     for frame in currContact[track_id]:
-                        axes.flatten()[i].axvline(x=frame-debut, color='red', ls='-.', linewidth=3)
+                        axes.flatten()[i].axvline(x=frame, color='red', ls='-.', linewidth=3)
                     for s in currSharp[track_id][1:]:
-                        axes.flatten()[i].axvline(x=s-debut, color='green', ls='--')
+                        axes.flatten()[i].axvline(x=s, color='green', ls='--')
                         
                     axes.flatten()[i].legend()
                 axes.flatten()[i].set_title("{} {} {}".format(plate, well, track_id))
@@ -153,6 +156,8 @@ def findingSharpMovements(setting_file='bgeig/settings/settings_bgeig.py', measu
                     currcoord=np.array(zip(*coord[i]))
                     sharp[plate][well][id_].append(currcoord[0][0][0])
                     
+                    assert(len(el)==len(currcoord)-2)
+                    
                     for index in range(len(el)):
                         el=currcoord[index]
                         im, cell_id=el[0]
@@ -198,7 +203,8 @@ def findingSharpMovements(setting_file='bgeig/settings/settings_bgeig.py', measu
             fichierX.close()
             print 'Cells with sharp movements + contact', contact_count, '<br>'
             print 'Cells with sharp movements + alone', not_contact, '<br>'
-                
+#So if I'm looking for the track ids that contain at least one sharp movement 
+#I should be able to find it in the dictionary sharp which is saved in projects/Geiger/results/dict_nuclei_sharpmov_10pixelmin.pkl
     return sharp, contact
 
 def findingCellsInContact(setting_file='bgeig/settings/settings_bgeig.py'):
@@ -277,32 +283,6 @@ class geigTrackExtraction(object):
     
         #self.movie_length = m[self.plate][self.well]
         return t[self.plate][self.well.split('.')[0]], c[self.plate][self.well.split('.')[0]]
-    
-    
-    def findConnexions(self, tracklets, connexions):
-        '''
-        Maybe we'll use this info, dunno yet
-        
-        '''
-        children=[]; mothers=[]
-        for im in connexions:
-            for el in filter(lambda x: len(connexions[im][x]) in [2,3] and x!=(-1,), connexions[im]):
-                mothers.extend(el)
-                children.extend(connexions[im][el])
-    #ids of complete tracks
-        complete_tracks = filter(lambda x: x in mothers, children)
-        c_result, c_siblings = self._completeConnexions(complete_tracks, tracklets, connexions)
-        
-    #looking at other tracks if we want to, according to settings file
-        if self.settings.not_ending_track:
-            incomplete_tracks = filter(lambda y: sorted(filter(lambda x:x.id==y, tracklets.lstTraj)[0].lstPoints.keys(), 
-                                                        key=lambda tup:tup[0])[-1][0]==self.movie_length-1, children)
-            i_result, i_siblings = self._incompleteConnexions(incomplete_tracks, tracklets, connexions)
-            
-        else:
-            i_result, i_siblings=None, None
-            
-        return c_result, c_siblings, i_result, i_siblings
         
     def getObjective(self,objectives, tracklets):
         '''
@@ -380,12 +360,12 @@ class geigTrackExtraction(object):
             
         return np.array(result)
         
-    def _findFolder(self):
-        if self.settings.new_h5:
-            folderName="W{}".format(self.well)
-        else:
-            folderName = filter(lambda x: self.well.split('_')[0][2:]==x[:3], os.listdir(os.path.join(self.settings.rawDataFolder, self.plate)))[0]
-        return folderName
+#     def _findFolder(self):
+#         if self.settings.new_h5:
+#             folderName="W{}".format(self.well)
+#         else:
+#             folderName = filter(lambda x: self.well.split('_')[0][2:]==x[:3], os.listdir(os.path.join(self.settings.rawDataFolder, self.plate)))[0]
+#         return folderName
             
     def _newImageSize(self, crop_):
         '''
@@ -412,89 +392,96 @@ class geigTrackExtraction(object):
             
         return X,x,x__, Y,y,y__
         
-    def crop_to_sequence(self, boxes, scores):
+    def crop_to_sequence(self, track_list, currSharp):
         '''
         In the crop filename, I add the number of the image in the galerie so that they're by default ordered in time
-        '''
-        if scores==None:
-            scores=defaultdict(int)
         
-        folderName=self._findFolder()
-        for im in boxes:
-            if not self.settings.new_h5:
-                #renumbering according to mitocheck image numbering
-                local_im=30*im
-                splitting_index=0
-            else:
+        I need the bounding box of the membrane and also to use whitefield images.
+        '''
+        
+        for track in track_list:
+            id_=track.id
+            lstFrames=sorted(track.lstPoints.keys(), key=itemgetter(0))
+            rr=[]; cc=[]; val=[]; nextCoord=None
+            for i, el in enumerate(lstFrames):
+                im, cell_id=el
+                coordonnees=track.lstPoints[(im, cell_id)] if nextCoord==None else nextCoord
+                try:
+                    nextCoord=track.lstPoints[lstFrames[i+1]]
+                except IndexError:
+                    continue
+                else:
+                    r,c,v=line_aa(coordonnees[0], coordonnees[1],nextCoord[0], nextCoord[1])
+                    rr.extend(r); cc.extend(c); val.extend(v)
+                    
+            for im, cell_id in lstFrames:
                 #renumbering according to xb screen/PCNA image numbering
                 local_im=im+1
-                splitting_index=1
+                    
+                image_name= self.settings.imageFilename.format(self.well, local_im)
+                image=vi.readImage(os.path.join(self.settings.allDataFolder, self.plate, 'analyzed', self.well, 'images/tertiary_contours_expanded', image_name))
                 
-            image_name=filter(lambda x: self.settings.imageFilename.format(self.well.split('_')[splitting_index], local_im) in x, \
-                              os.listdir(os.path.join(self.settings.rawDataFolder, self.plate, folderName)))[0]
-            image=vi.readImage(os.path.join(self.settings.rawDataFolder, self.plate, folderName, image_name))
-            
-            for crop_ in boxes[im]:
-                id_, num, crop_coordinates = crop_
-                X,x,x__, Y,y,y__=self._newImageSize(crop_coordinates)
+                #X,x,x__, Y,y,y__=self._newImageSize(crop_coordinates)
+                x__=self.settings.XMAX; y__=self.settings.YMAX; x=0; y=0; X=self.settings.XMAX; Y=self.settings.YMAX
                 
-                croppedImage = vigra.VigraArray((x__, y__, 1), dtype=np.dtype('uint8'))
-                croppedImage[:,:,0]=(image[x:X, y:Y,0]-self.settings.min_)*(2**8-1)/(self.settings.max_-self.settings.min_)  
+                croppedImage = VigraArray((x__, y__, 3), dtype=np.dtype('float32'))
+                croppedImage=image[x:X, y:Y]  
+                croppedImage[rr,cc,0]=np.array(val)*255
                 vi.writeImage(croppedImage, \
-                              os.path.join(self.outputFolder, self.plate, 
-                                           self.settings.outputImage.format(scores[id_], self.plate, self.well.split('_')[0],id_, im,  num)),\
+                              os.path.join(self.outputFolder, self.plate, 'galerie',
+                                           self.settings.outputImage.format(self.plate, self.well.split('_')[0],id_, im)),\
                               dtype=np.dtype('uint8'))
                 
         return
-    
-    def crop_to_single_image(self, boxes, scores=None):
-        '''
-        In the crop filename, I add the number of the image in the galerie so that they're by default ordered in time
-        '''
-        if scores==None:
-            scores=defaultdict(int)
-            
-        new_boxes=defaultdict(list)
-        
-        folderName=self._findFolder()
-        for im in boxes:
-            if not self.settings.new_h5:
-                #renumbering according to mitocheck image numbering
-                local_im=30*im
-                splitting_index=0
-            else:
-                #renumbering according to xb screen/PCNA image numbering
-                local_im=im+1
-                splitting_index=1
-                
-            image_name=filter(lambda x: self.settings.imageFilename.format(self.well.split('_')[splitting_index], local_im) in x, \
-                              os.listdir(os.path.join(self.settings.rawDataFolder, self.plate, folderName)))[0]
-            image=vi.readImage(os.path.join(self.settings.rawDataFolder, self.plate, folderName, image_name))
-            
-            for crop_ in boxes[im]:
-                id_, num, crop_coordinates = crop_
-                X,x,x__, Y,y,y__=self._newImageSize(crop_coordinates)
-                
-                croppedImage = vigra.VigraArray((x__, y__, 1), dtype=np.dtype('uint8'))
-                croppedImage[:,:,0]=(image[x:X, y:Y,0]-self.settings.min_)*(2**8-1)/(self.settings.max_-self.settings.min_)
-                
-                new_boxes[id_].append(croppedImage)
-                
-        for id_ in new_boxes:
-            y_max = int(np.max([el.shape[1] for el in new_boxes[id_]]))
-            x_size = int(np.sum([el.shape[0] for el in new_boxes[id_]]))
-            newImage = vigra.VigraArray((x_size, y_max, 1), dtype=np.dtype('uint8'))
-            currX=0
-            for croppedImage in new_boxes[id_]:
-                newImage[currX:currX+croppedImage.shape[0], :croppedImage.shape[1], 0]=croppedImage[:,:,0]
-                currX+=croppedImage.shape[0]
-        
-            vi.writeImage(newImage, \
-                              os.path.join(self.outputFolder, self.plate, 
-                                           self.settings.outputImage.format(scores[id_], self.plate, self.well.split('_')[0],id_, 0,  0)),\
-                              dtype=np.dtype('uint8'))
-                
-        return    
+#     
+#     def crop_to_single_image(self, boxes, scores=None):
+#         '''
+#         In the crop filename, I add the number of the image in the galerie so that they're by default ordered in time
+#         '''
+#         if scores==None:
+#             scores=defaultdict(int)
+#             
+#         new_boxes=defaultdict(list)
+#         
+#         folderName=self._findFolder()
+#         for im in boxes:
+#             if not self.settings.new_h5:
+#                 #renumbering according to mitocheck image numbering
+#                 local_im=30*im
+#                 splitting_index=0
+#             else:
+#                 #renumbering according to xb screen/PCNA image numbering
+#                 local_im=im+1
+#                 splitting_index=1
+#                 
+#             image_name=filter(lambda x: self.settings.imageFilename.format(self.well.split('_')[splitting_index], local_im) in x, \
+#                               os.listdir(os.path.join(self.settings.rawDataFolder, self.plate, folderName)))[0]
+#             image=vi.readImage(os.path.join(self.settings.rawDataFolder, self.plate, folderName, image_name))
+#             
+#             for crop_ in boxes[im]:
+#                 id_, num, crop_coordinates = crop_
+#                 X,x,x__, Y,y,y__=self._newImageSize(crop_coordinates)
+#                 
+#                 croppedImage = vigra.VigraArray((x__, y__, 1), dtype=np.dtype('uint8'))
+#                 croppedImage[:,:,0]=(image[x:X, y:Y,0]-self.settings.min_)*(2**8-1)/(self.settings.max_-self.settings.min_)
+#                 
+#                 new_boxes[id_].append(croppedImage)
+#                 
+#         for id_ in new_boxes:
+#             y_max = int(np.max([el.shape[1] for el in new_boxes[id_]]))
+#             x_size = int(np.sum([el.shape[0] for el in new_boxes[id_]]))
+#             newImage = vigra.VigraArray((x_size, y_max, 1), dtype=np.dtype('uint8'))
+#             currX=0
+#             for croppedImage in new_boxes[id_]:
+#                 newImage[currX:currX+croppedImage.shape[0], :croppedImage.shape[1], 0]=croppedImage[:,:,0]
+#                 currX+=croppedImage.shape[0]
+#         
+#             vi.writeImage(newImage, \
+#                               os.path.join(self.outputFolder, self.plate, 
+#                                            self.settings.outputImage.format(scores[id_], self.plate, self.well.split('_')[0],id_, 0,  0)),\
+#                               dtype=np.dtype('uint8'))
+#                 
+#         return    
     
     
     def saveBoxes(self, boxes):
@@ -516,15 +503,42 @@ class geigTrackExtraction(object):
         return
     
     def loadTracks(self):
-        try:
-            f=open(os.path.join(self.settings.outputFolder, self.plate, self.settings.outputFile.format(self.well)), 'r')
-            d=pickle.load(f); f.close()
-        except:
-            print "Not able to load pre-existing tracks"
-            return -1
-        else:
-            return d['length'].keys()
-    
+        f=open(os.path.join(self.settings.outputFolder, self.settings.sharpMovementFile), 'r')
+        sharp=pickle.load(f); f.close()
+        
+        f=open(os.path.join(self.settings.outputFolder, self.plate, self.settings.traj_filename.format(self.well+'.ch5')), 'r')
+        d=pickle.load(f); f.close()
+#             
+#         except:
+#             print "Not able to load pre-existing tracks"
+#             return -1
+#         else:
+        currSharp=sharp[self.plate][self.well]
+            
+        return currSharp, filter(lambda x: x.id in currSharp, d['tracklets dictionary'][self.plate][self.well].lstTraj)
+        
+#     
+#     def findGaleries(self, tracklets):
+#         file_=os.path.join(self.settings.allDataFolder, self.plate, 'hdf5', "{}.ch5".format(self.well))
+#         path_objects="/sample/0/plate/{}/experiment/{}/position/1/object/primary__primary3".format(self.plate, self.well.split('_')[0])
+#         path_boundingBox="/sample/0/plate/{}/experiment/{}/position/1/feature/primary__primary3/bounding_box".format(self.plate, self.well.split('_')[0])
+# 
+#             
+#         objects = vi.readHDF5(file_, path_objects)
+#         bounding_boxes = vi.readHDF5(file_, path_boundingBox)
+#         boxes=defaultdict(list)
+#         
+#         for track in tracklets:
+#             lstFrames=sorted(track.lstPoints.keys(), key=itemgetter(0))
+#             k=0#permits to order the images
+#             
+#             for im, cell_id in lstFrames:
+#                 where_=np.where((objects['time_idx']==im)&(objects['obj_label_id']==self.dict_corresp_nuclei_cyto[im][cell_id]))
+#                 boxes[im].append((track.id, k, bounding_boxes[where_]))
+#                 k+=1
+# 
+#         return boxes        
+
     def __call__(self):
 #before anything there's no qc so we can't check that it was passed
         
@@ -540,26 +554,20 @@ class geigTrackExtraction(object):
         '''
         Exporting galerie images.
         '''
-        track_ids=-1
-        if not self.settings.redo:
-            #If fail to open existing track file, will return -1
-            track_ids = self.loadTracks()
-        if track_ids==-1:
-            track_ids = self.findObjective()
-            
-        tracklets, _ = self.load()
-        
-        tracklets=filter(lambda x: x.id in track_ids and len(x.lstPoints)>5, tracklets.lstTraj)
+        currSharp, track_lstPoints = self.loadTracks()
+
         
         if outputFolder!=None:
             self.outputFolder= outputFolder
 
-        boxes=self.findGaleries(tracklets)
         if not os.path.isdir(self.outputFolder):
             os.mkdir(self.outputFolder)
         if not os.path.isdir(os.path.join(self.outputFolder, self.plate)):
             os.mkdir(os.path.join(self.outputFolder, self.plate))
-        self.crop_to_single_image(boxes)
+        if not os.path.isdir(os.path.join(self.outputFolder, self.plate, 'galerie')):
+            os.mkdir(os.path.join(self.outputFolder, self.plate, 'galerie'))
+            
+        self.crop_to_sequence(track_lstPoints, currSharp)
         
         return
     

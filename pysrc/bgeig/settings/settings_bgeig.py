@@ -5,7 +5,16 @@ dataFolder="/media/lalil0u/New/projects/Geiger/nuclei"
 allDataFolder="/media/lalil0u/New/projects/Geiger/cytoplasmic_membrane"
     
 loadingFolder='../prediction'
-    
+
+imageFilename = "P{}_T{:>05}.jpg"
+#Normalization for the images of the galleries, opening the contour images from CellCognition which are jpg
+XMAX=683
+YMAX=474
+margin=50
+min_=0
+max_=255
+outputImage="crop_P{}_W{}_{}_t{}.png"
+
 intensity_qc_file=None
 traj_filename = 'traj_intQC_w{}.pkl'
 all_trajectory_xml=True
@@ -13,6 +22,7 @@ all_trajectory_xml=True
 feature_filename='features_intQC_{}.pkl'
 outputFile = 'bgeig_features_{}.pkl' 
 figname='evolution_features_{}_{}.png'
+sharpMovementFile='/media/lalil0u/New/projects/Geiger/results/dict_nuclei_sharpmov_10pixelmin.pkl'
 
 training = False
 predict = True
