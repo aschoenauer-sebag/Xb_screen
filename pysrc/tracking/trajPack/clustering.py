@@ -116,7 +116,8 @@ def histConcatenation(folder, exp_list, mitocheck, qc, filename = 'hist_tabFeatu
 #                        time_length.extend([len(coord[k][0]) for k in filter(lambda x: x not in toDel, range(len(coord)))])
                         for k in filter(lambda x: x not in toDel, range(len(coord))):
                             time_length.append(len(coord[k][0]))
-                            coordinates.append(np.vstack((coord[k][1], coord[k][2])).T)
+                            coordinates.append(len(toDel))
+                            #coordinates.append(np.vstack((coord[k][1], coord[k][2])).T)
                     else:
                         #if it's cell cycle length data then I have the time length
                         pass
