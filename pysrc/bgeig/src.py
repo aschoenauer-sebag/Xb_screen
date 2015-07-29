@@ -6,7 +6,7 @@ from optparse import OptionParser
 import matplotlib.pyplot as p
 from operator import itemgetter
 from vigra import VigraArray
-from skimage.draw import line_aa
+from skimage import draw
 
 from tracking.PyPack.fHacktrack2 import initXml, ecrireXml, finirXml
 from util.settings import Settings
@@ -108,7 +108,7 @@ def findingSharpMovementDistribution(setting_file='bgeig/settings/settings_bgeig
         
         for well in wells:
             f=open(os.path.join(settings.outputFolder, plate, settings.feature_filename.format(well)))
-            arr, coord, hist=pickle.load(f); f.close()
+            _, _, hist, _=pickle.load(f); f.close()
         
             for el in hist[measure]:
                 result.extend(el)
@@ -201,8 +201,8 @@ def findingSharpMovements(setting_file='bgeig/settings/settings_bgeig.py', measu
             
             fichierX.write(finirXml())
             fichierX.close()
-            print 'Cells with sharp movements + contact', contact_count, '<br>'
-            print 'Cells with sharp movements + alone', not_contact, '<br>'
+            print 'Cells with sharp movements + contact', contact_count#, '<br>'
+            print 'Cells with sharp movements + alone', not_contact#, '<br>'
 #So if I'm looking for the track ids that contain at least one sharp movement 
 #I should be able to find it in the dictionary sharp which is saved in projects/Geiger/results/dict_nuclei_sharpmov_10pixelmin.pkl
     return sharp, contact
@@ -411,12 +411,16 @@ class geigTrackExtraction(object):
                 except IndexError:
                     continue
                 else:
-                    r,c,v=line_aa(coordonnees[0], coordonnees[1],nextCoord[0], nextCoord[1])
+                    r,c,v=draw.line_aa(coordonnees[0], coordonnees[1],nextCoord[0], nextCoord[1])
                     rr.extend(r); cc.extend(c); val.extend(v)
                     
             for im, cell_id in lstFrames:
                 #renumbering according to xb screen/PCNA image numbering
                 local_im=im+1
+                
+                #draw a dot on the cell which is followed
+                cell_x, cell_y=track.lstPoints[(im, cell_id)]
+                dot_rr, dot_cc=draw.circle(cell_x, cell_y, radius=3)
                     
                 image_name= self.settings.imageFilename.format(self.well, local_im)
                 image=vi.readImage(os.path.join(self.settings.allDataFolder, self.plate, 'analyzed', self.well, 'images/tertiary_contours_expanded', image_name))
@@ -427,6 +431,16 @@ class geigTrackExtraction(object):
                 croppedImage = VigraArray((x__, y__, 3), dtype=np.dtype('float32'))
                 croppedImage=image[x:X, y:Y]  
                 croppedImage[rr,cc,0]=np.array(val)*255
+                
+        #If there is a sharp movement, the cell center is pinky red
+                if im in currSharp[id_]:
+                    croppedImage[dot_rr, dot_cc, 0]=242
+                    croppedImage[dot_rr, dot_cc, 1]=21
+                    croppedImage[dot_rr, dot_cc, 2]=58
+                else:
+        #If not, it is green
+                    croppedImage[dot_rr, dot_cc, 1]=255
+                
                 vi.writeImage(croppedImage, \
                               os.path.join(self.outputFolder, self.plate, 'galerie',
                                            self.settings.outputImage.format(self.plate, self.well.split('_')[0],id_, im)),\
