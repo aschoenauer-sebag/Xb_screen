@@ -744,7 +744,7 @@ def noRaw(arrExp, rawD):
     if 'mitocheck' in rawD:
         ind_0=0; ind_fin=3
     elif 'drug' in rawD:
-        ind_0=2; ind_fin=5
+        ind_0=3; ind_fin=6
     
     resultNoRaw=[]; resultToDo=[]; bou=0
     arrExp=np.array(arrExp)
