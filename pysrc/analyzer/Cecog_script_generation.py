@@ -196,7 +196,6 @@ cd %s""" % self.oBatchSettings.batchScriptDirectory
                 temp_cmd %= (
                         self.oBatchSettings.pythonBinary,
                         self.oBatchSettings.batchScript,
-                        #self.oBatchSettings.settingsFilename,
                         self.oBatchSettings.settingsFilename,
                         self.oBatchSettings.baseInDir,
                         self.oBatchSettings.baseOutDir,

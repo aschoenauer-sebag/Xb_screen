@@ -741,6 +741,11 @@ def noRaw(arrExp, moviesD='/share/data20T/mitocheck/compressed_data'):
     - resultToDo: experiments for which raw data exists
     '''
     
+    if 'mitocheck' in moviesD:
+        ind_0=0; ind_fin=3
+    elif 'drug' in moviesD:
+        ind_0=2; ind_fin=5
+    
     resultNoRaw=[]; resultToDo=[]; bou=0
     arrExp=np.array(arrExp)
     for k in range(arrExp.shape[0]):
@@ -748,7 +753,7 @@ def noRaw(arrExp, moviesD='/share/data20T/mitocheck/compressed_data'):
             bou+=1
         else:
             l=os.listdir(os.path.join(moviesD, arrExp[k,0]))
-            zz=filter(lambda x: arrExp[k,1][2:5]==x[:3], l)
+            zz=filter(lambda x: arrExp[k,1][2:5]==x[ind_0:ind_fin], l)
             if len(zz)==0:resultNoRaw.append(arrExp[k])
             elif len(zz)>1: raise
             else:
@@ -840,7 +845,7 @@ def countingHDF5Done(experiments,featlistonly=True, name=None,rawD='/share/data2
     '''
 
 
-    baseNames = ['{}.hdf5', 'traj_noF_densities_w{}.hdf5.pkl', featureTabName]
+    baseNames = ['{}.ch5']#, 'traj_noF_densities_w{}.hdf5.pkl', featureTabName]
     print "experiments : ", len(experiments)
     no_hdf5=[]
     no_tracking=[]; no_trajfeat =[]
@@ -848,7 +853,7 @@ def countingHDF5Done(experiments,featlistonly=True, name=None,rawD='/share/data2
     
     for line in experiments:
         for baseName in baseNames:
-            if baseName == '{}.hdf5':
+            if baseName == '{}.ch5':
 
                 if line[0] not in os.listdir(rawD) or 'hdf5' not in os.listdir(os.path.join(rawD, line[0])) or baseName.format(line[1]) not in os.listdir(os.path.join(rawD, line[0], 'hdf5')): 
                     no_hdf5.append(line)
@@ -868,9 +873,11 @@ def countingHDF5Done(experiments,featlistonly=True, name=None,rawD='/share/data2
                     
     no_hdf5=np.array(no_hdf5); no_tracking=np.array(no_tracking)
     print len(no_hdf5)
-    lt, noraw, todoraw = noRaw(no_hdf5)
+    lt, noraw, todoraw = noRaw(no_hdf5, moviesD=rawD)
+    if no_tracking==[]:
+        return
 #    
-    print noraw
+    print noraw, no_hdf5
 #    f=open("/cbio/donnees/aschoenauer/workspace2/Tracking/{}.pkl".format('rawToDo'), 'w'); pickle.dump(todo,f); f.close()
     
     lt2, noraw2, todotracking =noRaw(no_tracking)
