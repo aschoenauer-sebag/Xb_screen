@@ -727,7 +727,7 @@ def strToTuple(strList, platesList):
             result.append((pl, '{:>05}_01'.format(el[-3:])))
     return result
     
-def noRaw(arrExp, moviesD='/share/data20T/mitocheck/compressed_data'):
+def noRaw(arrExp, rawD):
     '''
     Checks the existence of raw data for a given experiment list
     
@@ -741,9 +741,9 @@ def noRaw(arrExp, moviesD='/share/data20T/mitocheck/compressed_data'):
     - resultToDo: experiments for which raw data exists
     '''
     
-    if 'mitocheck' in moviesD:
+    if 'mitocheck' in rawD:
         ind_0=0; ind_fin=3
-    elif 'drug' in moviesD:
+    elif 'drug' in rawD:
         ind_0=2; ind_fin=5
     
     resultNoRaw=[]; resultToDo=[]; bou=0
@@ -752,7 +752,7 @@ def noRaw(arrExp, moviesD='/share/data20T/mitocheck/compressed_data'):
         if 'LTValid' in arrExp[k,0]:
             bou+=1
         else:
-            l=os.listdir(os.path.join(moviesD, arrExp[k,0]))
+            l=os.listdir(os.path.join(rawD, arrExp[k,0]))
             zz=filter(lambda x: arrExp[k,1][2:5]==x[ind_0:ind_fin], l)
             if len(zz)==0:resultNoRaw.append(arrExp[k])
             elif len(zz)>1: raise
@@ -825,8 +825,11 @@ def countingClassifDone(experiments, inputDir='/share/data20T/mitocheck/Alice/re
     return nohdf5, noclassif, empty_both, shape_pbl, ok
                     
     
-def countingHDF5Done(experiments,featlistonly=True, name=None,rawD='/share/data20T/mitocheck/Alice/results',\
-                 trajD = "/share/data20T/mitocheck/tracking_results", featureTabName='hist_tabFeatures_{}.pkl'):
+def countingHDF5Done(experiments,featlistonly=True, name=None,
+                     rawD='/share/data20T/mitocheck/compressed_data',
+                     hdf5D='/share/data20T/mitocheck/Alice/results',
+                     trajD = "/share/data20T/mitocheck/tracking_results", 
+                     featureTabName='hist_tabFeatures_{}.pkl'):
     '''
     Counts of a list of experiments how many have been dealt with with regard to object feature extraction,
     cell trajectory extraction and finally trajectory feature extraction.
@@ -835,7 +838,8 @@ def countingHDF5Done(experiments,featlistonly=True, name=None,rawD='/share/data2
     - experiments: list of experiments
     - featlistonly: if the output should only be list of experiments for which trajectory features have been extracted
     - name: in case the output should be saved in a file
-    - rawD: folder where the raw data is
+    - rawD: where the images are
+    - hdf5D: folder where the hdf5 are
     - trajD: folder where the extracted trajectories are
     
     Output:
@@ -855,7 +859,8 @@ def countingHDF5Done(experiments,featlistonly=True, name=None,rawD='/share/data2
         for baseName in baseNames:
             if baseName == '{}.ch5':
 
-                if line[0] not in os.listdir(rawD) or 'hdf5' not in os.listdir(os.path.join(rawD, line[0])) or baseName.format(line[1]) not in os.listdir(os.path.join(rawD, line[0], 'hdf5')): 
+                if line[0] not in os.listdir(hdf5D) or 'hdf5' not in os.listdir(os.path.join(hdf5D, line[0]))\
+                                    or baseName.format(line[1]) not in os.listdir(os.path.join(hdf5D, line[0], 'hdf5')): 
                     no_hdf5.append(line)
                 else:
                     counthdf5+=1
@@ -873,9 +878,9 @@ def countingHDF5Done(experiments,featlistonly=True, name=None,rawD='/share/data2
                     
     no_hdf5=np.array(no_hdf5); no_tracking=np.array(no_tracking)
     print len(no_hdf5)
-    lt, noraw, todoraw = noRaw(no_hdf5, moviesD=rawD)
+    lt, noraw, todoraw = noRaw(no_hdf5, rawD=rawD)
     if no_tracking==[]:
-        return
+        return no_hdf5, noraw
 #    
     print noraw, no_hdf5
 #    f=open("/cbio/donnees/aschoenauer/workspace2/Tracking/{}.pkl".format('rawToDo'), 'w'); pickle.dump(todo,f); f.close()
