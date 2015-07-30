@@ -879,7 +879,7 @@ def countingHDF5Done(experiments,featlistonly=True, name=None,
     no_hdf5=np.array(no_hdf5); no_tracking=np.array(no_tracking)
     print len(no_hdf5)
     lt, noraw, todoraw = noRaw(no_hdf5, rawD=rawD)
-    if no_tracking==[]:
+    if no_tracking.shape[0]==0:
         return no_hdf5, noraw
 #    
     print noraw, no_hdf5
