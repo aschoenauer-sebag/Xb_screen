@@ -87,7 +87,7 @@ def makeMovie(imgDir, outDir, plate, well,clef = lambda x:int(x.split('_')[2]), 
 #        return 1
     # temp directory
     if tempDir is None:
-        tempDir = os.path.join(outDir, 'temp')
+        tempDir = os.path.join(outDir, 'temp_{}'.format(plate))
     # make output directory
     if not os.path.isdir(outDir):
         os.makedirs(outDir)
