@@ -494,7 +494,7 @@ Input:
     parser = OptionParser(usage="usage: %prog [options]",
                          description=description)
     
-    parser.add_option("-f", "--settings_file", dest="settings_file", default='phenotypes/settings/settings_pheno_seq.py',
+    parser.add_option("-f", "--settings_file", dest="settings_file", default='analyzer/settings/settings_drug_screen_thalassa.py',
                       help="Settings_file")
 
     parser.add_option("-p", "--plate", dest="plate",
@@ -508,7 +508,7 @@ Input:
     (options, args) = parser.parse_args()
     
     p=pheno_seq_extractor(options.settings_file, options.plate, options.well)
-    p()
+    p.DS_call()
     print "Done"
         
         
