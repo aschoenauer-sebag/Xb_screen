@@ -215,7 +215,7 @@ class HTMLGenerator():
                     
                 if self.classes is not None:
             #computing the percentage of out of focus nuclei on the last image
-                    result['endFlou']=result['Focus_ch1'][-1]
+                    result['endFlou']=result[self.settings.focusFeature][-1]
                 resD[plate][int(well[:-3])].update(result)
         return 1
     
