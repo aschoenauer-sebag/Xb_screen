@@ -355,16 +355,18 @@ class pheno_seq_extractor(thrivisionExtraction):
     def classificationConcatenation(self):
         path_classif="/sample/0/plate/{}/experiment/{}/position/{{}}/feature/primary__test/object_classification/prediction".format(self.plate, self.well)
         
+        result=None
+        
         for pos in [1,2]:
             classification = vi.readHDF5(self.file_.format(pos), path_classif.format(pos))
-            classification = np.bincount(classification['label_idx'], minlength=18) if classification == None\
-                    else classification + np.bincount(classification['label_idx'], minlength=18)
+            result = np.bincount(classification['label_idx'], minlength=18) if result == None\
+                    else result + np.bincount(classification['label_idx'], minlength=18)
                     
         #putting UndefinedCondensed with Apoptosis
-        classification[11]+=classification[16]
-        classification[16]=classification[17]
+        result[11]+=result[16]
+        result[16]=result[17]
         
-        return classification[:-1]
+        return result[:-1]
         
 
     def loadResults(self,exp_list):
