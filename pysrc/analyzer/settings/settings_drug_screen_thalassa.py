@@ -75,7 +75,7 @@ density_plot_settings = {
     'min_circularity': 0.1,
     'max_circularity': 0.8,
     'min_proliferation': 1, 
-    'max_proliferation': 5.0,
+    'max_proliferation': 7.0,
     'min_death': 0.1, 
     'max_death': 2.5
 }
@@ -83,7 +83,7 @@ density_plot_settings = {
 well_plot_settings={
                     'cell_count':(50, 700),
                     'circularity':(0, 0.75),
-                    'Focus_ch1':(0,1),
+                    focusFeature:(0,1),
                     'Nuclear morphologies':(0,1)
 }
 
