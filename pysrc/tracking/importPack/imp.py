@@ -62,6 +62,9 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, primary_channel_nam
     except IOError:
         print "Access pbl to the file ", filename
         raise ValueError
+    except KeyError:
+        print "File does not have the right tables ", filename
+        raise ValueError
     whereToLookAt = []
     for i,feature in enumerate(featureL):
         try:
