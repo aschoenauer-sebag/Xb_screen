@@ -42,11 +42,11 @@ focusFeature='Focus_ch1'
 qc_end_OOF=0.4
 
 ###FEATURES OF INTEREST
-#Plate features and channel of extraction
-featuresOfInterest = ['Focus']
+#Plate features and channel of extraction. The name should be exactly as in the h5 files
+featuresOfInterest = ['OutOfFocus']
 featureChannels = [0]
 #Well features
-well_features = ["cell_count", 'Focus_ch1']
+well_features = ["cell_count", 'OutOfFocus_ch1']
 
 ###DATA BASE SETTINGS
 #Plate name
