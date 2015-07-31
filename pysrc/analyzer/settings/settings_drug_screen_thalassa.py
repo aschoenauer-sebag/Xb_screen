@@ -59,7 +59,7 @@ date_format = '%m%y%d'
 ###OTHER SETTINGS
 ###decide if the first well has number zero or 1
 startAtZero = False
-primary_channel_name = 'primary__primary'
+primary_channel_name = 'primary__test'
 ### is there more than one channel ?
 secondaryChannel =False
 ### do you want to count empty wells according to the plate setup ?
