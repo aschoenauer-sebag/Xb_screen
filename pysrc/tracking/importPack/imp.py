@@ -59,12 +59,13 @@ def importTargetedFromHDF5(filename, plaque, puits,featureL, primary_channel_nam
 
     try:
         presentFeatures = importFeaturesNames(filename,primary_channel, featureNumberTotal=False)
-    except IOError:
-        print "Access pbl to the file ", filename
-        raise ValueError
+    except IOError as e:
+        print "I/O error({0}): {1}".format(e.errno, e.strerror)
     except KeyError:
         print "File does not have the right tables ", filename
+    except:
         raise ValueError
+    
     whereToLookAt = []
     for i,feature in enumerate(featureL):
         try:
