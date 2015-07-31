@@ -1,7 +1,7 @@
 FEATURE_NUMBER = 239
 k=5#nb de nearest neighbours
 dmax=45#distances pour le nearest neighbour
-dist = 30#pour la connexion des tracklets
+#dist = 30#pour la connexion des tracklets #Alice le 30 juillet, est-ce qu'on utilise cette variable ?
 d_bf_move= 50
 d_bf_more = 30
 XMAX = 1024#attention dans les fichiers hdf5 xmax vaut 1344 et ymax 1024

@@ -8,7 +8,7 @@ base_result_dir = '/cbio/donnees/aschoenauer/projects/drug_screen'
 base_html = "/cbio/donnees/aschoenauer/public_html"
 
 #where hdf5 files are
-raw_result_dir = "/share/data40T/aschoenauer/drug_screen/results"
+raw_result_dir = "/share/data40T/aschoenauer/drug_screen/results/Mito_seg"
 #intensity_qc_filename='../data/xb_intensity_qc.pkl'
 
 #Where to save processed results
