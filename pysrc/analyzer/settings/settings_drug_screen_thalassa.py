@@ -13,6 +13,9 @@ raw_result_dir = "/share/data40T/aschoenauer/drug_screen/results/Mito_seg"
 
 #Where to save processed results
 result_dir = os.path.join(base_result_dir, 'results')
+#For phenotype concatenation saving
+outputFolder = result_dir
+outputFile = "pheno_count_{}_{}.pkl"
 
 #Where to save data to be put online
 media_dir = os.path.join(base_html, 'interface_screen/plates/static')

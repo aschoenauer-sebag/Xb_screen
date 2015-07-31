@@ -324,7 +324,48 @@ def trajectory_phenotype_comparison(inputFolder, maskFile, inputData):
 class pheno_seq_extractor(thrivisionExtraction):
     def __init__(self, setting_file, plate, well):
         super(pheno_seq_extractor, self).__init__(setting_file, plate, well)
+        self.file_=os.path.join(self.settings.raw_result_dir, self.plate, 'hdf5', "{}_{{:>02}}.ch5".format(self.well))
+        self.path_objects="/sample/0/plate/{}/experiment/{}/position/{{}}/object/primary__test".format(self.plate, self.well)
         return
+    
+    def DS_usable(self):
+        '''
+        Checking for over-exposed experiments or with low cell count
+        '''
+        #i. Opening file to see qc
+        f=open(os.path.join(self.settings.result_dir, 'processedDictResult_P{}.pkl'.format(self.plate)))
+        d=pickle.load(f); f.close()
+        
+        if int(self.well) not in d['FAILED QC']:
+            return True
+        
+        if int(self.well) in d['FAILED QC'] and d[int(self.well)]['cell_count'][0]>50:
+            print "Intensity QC failed"
+            return False
+        
+        c=0
+        for pos in [1,2]:
+            tab=vi.readHDF5(self.file_.format(pos), self.path_objects.format(pos))
+            c+=np.where(tab['time_idx']==0)[0].shape[0]
+            
+        if c<50:
+            return False
+        return True
+        
+    def classificationConcatenation(self):
+        path_classif="/sample/0/plate/{}/experiment/{}/position/{{}}/feature/primary__test/object_classification/prediction".format(self.plate, self.well)
+        
+        for pos in [1,2]:
+            classification = vi.readHDF5(self.file_.format(pos), path_classif.format(pos))
+            classification = np.bincount(classification['label_idx'], minlength=18) if classification == None\
+                    else classification + np.bincount(classification['label_idx'], minlength=18)
+                    
+        #putting UndefinedCondensed with Apoptosis
+        classification[11]+=classification[16]
+        classification[16]=classification[17]
+        
+        return classification[:-1]
+        
 
     def loadResults(self,exp_list):
         '''
@@ -417,6 +458,22 @@ class pheno_seq_extractor(thrivisionExtraction):
             os.mkdir(os.path.join(self.settings.outputFolder, self.plate))
         #iv. crop the boxes in the images
         self.save((pheno_sequences, mask))
+        
+        return
+    
+    def DS_call(self):
+        try:
+            assert self.DS_usable()
+        except AssertionError:
+            print "QC failed"
+            return
+        
+        result = self.classificationConcatenation()
+        
+        if not os.path.isdir(os.path.join(self.settings.outputFolder, self.plate)):
+            os.mkdir(os.path.join(self.settings.outputFolder, self.plate))
+        
+        self.save(result)
         
         return
     
