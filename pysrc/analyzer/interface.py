@@ -162,9 +162,9 @@ class HTMLGenerator():
                         if np.sum(bincount)==0:
                             print "No info frame {} well {} plate {}".format(frame_nb, well, plate)
                             continue
-                        out_of_focus = bincount[np.where(self.classes=='Focus')]
+                        out_of_focus = bincount[np.where(self.classes==self.settings.focus_classname)]
 #NB: no more smallUnidentified after classifier update on 2/20/15
-                        artefacts = bincount[np.where(self.classes=='Artefact')] 
+                        artefacts = bincount[np.where(self.classes==self.settings.artefact_classname)] 
                         result["cell_count"].append( frame.centers.shape[0] - (out_of_focus + artefacts))
                         
                 #for each frame, the object count = all objects = cells+out of focus objects + artefacts

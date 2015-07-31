@@ -34,19 +34,21 @@ whereWell = lambda x: x[1:]
 # if Zeiss plate setup did not include some columns, indicate it here
 missing_cols = {'11414':(1,2)}
 
+###FEATURES OF INTEREST
+focus_classname = 'OutOfFocus'
+artefact_classname = 'Artefact'
+#Plate features and channel of extraction. The name should be exactly as in the h5 files
+featuresOfInterest = [focus_classname]
+featureChannels = [0]
+#Well features
+well_features = ["cell_count", '{}_ch1'.format(focus_classname)]
+
 ###QUALITY CONTROL
 #Limit on initial number of cells
 qc_init_cell=50
 #Limit on the final percentage of out of focus objects
-focusFeature='Focus_ch1'
+focusFeature='{}_ch1'.format(focus_classname)
 qc_end_OOF=0.4
-
-###FEATURES OF INTEREST
-#Plate features and channel of extraction. The name should be exactly as in the h5 files
-featuresOfInterest = ['OutOfFocus']
-featureChannels = [0]
-#Well features
-well_features = ["cell_count", 'OutOfFocus_ch1']
 
 ###DATA BASE SETTINGS
 #Plate name
