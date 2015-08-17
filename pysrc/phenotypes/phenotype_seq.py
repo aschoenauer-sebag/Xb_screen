@@ -422,7 +422,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                 continue
             else:
             #15 and 16 are respectively out of focus and artefact objects. We don't want them
-                pheno_seq_list=pheno_seq_list/float(np.sum(pheno_seq_list))
+                pheno_seq_list=pheno_seq_list[:15]/float(np.sum(pheno_seq_list[:15]))
                 result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
                 who.append('{}--{}'.format(pl[:10], w))
             finally:
