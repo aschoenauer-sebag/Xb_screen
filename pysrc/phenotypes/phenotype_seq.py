@@ -324,8 +324,9 @@ def trajectory_phenotype_comparison(inputFolder, maskFile, inputData):
 class pheno_seq_extractor(thrivisionExtraction):
     def __init__(self, setting_file, plate, well):
         super(pheno_seq_extractor, self).__init__(setting_file, plate, well)
-        self.file_=os.path.join(self.settings.raw_result_dir, self.plate, 'hdf5', "{}_{{:>02}}.ch5".format(self.well))
-        self.path_objects="/sample/0/plate/{}/experiment/{}/position/{{}}/object/primary__test".format(self.plate, self.well)
+        if plate is not None:
+            self.file_=os.path.join(self.settings.raw_result_dir, self.plate, 'hdf5', "{}_{{:>02}}.ch5".format(self.well))
+            self.path_objects="/sample/0/plate/{}/experiment/{}/position/{{}}/object/primary__test".format(self.plate, self.well)
         return
     
     def DS_usable(self):
