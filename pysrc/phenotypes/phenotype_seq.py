@@ -369,7 +369,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         return result[:-1]
         
 
-    def loadResults(self,exp_list):
+    def loadResults_Mitocheck(self,exp_list):
         '''
         Here we're loading results on a per experiment basis. This will be interesting to look at distances between experiments
         based on phenotypes, vs distances based on trajectory types.
@@ -400,6 +400,37 @@ class pheno_seq_extractor(thrivisionExtraction):
         
         f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "hit_exp")), 'w')
         pickle.dump((result, missed),f); f.close()
+        return
+    
+    def loadResults_DS(self,exp_list):
+        '''
+        Here we're loading results on a per experiment basis. This will be interesting to look at distances between experiments
+        based on phenotypes, vs distances based on trajectory types.
+        '''
+
+        result = None; i=0; who=[]
+        for pl,w in exp_list:
+            print i,
+            
+            try:
+                f=open(os.path.join(self.settings.outputFolder,pl, self.settings.outputFile.format(pl[:10], w)), 'r')
+                pheno_seq_list= pickle.load(f)
+                f.close()
+            except:
+                print "Loading error for ", pl, w
+                continue
+            else:
+            #15 and 16 are respectively out of focus and artefact objects. We don't want them
+                pheno_seq_list=pheno_seq_list/float(np.sum(pheno_seq_list))
+                result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
+                who.append('{}--{}'.format(pl[:10], w))
+            finally:
+                i+=1
+                
+        print "Saving"
+        
+        f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "hit_exp")), 'w')
+        pickle.dump((result, who),f); f.close()
         return
     
     def pheno_seq(self, tracklets,track_filter= (lambda x: x.fusion !=True and len(x.lstPoints)>11)):

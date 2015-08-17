@@ -834,7 +834,7 @@ if __name__ == '__main__':
     #MAINTENANT ON VOUDRAIT CALCULER LES DISTANCES ENTRE LES POINTS, ON VA REPARTIR CA SUR PLUSIEURS NOEUDS
     parser = OptionParser(usage="usage: %prog [options]")
     
-    parser.add_option("-l",type=float, dest="lamb")
+    #parser.add_option("-l",type=float, dest="lamb")
     parser.add_option("-d",type=str, dest="distance", default='Sinkhorn')
     parser.add_option("-i", dest="who", type=int,default=0)
     (options, args) = parser.parse_args()
@@ -842,22 +842,30 @@ if __name__ == '__main__':
     #loading data
     #f=open('../resultData/pheno_seq/pheno_hit/traj_percentage_prediction.pkl')
     #f=open('../resultData/pheno_seq/motility_hit/phenotype_seq_motility_hit.pkl')
-    f=open('../resultData/features_on_films/labelsKM_whole_k8_NEWMODEL.pkl')
+    #f=open('../resultData/pheno_seq/pheno_hit/phenotype_seq_pheno_hit.pkl')
+    f=open('/cbio/donnees/aschoenauer/projects/drug_screen/results/all_Mitocheck_DS_phenohit.pkl')
+    #f=open('../resultData/features_on_films/labelsKM_whole_k8_NEWMODEL.pkl')
     r=pickle.load(f); f.close(); percentages=r[0]
     
     #loading cost matrix
-    f=open('../resultData/pheno_seq/pheno_hit/traj_costs.pkl')
+    f=open('../resultData/pheno_seq/pheno_hit/pheno_costs.pkl')
     M=pickle.load(f)
     f.close()
+    
+    #Lambda parameter
+    lambda_list=[0.01 ,0.1, 1, 10, 30]
+    
     if options.distance=='Sinkhorn':
-        dist=multSinkhorn(M, lamb=options.lamb, r=percentages[options.who], C=percentages[options.who+1:].T, eps=0.00000000001)
-        filename = '../resultData/features_on_films/transport/traj_distance{}_{}.pkl'.format(options.lamb,options.who)
+        r=[]
+        for lambda_ in lambda_list:
+            r.append(multSinkhorn(M, lamb=lambda_, r=percentages[options.who], C=percentages[options.who+1:].T, eps=0.00000000001))
+        filename = '/cbio/donnees/aschoenauer/projects/drug_screen/results/distances/pheno_distance_{}.pkl'.format(options.who)
     elif options.distance=='EMD':
         dist=multEMD1d(M, r=percentages[options.who], C=percentages[options.who+1:].T)
         filename = '../resultData/features_on_films/transport/traj_distanceE_{}.pkl'.format(options.who)
         
     f=open(filename, 'w')
-    pickle.dump(dist,f); f.close()
+    pickle.dump(r,f); f.close()
 
 #    if options.simulated:
 #        f=open('../resultData/simulated_traj/histogramsNtotSim.pkl')
