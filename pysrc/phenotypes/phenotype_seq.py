@@ -231,27 +231,23 @@ def graphWorking(trajdist, mds_transformed, genes=None, percentile=10, only_high
     return G
 
     
-def collectingDistance(type_, folder='../resultData/pheno_seq/pheno_hit', len_=None):
-    if len_==None:
-        if type_=='traj':
-            len_=6230
-        elif type_=='pheno':
-            len_=6214
-    
-    result=np.zeros(shape=(len_, len_))
+def collectingDistance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances', len_=7786):
+    missed=[]
+    result=[np.zeros(shape=(len_, len_)) for k in range(5)]
     for i in range(len_):
-        el='{}_{}.pkl'.format(type_, i)
+        el='{}_{}.pkl'.format(filename, i)
         try:
             f=open(os.path.join(folder, el))
             d=pickle.load(f); f.close()
         except:
             print "Unopenable ", el
+            missed.append(i)
         else:
-            result[i, i+1:]=d
-            result[i+1:, i]= result[i,i+1:].T
+            for k in range(len(d)):
+                result[k][i, i+1:]=d
+                result[k][i+1:, i]= result[i,i+1:].T
             
-    return result
-    
+    return result, missed
 
 
 def computingDistance(percentages, who, distance='transport', M=None):
