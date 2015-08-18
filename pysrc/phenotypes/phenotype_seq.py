@@ -245,7 +245,7 @@ def collectingDistance(filename="pheno_distance", folder='/cbio/donnees/aschoena
         else:
             for k in range(len(d)):
                 result[k][i, i+1:]=d[k]
-                result[k][i+1:, i]= result[i,i+1:].T
+                result[k][i+1:, i]= result[k][i,i+1:].T
             
     return result, missed
 
