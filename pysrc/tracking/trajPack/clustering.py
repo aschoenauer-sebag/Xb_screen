@@ -12,7 +12,7 @@ from optparse import OptionParser
 from warnings import warn
 from collections import Counter
 
-from peach import FuzzyCMeans
+#from peach import FuzzyCMeans
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import MiniBatchKMeans, KMeans, SpectralClustering
 from sklearn.mixture import GMM, DPGMM
