@@ -1,6 +1,7 @@
 import matplotlib.pyplot as p
 import cPickle as pickle
 import numpy as np
+import pdb
 from _collections import defaultdict
 
 from util.make_movies_mito_cbio import ColorMap
@@ -176,7 +177,20 @@ def distinctDrugBoxplots(who, exposure,doses, perc, phenotypes):
     axes.flatten()[8+j+1].set_xticklabels(CLASSES, rotation='vertical')
     p.show()
         
-            
+def distinctPhenoPlot(res, ctrl_points):
+    colors=['red' for k in range(res.shape[0])]
+    colors.extend(['green' for k in range(ctrl_points.shape[0])]); colors=np.array(colors)
+    res=np.vstack((res, ctrl_points))
+    
+    f,axes=p.subplots(4,4)
+    for k in range(res.shape[1]):
+        ord=np.argsort(res[:,k])
+        loc_col=colors[ord]
+        axes.flatten()[k].scatter(range(1070), res[ord, k][np.where(loc_col=='red')], color='red', alpha=0.5, marker='+')
+        axes.flatten()[k].scatter([0 for u in range(131)], res[ord, k][np.where(loc_col=='green')], color='green')
+        axes.flatten()[k].set_title(CLASSES[k])
+        
+    p.show()
             
             
             
