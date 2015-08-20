@@ -512,7 +512,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         return r
     
     def load_ctrl_well_dict(self, c_wells):
-        if type(c_wells)!=int:
+        if type(c_wells)!=np.int64:
             result={}
             for c_well in c_wells:
                 result[c_well]=self.load_ctrl_well_dict(c_well)
