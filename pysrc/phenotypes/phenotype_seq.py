@@ -505,8 +505,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         well_count/=np.sum(well_count,1)[:,np.newaxis]
         
         diff=well_count-ctrl_count
-        
-        return diff[np.argmax(np.abs(diff), 0)]
+        return diff[np.argmax(np.abs(diff), 0)]#meaning we just need the diagonal of this
     
     def load_ctrl_well_dict(self, c_wells):
         if type(c_wells)!=np.int64:
@@ -560,6 +559,7 @@ class pheno_seq_extractor(thrivisionExtraction):
             scores=[]
             for k in range(3):
                 curr_ctrl=filter(lambda x: x not in ctrl_wells[k*cut:(k+1)*cut], ctrl_wells)
+                pdb.set_trace()
                 if self.well in curr_ctrl:
                     scores.append('IRR')
                     continue
