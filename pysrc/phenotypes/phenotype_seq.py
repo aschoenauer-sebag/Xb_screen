@@ -532,6 +532,9 @@ class pheno_seq_extractor(thrivisionExtraction):
             return counts
     
     def __call__(self,time_pheno_count_only=False):
+        if not os.path.isdir(os.path.join(self.settings.outputFolder, self.plate)):
+            os.mkdir(os.path.join(self.settings.outputFolder, self.plate))
+        
         if self.well=='CTRL':
             #i.see how many ctrl wells there are for this plate
             #ii. separate them into three groups
@@ -539,8 +542,6 @@ class pheno_seq_extractor(thrivisionExtraction):
             ctrl_wells=self._ctrl_usable()
             self.save(self._ctrl_groups(ctrl_wells))
         else:
-            if not os.path.isdir(os.path.join(self.settings.outputFolder, self.plate)):
-                os.mkdir(os.path.join(self.settings.outputFolder, self.plate))
             #i. check qc
             try:
                 assert self.DS_usable()
