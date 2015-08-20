@@ -377,7 +377,7 @@ class pheno_seq_extractor(thrivisionExtraction):
             
             frames = sorted(list(set(objects['time_idx'])))
             if result is None:
-                result=np.zeros(shape=(np.max(frames), 18), dtype=float)
+                result=np.zeros(shape=(np.max(frames)+1, 18), dtype=float)
                 
             for frame in frames:
                 result[frame]+= np.bincount(classification['label_idx'][np.where(objects['time_idx']==frame)], minlength=18)
