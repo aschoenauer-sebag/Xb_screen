@@ -1,11 +1,11 @@
 import os
 
 from util.listFileManagement import strToTuple
-from util import jobSize, progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, pbsOutDir
+from util import progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 from tracking.trajPack.tracking_script import path_command
 
 
-def scriptCommand(exp_list, baseName='comp_track', command="tracking/trajPack/cell_cycle.py", **kwargs):
+def scriptCommand(exp_list, baseName='comp_track', command="tracking/trajPack/cell_cycle.py",jobSize=10, **kwargs):
     perExperiment=False
     if type(exp_list[0])!=int:
         perExperiment=True

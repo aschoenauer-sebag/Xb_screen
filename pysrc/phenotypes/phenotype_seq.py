@@ -562,7 +562,7 @@ if __name__ == '__main__':
 '''
 %prog - Computing phenotype sequences given tracklets
 Input:
-- plate, well: experiment of interest. Well under the form 00315_01
+- plate, well: experiment of interest. Well under the form 315
 - settings file
 
 '''
