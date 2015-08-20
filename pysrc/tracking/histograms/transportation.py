@@ -848,18 +848,18 @@ if __name__ == '__main__':
     r=pickle.load(f); f.close(); percentages=r[0]
     
     #loading cost matrix
-    f=open('../resultData/pheno_seq/pheno_hit/pheno_costs.pkl')
+    f=open('../resultData/pheno_seq/pheno_hit/pheno_cost2.pkl')
     M=pickle.load(f)
     f.close()
     
     #Lambda parameter
-    lambda_list=[0.01 ,0.1, 1, 10, 30]
+    lambda_list=[0.01 ,10]
     
     if options.distance=='Sinkhorn':
         r=[]
         for lambda_ in lambda_list:
             r.append(multSinkhorn(M, lamb=lambda_, r=percentages[options.who], C=percentages[options.who+1:].T, eps=0.00000000001))
-        filename = '/cbio/donnees/aschoenauer/projects/drug_screen/results/distances/pheno_distance_{}.pkl'.format(options.who)
+        filename = '/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2/pheno_distance_{}.pkl'.format(options.who)
     elif options.distance=='EMD':
         dist=multEMD1d(M, r=percentages[options.who], C=percentages[options.who+1:].T)
         filename = '../resultData/features_on_films/transport/traj_distanceE_{}.pkl'.format(options.who)
