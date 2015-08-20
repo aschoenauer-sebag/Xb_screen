@@ -350,6 +350,7 @@ class trainingFeatureExtraction(featureExtraction):
 class thrivisionExtraction(object):
     def __init__(self, settings_file, plate, well):
         print "Youpla"
+        self.settings_file=settings_file
         self.settings = settings.Settings(settings_file, globals())
         self.plate = plate
     #NB here the wells are expected in format 00***_01
