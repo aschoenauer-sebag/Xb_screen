@@ -491,7 +491,7 @@ class pheno_seq_extractor(thrivisionExtraction):
     def _ctrl_groups(self, ctrl_wells):
         permutations = np.random.permutation(len(ctrl_wells))
         
-        return ctrl_wells[permutations]
+        return np.array(ctrl_wells)[permutations]
     
     def load_ctrl_well_list(self):
         f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:10], 'CTRL')))
