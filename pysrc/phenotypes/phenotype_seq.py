@@ -488,7 +488,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         well_count/=np.sum(well_count,1)[:,np.newaxis]
         
         diff=well_count-ctrl_count
-        return diff[np.argmax(np.abs(diff), 0)]#meaning we just need the diagonal of this
+        return np.diag(diff[np.argmax(np.abs(diff), 0)])
     
     def load_ctrl_well_dict(self, c_wells):
         if type(c_wells)!=np.int64:
@@ -539,19 +539,17 @@ class pheno_seq_extractor(thrivisionExtraction):
             ctrl_count_dict= self.load_ctrl_well_dict(ctrl_wells)
             
             cut=len(ctrl_wells)/3
-            scores=[]
+            scores=None
             for k in range(3):
                 curr_ctrl=filter(lambda x: x not in ctrl_wells[k*cut:(k+1)*cut], ctrl_wells)
-                pdb.set_trace()
                 if self.well in curr_ctrl:
-                    scores.append('IRR')
                     continue
                 
                 ctrl_count=np.zeros(shape=ctrl_count_dict[curr_ctrl[0]].shape)
                 for c_well in curr_ctrl:
                     ctrl_count+=ctrl_count_dict[c_well]
-                
-                scores.append(self.phenotypic_score(well_count, ctrl_count))
+                curr_r=self.phenotypic_score(well_count, ctrl_count)
+                scores= curr_r if scores is None else np.hstack((scores, curr_r))
             
             self.save(scores, filename=self.settings.outputFile_phenotypic_score)
             
