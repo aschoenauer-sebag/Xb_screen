@@ -367,7 +367,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         
         #if not I load it
         
-        path_classif="/sample/0/plate/{}/experiment/{}/position/{{}}/feature/primary__test/object_classification/prediction".format(self.plate, self.well)
+        path_classif="/sample/0/plate/{}/experiment/{:>05}/position/{{}}/feature/primary__test/object_classification/prediction".format(self.plate, self.well)
         
         result=None
         
