@@ -97,6 +97,9 @@ class HTMLGenerator():
         return
         
     def targetedDataExtraction(self, plateL, featureL):
+        '''
+       If there are more than one position per well they are all taken into account here
+'''
         newFrameLot = None
         dataFolder = self.settings.raw_result_dir  
         print "Looking for features ", featureL

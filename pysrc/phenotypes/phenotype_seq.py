@@ -469,24 +469,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         
         possible_ctrl=[el for el in d if 'Xenobiotic' in d[el] and d[el]['Xenobiotic']=='empty']
         
-        result=[]
-        
-        for each in possible_ctrl:
-            if each not in d['FAILED QC']:
-                result.append(each)
-                continue
-            if each in d['FAILED QC'] and d[each]['cell_count'][0]>50:
-                print "Intensity QC failed"
-                continue
-            
-            c=0
-            for pos in [1,2]:
-                tab=vi.readHDF5(self.file_.format(each, pos), self.path_objects.format(each, pos))
-                c+=np.where(tab['time_idx']==0)[0].shape[0]
-                
-            if c>=50:
-                result.append(each)
-        return result
+        return [each for each in possible_ctrl if each not in d['FAILED QC']]
     
     def _ctrl_groups(self, ctrl_wells):
         permutations = np.random.permutation(len(ctrl_wells))
