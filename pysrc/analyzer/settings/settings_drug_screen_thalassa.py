@@ -11,12 +11,9 @@ base_html = "/cbio/donnees/aschoenauer/public_html"
 raw_result_dir = "/share/data40T/aschoenauer/drug_screen/results/Mito_seg"
 #intensity_qc_filename='../data/xb_intensity_qc.pkl'
 
+###ALL INFORMATION FOR WEBSITE AND MOVIE COMPUTATION
 #Where to save processed results
-result_dir = os.path.join(base_result_dir, 'results')
-#For phenotype concatenation saving
-outputFolder = result_dir
-outputFile = "pheno_count_{}_{}.pkl"
-
+result_dir = os.path.join(base_result_dir, 'results') 
 #Where to save data to be put online
 media_dir = os.path.join(base_html, 'interface_screen/plates/static')
 plot_dir = os.path.join(media_dir, 'plots')
@@ -115,3 +112,17 @@ TRANSLATION_WHOLENAMED = {
     'subTrack_dist_mean_norm': 'Migration: Distance', 
     'frameToFrame_max': 'Migration: Speed'
     }
+
+###ALL INFORMATION FOR PHENOTYPE WORK
+#For phenotype concatenation saving
+outputFolder = result_dir
+outputFile = "pheno_count_{}_{}.pkl"
+outputFile_phenotypic_score = "pheno_score_{}_{}.pkl"
+#time-aggregation level
+time_agg=5
+
+
+
+
+
+

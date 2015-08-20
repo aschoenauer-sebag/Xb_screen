@@ -319,19 +319,10 @@ def trajectory_phenotype_comparison(inputFolder, maskFile, inputData):
 
 class pheno_seq_extractor(thrivisionExtraction):
     def __init__(self, setting_file, plate, well):
-        '''
-        Use well='CTRL' for setting ctrl things for each plate
-        For each well we'll save the non-time-aggregated pheno count information independently if they're ctrl or not
-'''
         super(pheno_seq_extractor, self).__init__(setting_file, plate, well)
-        if plate is not None and well!='CTRL':
+        if plate is not None:
             self.file_=os.path.join(self.settings.raw_result_dir, self.plate, 'hdf5', "{}_{{:>02}}.ch5".format(self.well))
             self.path_objects="/sample/0/plate/{}/experiment/{}/position/{{}}/object/primary__test".format(self.plate, self.well)
-            
-        elif plate is not None:
-            self.file_=os.path.join(self.settings.raw_result_dir, self.plate, 'hdf5', "{:>05}_{:>02}.ch5")
-            self.path_objects="/sample/0/plate/{}/experiment/{{:>05}}/position/{{:>02}}/object/primary__test".format(self.plate)
-            
         return
     
     def DS_usable(self):
@@ -358,40 +349,6 @@ class pheno_seq_extractor(thrivisionExtraction):
             return False
         return True
         
-    def classificationPerFrame(self):
-        #if already computed I return it
-        if self.settings.outputFile.format(self.plate[:10], self.well) in os.listdir(os.path.join(self.settings.outputFolder,self.plate)):
-            f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:10], self.well)))
-            result = pickle.load(f); f.close()
-            return result
-        
-        #if not I load it
-        
-        path_classif="/sample/0/plate/{}/experiment/{}/position/{{}}/feature/primary__test/object_classification/prediction".format(self.plate, self.well)
-        
-        result=None
-        
-        for pos in [1,2]:
-            classification = vi.readHDF5(self.file_.format(pos), path_classif.format(pos))
-            objects=vi.readHDF5(self.file_.format(pos), self.path_objects.format(pos))
-            
-            frames = sorted(list(set(objects['time_idx'])))
-            if result is None:
-                result=np.zeros(shape=(np.max(frames), 18), dtype=float)
-                
-            for frame in frames:
-                result[frame]+= np.bincount(classification['label_idx'][np.where(objects['time_idx']==frame)], minlength=18)
-                    
-        #putting UndefinedCondensed with Apoptosis
-        result[:,11]+=result[:,16]
-        result[:,16]=result[:,17]
-        
-        r=result[:,:-3]
-        
-        print r.shape
-        
-        return r
-    
     def classificationConcatenation(self):
         path_classif="/sample/0/plate/{}/experiment/{}/position/{{}}/feature/primary__test/object_classification/prediction".format(self.plate, self.well)
         
@@ -407,6 +364,40 @@ class pheno_seq_extractor(thrivisionExtraction):
         result[16]=result[17]
         
         return result[:-1]
+        
+
+    def loadResults_Mitocheck(self,exp_list):
+        '''
+        Here we're loading results on a per experiment basis. This will be interesting to look at distances between experiments
+        based on phenotypes, vs distances based on trajectory types.
+        '''
+        if len(exp_list[0])!=2:
+            exp_list=strToTuple(exp_list, os.listdir(self.settings.outputFolder))
+        result = None; i=0; missed=[]
+        for pl,w in exp_list:
+            print i,
+            
+            try:
+                f=open(os.path.join(self.settings.outputFolder,pl, self.settings.outputFile.format(pl[:10], w)), 'r')
+                pheno_seq_list, mask = pickle.load(f)
+                f.close()
+            except:
+                print "Loading error for ", pl, w
+                missed.append(i)
+                continue
+            else:
+                pheno_seq_list = np.sum( np.array([np.bincount(pheno_seq_list[j], minlength=17) for j in range(len(pheno_seq_list)) if j not in mask]), 0)[:-2]
+            #15 and 16 are respectively out of focus and artefact objects. We don't want them
+                pheno_seq_list=pheno_seq_list/float(np.sum(pheno_seq_list))
+                result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
+            finally:
+                i+=1
+                
+        print "Saving"
+        
+        f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "hit_exp")), 'w')
+        pickle.dump((result, missed),f); f.close()
+        return
     
     def loadResults_DS(self,exp_list):
         '''
@@ -462,119 +453,58 @@ class pheno_seq_extractor(thrivisionExtraction):
             
         return result
     
-    def _ctrl_usable(self):
-        #i. Opening file to see qc
-        f=open(os.path.join(self.settings.result_dir, 'processedDictResult_P{}.pkl'.format(self.plate)))
-        d=pickle.load(f); f.close()
-        
-        possible_ctrl=[el for el in d if 'Xenobiotic' in d[el] and d[el]['Xenobiotic']=='empty']
-        
-        result=[]
-        
-        for each in possible_ctrl:
-            if each not in d['FAILED QC']:
-                result.append(each)
-                continue
-            if each in d['FAILED QC'] and d[each]['cell_count'][0]>50:
-                print "Intensity QC failed"
-                continue
-            
-            c=0
-            for pos in [1,2]:
-                tab=vi.readHDF5(self.file_.format(each, pos), self.path_objects.format(each, pos))
-                c+=np.where(tab['time_idx']==0)[0].shape[0]
-                
-            if c>=50:
-                result.append(each)
-        return result
+    def getMask(self):
+        file_=os.path.join(self.settings.outputFolder, self.plate, self.settings.trajFeaturesFilename.format(self.well))
     
-    def _ctrl_groups(self, ctrl_wells):
-        permutations = np.random.permutation(len(ctrl_wells))
-        
-        return ctrl_wells[permutations]
-    
-    def load_ctrl_well_list(self):
-        f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:10], 'CTRL')))
-        ctrl_wells=pickle.load(f)
+        f=open(file_, 'r')
+        arr, _,__= pickle.load(f)
         f.close()
         
-        return ctrl_wells
+        _, toDel = correct_from_Nan(arr, perMovie=False)
+        
+        return toDel
     
-    def phenotypic_score(self, well_count, ctrl_count):
-        ctrl_count/=np.sum(ctrl_count,1)
-        pdb.set_trace()#check size of ctrl_count
-        
-        well_count/=np.sum(well_count,1)
-        
-        diff=well_count-ctrl_count
-        
-        r=diff[np.argmax(np.abs(diff), 0)]
-        pdb.set_trace()
-        
-        return r
     
-    def load_ctrl_well_dict(self, c_wells):
-        if type(c_wells)==list:
-            result={}
-            for c_well in c_wells:
-                result[c_well]=self.load_ctrl_well_dict(c_well)
-            return result
-        else:
-            try:
-                f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:10], "{:>05}".format(c_wells))))
-                counts=pickle.load(f); f.close()
-                print "Loading pheno counts for ctrl well {} from file ".format(c_wells),
-            except IOError:
-                print "Computing pheno counts for ctrl well {} ".format(c_wells),
-                p=pheno_seq_extractor(setting_file=self.settings_file, plate=self.plate, well=c_wells)
-                counts= p(time_pheno_count_only=True)
-                
-            return counts
+    def __call__(self):
+            #before anything checking that it passed the qc
+        try:
+            assert self._usable(check_size=False)
+        except AssertionError:
+            print "QC failed"
+            return
+        
+        #i.load tracking info
+        tracklets, _ = self.load()
+        
+        #ii. find their bounding boxes
+        pheno_sequences=self.pheno_seq(tracklets)
+        
+        #iii. get the mask for those that are not considered in the feature array
+        mask = self.getMask()
+
+        if not os.path.isdir(self.settings.outputFolder):
+            os.mkdir(self.settings.outputFolder)
+        if not os.path.isdir(os.path.join(self.settings.outputFolder, self.plate)):
+            os.mkdir(os.path.join(self.settings.outputFolder, self.plate))
+        #iv. crop the boxes in the images
+        self.save((pheno_sequences, mask))
+        
+        return
     
-    def __call__(self,time_pheno_count_only=False):
-        if self.well=='CTRL':
-            #i.see how many ctrl wells there are for this plate
-            #ii. separate them into three groups
-            #iii. write those in some files for further computation
-            ctrl_wells=self._ctrl_usable()
-            self.save(self._ctrl_groups(ctrl_wells))
-        else:
-            if not os.path.isdir(os.path.join(self.settings.outputFolder, self.plate)):
-                os.mkdir(os.path.join(self.settings.outputFolder, self.plate))
-            #i. check qc
-            try:
-                assert self.DS_usable()
-            except AssertionError:
-                print "QC failed"
-                return
-            
-        #ii. load classification per frame
-            well_count=self.classificationPerFrame()
-        #iii. save it for further use    
-            self.save(well_count)   
-            if time_pheno_count_only:
-                return well_count 
-        #iv. now compute distance to controls
-            #load ctrl lists
-            ctrl_wells=self.load_ctrl_well_list()
-            #load ctrl pheno counts
-            ctrl_count_dict= self.load_ctrl_wells(ctrl_wells)
-            
-            cut=len(ctrl_wells)/3
-            scores=[]
-            for k in range(3):
-                curr_ctrl=filter(lambda x: x not in ctrl_wells[k*cut:(k+1)*cut], ctrl_wells)
-                if self.well in curr_ctrl:
-                    scores.append('IRR')
-                    continue
-                ctrl_count=None
-                for c_well in curr_ctrl:
-                    ctrl_count+=ctrl_count_dict[c_well] if ctrl_count is not None else ctrl_count_dict[c_well]
-                
-                scores.append(self.phenotypic_score(well_count, ctrl_count))
-            
-            self.save(scores, filename=self.settings.outputFile_phenotypic_score)
-            
+    def DS_call(self):
+        try:
+            assert self.DS_usable()
+        except AssertionError:
+            print "QC failed"
+            return
+        
+        result = self.classificationConcatenation()
+        
+        if not os.path.isdir(os.path.join(self.settings.outputFolder, self.plate)):
+            os.mkdir(os.path.join(self.settings.outputFolder, self.plate))
+        
+        self.save(result)
+        
         return
     
     
@@ -603,14 +533,12 @@ Input:
     parser.add_option("-w", "--well", dest="well",
                       help="The well which you are interested in")
 
-    parser.add_option("-c", dest="count_only",type=int,default=0,
-                      help="For ctrl DS and Mitocheck, do the aggregated pheno count only")
 
     
     (options, args) = parser.parse_args()
     
     p=pheno_seq_extractor(options.settings_file, options.plate, options.well)
-    p(time_pheno_count_only=options.count_only)
+    p.DS_call()
     print "Done"
         
         

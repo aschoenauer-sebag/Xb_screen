@@ -50,7 +50,7 @@ CLASSES=['Interphase',
      'Folded',
      'SmallIrregular']
 
-def plotPrep(file_='/media/lalil0u/New/projects/drug_screen/results/MDS_Mitocheck_DS_distances_10.pkl'):
+def plotPrep(file_='/media/lalil0u/New/projects/drug_screen/results/MDS_Mitocheck_DS_distances_0.01.pkl'):
     '''
     File without plate 4
 '''
@@ -107,35 +107,41 @@ def globalPlot(colors, drugs,r, who, phenotypes):
     axes[0].legend()
     p.show()
 
-def distinctDrugPlots(colors, drugs,r, who, phenotypes):
-    f,axes=p.subplots(1,4,sharex=True, sharey=True)
+def distinctDrugPlots(colors, drugs,r, who, phenotypes, exposure):
+    f,axes=p.subplots(3,4,sharex=True, sharey=True)
     for i in range(6214):
-        axes[0].scatter(r[i,0], r[i,1],color=colors[i], s=5)
+        if exposure[i] in phenotypes[:4]:
+            axes[0,phenotypes.index(exposure[i])].scatter(r[i,0], r[i,1],color=colors[i], s=5)
+        elif exposure[i] in phenotypes[4:]:
+            axes[1,phenotypes.index(exposure[i])-4].scatter(r[i,0], r[i,1],color=colors[i], s=5)
     
-    for pheno in phenotypes:
-        axes[0].scatter(0,0,color=couleurs[phenotypes.index(pheno)], label=pheno, s=5)
-    axes[0].legend()
+    for i,pheno in enumerate(phenotypes):
+        if i<4:
+            axes[0,i].scatter(0,0,color=couleurs[phenotypes.index(pheno)], label=pheno, s=5)
+        else:
+            axes[1,i-4].scatter(0,0,color=couleurs[phenotypes.index(pheno)], label=pheno, s=5)
     
     for i,el in enumerate(who[6214:]):
         if drugs[el] in DRUGS[:9]:
-            axes[1].scatter(r[6214+i,0], r[6214+i,1],color=couleurs[DRUGS.index(drugs[el])], s=5)
+            axes[2,1].scatter(r[6214+i,0], r[6214+i,1],color=couleurs[DRUGS.index(drugs[el])], s=5)
         elif drugs[el] in DRUGS[9:18]:
-            axes[2].scatter(r[6214+i,0], r[6214+i,1],color=couleurs[DRUGS.index(drugs[el])-9], s=5)
+            axes[2,2].scatter(r[6214+i,0], r[6214+i,1],color=couleurs[DRUGS.index(drugs[el])-9], s=5)
         elif drugs[el] in DRUGS[18:]:
-            axes[3].scatter(r[6214+i,0], r[6214+i,1],color=couleurs[DRUGS.index(drugs[el])-18], s=5)
+            axes[2,3].scatter(r[6214+i,0], r[6214+i,1],color=couleurs[DRUGS.index(drugs[el])-18], s=5)
         else:
-            axes[0].scatter(r[i,0], r[i,1],color='grey', s=5, marker='+')
+            axes[2,0].scatter(r[i,0], r[i,1],color='grey', s=5, marker='+')
             
     for i,drug in enumerate(DRUGS):
         if i<9:
-            axes[1].scatter(0,0, color=couleurs[DRUGS.index(drug)], s=5, label=drug)
+            axes[2,1].scatter(0,0, color=couleurs[DRUGS.index(drug)], s=5, label=drug)
         elif i>=18:
-            axes[3].scatter(0,0, color=couleurs[DRUGS.index(drug)-18], s=5, label=drug)
+            axes[2,3].scatter(0,0, color=couleurs[DRUGS.index(drug)-18], s=5, label=drug)
         else:
-            axes[2].scatter(0,0, color=couleurs[DRUGS.index(drug)-9], s=5, label=drug)
+            axes[2,2].scatter(0,0, color=couleurs[DRUGS.index(drug)-9], s=5, label=drug)
             
     for ax in axes:
-        ax.legend()
+        for el in ax:
+            el.legend(prop={'size':8})
     p.show()
     
 def distinctDrugBoxplots(who, exposure,doses, perc, phenotypes):
