@@ -330,7 +330,7 @@ class pheno_seq_extractor(thrivisionExtraction):
             
         elif plate is not None:
             self.file_=os.path.join(self.settings.raw_result_dir, self.plate, 'hdf5', "{:>05}_{:>02}.ch5")
-            self.path_objects="/sample/0/plate/{}/experiment/{{:>05}}/position/{{:>02}}/object/primary__test".format(self.plate)
+            self.path_objects="/sample/0/plate/{}/experiment/{{:>05}}/position/{{}}/object/primary__test".format(self.plate)
             
         return
     
