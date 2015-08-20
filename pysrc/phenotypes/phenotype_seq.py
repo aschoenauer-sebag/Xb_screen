@@ -421,7 +421,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                 if scores.shape[0]==15:
                     ctrl_points=scores[np.newaxis,:] if ctrl_points is None else np.vstack((ctrl_points, scores[np.newaxis,:]))
                 else:
-                    res=scores if res is None else np.hstack((res, scores))
+                    res=scores[0][np.newaxis,:] if res is None else np.hstack((res, scores[0][np.newaxis,:]))
                     who.append('{}--{}'.format(plate, file_.split('_')[-1].split('.')[0]))
                     
         return res, who, ctrl_points
