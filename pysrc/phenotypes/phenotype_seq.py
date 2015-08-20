@@ -501,10 +501,8 @@ class pheno_seq_extractor(thrivisionExtraction):
         return ctrl_wells
     
     def phenotypic_score(self, well_count, ctrl_count):
-        ctrl_count/=np.sum(ctrl_count,1)
-        pdb.set_trace()#check size of ctrl_count
-        
-        well_count/=np.sum(well_count,1)
+        ctrl_count/=np.sum(ctrl_count,1)[:,np.newaxis]
+        well_count/=np.sum(well_count,1)[:,np.newaxis]
         
         diff=well_count-ctrl_count
         
@@ -559,7 +557,7 @@ class pheno_seq_extractor(thrivisionExtraction):
             #load ctrl lists
             ctrl_wells=self.load_ctrl_well_list()
             #load ctrl pheno counts
-            ctrl_count_dict= self.load_ctrl_wells(ctrl_wells)
+            ctrl_count_dict= self.load_ctrl_well_dict(ctrl_wells)
             
             cut=len(ctrl_wells)/3
             scores=[]
