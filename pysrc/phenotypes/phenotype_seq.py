@@ -549,7 +549,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                 for c_well in curr_ctrl:
                     ctrl_count+=ctrl_count_dict[c_well]
                 curr_r=self.phenotypic_score(well_count, ctrl_count)
-                scores= curr_r if scores is None else np.hstack((scores, curr_r))
+                scores= curr_r if scores is None else np.vstack((scores, curr_r))
             
             self.save(scores, filename=self.settings.outputFile_phenotypic_score)
             
