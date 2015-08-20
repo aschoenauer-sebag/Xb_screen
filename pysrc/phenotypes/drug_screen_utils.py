@@ -50,7 +50,7 @@ CLASSES=['Interphase',
      'Folded',
      'SmallIrregular']
 
-def plotPrep(file_='/media/lalil0u/New/projects/drug_screen/results/MDS_Mitocheck_DS_distances_0.01.pkl'):
+def plotPrep(file_='/media/lalil0u/New/projects/drug_screen/results/MDS_Mitocheck_DS_distances_30.pkl'):
     '''
     File without plate 4
 '''

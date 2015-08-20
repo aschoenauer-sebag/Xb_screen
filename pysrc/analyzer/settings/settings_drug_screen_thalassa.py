@@ -120,6 +120,8 @@ outputFile = "pheno_count_{}_{}.pkl"
 outputFile_phenotypic_score = "pheno_score_{}_{}.pkl"
 #time-aggregation level
 time_agg=5
+#plates
+plates=['LT0900_0{}'.format(k) for k in (1,2,3,5)]
 
 
 

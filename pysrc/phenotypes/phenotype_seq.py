@@ -231,9 +231,9 @@ def graphWorking(trajdist, mds_transformed, genes=None, percentile=10, only_high
     return G
 
     
-def collectingDistance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances', len_=7786):
+def collectingDistance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2', len_=7414):
     missed=[]
-    result=[np.zeros(shape=(len_, len_)) for k in range(5)]
+    result=[np.zeros(shape=(len_, len_)) for k in range(2)]
     for i in range(len_):
         el='{}_{}.pkl'.format(filename, i)
         try:
@@ -408,7 +408,26 @@ class pheno_seq_extractor(thrivisionExtraction):
         
         return result[:-1]
     
-    def loadResults_DS(self,exp_list):
+    def load_pheno_score(self):
+        res=None; who=[]
+        ctrl_points=None
+        
+        for plate in self.settings.plate:
+            phenotypic_scores=filter(lambda x: 'pheno_score' in x, os.listdir(os.path.join(self.settings.outputFolder, plate)))
+            
+            for file_ in phenotypic_scores:
+                f=open(os.path.join(self.settings.outputFolder, plate, file_))
+                scores=pickle.load(f); f.close()
+                
+                if scores.shape[1]==1:
+                    ctrl_points=scores[:,np.newaxis] if ctrl_points is None else np.vstack((ctrl_points, scores[:,np.newaxis]))
+                else:
+                    res=scores if res is None else np.vstack((res, scores))
+                    who.append('{}--{}'.format(plate, file_.split('_')[-1].split('.')[0]))
+                    
+        return res, who, ctrl_points
+    
+    def loadpheno_seq_results_DS(self,exp_list):
         '''
         Here we're loading results on a per experiment basis. This will be interesting to look at distances between experiments
         based on phenotypes, vs distances based on trajectory types.
