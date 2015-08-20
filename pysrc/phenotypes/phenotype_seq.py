@@ -418,11 +418,10 @@ class pheno_seq_extractor(thrivisionExtraction):
             for file_ in phenotypic_scores:
                 f=open(os.path.join(self.settings.outputFolder, plate, file_))
                 scores=pickle.load(f); f.close()
-                pdb.set_trace()
-                if scores.shape[1]==1:
+                if scores.shape[0]==1:
                     ctrl_points=scores[:,np.newaxis] if ctrl_points is None else np.vstack((ctrl_points, scores[:,np.newaxis]))
                 else:
-                    res=scores if res is None else np.vstack((res, scores))
+                    res=scores if res is None else np.hstack((res, scores))
                     who.append('{}--{}'.format(plate, file_.split('_')[-1].split('.')[0]))
                     
         return res, who, ctrl_points
