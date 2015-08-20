@@ -580,7 +580,7 @@ Input:
     parser.add_option("-p", "--plate", dest="plate",
                       help="The plate which you are interested in")
     
-    parser.add_option("-w", "--well", dest="well",
+    parser.add_option("-w", "--well", dest="well",type=int,
                       help="The well which you are interested in")
 
     parser.add_option("-c", dest="count_only",type=int,default=0,
