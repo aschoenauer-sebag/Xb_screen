@@ -506,10 +506,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         
         diff=well_count-ctrl_count
         
-        r=diff[np.argmax(np.abs(diff), 0)]
-        pdb.set_trace()
-        
-        return r
+        return diff[np.argmax(np.abs(diff), 0)]
     
     def load_ctrl_well_dict(self, c_wells):
         if type(c_wells)!=np.int64:
@@ -519,7 +516,7 @@ class pheno_seq_extractor(thrivisionExtraction):
             return result
         else:
             try:
-                f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:10], "{:>05}".format(c_wells))))
+                f=open(os.path.join(self.settings.outputFolder,self.plate, self.settings.outputFile.format(self.plate[:10], c_wells)))
                 counts=pickle.load(f); f.close()
                 print "Loading pheno counts for ctrl well {} from file ".format(c_wells),
             except IOError:
