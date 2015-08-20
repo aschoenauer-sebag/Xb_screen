@@ -566,9 +566,10 @@ class pheno_seq_extractor(thrivisionExtraction):
                 if self.well in curr_ctrl:
                     scores.append('IRR')
                     continue
-                ctrl_count=None
+                
+                ctrl_count=np.zeros(shape=ctrl_count_dict[curr_ctrl[0]].shape)
                 for c_well in curr_ctrl:
-                    ctrl_count+=ctrl_count_dict[c_well] if ctrl_count is not None else ctrl_count_dict[c_well]
+                    ctrl_count+=ctrl_count_dict[c_well]
                 
                 scores.append(self.phenotypic_score(well_count, ctrl_count))
             
