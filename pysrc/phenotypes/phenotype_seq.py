@@ -412,13 +412,13 @@ class pheno_seq_extractor(thrivisionExtraction):
         res=None; who=[]
         ctrl_points=None
         
-        for plate in self.settings.plate:
+        for plate in self.settings.plates:
             phenotypic_scores=filter(lambda x: 'pheno_score' in x, os.listdir(os.path.join(self.settings.outputFolder, plate)))
             
             for file_ in phenotypic_scores:
                 f=open(os.path.join(self.settings.outputFolder, plate, file_))
                 scores=pickle.load(f); f.close()
-                
+                pdb.set_trace()
                 if scores.shape[1]==1:
                     ctrl_points=scores[:,np.newaxis] if ctrl_points is None else np.vstack((ctrl_points, scores[:,np.newaxis]))
                 else:
@@ -427,7 +427,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                     
         return res, who, ctrl_points
     
-    def loadpheno_seq_results_DS(self,exp_list):
+    def load_pheno_seq_results_DS(self,exp_list):
         '''
         Here we're loading results on a per experiment basis. This will be interesting to look at distances between experiments
         based on phenotypes, vs distances based on trajectory types.
