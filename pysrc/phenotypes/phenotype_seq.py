@@ -328,8 +328,10 @@ class pheno_seq_extractor(thrivisionExtraction):
 '''
         super(pheno_seq_extractor, self).__init__(setting_file, plate, well)
         if plate is not None:
+            self.pos_list=[1,2]
             if plate not in self.settings.plates:
                 self.settings.raw_result_dir=self.settings.raw_result_dir_Mitocheck
+                self.pos_list=[1]
              
             if well!='CTRL':
                 self.file_=os.path.join(self.settings.raw_result_dir, self.plate, 'hdf5', "{:>05}_{{:>02}}.ch5".format(self.well))
@@ -400,7 +402,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         
         result=None
         
-        for pos in [1,2]:
+        for pos in self.pos_list:
             classification = vi.readHDF5(self.file_.format(pos), path_classif.format(pos))
             objects=vi.readHDF5(self.file_.format(pos), self.path_objects.format(pos))
             
