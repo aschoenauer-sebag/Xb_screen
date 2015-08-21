@@ -465,7 +465,6 @@ class pheno_seq_extractor(thrivisionExtraction):
         '''
 
         result = None; i=0; who=[]
-        pdb.set_trace()#check for right size
         for pl,w in exp_list:
             print i,
             
@@ -479,7 +478,7 @@ class pheno_seq_extractor(thrivisionExtraction):
             else:
             #15 and 16 are respectively out of focus and artefact objects. We don't want them
                 pheno_seq_per_frame=np.sum(pheno_seq_per_frame, 0)
-                pheno_seq_list=pheno_seq_per_frame/float(np.sum(pheno_seq_per_frame,1))
+                pheno_seq_list=pheno_seq_per_frame/float(np.sum(pheno_seq_per_frame))
                 result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
                 who.append('{}--{}'.format(pl[:9], w))
             finally:
