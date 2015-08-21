@@ -500,22 +500,28 @@ class pheno_seq_extractor(thrivisionExtraction):
         '''
         Here we're loading results on a per experiment basis. This will be interesting to look at distances between experiments
         based on phenotypes, vs distances based on trajectory types.
+        FOR THE DRUG SCREEN
+        PER FRAME
         '''
 
-        result = None; i=0; who=[]
+        result = None; i=0; who=[]; missed=[]
         for pl,w in exp_list:
             print i,
             
             try:
-                f=open(os.path.join(self.settings.outputFolder,pl, self.settings.outputFile.format(pl[:10], w)), 'r')
-                pheno_seq_list= pickle.load(f)
+                f=open(os.path.join(self.settings.outputFolder,pl, self.settings.outputFile.format(pl[:9], w)), 'r')
+                pheno_seq_per_frame= pickle.load(f)
                 f.close()
             except:
                 print "Loading error for ", pl, w
+                self.plate=pl; self.well=w
+                if self.DS_usable():
+                    missed.append((pl,w))
                 continue
             else:
             #15 and 16 are respectively out of focus and artefact objects. We don't want them
-                pheno_seq_list=pheno_seq_list[:15]/float(np.sum(pheno_seq_list[:15]))
+                pheno_seq_per_frame=np.sum(pheno_seq_per_frame, 0)
+                pheno_seq_list=pheno_seq_per_frame/float(np.sum(pheno_seq_per_frame))
                 result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
                 who.append('{}--{}'.format(pl[:10], w))
             finally:
