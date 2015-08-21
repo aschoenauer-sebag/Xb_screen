@@ -368,9 +368,10 @@ class pheno_seq_extractor(thrivisionExtraction):
             return False
         return True
     
-    def MITO_usable(self):
-        yqualDict=expSi(self.settings.mitocheck_qc_file)
-        dictSiEntrez=siEntrez(self.settings.mitocheck_mapping_file)
+    def MITO_usable(self, yqualDict=None, dictSiEntrez=None):
+        if yqualDict==None:
+            yqualDict=expSi(self.settings.mitocheck_qc_file)
+            dictSiEntrez=siEntrez(self.settings.mitocheck_mapping_file)
 
         if '{}--{:>03}'.format(self.plate[:9], self.well) not in yqualDict:
     #i. checking if quality control passed
@@ -463,7 +464,9 @@ class pheno_seq_extractor(thrivisionExtraction):
         Here we're loading results from per frame files (pheno_count) on a per experiment basis. This will be interesting to look at distances between experiments
         based on phenotypes, aggregated on time
         '''
-
+        missed=[]
+        yqualDict=expSi(self.settings.mitocheck_qc_file)
+        dictSiEntrez=siEntrez(self.settings.mitocheck_mapping_file)
         result = None; i=0; who=[]
         for pl,w in exp_list:
             print i,
@@ -474,6 +477,9 @@ class pheno_seq_extractor(thrivisionExtraction):
                 f.close()
             except:
                 print "Loading error for ", pl, w
+                self.plate=pl; self.well=w
+                if self.MITO_usable(yqualDict, dictSiEntrez):
+                    missed.append((pl,w))
                 continue
             else:
             #15 and 16 are respectively out of focus and artefact objects. We don't want them
@@ -488,7 +494,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         
         f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "MITO")), 'w')
         pickle.dump((result, who),f); f.close()
-        return
+        return missed
     
     def load_pheno_seq_results_DS(self,exp_list):
         '''
