@@ -8,7 +8,7 @@ from scipy.spatial.distance import squareform, pdist, cdist
 from util.settings import Settings
 from tracking.trajPack.thrivision import thrivisionExtraction
 from vigra import impex as vi
-from util.listFileManagement import correct_from_Nan, strToTuple, EnsemblEntrezTrad
+from util.listFileManagement import expSi, is_ctrl_mitocheck, siEntrez, EnsemblEntrezTrad
 from tracking.trajPack import featuresNumeriques, featuresSaved
 from tracking.histograms import transportation
 from scipy.stats.stats import scoreatpercentile
@@ -322,16 +322,23 @@ class pheno_seq_extractor(thrivisionExtraction):
         '''
         Use well='CTRL' for setting ctrl things for each plate
         For each well we'll save the non-time-aggregated pheno count information independently if they're ctrl or not
+        
+        We can use the same code for the new h5 files concerning Mitocheck (OLD SEGMENTATION is what we want) because
+        it's the same architecture in h5 files
 '''
         super(pheno_seq_extractor, self).__init__(setting_file, plate, well)
-        if plate is not None and well!='CTRL':
-            self.file_=os.path.join(self.settings.raw_result_dir, self.plate, 'hdf5', "{:>05}_{{:>02}}.ch5".format(self.well))
-            self.path_objects="/sample/0/plate/{}/experiment/{:>05}/position/{{}}/object/primary__test".format(self.plate, self.well)
+        if plate is not None:
+            if plate not in self.settings.plates:
+                self.settings.raw_result_dir=self.settings.raw_result_dir_Mitocheck
+             
+            if well!='CTRL':
+                self.file_=os.path.join(self.settings.raw_result_dir, self.plate, 'hdf5', "{:>05}_{{:>02}}.ch5".format(self.well))
+                self.path_objects="/sample/0/plate/{}/experiment/{:>05}/position/{{}}/object/primary__test".format(self.plate, self.well)
             
-        elif plate is not None:
-            self.file_=os.path.join(self.settings.raw_result_dir, self.plate, 'hdf5', "{:>05}_{:>02}.ch5")
-            self.path_objects="/sample/0/plate/{}/experiment/{{:>05}}/position/{{}}/object/primary__test".format(self.plate)
-            
+            else:
+                self.file_=os.path.join(self.settings.raw_result_dir, self.plate, 'hdf5', "{:>05}_{:>02}.ch5")
+                self.path_objects="/sample/0/plate/{}/experiment/{{:>05}}/position/{{}}/object/primary__test".format(self.plate)
+                
         return
     
     def DS_usable(self):
@@ -357,6 +364,28 @@ class pheno_seq_extractor(thrivisionExtraction):
         if c<50:
             return False
         return True
+    
+    def MITO_usable(self):
+        yqualDict=expSi(self.settings.mitocheck_qc_file)
+        dictSiEntrez=siEntrez(self.settings.mitocheck_mapping_file)
+    
+        if self.plate[:9]+'--'+self.well[2:5] not in yqualDict:
+    #i. checking if quality control passed
+            sys.stderr.write("Quality control not passed {} {} \n".format(self.plate[:9], self.well[2:5]))
+            return False
+        if not is_ctrl_mitocheck((self.plate, self.well)) and yqualDict[self.plate[:9]+'--'+self.well[2:5]] not in dictSiEntrez:
+    #ii.checking if siRNA corresponds to a single target in the current state of knowledge
+            sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(self.plate[:9], self.well[2:5]))
+            return False
+        return True
+    
+    def check_qc(self):
+        '''
+        checking quality control: different if it's Mitocheck or DS
+'''
+        if self.plate in self.settings.plates:
+            return self.DS_usable()
+        return self.MITO_usable()
         
     def classificationPerFrame(self):
         #if already computed I return it
@@ -536,10 +565,10 @@ class pheno_seq_extractor(thrivisionExtraction):
             #iii. write those in some files for further computation
             ctrl_wells=self._ctrl_usable()
             self.save(self._ctrl_groups(ctrl_wells))
-        else:
+        else:            
             #i. check qc
             try:
-                assert self.DS_usable()
+                assert self.check_qc()
             except AssertionError:
                 print "QC failed"
                 return

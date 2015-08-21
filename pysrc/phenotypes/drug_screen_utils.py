@@ -1,7 +1,7 @@
 import matplotlib.pyplot as p
 import cPickle as pickle
 import numpy as np
-import pdb
+import pdb,os
 from _collections import defaultdict
 
 from util.make_movies_mito_cbio import ColorMap
@@ -51,7 +51,7 @@ CLASSES=['Interphase',
      'Folded',
      'SmallIrregular']
 
-def plotPrep(file_='/media/lalil0u/New/projects/drug_screen/results/MDS_Mitocheck_DS_distances_30.pkl'):
+def plotPrep(file_='/media/lalil0u/New/projects/drug_screen/results/MDS_Mitocheck_DS_distances_cost2_10.pkl'):
     '''
     File without plate 4
 '''
@@ -86,6 +86,11 @@ def plotPrep(file_='/media/lalil0u/New/projects/drug_screen/results/MDS_Mitochec
     for exp in who[6214:]:
         exposure.append(drugs[exp])
         ord_doses.append(doses_cont[exp])
+        
+        if drugs[exp]=='empty':
+            colors.append('green')
+        else:
+            colors.append('red')
         
     return colors, drugs, r, who, phenotypes, np.array(exposure), np.array(ord_doses)
 
@@ -145,9 +150,11 @@ def distinctDrugPlots(colors, drugs,r, who, phenotypes, exposure):
             el.legend(prop={'size':8})
     p.show()
     
-def distinctDrugBoxplots(who, exposure,doses, perc, phenotypes):
+def distinctDrugBoxplots_PERC(who, exposure,doses, perc, phenotypes):
     '''
     We suppose that plate 4 is already removed from r and who
+    Here we're directly looking at phenotypes percentages over the whole movie, compared with controls and Mitocheck hits
+    Percentages are in the file /media/lalil0u/New/projects/drug_screen/results/all_Mitocheck_DS_phenohit.pkl
 '''
     cm = ColorMap()
     cr = cm.makeColorRamp(256, ["#FFFF00", "#FF0000"])
@@ -170,14 +177,54 @@ def distinctDrugBoxplots(who, exposure,doses, perc, phenotypes):
                 for k in range(perc.shape[1]):
                     axes.flatten()[8+j].scatter([k+1 for x in range(where_.shape[0])], perc[where_,k], color=degrade[dose], alpha=0.5, s=5)
         axes.flatten()[8+j].set_title(drug)
-        
+    print pheno
     where_=np.where(exposure=='empty')[0]
-    axes.flatten()[8+j+1].boxplot([perc[np.where(exposure==pheno),k] for k in range(perc.shape[1])])
+    axes.flatten()[8+j+1].boxplot([perc[where_,k] for k in range(perc.shape[1])])
     axes.flatten()[8+j+1].set_title('Control')
     axes.flatten()[8+j+1].set_xticklabels(CLASSES, rotation='vertical')
     p.show()
+    
+def distinctDrugBoxplots_PHENOSCORE(who_ps, res, ctrl_points, folder='/media/lalil0u/New/projects/drug_screen/results/'):
+    '''
+    Here we're looking at phenotypic scores, compared with controls and Mitocheck hits
+'''
+    cm = ColorMap()
+    cr = cm.makeColorRamp(256, ["#FFFF00", "#FF0000"])
+    degrade = [cm.getColorFromMap(x, cr, 0, 10) for x in range(11)]
+
+    f=open('/media/lalil0u/New/projects/drug_screen/results/well_drug_dose.pkl')
+    _, drugs, _, doses_cont, _=pickle.load(f)
+    f.close()
+    
+    exposure=[]
+    doses=[]
+
+    for exp in who_ps:
+        exposure.append(drugs["{}--{:>05}".format(exp.split('--')[0], int(exp.split('--')[1]))])
+        doses.append(doses_cont["{}--{:>05}".format(exp.split('--')[0], int(exp.split('--')[1]))])
+    exposure=np.array(exposure); doses=np.array(doses)
+    for drug in DRUGS:
+        f,axes=p.subplots(4,4, sharex=True, figsize=(24,12))
+        for k,class_ in enumerate(CLASSES):
+            axes.flatten()[k].boxplot(ctrl_points[:,k])
+            for dose in range(10):
+                where_=np.where((exposure==drug)&(doses==dose))[0]
+                x=np.random.normal(1, 0.05, size=where_.shape[0])
+                if where_.shape[0]>0: 
+                    axes.flatten()[k].scatter(x, res[where_,k], color=degrade[dose], alpha=0.8, s=6)
+            
+            axes.flatten()[k].set_title(class_)
+        
+        p.title(drug)
+        p.savefig(os.path.join(folder, 'phenoscore_{}.png'.format(drug)))
+        
+    p.close('all')
         
 def distinctPhenoPlot(res, ctrl_points):
+    '''
+   Quick plots to see distributions of phenotypic scores as a function of phenotype, with different colors for control and experiment 
+'''
+    
     colors=['red' for k in range(res.shape[0])]
     colors.extend(['green' for k in range(ctrl_points.shape[0])]); colors=np.array(colors)
     res=np.vstack((res, ctrl_points))
@@ -186,8 +233,10 @@ def distinctPhenoPlot(res, ctrl_points):
     for k in range(res.shape[1]):
         ord=np.argsort(res[:,k])
         loc_col=colors[ord]
-        axes.flatten()[k].scatter(range(1070), res[ord, k][np.where(loc_col=='red')], color='red', alpha=0.5, marker='+')
-        axes.flatten()[k].scatter([0 for u in range(131)], res[ord, k][np.where(loc_col=='green')], color='green')
+        axes.flatten()[k].boxplot(res[ord, k][np.where(loc_col=='green')])
+        x=np.random.normal(1, 0.08, size=np.where(loc_col=='red')[0].shape[0])
+        axes.flatten()[k].plot(x, res[ord, k][np.where(loc_col=='red')],'r.', color='red', alpha=0.2)
+        
         axes.flatten()[k].set_title(CLASSES[k])
         
     p.show()
