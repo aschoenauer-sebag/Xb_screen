@@ -330,6 +330,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         if plate is not None:
             self.pos_list=[1,2]
             if plate not in self.settings.plates:
+                #then we need to set some things for Mitocheck
                 self.settings.raw_result_dir=self.settings.raw_result_dir_Mitocheck
                 self.pos_list=[1]
              

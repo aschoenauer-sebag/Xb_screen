@@ -703,7 +703,7 @@ def writeGSEARankingFile(genes, name):
     print 'fichier ecrit ', os.path.join(os.getcwd(), name)
     return 1
 
-def strToTuple(strList, platesList):
+def strToTuple(strList, platesList, func=lambda x:'{:>05}_01'.format(x[-3:])):
     '''
     Goes from an experiment list in the form LT00*****--00*** to 
     the whole name as recorded in the mitocheck raw data folder
@@ -724,7 +724,7 @@ def strToTuple(strList, platesList):
         except IndexError:
             print el, 'not found'
         else:
-            result.append((pl, '{:>05}_01'.format(el[-3:])))
+            result.append((pl, func(el)))
     return result
     
 def noRaw(arrExp, rawD):
