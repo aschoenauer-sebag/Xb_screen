@@ -16,7 +16,7 @@ mitocheck_qc_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_expo
 
 ###ALL INFORMATION FOR WEBSITE AND MOVIE COMPUTATION
 #Where to save processed results
-result_dir = os.path.join(base_result_dir, 'results') 
+result_dir = os.path.join(base_result_dir, 'results/plates') 
 #Where to save data to be put online
 media_dir = os.path.join(base_html, 'interface_screen/plates/static')
 plot_dir = os.path.join(media_dir, 'plots')

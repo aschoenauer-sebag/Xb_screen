@@ -510,7 +510,7 @@ class thrivisionExtraction(object):
     def save(self, boxes, filename=None):
         if filename is None:
             filename=self.settings.outputFile
-        f=open(os.path.join(self.settings.outputFolder,self.plate, filename.format(self.plate[:10], self.well)), 'w')
+        f=open(os.path.join(self.settings.outputFolder,self.plate, filename.format(self.plate[:9], self.well)), 'w')
         pickle.dump(boxes, f); f.close()
         return
     
