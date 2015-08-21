@@ -371,7 +371,7 @@ class pheno_seq_extractor(thrivisionExtraction):
     def MITO_usable(self):
         yqualDict=expSi(self.settings.mitocheck_qc_file)
         dictSiEntrez=siEntrez(self.settings.mitocheck_mapping_file)
-        pdb.set_trace()
+
         if '{}--{:>03}'.format(self.plate, self.well) not in yqualDict:
     #i. checking if quality control passed
             sys.stderr.write("Quality control not passed {} {} \n".format(self.plate, self.well))
