@@ -524,7 +524,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         
         f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "DS")), 'w')
         pickle.dump((result, who),f); f.close()
-        return
+        return missed
     
     def pheno_seq(self, tracklets,track_filter= (lambda x: x.fusion !=True and len(x.lstPoints)>11)):
         file_=os.path.join(self.settings.hdf5Folder, self.plate, 'hdf5', "{}.hdf5".format(self.well))
