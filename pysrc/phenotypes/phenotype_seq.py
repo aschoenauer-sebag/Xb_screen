@@ -355,19 +355,12 @@ class pheno_seq_extractor(thrivisionExtraction):
         if int(self.well) not in d['FAILED QC']:
             return True
         
-        if int(self.well) in d['FAILED QC'] and d[int(self.well)]['cell_count'][0]>50:
+        if d[int(self.well)]['cell_count'][0]>50:
             print "Intensity QC failed"
-            return False
-        
-        c=0
-        for pos in [1,2]:
-            tab=vi.readHDF5(self.file_.format(pos), self.path_objects.format(pos))
-            c+=np.where(tab['time_idx']==0)[0].shape[0]
+        else:
+            print "Low cell count"
+        return False
             
-        if c<50:
-            return False
-        return True
-    
     def MITO_usable(self, yqualDict=None, dictSiEntrez=None):
         if yqualDict==None:
             yqualDict=expSi(self.settings.mitocheck_qc_file)
