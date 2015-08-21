@@ -853,7 +853,7 @@ if __name__ == '__main__':
     f.close()
     
     #Lambda parameter
-    lambda_list=[0.01 ,10]
+    lambda_list=[0.01, 0.1, 1, 10, 30]
     
     if options.distance=='Sinkhorn':
         r=[]
