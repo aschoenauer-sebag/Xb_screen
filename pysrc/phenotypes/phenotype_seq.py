@@ -373,7 +373,7 @@ class pheno_seq_extractor(thrivisionExtraction):
     #i. checking if quality control passed
             sys.stderr.write("Quality control not passed {} {} \n".format(self.plate, self.well))
             return False
-        if not is_ctrl_mitocheck((self.plate, self.well)) and yqualDict['{}--{:>03}'.format(self.plate, self.well)] not in dictSiEntrez:
+        if not is_ctrl_mitocheck('{}--{:>05}'.format(self.plate, self.well)) and yqualDict['{}--{:>03}'.format(self.plate, self.well)] not in dictSiEntrez:
     #ii.checking if siRNA corresponds to a single target in the current state of knowledge
             sys.stderr.write( "SiRNA having no target or multiple target {} {}\n".format(self.plate, self.well))
             return False
