@@ -458,6 +458,39 @@ class pheno_seq_extractor(thrivisionExtraction):
                     
         return res, who, ctrl_points
     
+    def load_pheno_seq_results_MITO(self,exp_list):
+        '''
+        Here we're loading results from per frame files (pheno_count) on a per experiment basis. This will be interesting to look at distances between experiments
+        based on phenotypes, aggregated on time
+        '''
+
+        result = None; i=0; who=[]
+        pdb.set_trace()#check for right size
+        for pl,w in exp_list:
+            print i,
+            
+            try:
+                f=open(os.path.join(self.settings.outputFolder,pl, self.settings.outputFile.format(pl[:9], w)), 'r')
+                pheno_seq_per_frame= pickle.load(f)
+                f.close()
+            except:
+                print "Loading error for ", pl, w
+                continue
+            else:
+            #15 and 16 are respectively out of focus and artefact objects. We don't want them
+                pheno_seq_per_frame=np.sum(pheno_seq_per_frame, 0)
+                pheno_seq_list=pheno_seq_per_frame/float(np.sum(pheno_seq_per_frame,1))
+                result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
+                who.append('{}--{}'.format(pl[:9], w))
+            finally:
+                i+=1
+                
+        print "Saving"
+        
+        f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "MITO")), 'w')
+        pickle.dump((result, who),f); f.close()
+        return
+    
     def load_pheno_seq_results_DS(self,exp_list):
         '''
         Here we're loading results on a per experiment basis. This will be interesting to look at distances between experiments
@@ -485,7 +518,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                 
         print "Saving"
         
-        f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "hit_exp")), 'w')
+        f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "DS")), 'w')
         pickle.dump((result, who),f); f.close()
         return
     
