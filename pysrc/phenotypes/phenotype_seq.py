@@ -231,9 +231,10 @@ def graphWorking(trajdist, mds_transformed, genes=None, percentile=10, only_high
     return G
 
     
-def collectingDistance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2', len_=7414):
+def collectingDistance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2', len_=7662,
+                       num_lambda=5):
     missed=[]
-    result=[np.zeros(shape=(len_, len_)) for k in range(2)]
+    result=[np.zeros(shape=(len_, len_)) for k in range(num_lambda)]
     for i in range(len_):
         el='{}_{}.pkl'.format(filename, i)
         try:
