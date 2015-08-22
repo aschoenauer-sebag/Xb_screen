@@ -120,7 +120,11 @@ TRANSLATION_WHOLENAMED = {
 #For phenotype concatenation saving
 outputFolder = result_dir
 outputFile = "pheno_count_{}_{}.pkl"
-outputFile_phenotypic_score = "pheno_score_{}_{}.pkl"
+
+outputFile_= {'pheno_score' : "pheno_score_{}_{}.pkl", 
+              'time_transport_dist' : "ttransport_dist_{}_{}.pkl",
+              'pheno_dist' : "pheno_dist_{}_{}.pkl"}
+
 #time-aggregation level
 time_agg=5
 #plates

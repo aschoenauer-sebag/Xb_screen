@@ -13,136 +13,137 @@ from tracking.trajPack import featuresNumeriques, featuresSaved
 from tracking.histograms import transportation
 from scipy.stats.stats import scoreatpercentile
 from sklearn.cluster.spectral import SpectralClustering
+from phenotypes import drug_screen_utils
 
 if getpass.getuser()=='lalil0u':
     import matplotlib.pyplot as p
     from util.plots import couleurs
     import networkx as nx
 
-# 652 Loading error for  LT0159_17--ex2006_01_20--sp2006_01_10--tt17--c5 00134_01
-# 654 Loading error for  LT0159_50--ex2006_02_01--sp2006_01_10--tt17--c5 00134_01
-# 1150 Loading error for  LT0062_07--ex2006_03_08--sp2005_06_02--tt17--c3 00300_01
-# 1151 Loading error for  LT0062_46--ex2005_07_08--sp2005_06_02--tt18--c4 00300_01
-# 2675 Loading error for  LT0072_25--ex2005_07_15--sp2005_06_05--tt18--c2 00007_01
-# 2676 Loading error for  LT0072_35--ex2007_10_24--sp2005_06_20--tt17--c5 00007_01
-# 2677 Loading error for  LT0072_47--ex2005_09_30--sp2005_06_20--tt17--c5 00007_01
-# 2678 Loading error for  LT0159_17--ex2006_01_20--sp2006_01_10--tt17--c5 00014_01
-# 2679 Loading error for  LT0159_50--ex2006_02_01--sp2006_01_10--tt17--c5 00014_01
-# 2698 Loading error for  LT0159_17--ex2006_01_20--sp2006_01_10--tt17--c5 00109_01
-# 2699 Loading error for  LT0159_50--ex2006_02_01--sp2006_01_10--tt17--c5 00109_01
-# 2865 Loading error for  LT0084_47--ex2005_08_03--sp2005_07_07--tt17--c5 00120_01
-
-#to do jobs launch thrivision.scriptCommand(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
-
-def forMatthieu(file_='../resultData/features_on_films/labelsKM_whole_k8.pkl', out_file='../resultData/features_on_films/traj_cluster{}.csv'):
-    order=[7,0,3,5,4,2,6,1]
-    trad=EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
-    trad['ctrl']='ctrl'
-    f=open(file_, 'r')
-    labels=pickle.load(f)
-    f.close()
-    #ATTENTION A L'ORDRE DES CLUSTERS POUR ETRE CORRECT PAR RAPPORT A LA HEATMAP
-    percentages=labels[1][:,order]
-    movie_perc=percentages[:2929]
-    
-    f=open('../resultData/features_on_films/labelsKM_whole_k8_NEWMODEL.pkl')
-    new_labels=pickle.load(f)
-    f.close()
-    siRNAs=np.array(new_labels[4])
-    genes=np.array(new_labels[5])
-
-    d_percentages=getMedians(movie_perc, siRNAs[:2929], genes[:2929])
-    d_genes=np.hstack((np.array(d_percentages[2]), genes[2929:]))
-    d_siRNAs=np.hstack((np.array(d_percentages[1]), siRNAs[2929:]))
-    
-    d_percentages2=np.vstack((d_percentages[0], percentages[2929:]))
-    
-    fig,axes=p.subplots(4,2,sharex=True, figsize=(24,24))
-    for k in range(8):
-        f=open(out_file.format(k), 'w')
-        writer=csv.writer(f)
-        currGenes = d_genes[np.argsort(-d_percentages2[:,k])]
-        currValues=d_percentages2[:,k][np.argsort(-d_percentages2[:,k])]
-        currColors=[]
-        for i in range(currGenes.shape[0]):
-            writer.writerow([currGenes[i], currValues[i], trad[currGenes[i]]])
-            if currGenes[i]=='ctrl':
-                axes.flatten()[k].scatter(i,currValues[i], color='green', s=8)
-            else:
-                axes.flatten()[k].scatter(i,currValues[i], color='red', s=5, marker='+')
-        f.close()
-        
-        axes.flatten()[k].set_title('Cluster {}'.format(k))
-    fig.savefig('../resultData/features_on_films/traj_clusters.png')
-        
-        
-    return
-
-def forMatthieu2(file_features='../resultData/features_on_films/all_distances_whole_dataonly.pkl', file_labels='../resultData/features_on_films/labelsKM_whole_k8.pkl',
-                 file_coordinates='../resultData/features_on_films/coordinates_1000first.pkl',
-                 out_feature_file='../resultData/features_on_films/traj_cluster{}_trajectory_features.csv',
-                 out_coordinate_file='../resultData/features_on_films/traj_cluster{}_trajectory_coordinates.csv'):
-    
-    small_nr=None; small_coordinates=None
-    
-    f=open(file_features)
-    data=pickle.load(f); f.close()
-    data=data[0][:356905]
-    r=np.hstack((data[:,:len(featuresNumeriques)], data[:,featuresSaved.index('mean persistence'), np.newaxis], data[:, featuresSaved.index('mean straight'), np.newaxis]))
-    
-    f=open(file_labels)
-    labels=pickle.load(f); f.close()
-    labels=labels[0][:356905]
-    
-    f=open(file_coordinates)
-    coordinates=np.array(pickle.load(f));f.close()
-    i=0
-    for k in [7,0,3,5,4,2,6,1]:#range(begin_, num_clusters):#ORDRE UTILISE POUR LE PAPIER ISBI 
-        where_=np.where(np.array(labels)==k)[0]
-        np.random.shuffle(where_)
-        
-        f=open(out_feature_file.format(i), 'w')
-        writer=csv.writer(f)
-        writer.writerows(r[where_[:1000]])
-        f.close()
-        
-        f=open(out_coordinate_file.format(i), 'w')
-        writer=csv.writer(f)
-        for el in coordinates[where_[:1000]]:
-            writer.writerow(zip(el[:,0], el[:,1]))
-        f.close()
-        
-        i+=1
-    
-    
-
-
-def computeIntersectionSC_pheno(medians, medGENES, medSI, delta_l, k_l, phenotypic_labels):
-    result=np.empty(shape=(len(delta_l), len(k_l)), dtype=float)
-    
-    for j,delta in enumerate(delta_l):
-        affinity=np.exp(-delta*medians**2)
-        
-        for i,k in enumerate(k_l):
-            print '----', delta, k  
-            model=SpectralClustering(affinity='precomputed', n_clusters=k)
-            model.fit(affinity)
-            
-            result[j,i]=intersection(model.labels_, phenotypic_labels, medSI)
-            
-    return result
-            
-            
-def intersection(model_labels, phenotypic_labels, medSI):
-    count=np.zeros(shape=(len(set(model_labels)), 8))
-    
-    for i,siRNA in enumerate(medSI):
-        spec=model_labels[i]
-        
-        for el in phenotypic_labels[siRNA]:
-            count[spec, el]+=1
-    print count
-    return np.sum(np.max(count,0))/float(np.sum(count))
+# # 652 Loading error for  LT0159_17--ex2006_01_20--sp2006_01_10--tt17--c5 00134_01
+# # 654 Loading error for  LT0159_50--ex2006_02_01--sp2006_01_10--tt17--c5 00134_01
+# # 1150 Loading error for  LT0062_07--ex2006_03_08--sp2005_06_02--tt17--c3 00300_01
+# # 1151 Loading error for  LT0062_46--ex2005_07_08--sp2005_06_02--tt18--c4 00300_01
+# # 2675 Loading error for  LT0072_25--ex2005_07_15--sp2005_06_05--tt18--c2 00007_01
+# # 2676 Loading error for  LT0072_35--ex2007_10_24--sp2005_06_20--tt17--c5 00007_01
+# # 2677 Loading error for  LT0072_47--ex2005_09_30--sp2005_06_20--tt17--c5 00007_01
+# # 2678 Loading error for  LT0159_17--ex2006_01_20--sp2006_01_10--tt17--c5 00014_01
+# # 2679 Loading error for  LT0159_50--ex2006_02_01--sp2006_01_10--tt17--c5 00014_01
+# # 2698 Loading error for  LT0159_17--ex2006_01_20--sp2006_01_10--tt17--c5 00109_01
+# # 2699 Loading error for  LT0159_50--ex2006_02_01--sp2006_01_10--tt17--c5 00109_01
+# # 2865 Loading error for  LT0084_47--ex2005_08_03--sp2005_07_07--tt17--c5 00120_01
+# 
+# #to do jobs launch thrivision.scriptCommand(exp_list, baseName='pheno_seq', command="phenotypes/phenotype_seq.py")
+# 
+# def forMatthieu(file_='../resultData/features_on_films/labelsKM_whole_k8.pkl', out_file='../resultData/features_on_films/traj_cluster{}.csv'):
+#     order=[7,0,3,5,4,2,6,1]
+#     trad=EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+#     trad['ctrl']='ctrl'
+#     f=open(file_, 'r')
+#     labels=pickle.load(f)
+#     f.close()
+#     #ATTENTION A L'ORDRE DES CLUSTERS POUR ETRE CORRECT PAR RAPPORT A LA HEATMAP
+#     percentages=labels[1][:,order]
+#     movie_perc=percentages[:2929]
+#     
+#     f=open('../resultData/features_on_films/labelsKM_whole_k8_NEWMODEL.pkl')
+#     new_labels=pickle.load(f)
+#     f.close()
+#     siRNAs=np.array(new_labels[4])
+#     genes=np.array(new_labels[5])
+# 
+#     d_percentages=getMedians(movie_perc, siRNAs[:2929], genes[:2929])
+#     d_genes=np.hstack((np.array(d_percentages[2]), genes[2929:]))
+#     d_siRNAs=np.hstack((np.array(d_percentages[1]), siRNAs[2929:]))
+#     
+#     d_percentages2=np.vstack((d_percentages[0], percentages[2929:]))
+#     
+#     fig,axes=p.subplots(4,2,sharex=True, figsize=(24,24))
+#     for k in range(8):
+#         f=open(out_file.format(k), 'w')
+#         writer=csv.writer(f)
+#         currGenes = d_genes[np.argsort(-d_percentages2[:,k])]
+#         currValues=d_percentages2[:,k][np.argsort(-d_percentages2[:,k])]
+#         currColors=[]
+#         for i in range(currGenes.shape[0]):
+#             writer.writerow([currGenes[i], currValues[i], trad[currGenes[i]]])
+#             if currGenes[i]=='ctrl':
+#                 axes.flatten()[k].scatter(i,currValues[i], color='green', s=8)
+#             else:
+#                 axes.flatten()[k].scatter(i,currValues[i], color='red', s=5, marker='+')
+#         f.close()
+#         
+#         axes.flatten()[k].set_title('Cluster {}'.format(k))
+#     fig.savefig('../resultData/features_on_films/traj_clusters.png')
+#         
+#         
+#     return
+# 
+# def forMatthieu2(file_features='../resultData/features_on_films/all_distances_whole_dataonly.pkl', file_labels='../resultData/features_on_films/labelsKM_whole_k8.pkl',
+#                  file_coordinates='../resultData/features_on_films/coordinates_1000first.pkl',
+#                  out_feature_file='../resultData/features_on_films/traj_cluster{}_trajectory_features.csv',
+#                  out_coordinate_file='../resultData/features_on_films/traj_cluster{}_trajectory_coordinates.csv'):
+#     
+#     small_nr=None; small_coordinates=None
+#     
+#     f=open(file_features)
+#     data=pickle.load(f); f.close()
+#     data=data[0][:356905]
+#     r=np.hstack((data[:,:len(featuresNumeriques)], data[:,featuresSaved.index('mean persistence'), np.newaxis], data[:, featuresSaved.index('mean straight'), np.newaxis]))
+#     
+#     f=open(file_labels)
+#     labels=pickle.load(f); f.close()
+#     labels=labels[0][:356905]
+#     
+#     f=open(file_coordinates)
+#     coordinates=np.array(pickle.load(f));f.close()
+#     i=0
+#     for k in [7,0,3,5,4,2,6,1]:#range(begin_, num_clusters):#ORDRE UTILISE POUR LE PAPIER ISBI 
+#         where_=np.where(np.array(labels)==k)[0]
+#         np.random.shuffle(where_)
+#         
+#         f=open(out_feature_file.format(i), 'w')
+#         writer=csv.writer(f)
+#         writer.writerows(r[where_[:1000]])
+#         f.close()
+#         
+#         f=open(out_coordinate_file.format(i), 'w')
+#         writer=csv.writer(f)
+#         for el in coordinates[where_[:1000]]:
+#             writer.writerow(zip(el[:,0], el[:,1]))
+#         f.close()
+#         
+#         i+=1
+#     
+#     
+# 
+# 
+# def computeIntersectionSC_pheno(medians, medGENES, medSI, delta_l, k_l, phenotypic_labels):
+#     result=np.empty(shape=(len(delta_l), len(k_l)), dtype=float)
+#     
+#     for j,delta in enumerate(delta_l):
+#         affinity=np.exp(-delta*medians**2)
+#         
+#         for i,k in enumerate(k_l):
+#             print '----', delta, k  
+#             model=SpectralClustering(affinity='precomputed', n_clusters=k)
+#             model.fit(affinity)
+#             
+#             result[j,i]=intersection(model.labels_, phenotypic_labels, medSI)
+#             
+#     return result
+#             
+#             
+# def intersection(model_labels, phenotypic_labels, medSI):
+#     count=np.zeros(shape=(len(set(model_labels)), 8))
+#     
+#     for i,siRNA in enumerate(medSI):
+#         spec=model_labels[i]
+#         
+#         for el in phenotypic_labels[siRNA]:
+#             count[spec, el]+=1
+#     print count
+#     return np.sum(np.max(count,0))/float(np.sum(count))
             
 
 def getMedians(distances, siRNAs, genes):
@@ -345,6 +346,22 @@ class pheno_seq_extractor(thrivisionExtraction):
                 
         return
     
+    @staticmethod
+    def hit_detection_pheno_score(res, who, ctrl_points, whis=1.5):
+        '''
+       Permissive hit detection taking experiments where Interphase phenotypic score is under the bottom whisker,
+       which is 1.5*IQR
+'''
+        q3=scoreatpercentile(ctrl_points[:,drug_screen_utils.CLASSES.index('Interphase')], per=75)
+        q1=scoreatpercentile(ctrl_points[:,drug_screen_utils.CLASSES.index('Interphase')], per=25)
+        
+        val=q1-whis*(q3-q1)
+        
+        hits=np.where(res[:,drug_screen_utils.CLASSES.index('Interphase')]<=val)[0]
+        
+        return res[hits], np.array(who)[hits]
+        
+    
     def DS_usable(self):
         '''
         Checking for over-exposed experiments or with low cell count
@@ -453,7 +470,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                     
         return res, who, ctrl_points
     
-    def load_pheno_seq_results_MITO(self,exp_list):
+    def load_pheno_seq_results_MITO(self,exp_list, time_aggregated=False):
         '''
         Here we're loading results from per frame files (pheno_count) on a per experiment basis. This will be interesting to look at distances between experiments
         based on phenotypes, aggregated on time
@@ -477,20 +494,27 @@ class pheno_seq_extractor(thrivisionExtraction):
                 continue
             else:
             #15 and 16 are respectively out of focus and artefact objects. We don't want them
-                pheno_seq_per_frame=np.sum(pheno_seq_per_frame, 0)
-                pheno_seq_list=pheno_seq_per_frame/float(np.sum(pheno_seq_per_frame))
-                result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
+                if time_aggregated:
+                    pheno_seq_per_frame=np.sum(pheno_seq_per_frame, 0)
+                    pheno_seq_list=pheno_seq_per_frame/float(np.sum(pheno_seq_per_frame))
+                    result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
+                else:
+                    pheno_seq_per_frame=np.vstack((np.sum(pheno_seq_per_frame[self.settings.time_agg*k:self.settings.time_agg*(k+1)],0) 
+                                                   for k in range(pheno_seq_per_frame.shape[0]/self.settings.time_agg)))
+                    result = np.vstack((result, pheno_seq_per_frame[np.newaxis])) if result is not None else pheno_seq_per_frame[np.newaxis]
+                    
+                    
                 who.append('{}--{}'.format(pl[:9], w))
             finally:
                 i+=1
                 
         print "Saving"
         
-        f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "MITO")), 'w')
+        f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "MITO_time")), 'w')
         pickle.dump((result, who),f); f.close()
         return missed
     
-    def load_pheno_seq_results_DS(self,exp_list):
+    def load_pheno_seq_results_DS(self,exp_list, time_aggregated=False):
         '''
         Here we're loading results on a per experiment basis. This will be interesting to look at distances between experiments
         based on phenotypes, vs distances based on trajectory types.
@@ -514,16 +538,21 @@ class pheno_seq_extractor(thrivisionExtraction):
                 continue
             else:
             #15 and 16 are respectively out of focus and artefact objects. We don't want them
-                pheno_seq_per_frame=np.sum(pheno_seq_per_frame, 0)
-                pheno_seq_list=pheno_seq_per_frame/float(np.sum(pheno_seq_per_frame))
-                result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
+                if time_aggregated:
+                    pheno_seq_per_frame=np.sum(pheno_seq_per_frame, 0)
+                    pheno_seq_list=pheno_seq_per_frame/float(np.sum(pheno_seq_per_frame))
+                    result = np.vstack((result, pheno_seq_list)) if result is not None else pheno_seq_list
+                else:
+                    pheno_seq_per_frame=np.vstack((np.sum(pheno_seq_per_frame[self.settings.time_agg*k:self.settings.time_agg*(k+1)],0) 
+                                                   for k in range(pheno_seq_per_frame.shape[0]/self.settings.time_agg)))
+                    result = np.vstack((result, pheno_seq_per_frame[np.newaxis])) if result is not None else pheno_seq_per_frame[np.newaxis]
                 who.append('{}--{}'.format(pl[:10], w))
             finally:
                 i+=1
                 
         print "Saving"
         
-        f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "DS")), 'w')
+        f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "DS_time")), 'w')
         pickle.dump((result, who),f); f.close()
         return missed
     
@@ -596,7 +625,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                 
             return counts
     
-    def __call__(self,time_pheno_count_only=False):
+    def __call__(self,time_pheno_count_only=False, action='pheno_score'):
         if not os.path.isdir(os.path.join(self.settings.outputFolder, self.plate)):
             os.mkdir(os.path.join(self.settings.outputFolder, self.plate))
         
@@ -621,25 +650,30 @@ class pheno_seq_extractor(thrivisionExtraction):
             if time_pheno_count_only:
                 return well_count 
         #iv. now compute distance to controls
-            #load ctrl lists
-            ctrl_wells=self.load_ctrl_well_list()
-            #load ctrl pheno counts
-            ctrl_count_dict= self.load_ctrl_well_dict(ctrl_wells)
-            
-            cut=len(ctrl_wells)/3
-            scores=None
-            for k in range(3):
-                curr_ctrl=filter(lambda x: x not in ctrl_wells[k*cut:(k+1)*cut], ctrl_wells)
-                if self.well in curr_ctrl:
-                    continue
+        
+            if action == 'pheno_score':
+                #load ctrl lists
+                ctrl_wells=self.load_ctrl_well_list()
+                #load ctrl pheno counts
+                ctrl_count_dict= self.load_ctrl_well_dict(ctrl_wells)
                 
-                ctrl_count=np.zeros(shape=ctrl_count_dict[curr_ctrl[0]].shape)
-                for c_well in curr_ctrl:
-                    ctrl_count+=ctrl_count_dict[c_well]
-                curr_r=self.phenotypic_score(well_count, ctrl_count)
-                scores= curr_r if scores is None else np.vstack((scores, curr_r))
-            
-            self.save(scores, filename=self.settings.outputFile_phenotypic_score)
+                cut=len(ctrl_wells)/3
+                scores=None
+                for k in range(3):
+                    curr_ctrl=filter(lambda x: x not in ctrl_wells[k*cut:(k+1)*cut], ctrl_wells)
+                    if self.well in curr_ctrl:
+                        continue
+                    
+                    ctrl_count=np.zeros(shape=ctrl_count_dict[curr_ctrl[0]].shape)
+                    for c_well in curr_ctrl:
+                        ctrl_count+=ctrl_count_dict[c_well]
+                    curr_r=self.phenotypic_score(well_count, ctrl_count)
+                    scores= curr_r if scores is None else np.vstack((scores, curr_r))
+            elif action=='pheno_dist':
+                pass
+            elif action =='time_transport_dist':
+                pass
+            self.save(scores, filename=self.settings.outputFile_[action])
             
         return
     
