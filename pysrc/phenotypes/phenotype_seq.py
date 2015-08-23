@@ -463,10 +463,10 @@ class pheno_seq_extractor(thrivisionExtraction):
         Loading transport distance, for different timepoints. Mitocheck experiments are at the end
 '''
         missed=[]
-        result=np.zeros(shape=(len_, len_, num_timepoints))
-        result.fill(-1)
+        result=np.zeros(shape=(len_, len_))
         for i in range(len_):
             el='{}_{}.pkl'.format(filename, i)
+            
             try:
                 f=open(os.path.join(folder, el))
                 d=pickle.load(f); f.close()
@@ -474,11 +474,11 @@ class pheno_seq_extractor(thrivisionExtraction):
                 print "Unopenable ", el
                 missed.append(i)
             else:
-                for time_point in d:
-                    result[i, i+1:,time_point]=d[time_point]
-                    #result[i+1:, i]= result[i,i+1:].T
-        result[np.triu_indices(len_, 1)]=np.min(result[np.triu_indices(len_, 1)],2)#shape doit etre len_,len_
-        result[np.tril_indices(len_, 1)]=result[np.triu_indices(len_, 1)].T
+                local_arr=np.vstack((d[time_point] for time_point in d))
+                local_arr=np.min(local_arr, 1)
+
+                result[i, i+1:]=local_arr
+                result[i+1:, i]= result[i,i+1:].T
         
         return result, missed
 
