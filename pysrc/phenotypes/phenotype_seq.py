@@ -434,6 +434,9 @@ class pheno_seq_extractor(thrivisionExtraction):
     @staticmethod
     def load_transport_distance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2', len_=7662,
                        num_lambda=5):
+        '''
+       Loading transport distance, time-aggregated. Mitocheck experiments are at the beginning
+'''
         missed=[]
         result=[np.zeros(shape=(len_, len_)) for k in range(num_lambda)]
         for i in range(len_):
@@ -452,10 +455,16 @@ class pheno_seq_extractor(thrivisionExtraction):
         return result, missed
 
     @staticmethod
-    def load_Ttransport_distance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2', len_=7662,
-                       num_lambda=5):
+    def load_Ttransport_distance(filename="pheno_distance", 
+                                 folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2_unagg', len_=7662,
+                                 num_timepoints=18
+                                 ):
+        '''
+        Loading transport distance, for different timepoints. Mitocheck experiments are at the end
+'''
         missed=[]
-        result=[np.zeros(shape=(len_, len_)) for k in range(num_lambda)]
+        result=np.zeros(shape=(len_, len_, num_timepoints))
+        result.fill(100)
         for i in range(len_):
             el='{}_{}.pkl'.format(filename, i)
             try:
@@ -465,10 +474,11 @@ class pheno_seq_extractor(thrivisionExtraction):
                 print "Unopenable ", el
                 missed.append(i)
             else:
-                for k in range(len(d)):
-                    result[k][i, i+1:]=d[k]
-                    result[k][i+1:, i]= result[k][i,i+1:].T
-                
+                for time_point in d:
+                    result[i, i+1:,time_point]=d[time_point]
+                    result[i+1:, i]= result[i,i+1:].T
+        result=np.min(result,2)#shape doit etre len_,len_
+        
         return result, missed
 
     
