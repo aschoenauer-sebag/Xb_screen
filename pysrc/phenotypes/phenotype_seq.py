@@ -475,7 +475,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                 missed.append(i)
             else:
                 local_arr=np.vstack((d[time_point] for time_point in d))
-                local_arr=np.min(local_arr, 1)
+                local_arr=np.min(local_arr, 0)
 
                 result[i, i+1:]=local_arr
                 result[i+1:, i]= result[i,i+1:].T
