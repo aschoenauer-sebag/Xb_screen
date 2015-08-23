@@ -231,27 +231,6 @@ def graphWorking(trajdist, mds_transformed, genes=None, percentile=10, only_high
         
     return G
 
-    
-def collectingDistance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2', len_=7662,
-                       num_lambda=5):
-    missed=[]
-    result=[np.zeros(shape=(len_, len_)) for k in range(num_lambda)]
-    for i in range(len_):
-        el='{}_{}.pkl'.format(filename, i)
-        try:
-            f=open(os.path.join(folder, el))
-            d=pickle.load(f); f.close()
-        except:
-            print "Unopenable ", el
-            missed.append(i)
-        else:
-            for k in range(len(d)):
-                result[k][i, i+1:]=d[k]
-                result[k][i+1:, i]= result[k][i,i+1:].T
-            
-    return result, missed
-
-
 def computingDistance(percentages, who, distance='transport', M=None):
     '''
     To compute distances without parallelizing
@@ -451,6 +430,47 @@ class pheno_seq_extractor(thrivisionExtraction):
         result[16]=result[17]
         
         return result[:-1]
+    
+    @staticmethod
+    def load_transport_distance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2', len_=7662,
+                       num_lambda=5):
+        missed=[]
+        result=[np.zeros(shape=(len_, len_)) for k in range(num_lambda)]
+        for i in range(len_):
+            el='{}_{}.pkl'.format(filename, i)
+            try:
+                f=open(os.path.join(folder, el))
+                d=pickle.load(f); f.close()
+            except:
+                print "Unopenable ", el
+                missed.append(i)
+            else:
+                for k in range(len(d)):
+                    result[k][i, i+1:]=d[k]
+                    result[k][i+1:, i]= result[k][i,i+1:].T
+                
+        return result, missed
+
+    @staticmethod
+    def load_Ttransport_distance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2', len_=7662,
+                       num_lambda=5):
+        missed=[]
+        result=[np.zeros(shape=(len_, len_)) for k in range(num_lambda)]
+        for i in range(len_):
+            el='{}_{}.pkl'.format(filename, i)
+            try:
+                f=open(os.path.join(folder, el))
+                d=pickle.load(f); f.close()
+            except:
+                print "Unopenable ", el
+                missed.append(i)
+            else:
+                for k in range(len(d)):
+                    result[k][i, i+1:]=d[k]
+                    result[k][i+1:, i]= result[k][i,i+1:].T
+                
+        return result, missed
+
     
     def load_pheno_score(self):
         res=None; who=[]

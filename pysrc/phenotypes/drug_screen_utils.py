@@ -53,6 +53,30 @@ CLASSES=['Interphase',
 
 lim_Mito=6452
 
+
+'''
+Just some things not to forget when doing the distances on phenotypic scores:
+- we wanted to take out Anapahses and Interphases
+- we need to normalize the different phenotypic scores so that they're comparable for different phenotypes
+'''
+
+
+
+def computing_Mito_pheno_scores(pheno_scores_dict, exp_list):
+    r=np.zeros(shape=(len(exp_list), len(CLASSES)))
+    
+    for i,exp in enumerate(exp_list):
+        for j, class_ in enumerate(CLASSES):
+            if class_=='Binucleated':
+                r[i,j]=pheno_scores_dict[exp]['max_{}'.format('Shape1')]
+            elif class_=='Polylobed':
+                r[i,j]=pheno_scores_dict[exp]['max_{}'.format('Shape3')]
+            else:
+                r[i,j]=pheno_scores_dict[exp]['max_{}'.format(class_)]
+                
+    return r
+
+
 def plotPrep(file_='/media/lalil0u/New/projects/drug_screen/results/MDS_Mitocheck_DS_distances_0.1.pkl'):
     '''
     File without plate 4

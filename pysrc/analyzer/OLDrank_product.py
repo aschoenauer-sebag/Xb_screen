@@ -7,7 +7,7 @@ from collections import Counter
 from analyzer import plates
 from _collections import defaultdict
 
-def rank_product(data, who, conditions, technical_replicates_key, batch_names, reverse):
+def rank_product(data, who, conditions, technical_replicates_key, batch_names, reverse=True):
     '''
     This function should compute the rank product of all conditions, as defined by Breitling et al 2004
     Given that on some plates the same condition may have been plated twice or thrice,
@@ -38,17 +38,15 @@ def rank_product(data, who, conditions, technical_replicates_key, batch_names, r
         
         for i,condition in enumerate(all_conditions):
             ranks[i,j]=technical_replicates_key(np.where(local_cond==condition)[0]+1) if condition in local_cond else -1
-        try:
-            num_technical_replicates[plate]=[len(np.where((conditions==condition)&(who[:,0]==plate))[0]) for condition in all_conditions]
-        except ValueError:
-            num_technical_replicates[plate]=[1 for condition in all_conditions]
+
+        num_technical_replicates[plate]=[len(np.where((conditions==condition)&(who[:,0]==plate))[0]) for condition in all_conditions]
+       
         ranks[np.where(ranks[:,j]<0),j]=len(np.where(who[:,0]==plate)[0])
         ranks[:,j]/=len(np.where(who[:,0]==plate)[0])
         
     return all_conditions,np.prod(ranks, axis=1, dtype=float),num_technical_replicates
 
-def computeRPpvalues(data, who, conditions, technical_replicates_key, num_permutations, reverse, 
-                     batch_names=None, random_result=None, signed=False):
+def computeRPpvalues(data, who, conditions, technical_replicates_key, num_permutations, batch_names=None, random_result=None):
     '''
     THE function to call to do both the rank product on your data and compute p-values by permutations.
     
@@ -62,8 +60,7 @@ def computeRPpvalues(data, who, conditions, technical_replicates_key, num_permut
     - batch_names : list of str with the names of your batches
     
     '''
-    all_conditions,real_result, num_technical_replicates = rank_product(data, who, conditions, technical_replicates_key, batch_names,
-                                                                        reverse)
+    all_conditions,real_result, num_technical_replicates = rank_product(data, who, conditions, technical_replicates_key, batch_names)
     
     if random_result is None:
         rrp=randomRankProduct(num_permutations)
@@ -72,25 +69,24 @@ def computeRPpvalues(data, who, conditions, technical_replicates_key, num_permut
     pvals_up=np.zeros(shape=len(all_conditions,), dtype=float)
     for i in range(real_result.shape[0]):
         pvals_up[i]=max(1, len(np.where(random_result[:,i]<real_result[i])[0]))/float(num_permutations)
-    if signed:
-        pvals_down=np.zeros(shape=len(all_conditions,), dtype=float)
-        for i in range(real_result.shape[0]):
-            pvals_down[i]=max(1, len(np.where(random_result[:,i]>real_result[i])[0]))/float(num_permutations)
-    
-        return zip(all_conditions,real_result, pvals_up, pvals_down), random_result
-    
-    return zip(all_conditions,real_result, pvals_up), random_result
+        
+    pvals_down=np.zeros(shape=len(all_conditions,), dtype=float)
+    for i in range(real_result.shape[0]):
+        pvals_down[i]=max(1, len(np.where(random_result[:,i]>real_result[i])[0]))/float(num_permutations)
+
+        
+    return zip(all_conditions,real_result, pvals_up, pvals_down), random_result
 
 class randomRankProduct(object):
     def __init__(self, num_permutations=1000):
         self.N = num_permutations
         
     def __call__(self,num_technical_replicates, technical_replicates_key):
-        self.batch_names = num_technical_replicates.keys()
-        num_conditions = len(num_technical_replicates[self.batch_names[0]])
+        num_conditions = len(num_technical_replicates[plates[0]])
         result = np.zeros(shape=(self.N,num_conditions), dtype=float)
         
         for k in range(self.N):
+            print k,
             result[k]=self.randomRankProduct(num_conditions,num_technical_replicates, technical_replicates_key)
             
         return result
@@ -100,9 +96,9 @@ class randomRankProduct(object):
         '''
         This function simulates rank products for random orders, as close as possible to our experimental setting.
         '''
-        ranks = np.zeros(shape=(num_conditions, len(self.batch_names)), dtype=float)
+        ranks = np.zeros(shape=(num_conditions, len(plates)), dtype=float)
         
-        for j,plate in enumerate(self.batch_names):
+        for j,plate in enumerate(plates):
             curr_num=np.sum(num_technical_replicates[plate])
             
             local_cond=np.repeat(range(num_conditions), repeats=num_technical_replicates[plate])
