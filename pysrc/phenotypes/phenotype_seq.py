@@ -14,6 +14,7 @@ from tracking.histograms import transportation
 from scipy.stats.stats import scoreatpercentile
 from sklearn.cluster.spectral import SpectralClustering
 from phenotypes import drug_screen_utils
+from phenotypes.drug_screen_utils import lim_Mito
 
 if getpass.getuser()=='lalil0u':
     import matplotlib.pyplot as p
@@ -464,7 +465,7 @@ class pheno_seq_extractor(thrivisionExtraction):
 '''
         missed=[]
         result=np.zeros(shape=(len_, len_))
-        for i in range(len_):
+        for i in range(len_-lim_Mito):
             el='{}_{}.pkl'.format(filename, i)
             
             try:
