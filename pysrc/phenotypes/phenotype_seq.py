@@ -456,7 +456,7 @@ class pheno_seq_extractor(thrivisionExtraction):
 
     @staticmethod
     def load_Ttransport_distance(filename="pheno_distance", 
-                                 folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2_unagg', len_=7662,
+                                 folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2_unagg', len_=6700,
                                  num_timepoints=18
                                  ):
         '''
@@ -464,7 +464,7 @@ class pheno_seq_extractor(thrivisionExtraction):
 '''
         missed=[]
         result=np.zeros(shape=(len_, len_, num_timepoints))
-        result.fill(100)
+        result.fill(-1)
         for i in range(len_):
             el='{}_{}.pkl'.format(filename, i)
             try:
@@ -476,8 +476,9 @@ class pheno_seq_extractor(thrivisionExtraction):
             else:
                 for time_point in d:
                     result[i, i+1:,time_point]=d[time_point]
-                    result[i+1:, i]= result[i,i+1:].T
-        result=np.min(result,2)#shape doit etre len_,len_
+                    #result[i+1:, i]= result[i,i+1:].T
+        result[np.triu_indices(len_, 1)]=np.min(result[np.triu_indices(len_, 1)],2)#shape doit etre len_,len_
+        result[np.tril_indices(len_, 1)]=result[np.triu_indices(len_, 1)].T
         
         return result, missed
 
