@@ -1,10 +1,12 @@
 import matplotlib.pyplot as p
+import matplotlib as mpl
 import cPickle as pickle
 import numpy as np
 import pdb,os
 from _collections import defaultdict
 
 from util.make_movies_mito_cbio import ColorMap
+from scipy.stats.stats import scoreatpercentile
 
 couleurs=['green', 'red', 'yellow', 'blue', 'purple', 'orange', 'black', 'cyan']
 couleurs.append("#9e0142")
@@ -60,6 +62,30 @@ Just some things not to forget when doing the distances on phenotypic scores:
 - we need to normalize the different phenotypic scores so that they're comparable for different phenotypes
 '''
 
+def plotExternalConsistency(corr_dict, labels, cmap=mpl.cm.bwr):
+    norm = mpl.colors.Normalize(0.5,1)
+    corr=np.vstack((corr_dict[el] for el in corr_dict))
+    
+    f=p.figure()
+    ax=f.add_subplot(111)
+    ax.matshow(corr, cmap=cmap, norm=norm)
+    p.xticks(range(len(labels)), labels, rotation=70)
+    p.yticks(range(len(corr_dict)), [el for el in corr_dict])
+    
+    p.show()
+
+
+def plotInternalConsistency(M, tick_labels, cmap=mpl.cm.bwr):
+    
+    norm = mpl.colors.Normalize(0,scoreatpercentile(M.flatten(), 95))
+    f=p.figure()
+    ax=f.add_subplot(111)
+    ax.matshow(M, cmap=cmap, norm=norm)
+    ax.yticks(range(0,M.shape[0],2),tick_labels[::2])
+    ax.tick_params(labelsize=6)
+    p.show()
+    
+    return
 
 
 def computing_Mito_pheno_scores(pheno_scores_dict, exp_list):
