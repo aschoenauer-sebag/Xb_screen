@@ -130,7 +130,7 @@ class HTMLGenerator():
         
     def formatData(self, frameLot, resD, featureL,featureChannels):
         '''
-       Need to modify it to take into account all positions for the same well
+       Need to modify it to take into account all positions for the same wells
 '''
         featureL = list(featureL)
         if self.classes is not None:
@@ -222,7 +222,12 @@ class HTMLGenerator():
                 if self.classes is not None:
             #computing the percentage of out of focus nuclei on the last image
                     result['endFlou']=result[self.settings.focusFeature][-1]
-                resD[plate][int(well[:-3])]['pos_{}'.format(well[-2:])]=result
+                    
+                    
+                if int(well[-2:])==1:
+                    resD[plate][int(well[:-3])].update(result)
+                else:
+                    resD[plate][int(well[:-3])]['pos_02']=result
         return 1
     
     def count_qc(self, failed_qc, plate, resD):
@@ -237,20 +242,36 @@ class HTMLGenerator():
         
         for well in resCour:
             if 'object_count' not in resCour[well] and 'cell_count' not in resCour[well]:
+                #No info to do the QC
                 continue
+            
             if 'cell_count' not in resCour[well]:
                 #do count QC on object_count because we don't have the classification
-                if np.mean(resCour[well]['object_count'][:10])<qc_init_cell:
+                count=np.mean(resCour[well]['object_count'][:10])
+                if 'pos_02' in resCour[well]:
+                    #we take the two positions into account
+                    count+=np.mean(resCour[well]['pos_02']['object_count'][:10])
+                    
+                if count<qc_init_cell:
                     print "Failing initial object count QC ", plate, well
                     failed_qc[plate].append(well)
                     continue
+                
             else:
                 #do count QC on cell_count
-                if np.mean(resCour[well]['cell_count'][:10])<qc_init_cell:
+                count=np.mean(resCour[well]['cell_count'][:10])
+                focus =np.mean(resCour[well][self.settings.focusFeature][-10:])
+                
+                if 'pos_02' in resCour[well]:
+                    count+=np.mean(resCour[well]['pos_02']['cell_count'][:10])
+                    focus+=np.mean(resCour[well]['pos_02'][self.settings.focusFeature][-10:])
+                    
+                if count<qc_init_cell:
                     print "Failing initial cell count QC ", plate, well
                     failed_qc[plate].append(well)
                     continue
-                if np.mean(resCour[well][self.settings.focusFeature][-10:])>qc_end_OOF:
+                
+                if focus>qc_end_OOF:
                     print "Failing out of focus end count QC ", plate, well
                     failed_qc[plate].append(well)
                     continue
