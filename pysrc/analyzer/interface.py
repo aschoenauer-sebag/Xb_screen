@@ -129,6 +129,9 @@ class HTMLGenerator():
         return h1[binOfInterest]/float(np.sum(h1))
         
     def formatData(self, frameLot, resD, featureL,featureChannels):
+        '''
+       Need to modify it to take into account all positions for the same well
+'''
         featureL = list(featureL)
         if self.classes is not None:
             featureChannels.extend([0 for k in range(len(filter(lambda x: x not in featureL, self.classes)))])
@@ -219,7 +222,7 @@ class HTMLGenerator():
                 if self.classes is not None:
             #computing the percentage of out of focus nuclei on the last image
                     result['endFlou']=result[self.settings.focusFeature][-1]
-                resD[plate][int(well[:-3])].update(result)
+                resD[plate][int(well[:-3])]['pos_{}'.format(well[-2:])]=result
         return 1
     
     def count_qc(self, failed_qc, plate, resD):

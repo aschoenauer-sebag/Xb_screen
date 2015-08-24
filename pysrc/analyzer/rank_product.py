@@ -25,8 +25,10 @@ def rank_product(data, who, conditions, technical_replicates_key, batch_names, r
     
     if reverse:
         factor_=-1
+        print 'Considering that big data values are the more important. Relevant eg for statistics'
     else:
         factor_=1
+        print 'Considering that small data values are the more important. Relevant eg for distances'
     
     all_conditions = Counter(conditions).keys()
     num_technical_replicates=defaultdict(list)
@@ -64,7 +66,6 @@ def computeRPpvalues(data, who, conditions, technical_replicates_key, num_permut
     '''
     all_conditions,real_result, num_technical_replicates = rank_product(data, who, conditions, technical_replicates_key, batch_names,
                                                                         reverse)
-    
     if random_result is None:
         rrp=randomRankProduct(num_permutations)
         random_result = rrp(num_technical_replicates, technical_replicates_key)
