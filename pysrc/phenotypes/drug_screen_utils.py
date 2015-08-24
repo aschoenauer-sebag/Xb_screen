@@ -69,7 +69,7 @@ def plotExternalConsistency(corr_dict, labels, cmap=mpl.cm.bwr):
     f=p.figure()
     ax=f.add_subplot(111)
     ax.matshow(corr, cmap=cmap, norm=norm)
-    p.xticks(range(len(labels)), labels, rotation=70)
+    p.xticks(range(len(labels)), labels, rotation='vertical')
     p.yticks(range(len(corr_dict)), [el for el in corr_dict])
     
     p.show()
@@ -81,7 +81,7 @@ def plotInternalConsistency(M, tick_labels, cmap=mpl.cm.bwr):
     f=p.figure()
     ax=f.add_subplot(111)
     ax.matshow(M, cmap=cmap, norm=norm)
-    ax.yticks(range(0,M.shape[0],2),tick_labels[::2])
+    p.yticks(range(0,M.shape[0],2),tick_labels[::2])
     ax.tick_params(labelsize=6)
     p.show()
     

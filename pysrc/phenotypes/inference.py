@@ -23,13 +23,21 @@ def check_distance_consistency(distance_name,
    - exposure: list of length hits with drug--dose (discrete and not actual concentration) 
 '''
     distances, who_hits, exposure_hits, mito_who=_return_right_distance(distance_name, folder, check_internal)
+    plates=[int(el.split('--')[0].split('_')[1]) for el in who_hits]; ind=np.argsort(plates)
+    
+    if check_internal:
+        distances=distances[ind]; distances=distances[:,ind]
+        who_hits=who_hits[ind]
+        exposure_hits=exposure_hits[ind]
+        print who_hits
+        
     exposure_hits2=[(el.split('--')[0], int(el.split('--')[1])) for el in exposure_hits]
     d=Counter(exposure_hits2)
     distinct_exposure=filter(lambda x:d[x]>2, d)
     ind=np.hstack((np.where(np.array(exposure_hits)=='{}--{}'.format(*cond))[0] for cond in sorted(distinct_exposure, key=itemgetter(0,1))))
     if check_internal:
         M=distances[ind]; M=M[:,ind]
-        print exposure_hits[ind]
+        print exposure_hits[ind], who_hits[ind]
         plotInternalConsistency(M, exposure_hits[ind])
         
     else:
@@ -59,7 +67,7 @@ def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutat
     
     count=Counter(exposure_hits)
     #This way I look at exposures that are hits at least 50% of the times/plates
-    for el in filter(lambda x: count[x]>1, count):
+    for el in filter(lambda x: count[x]>2, count):
         print el
         where_=np.where(exposure_hits==el)[0]
         
@@ -94,6 +102,7 @@ def _return_right_distance(distance_name, folder, check_internal):
     f=open(os.path.join(folder, 'DS_hits_1.5IQR.pkl'))
     res_hits, who_hits, drugs_hits, doses_hits=pickle.load(f)
     f.close()
+    print 'Dealing with ', len(who_hits), 'experimental hits'
     exposure_hits=['{}--{}'.format(drugs_hits[i], doses_hits[i]) for i in range(len(who_hits))]
     
     if distance_name == 'transport':
