@@ -121,19 +121,22 @@ def _return_right_distance(distance_name, folder, check_internal):
         
     elif distance_name=='ttransport':
         #non time aggregated transport distance
-        f=open(os.path.join(folder, 'all_Mitocheck_DS_UNagg_transport_10.pkl'))
+        OLD_SIZE=248
+        f=open(os.path.join(folder, 'all_Mitocheck_DS_UNagg_transport_10_MAX.pkl'))
         distance=pickle.load(f); f.close()
-        
+        print distance.shape
         f=open(os.path.join(folder, 'all_Mitocheck_DS_phenohit_perFrame.pkl'))
         _,who=pickle.load(f); f.close()
         
-        distances=distance[:distance.shape[0]-lim_Mito]
+        distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_hits))
+        
         if not check_internal:
-            distances=distances[:,distance.shape[0]-lim_Mito:]
+            distances=distances[:,OLD_SIZE:]
         else:
-            distances=distances[:,:distance.shape[0]-lim_Mito]
+            distances=np.hstack((distances[:, np.where(np.array(who)==el)] for el in who_hits))[:,:,0]
+        print distances.shape
             
-        mito_who=['{}--{:>03}'.format(el.split('--')[0], int(el.split('--')[1])) for el in who[distance.shape[0]-lim_Mito:]]
+        mito_who=['{}--{:>03}'.format(el.split('--')[0], int(el.split('--')[1])) for el in who[OLD_SIZE:]]
     
     elif distance_name=='pheno_score':
         f=open(os.path.join(folder, 'MITO_pheno_scores.pkl'))
