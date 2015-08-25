@@ -478,7 +478,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                 local_arr=np.vstack((d[time_point] for time_point in d))
 #                local_arr=np.max(local_arr, 0)
 
-                result[i, i+1:]=local_arr
+                result[i, i+1:]=local_arr.T
                 for k in range(num_timepoints):
                     result[i+1:, i, k]= result[i,i+1:,k].T
         
