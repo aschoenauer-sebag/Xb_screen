@@ -844,7 +844,7 @@ if __name__ == '__main__':
     #f=open('../resultData/pheno_seq/pheno_hit/traj_percentage_prediction.pkl')
     #f=open('../resultData/pheno_seq/motility_hit/phenotype_seq_motility_hit.pkl')
     #f=open('../resultData/pheno_seq/pheno_hit/phenotype_seq_pheno_hit.pkl')
-    f=open('/cbio/donnees/aschoenauer/projects/drug_screen/results/all_Mitocheck_DS_phenohit_perFrame.pkl')
+    f=open('/cbio/donnees/aschoenauer/projects/drug_screen/results/plates/pheno_count_ALL_DS_time.pkl.pkl')
     #f=open('../resultData/features_on_films/labelsKM_whole_k8_NEWMODEL.pkl')
     r=pickle.load(f); f.close(); percentages=r[0][:,options.timepoint]
     
@@ -858,7 +858,7 @@ if __name__ == '__main__':
     
     if options.distance=='Sinkhorn':
         r=multSinkhorn(M, lamb=lambda_, r=percentages[options.who], C=percentages[options.who+1:].T, eps=0.00000000001)
-        filename = '/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2_unagg/pheno_distance_{}.pkl'.format(options.who)
+        filename = '/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2_unagg/DS_pheno_distance_{}.pkl'.format(options.who)
         
     elif options.distance=='EMD':
         dist=multEMD1d(M, r=percentages[options.who], C=percentages[options.who+1:].T)

@@ -5,6 +5,7 @@ import numpy as np
 import pdb,os
 from _collections import defaultdict
 
+from util.listFileManagement import expSi, siEntrez
 from util.make_movies_mito_cbio import ColorMap
 from scipy.stats.stats import scoreatpercentile
 
@@ -53,6 +54,23 @@ CLASSES=['Interphase',
      'Folded',
      'SmallIrregular']
 
+KNOWN_TARGETS = {'Anisomycin': ['RPL10L', 'RPL13A', 'RPL23',  'RPL15',
+                          'RPL19','RPL23A','RSL24D1','RPL26L1','RPL8','RPL37','RPL3','RPL11','NHP2L1'],
+           'Azacytidine5':['DNMT1'],
+           'Camptothecine(S,+)':['TOP1'],
+            'Daunorubicinhydrochloride':['TOP2A', 'TOP2B'],
+            'Doxorubicinhydrochloride':['TOP2A', 'TOP2B'],
+           'Etoposide':['TOP2A', 'TOP2B'],
+           'MLN8054':['AURKA', 'AURKB'],
+           'Nocodazole':['HPGDS', 
+                         'TUBB2A',
+                        'TUBB4A',
+                        'TUBB4B',
+                        'TUBB6',],
+           'Paclitaxel':['TUBB1', 'BCL2'],
+           'VX680':['AURKA', 'AURKB'],
+           }
+
 lim_Mito=6452
 
 
@@ -64,18 +82,18 @@ Just some things not to forget when doing the distances on phenotypic scores:
 
 def plotExternalConsistency(corr_dict, labels, cmap=mpl.cm.bwr):
     norm = mpl.colors.Normalize(0.5,1)
-    corr=np.vstack((corr_dict[el] for el in corr_dict))
+    corr=np.vstack((corr_dict[el] for el in sorted(corr_dict.keys())))
     
     f=p.figure()
     ax=f.add_subplot(111)
     ax.matshow(corr, cmap=cmap, norm=norm)
     p.xticks(range(len(labels)), labels, rotation='vertical')
-    p.yticks(range(len(corr_dict)), [el for el in corr_dict])
+    p.yticks(range(len(corr_dict)), [el for el in sorted(corr_dict)])
     
     p.show()
 
 
-def plotInternalConsistency(M, tick_labels, cmap=mpl.cm.bwr):
+def plotInternalConsistency(M, tick_labels, cmap=mpl.cm.bwr, second_labels=None):
     
     norm = mpl.colors.Normalize(0,scoreatpercentile(M.flatten(), 95))
     f=p.figure()
@@ -83,6 +101,12 @@ def plotInternalConsistency(M, tick_labels, cmap=mpl.cm.bwr):
     ax.matshow(M, cmap=cmap, norm=norm)
     p.yticks(range(0,M.shape[0],2),tick_labels[::2])
     ax.tick_params(labelsize=6)
+#     if second_labels is not None:
+#         ax_=ax.twinx()
+#         ax_.set_yticks(range(M.shape[0]))
+#         ax_.set_yticklabels(second_labels)
+#         ax_.tick_params(labelsize=4)
+#         ax_.set_yscale(ax.get_yscale())
     p.show()
     
     return
@@ -248,9 +272,84 @@ def distinctDrugBoxplots_PERC(who, exposure,doses, perc, phenotypes):
     axes.flatten()[8+j+1].set_xticklabels(CLASSES, rotation='vertical')
     p.show()
     
+def mito_PHENOSCORE(file_='MITO_pheno_scores.pkl', 
+                    folder='/media/lalil0u/New/projects/drug_screen/results/'):
+    f=open('../data/mitocheck_exp_hitlist_perPheno.pkl')
+    hitlistperpheno=pickle.load(f)
+    f.close()
+    
+    f=open(os.path.join(folder, file_), 'r')
+    scores, who=pickle.load(f); f.close()
+    norm = mpl.colors.Normalize(-0.2,0.6)
+    yqualdict=expSi('../data/mapping_2014/qc_export.txt')
+    dictSiEntrez=siEntrez('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+    
+    bigGenesL=np.array([dictSiEntrez[yqualdict[e]] for e in who])
+    
+    for pheno in hitlistperpheno:
+        expL=hitlistperpheno[pheno]
+        genesL=np.array([dictSiEntrez[yqualdict[e]] for e in filter(lambda x: yqualdict[x] in dictSiEntrez, expL)])
+        distinct_genes = sorted(list(set(genesL)))
+        ind=np.hstack((np.where(bigGenesL==gene)[0] for gene in distinct_genes))
+        print pheno, 
+        
+        currscores=scores[ind]
+        print currscores.shape
+        f=p.figure()
+        ax=f.add_subplot(111)
+        ax.matshow(currscores.T, cmap=mpl.cm.YlOrRd, norm=norm, aspect='auto')
+        ax.set_title(pheno)
+        ax.set_yticks(range(15))
+        ax.set_yticklabels(CLASSES)
+        
+#        p.show()
+        p.savefig(os.path.join(folder, 'pheno_score_MITO_{}.png'.format(pheno[:10])))
+    return
+    
+def distinctDrug_PHENOSCORE(who_ps, res, folder='/media/lalil0u/New/projects/drug_screen/results/'):
+    '''
+    Here we're looking at phenotypic scores, compared with controls
+'''
+    
+    norm = mpl.colors.Normalize(-0.2,0.6)
+    
+    cm = ColorMap()
+    cr = cm.makeColorRamp(256, ["#FFFF00", "#FF0000"])
+    degrade = [cm.getColorFromMap(x, cr, 0, 10) for x in range(11)]
+
+    f=open('/media/lalil0u/New/projects/drug_screen/results/well_drug_dose.pkl')
+    _, drugs, _, doses_cont, _=pickle.load(f)
+    f.close()
+    
+    exposure=[]
+    doses=[]
+    plates=np.array([el.split('--')[0] for el in who_ps])
+
+    for exp in who_ps:
+        exposure.append(drugs["{}--{:>05}".format(exp.split('--')[0], int(exp.split('--')[1]))])
+        doses.append(doses_cont["{}--{:>05}".format(exp.split('--')[0], int(exp.split('--')[1]))])
+    exposure=np.array(exposure); doses=np.array(doses)
+    for drug in DRUGS:
+        f,axes=p.subplots(1,3, figsize=(24,12))
+        for i in range(3):
+            currPl='LT0900_0{}'.format(i+1)
+            range_dose=sorted(list(set(doses[np.where((plates==currPl)&(exposure==drug))])))
+            currM=np.array([[res[np.where((plates==currPl)&(exposure==drug)&(doses==dose))[0], k] for dose in range_dose] for k in range(len(CLASSES))])[:,:,0]
+            print currM.shape, drug
+            axes.flatten()[i].matshow(currM, cmap=mpl.cm.YlOrRd, norm=norm)
+            axes.flatten()[i].set_title(currPl)
+            axes.flatten()[i].set_xticks(range(11))
+            axes.flatten()[i].set_yticks(range(15))
+            axes.flatten()[i].set_yticklabels(CLASSES)
+        
+        f.suptitle(drug)
+        p.savefig(os.path.join(folder, 'phenoscore_nice_{}.png'.format(drug)))
+        
+    p.close('all')
+    
 def distinctDrugBoxplots_PHENOSCORE(who_ps, res, ctrl_points, folder='/media/lalil0u/New/projects/drug_screen/results/'):
     '''
-    Here we're looking at phenotypic scores, compared with controls and Mitocheck hits
+    Here we're looking at phenotypic scores, compared with controls
 '''
     cm = ColorMap()
     cr = cm.makeColorRamp(256, ["#FFFF00", "#FF0000"])

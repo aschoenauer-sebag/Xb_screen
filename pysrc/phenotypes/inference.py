@@ -5,15 +5,60 @@ import numpy as np
 import cPickle as pickle
 from analyzer.rank_product import computeRPpvalues
 
-from drug_screen_utils import CLASSES, plotInternalConsistency
+from drug_screen_utils import CLASSES, plotInternalConsistency, KNOWN_TARGETS
 from scipy.spatial.distance import cdist
 from scipy.stats.mstats_basic import scoreatpercentile
 from phenotypes.drug_screen_utils import lim_Mito
 from operator import itemgetter
 from scipy.stats.stats import pearsonr
 from itertools import product
+from _collections import defaultdict
 
-def check_distance_consistency(distance_name, 
+#indices for the qc wells to delete as well as plate 5
+indices_to_delete=[117, 148, 157, 185, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200,
+       201, 202, 203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213,
+       214, 215, 216, 217, 218, 219, 220, 221, 222, 223, 224, 225, 226,
+       227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239,
+       240, 241, 242, 243, 244, 245, 246, 247]
+
+def evaluate_inference(result, hitlist_file='/media/lalil0u/New/workspace2/Xb_screen/data/mitocheck_exp_hitlist_perPheno.pkl', threshold=0.0001):
+    f=open(hitlist_file, 'r')
+    hitlist=pickle.load(f); f.close()
+    yqualdict=expSi('../data/mapping_2014/qc_export.txt')
+    dictSiEntrez=siEntrez('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+     
+    new_hitlist=defaultdict(list)
+    for pheno in hitlist:
+        for exp in hitlist[pheno]:
+            try:
+                siRNA=yqualdict[exp]
+                gene=dictSiEntrez[siRNA]
+            except KeyError:
+                pass
+            else:
+                if pheno not in new_hitlist[gene]:  
+                    new_hitlist[gene].append(pheno)
+                if gene in ['AURKA', 'AURKB']:
+                    print gene, pheno
+                                    
+    for cond in sorted(result):
+        print '-----------', cond
+        l=np.array([(dictSiEntrez[el[0]], el[-1]) for el in result[cond]])
+        for el in KNOWN_TARGETS[cond.split('--')[0]]:
+            if np.where(l[:,0]==el)[0].shape[0]>0:
+                print el, l[np.where(l[:,0]==el)], np.where(l[:,0]==el)[0]
+            
+        lim=np.where(np.array(l[:,1], dtype=float)==threshold)[0]
+        res=[]
+        for gene in l[lim][:,0]:
+            res.extend(new_hitlist[gene])
+            
+        print Counter(res), '\n'
+        
+    return
+    
+
+def check_distance_consistency(distance_name,
                                folder='/media/lalil0u/New/projects/drug_screen/results/', 
                                check_internal=True):
     '''
@@ -23,12 +68,15 @@ def check_distance_consistency(distance_name,
    - exposure: list of length hits with drug--dose (discrete and not actual concentration) 
 '''
     distances, who_hits, exposure_hits, mito_who=_return_right_distance(distance_name, folder, check_internal)
-    plates=[int(el.split('--')[0].split('_')[1]) for el in who_hits]; ind=np.argsort(plates)
+    plates=[int(el.split('--')[0].split('_')[1]) for el in who_hits]
+    exposure_hits_wPL=np.array(['{}{:>10}'.format(exposure_hits[i], plates[i]) for i in range(len(exposure_hits))])
+    ind=np.argsort(plates)
     
     if check_internal:
         distances=distances[ind]; distances=distances[:,ind]
         who_hits=who_hits[ind]
         exposure_hits=exposure_hits[ind]
+        exposure_hits_wPL=exposure_hits_wPL[ind]
         print who_hits
         
     exposure_hits2=[(el.split('--')[0], int(el.split('--')[1])) for el in exposure_hits]
@@ -37,8 +85,8 @@ def check_distance_consistency(distance_name,
     ind=np.hstack((np.where(np.array(exposure_hits)=='{}--{}'.format(*cond))[0] for cond in sorted(distinct_exposure, key=itemgetter(0,1))))
     if check_internal:
         M=distances[ind]; M=M[:,ind]
-        print exposure_hits[ind], who_hits[ind]
-        plotInternalConsistency(M, exposure_hits[ind])
+        print exposure_hits_wPL[ind]
+        plotInternalConsistency(M, exposure_hits_wPL[ind])
         
     else:
         r=[]
@@ -94,7 +142,7 @@ def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutat
             currG=[dictSiEntrez[yqualdict[e]] for e in np.array(r[el])[np.where(pval<=threshold)][:,0]]
         else:
             currG=[dictSiEntrez[e] for e in np.array(r[el])[np.where(pval<=threshold)][:,0]]
-        print Counter(currG)
+        print sorted(Counter(currG).keys())
         
     return r
 
@@ -119,24 +167,38 @@ def _return_right_distance(distance_name, folder, check_internal):
             distances=np.hstack((distances[:, np.where(np.array(who)==el)] for el in who_hits))[:,:,0]
         mito_who=['{}--{:>03}'.format(el.split('--')[0], int(el.split('--')[1])) for el in who[:lim_Mito]]
         
-    elif distance_name=='ttransport':
+    elif 'ttransport' in distance_name:
         #non time aggregated transport distance
-        OLD_SIZE=248
-        f=open(os.path.join(folder, 'all_Mitocheck_DS_UNagg_transport_10_MAX.pkl'))
-        distance=pickle.load(f); f.close()
+        if distance_name=='ttransport_MAX':
+            f=open(os.path.join(folder, 'all_Mitocheck_DS_UNagg_transport_10_MAX.pkl'))
+            distance=pickle.load(f); f.close()
+        elif distance_name=='ttransport_9DEC':
+            f=open(os.path.join(folder, 'all_Mitocheck_DS_UNagg_transport_10_9decile.pkl'))
+            distance=pickle.load(f); f.close()
+
         print distance.shape
         f=open(os.path.join(folder, 'all_Mitocheck_DS_phenohit_perFrame.pkl'))
         _,who=pickle.load(f); f.close()
         
-        distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_hits))
+        if distance.shape[0]==6700:
+            print "Deleting indices"
+            distance=np.delete(distance,indices_to_delete, 0)
+            distances=np.delete(distance,indices_to_delete, 1)
+        else:
+            distances=distance
+            
+        assert (len(who_hits)==184)
+        assert (len(who)==6636) 
+        assert (distances.shape[1]==lim_Mito+len(who_hits))
+        #distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_hits))
         
         if not check_internal:
-            distances=distances[:,OLD_SIZE:]
+            distances=distances[:,distances.shape[0]-lim_Mito:]
         else:
-            distances=np.hstack((distances[:, np.where(np.array(who)==el)] for el in who_hits))[:,:,0]
+            distances=distances[:,:distances.shape[0]-lim_Mito]
         print distances.shape
             
-        mito_who=['{}--{:>03}'.format(el.split('--')[0], int(el.split('--')[1])) for el in who[OLD_SIZE:]]
+        mito_who=['{}--{:>03}'.format(el.split('--')[0], int(el.split('--')[1])) for el in who[distances.shape[0]-lim_Mito:]]
     
     elif distance_name=='pheno_score':
         f=open(os.path.join(folder, 'MITO_pheno_scores.pkl'))
