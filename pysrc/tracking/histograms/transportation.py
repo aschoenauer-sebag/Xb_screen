@@ -844,7 +844,7 @@ if __name__ == '__main__':
     #f=open('../resultData/pheno_seq/pheno_hit/traj_percentage_prediction.pkl')
     #f=open('../resultData/pheno_seq/motility_hit/phenotype_seq_motility_hit.pkl')
     #f=open('../resultData/pheno_seq/pheno_hit/phenotype_seq_pheno_hit.pkl')
-    f=open('/cbio/donnees/aschoenauer/projects/drug_screen/results/plates/pheno_count_ALL_DS_time.pkl.pkl')
+    f=open('/cbio/donnees/aschoenauer/projects/drug_screen/results/plates/pheno_count_ALL_DS_time.pkl')
     #f=open('../resultData/features_on_films/labelsKM_whole_k8_NEWMODEL.pkl')
     r=pickle.load(f); f.close(); percentages=r[0][:,options.timepoint]
     
