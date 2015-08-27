@@ -99,7 +99,43 @@ def check_distance_consistency(distance_name,
             print corr
             r.append(corr)
         return sorted(distinct_exposure, key=itemgetter(0,1)), np.array(r)
+    
+def measure_condition_separation(distance_name_list,
+                                 folder='/media/lalil0u/New/projects/drug_screen/results/'):
+    '''
+    This function compares the different distances in distance_name_list, and more precisely their ability to distinguish
+    between the different conditions of the drug screen, but not between different replicates of the conditions. Hence it computes
+    the sum of distances(replicates)/distances(other conditions)
+'''
+    result={}
+    
+    for distance_name in distance_name_list:
+        print distance_name
+        distances, _, exposure_, _=_return_right_distance(distance_name, folder, check_internal=True)
         
+        result[distance_name]= _compute_replicate_dist_vs_else(distances, exposure_)
+        
+    return result
+
+def _compute_replicate_dist_vs_else(distances, exposure_list):
+    pdb.set_trace()
+    distinct_exposure=sorted(list(set(exposure_list)))
+    result=0
+    for exposure in distinct_exposure:
+        replicates=np.where(exposure_list==exposure)[0]
+        
+        curr_distances=distances[replicates]
+        
+        others=filter(lambda x: x not in replicates, range(len(exposure_list)))
+        
+        numerateur = np.sum(curr_distances[:,replicates][np.triu_indices(replicates.shape[0], k=1)])
+        denominateur = curr_distances[:,others]/float(replicates.shape[0])
+        assert(denominateur.shape[0]==replicates.shape[0])
+        assert(denominateur.shape[1]==len(others))
+        
+        result+=numerateur/float(np.sum(denominateur))
+        
+    return result
 
 def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutations, threshold, random_result, taking_siRNAs=False):
     '''
@@ -147,11 +183,36 @@ def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutat
     return r
 
 def _return_right_distance(distance_name, folder, check_internal):
-    f=open(os.path.join(folder, 'DS_hits_1.5IQR.pkl'))
-    res_hits, who_hits, drugs_hits, doses_hits=pickle.load(f)
-    f.close()
-    print 'Dealing with ', len(who_hits), 'experimental hits'
-    exposure_hits=['{}--{}'.format(drugs_hits[i], doses_hits[i]) for i in range(len(who_hits))]
+    '''
+    Possible distances:
+    - transport: transport distance global on time
+    - 'U_pheno_score': not normalized pheno scores
+    - 'N_pheno_score': normalized pheno scores
+    - 'ttransport_MAX': maximal transport distance on timepoints
+    - 'ttransport_INT': sum of all transport distance on timepoints
+    
+    Check_internal:
+    - True: then we want distances from DS exp to DS exp, including hits but not only => 904 datapoints
+    - False: we're looking at correlation of distances to Mitocheck hits of DS hits, so only 184 experiments
+    
+    Little reminder: we have 904 movies in the drug screen that passed the QC and 806 experiments, 98 controls
+    
+    '''
+    if not check_internal:
+        f=open(os.path.join(folder, 'DS_hits_1.5IQR.pkl'))
+        res_, who_, drugs_, doses_=pickle.load(f)
+        f.close()
+        
+        print 'Dealing with ', len(who_), 'experimental hits'
+    else:
+        f=open(os.path.join(folder, 'DS_pheno_scores.pkl'))
+        res_, who_, _, drugs_, doses_=pickle.load(f)
+        f.close()
+        
+        
+        print 'Dealing with all {} experiments from the drug screen'.format(len(who_))
+    
+    exposure_hits=['{}--{}'.format(drugs_[i], doses_[i]) for i in range(len(who_))]
     
     if distance_name == 'transport':
         #time aggregated transport distance. Here the drug screen is at the end
@@ -160,64 +221,85 @@ def _return_right_distance(distance_name, folder, check_internal):
         f=open(os.path.join(folder, 'all_Mitocheck_DS_phenohit.pkl'))
         _,who=pickle.load(f); f.close()
         if not check_internal:
-            distances=np.vstack((distance[np.where(np.array(who)==el), :lim_Mito] for el in who_hits))[:,0]
+            distances=np.vstack((distance[np.where(np.array(who)==el), :lim_Mito] for el in who_))[:,0]
         else:
-            distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_hits))
+            distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_))
             
-            distances=np.hstack((distances[:, np.where(np.array(who)==el)] for el in who_hits))[:,:,0]
+            distances=np.hstack((distances[:, np.where(np.array(who)==el)] for el in who_))[:,:,0]
+            
         mito_who=['{}--{:>03}'.format(el.split('--')[0], int(el.split('--')[1])) for el in who[:lim_Mito]]
         
     elif 'ttransport' in distance_name:
         #non time aggregated transport distance
-        if distance_name=='ttransport_MAX':
-            f=open(os.path.join(folder, 'all_Mitocheck_DS_UNagg_transport_10_MAX.pkl'))
-            distance=pickle.load(f); f.close()
-        elif distance_name=='ttransport_9DEC':
-            f=open(os.path.join(folder, 'all_Mitocheck_DS_UNagg_transport_10_9decile.pkl'))
-            distance=pickle.load(f); f.close()
-
-        print distance.shape
-        f=open(os.path.join(folder, 'all_Mitocheck_DS_phenohit_perFrame.pkl'))
-        _,who=pickle.load(f); f.close()
-        
-        if distance.shape[0]==6700:
-            print "Deleting indices"
-            distance=np.delete(distance,indices_to_delete, 0)
-            distances=np.delete(distance,indices_to_delete, 1)
-        else:
-            distances=distance
-            
-        assert (len(who_hits)==184)
-        assert (len(who)==6636) 
-        assert (distances.shape[1]==lim_Mito+len(who_hits))
-        #distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_hits))
-        
         if not check_internal:
+            if distance_name=='ttransport_MAX':
+                f=open(os.path.join(folder, 'all_Mitocheck_DS_UNagg_transport_10_MAX.pkl'))
+                distance=pickle.load(f); f.close()
+            elif distance_name=='ttransport_INT':
+                f=open(os.path.join(folder, 'all_Mitocheck_DS_UNagg_transport_10_INT.pkl'))
+                distance=pickle.load(f); f.close()
+            else:
+                raise ValueError(distance_name)
+            
+            print distance.shape
+            f=open(os.path.join(folder, 'all_Mitocheck_DS_phenohit_perFrame.pkl'))
+            _,who=pickle.load(f); f.close()
+            
+            if distance.shape[0]==6700:
+                print "Deleting indices"
+                distance=np.delete(distance,indices_to_delete, 0)
+                distances=np.delete(distance,indices_to_delete, 1)
+            else:
+                distances=distance
+            
+            assert (len(who)==6636) 
+            assert (len(who_)==184)
+            assert (distances.shape[1]==lim_Mito+len(who_))
             distances=distances[:,distances.shape[0]-lim_Mito:]
+            mito_who=['{}--{:>03}'.format(el.split('--')[0], int(el.split('--')[1])) for el in who[distances.shape[0]-lim_Mito:]]
         else:
-            distances=distances[:,:distances.shape[0]-lim_Mito]
+            mito_who=None
+            if distance_name=='ttransport_MAX':
+                f=open(os.path.join(folder, 'DS_UNagg_transport_10_MAX.pkl'))
+                distance=pickle.load(f); f.close()
+            elif distance_name=='ttransport_INT':
+                f=open(os.path.join(folder, 'DS_UNagg_transport_10_INT.pkl'))
+                distance=pickle.load(f); f.close()
+            else:
+                raise ValueError(distance_name)
+        #Here we have the controls as well
+            f=open(os.path.join(folder, 'pheno_count_ALL_DS_time.pkl'))
+            _,who=pickle.load(f); f.close()
+            
+            assert (len(who)==904) 
+            assert (len(who_)==806)
+
+            distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_))
+            
+            distances=np.hstack((distances[:, np.where(np.array(who)==el)] for el in who_))[:,:,0]
         print distances.shape
             
-        mito_who=['{}--{:>03}'.format(el.split('--')[0], int(el.split('--')[1])) for el in who[distances.shape[0]-lim_Mito:]]
-    
-    elif distance_name=='pheno_score':
+    elif 'pheno_score' in distance_name:
         f=open(os.path.join(folder, 'MITO_pheno_scores.pkl'))
         mito_scores,mito_who=pickle.load(f); f.close()
         
-        scores=np.vstack((res_hits, mito_scores))
+        scores=np.vstack((res_, mito_scores))
         scores=np.delete(scores, CLASSES.index('Anaphase'),1)
         scores=np.delete(scores, CLASSES.index('Interphase'),1)
 #We need to normalize in all cases to be able to do meaningful distances. Otherwise some phenotypes have more importance than others
-        scores=(scores-np.mean(scores,0))/np.std(scores,0)
+
+        if distance_name=='N_pheno_score':  
+            scores=(scores-np.mean(scores,0))/np.std(scores,0)
+            
         if not check_internal:
-            distances = cdist(scores[:res_hits.shape[0]], scores[res_hits.shape[0]:], 'euclidean')
+            distances = cdist(scores[:res_.shape[0]], scores[res_.shape[0]:], 'euclidean')
         else:
-            distances = cdist(scores[:res_hits.shape[0]], scores[:res_hits.shape[0]], 'euclidean')
+            distances = cdist(scores[:res_.shape[0]], scores[:res_.shape[0]], 'euclidean')
         
-    return distances, np.array(who_hits), np.array(exposure_hits), np.array(mito_who)
+    return distances, np.array(who_), np.array(exposure_hits), np.array(mito_who)
 
 def inference(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', num_permutations=1000,
-              taking_siRNAs=False,
+              taking_siRNAs=True,
                threshold=0.1, random_result=None):
     
     distances, who_hits, exposure_hits, mito_who=_return_right_distance(distance_name, folder, check_internal=False)

@@ -465,7 +465,7 @@ class pheno_seq_extractor(thrivisionExtraction):
 '''
         missed=[]
         result=np.zeros(shape=(len_, len_, num_timepoints))
-        for i in range(len_-lim_Mito):
+        for i in range(len_):
             el='{}_{}.pkl'.format(filename, i)
             
             try:
