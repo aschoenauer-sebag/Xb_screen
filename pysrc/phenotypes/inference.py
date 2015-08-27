@@ -13,6 +13,8 @@ from operator import itemgetter
 from scipy.stats.stats import pearsonr
 from itertools import product
 from _collections import defaultdict
+from util import hierarchical_clustering
+import matplotlib as mpl
 
 #indices for the qc wells to delete as well as plate 5
 indices_to_delete=[117, 148, 157, 185, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200,
@@ -56,7 +58,48 @@ def evaluate_inference(result, hitlist_file='/media/lalil0u/New/workspace2/Xb_sc
         print Counter(res), '\n'
         
     return
+
+def condition_clustering(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', color_gradient='YlOrRd',
+                         hit_only=False,
+                          level=0.4):
+    '''
+    We can do drug clustering based on their distances to eachother but we can also do drug clustering based on their distances to Mitocheck
+    THINK ABOUT THAT
+    '''
+    distances, who_, exposure_, _=_return_right_distance(distance_name, folder, check_internal= True)
     
+    plates=[int(el.split('--')[0].split('_')[1]) for el in who_]
+    exposure_wPL=np.array(['{}{:>10}'.format(exposure_[i], plates[i]) for i in range(len(exposure_))])
+
+    f=open(os.path.join(folder, 'DS_hits_1.5IQR.pkl'))
+    _, who_hits, drug_hits, dose_hits=pickle.load(f)
+    f.close()
+    if hit_only:
+        wh_=np.hstack((np.where(who_==el)[0] for el in who_hits))
+        distances=distances[wh_]; distances=distances[:,wh_]
+        print wh_
+        who_=who_[wh_]
+    
+    print distances.shape
+    clusters=hierarchical_clustering.heatmap(distances, row_header=exposure_wPL, column_header=exposure_wPL, 
+                                    row_method='ward', column_method='ward', 
+                                    row_metric='euclidean', column_metric='euclidean', 
+                                    color_gradient=color_gradient, filename='clustering_{}'.format(distance_name), 
+                                    other_data=None, level=level,
+                                    colorbar_ticklabels=['', '', ''],
+                                    colorbar_title='Distance',
+                                    range_normalization=(scoreatpercentile(distances.flatten(),10), scoreatpercentile(distances.flatten(), per=90)))
+
+    exposure_hits=np.array(['{}--{}'.format(drug_hits[i], dose_hits[i]) for i in range(len(who_hits))])
+    global_=np.bincount(clusters)
+    hit_clusters = clusters[np.where(np.array([el in who_hits for el in who_]))]
+    
+    print global_, np.bincount(hit_clusters)
+    who_cluster_hits={k: Counter(exposure_hits[np.where(hit_clusters==k)]) for k in range(1,np.max(clusters)+1)}
+    
+    return hit_clusters, who_cluster_hits
+
+
 
 def check_distance_consistency(distance_name,
                                folder='/media/lalil0u/New/projects/drug_screen/results/', 
@@ -118,7 +161,6 @@ def measure_condition_separation(distance_name_list,
     return result
 
 def _compute_replicate_dist_vs_else(distances, exposure_list):
-    pdb.set_trace()
     distinct_exposure=sorted(list(set(exposure_list)))
     result=0
     for exposure in distinct_exposure:

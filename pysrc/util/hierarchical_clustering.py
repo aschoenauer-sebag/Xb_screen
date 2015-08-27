@@ -183,6 +183,8 @@ def heatmap(x, row_header, column_header, row_method,
         cmap=pylab.cm.PiYG_r
     if color_gradient == 'coolwarm':
         cmap=pylab.cm.coolwarm
+    if color_gradient=='YlOrRd':
+        cmap=pylab.cm.YlOrRd
 
     ### Scale the max and min colors so that 0 is white/black
     vmin=numpy.nanmin(x)
@@ -197,7 +199,10 @@ def heatmap(x, row_header, column_header, row_method,
     if numpy.any(x<0):
         norm = mpl.colors.Normalize(range_normalization[0], range_normalization[1])
     else:
-        norm = mpl.colors.Normalize(0,range_normalization[1])
+        if range_normalization[0]<0:
+            norm = mpl.colors.Normalize(0,range_normalization[1])
+        else:
+            norm = mpl.colors.Normalize(range_normalization[0], range_normalization[1])
     ### Scale the Matplotlib window size
     default_window_hight = 8.5
     default_window_width = 12
@@ -247,7 +252,7 @@ def heatmap(x, row_header, column_header, row_method,
         
         Y2 = fastcluster.linkage_vector(x.T, method=column_method, metric=column_metric) ### array-clustering metric - 'average', 'single', 'centroid', 'complete'
         Z2 = sch.dendrogram(Y2)
-        ind2 = sch.fcluster(Y2,0.7*max(Y2[:,2]),'distance') ### This is the default behavior of dendrogram
+        ind2 = sch.fcluster(Y2,level*max(Y2[:,2]),'distance') ### This is the default behavior of dendrogram
         ax2.set_xticks([]) ### Hides ticks
         ax2.set_yticks([])
         time_diff = str(round(time.time()-start_time,1))
@@ -277,6 +282,8 @@ def heatmap(x, row_header, column_header, row_method,
         print 'Saving flat clusters in', 'Flat_clusters_{}_{}.pkl'.format(filename, level) 
         f=open('Flat_clusters_{}_{}.pkl'.format(filename,level), 'w')
         pickle.dump([ind1, ind2],f); f.close()
+        
+    ind1_to_return = np.array(ind1)
     
     if trad:
         if len(row_header)>100:
@@ -310,7 +317,7 @@ def heatmap(x, row_header, column_header, row_method,
     if column_method != None:
         idx2 = Z2['leaves'] ### apply the clustering for the array-dendrograms to the actual matrix data
         xt = xt[:,idx2]
-        ind2 = ind2[:,idx2] ### reorder the flat cluster to match the order of the leaves the dendrogram
+        ind2 = ind2[idx2] ### reorder the flat cluster to match the order of the leaves the dendrogram
     if row_method != None:
         idx1 = Z1['leaves'] ### apply the clustering for the gene-dendrograms to the actual matrix data
         xt = xt[idx1,:]   # xt is transformed x
@@ -396,6 +403,7 @@ def heatmap(x, row_header, column_header, row_method,
         pylab.show()
     if trad:
         return result
+    return ind1_to_return
 
 def getColorRange(x):
     """ Determines the range of colors, centered at zero, for normalizing cmap """

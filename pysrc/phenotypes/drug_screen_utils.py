@@ -99,7 +99,7 @@ def plotInternalConsistency(M, tick_labels, cmap=mpl.cm.bwr, second_labels=None)
     f=p.figure()
     ax=f.add_subplot(111)
     ax.matshow(M, cmap=cmap, norm=norm)
-    p.yticks(range(0,M.shape[0],2),tick_labels[::2])
+    p.yticks(range(0,M.shape[0],15),tick_labels[::15])
     ax.tick_params(labelsize=6)
 #     if second_labels is not None:
 #         ax_=ax.twinx()
