@@ -14,11 +14,15 @@ from util import settings
 
 TEST_FOLDER = '/Users/twalter/data/Alice/trajectory_distance_test/plots'
 
-def _pheno_count_normalization(pl,w, setting_file):
+def _pheno_count_normalization(plate,well, setting_file):
     
     settings=settings.Settings(setting_file, globals())
-
-    f=open(os.path.join(settings.))
+    f=open(os.path.join(settings.outputFolder,plate, settings.filename.format(plate[:9], well)))
+    m=pickle.load(f); f.close()
+    
+    print m.shape
+    pdb.set_trace()
+    return m/np.sum(m,0)
 
 class TimeSeriesPositionReader(object):
     def __init__(self, filename, channel='primary__test'):
@@ -319,10 +323,31 @@ if __name__=='__main__':
     
     parser.add_option("-x", "--well2", dest="well2",
                       help="The well which you are interested in")
-
-    filename1=''
-    filename2=''
     
+    (options, args) = parser.parse_args()
+    m1=_pheno_count_normalization(options.plate, options.well, options.settings_file)
+    m2=_pheno_count_normalization(options.plate2, options.well2, options.settings_file)
+
+    outputFolder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distance_nature'
+    if not os.path.isdir(os.path.join(outputFolder, options.plate)):
+        os.mkdir(os.path.join(outputFolder, options.plate))
+    outputFile='nature_{}.pkl'.format(options.well)
+    
+    dist=TrajectoryDistance()
+    val=dist(m1, m2)
+    
+    if outputFile in os.listdir(os.path.join(outputFolder, options.plate)):
+        f=open(os.path.join(outputFolder, options.plate,outputFile)) 
+        d=pickle.load(f)
+        f.close()
+    else:
+        d={}
+        
+    d.update({(options.plate2, options.well2):val})
+    f=open(os.path.join(outputFolder, options.plate,outputFile), 'r') 
+    pickle.dump(d,f)
+    f.close()
+
     print "Done"
             
             
