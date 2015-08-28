@@ -310,40 +310,40 @@ if __name__=='__main__':
     parser.add_option("-f", "--settings_file", dest="settings_file", default='analyzer/settings/settings_drug_screen_thalassa.py',
                       help="Settings_file")
 
-    parser.add_option("-p", "--plate", dest="plate",
+    parser.add_option("-i", "--exp1", dest="exp1",type=int,
                       help="The plate which you are interested in")
-    
-    parser.add_option("-w", "--well", dest="well",
-                      help="The well which you are interested in")
-    
-    parser.add_option("-q", "--plate2", dest="plate2",
-                      help="The plate which you are interested in")
-    
-    parser.add_option("-x", "--well2", dest="well2",
-                      help="The well which you are interested in")
+
     
     (options, args) = parser.parse_args()
-    m1=_pheno_count_normalization(options.plate, options.well, options.settings_file)
-    m2=_pheno_count_normalization(options.plate2, options.well2, options.settings_file)
+    
+    outputFolder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distance_nature'    
+    
+    f=open('../data/expL_ALL_DS_MITO.pkl')
+    expL=pickle.load(f); f.close()
+    
+    plate, well=expL[options.exp1]
+    result=[]
+    m1=_pheno_count_normalization(plate,well, options.settings_file)
 
-    outputFolder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distance_nature'
-    if not os.path.isdir(os.path.join(outputFolder, options.plate)):
-        os.mkdir(os.path.join(outputFolder, options.plate))
-    outputFile='nature_{}.pkl'.format(options.well)
+    if not os.path.isdir(outputFolder):
+        os.mkdir(outputFolder)
     
-    dist=TrajectoryDistance()
-    val=dist(m1, m2)
+    outputFile='nature_{}.pkl'.format(options.exp1)
     
-    if outputFile in os.listdir(os.path.join(outputFolder, options.plate)):
-        f=open(os.path.join(outputFolder, options.plate,outputFile)) 
-        d=pickle.load(f)
-        f.close()
-    else:
-        d={}
+    for k in range(options.exp1+1, len(expL)):
+        print k,
+        plate2, well2=expL[k]
+        try:
+            m2=_pheno_count_normalization(plate2, well2, options.settings_file)
+        except:
+            print "Problem for {} {}".format(plate2, well2)
+            result.append(np.NAN)
+        else:
+            dist=TrajectoryDistance()
+            result.append(dist(m1, m2))
         
-    d.update({(options.plate2, options.well2):val})
-    f=open(os.path.join(outputFolder, options.plate,outputFile), 'w') 
-    pickle.dump(d,f)
+    f=open(os.path.join(outputFolder,outputFile), 'w') 
+    pickle.dump(result,f)
     f.close()
 
     print "Done"
