@@ -342,7 +342,7 @@ if __name__=='__main__':
         d={}
         
     d.update({(options.plate2, options.well2):val})
-    f=open(os.path.join(outputFolder, options.plate,outputFile), 'r') 
+    f=open(os.path.join(outputFolder, options.plate,outputFile), 'w') 
     pickle.dump(d,f)
     f.close()
 
