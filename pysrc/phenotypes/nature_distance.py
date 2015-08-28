@@ -10,13 +10,13 @@ import statsmodels.api as sm
 import pickle
 from optparse import OptionParser
 
-from util import settings
+from util.settings import Settings
 
 TEST_FOLDER = '/Users/twalter/data/Alice/trajectory_distance_test/plots'
 
 def _pheno_count_normalization(plate,well, setting_file):
     
-    settings=settings.Settings(setting_file, globals())
+    settings=Settings(setting_file, globals())
     f=open(os.path.join(settings.outputFolder,plate, settings.filename.format(plate[:9], well)))
     m=pickle.load(f); f.close()
     
