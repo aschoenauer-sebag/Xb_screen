@@ -531,7 +531,7 @@ class pheno_seq_extractor(thrivisionExtraction):
             except:
                 print "Loading error for ", pl, w
                 self.plate=pl; self.well=w
-                if self.MITO_usable(yqualDict, dictSiEntrez):
+                if self.MITO_usable():
                     missed.append((pl,w))
                 continue
             else:
