@@ -343,7 +343,7 @@ if __name__=='__main__':
             result.append(dist(m1, m2))
         
     f=open(os.path.join(outputFolder,outputFile), 'w') 
-    pickle.dump(result,f)
+    pickle.dump(np.array(result),f)
     f.close()
 
     print "Done"
