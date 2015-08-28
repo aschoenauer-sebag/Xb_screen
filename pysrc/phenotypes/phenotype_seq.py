@@ -555,8 +555,8 @@ class pheno_seq_extractor(thrivisionExtraction):
                 i+=1
                 
         print "Saving"
-        
-        f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "MITO_time")), 'w')
+        _name='time' if time_aggregated else ''
+        f=open(os.path.join(self.settings.outputFolder,self.settings.outputFile.format("ALL", "MITO_{}".format(_name))), 'w')
         pickle.dump((result, who),f); f.close()
         return missed
     
