@@ -361,13 +361,14 @@ class pheno_seq_extractor(thrivisionExtraction):
             
     def MITO_usable(self, yqualDict=None, dictSiEntrez=None):
         if yqualDict==None:
+            dictSiEntrez=siEntrez(self.settings.mitocheck_mapping_file)
             if 'LTValidMitosis' in self.plate:
                 yqualDict=expSi(self.settings.valid_qc_file, primary_screen=False)
-                test=yqualDict['{}--{:>03}'.format(self.plate, self.well)] not in dictSiEntrez
+                test=yqualDict['{}--{:>03}'.format(self.plate.split('--')[0], self.well)] not in dictSiEntrez
             else:
                 yqualDict=expSi(self.settings.mitocheck_qc_file)
                 test=not is_ctrl_mitocheck((self.plate[:9], '{:>05}'.format(self.well))) and yqualDict['{}--{:>03}'.format(self.plate[:9], self.well)] not in dictSiEntrez
-            dictSiEntrez=siEntrez(self.settings.mitocheck_mapping_file)
+            
 
         if '{}--{:>03}'.format(self.plate[:9], self.well) not in yqualDict:
     #i. checking if quality control passed
