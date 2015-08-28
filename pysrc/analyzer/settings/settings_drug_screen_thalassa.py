@@ -12,6 +12,7 @@ raw_result_dir = "/share/data40T/aschoenauer/drug_screen/results/Mito_seg"
 raw_result_dir_Mitocheck= "/share/data40T/Thomas/mitocheck_full_hdf5/out_data"
 mitocheck_mapping_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens75.txt'
 mitocheck_qc_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt'
+valid_qc_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_validation_exp.txt'
 #intensity_qc_filename='../data/xb_intensity_qc.pkl'
 
 ###ALL INFORMATION FOR WEBSITE AND MOVIE COMPUTATION
