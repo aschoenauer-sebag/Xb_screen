@@ -543,7 +543,8 @@ class pheno_seq_extractor(thrivisionExtraction):
                 else:
                     pheno_seq_per_frame=np.vstack((np.sum(pheno_seq_per_frame[self.settings.time_agg*k:self.settings.time_agg*(k+1)],0) 
                                                    for k in range(pheno_seq_per_frame.shape[0]/self.settings.time_agg)))
-                    result = np.vstack((result, pheno_seq_per_frame[np.newaxis][:,:result.shape[1]])) if result is not None else pheno_seq_per_frame[np.newaxis]
+                    shape_=min(result.shape[1], pheno_seq_per_frame.shape[0])
+                    result = np.vstack((result, pheno_seq_per_frame[np.newaxis][:,:shape_])) if result is not None else pheno_seq_per_frame[np.newaxis]
                     
                     
                 who.append('{}--{}'.format(pl[:9], w))
