@@ -15,14 +15,12 @@ from util.settings import Settings
 TEST_FOLDER = '/Users/twalter/data/Alice/trajectory_distance_test/plots'
 
 def _pheno_count_normalization(plate,well, setting_file):
-    
+    print "Loading {} {}".format(plate, well)
     settings=Settings(setting_file, globals())
     f=open(os.path.join(settings.outputFolder,plate, settings.outputFile.format(plate[:9], well)))
     m=pickle.load(f); f.close()
     
-    print m.shape
-    pdb.set_trace()
-    return m/np.sum(m,0)
+    return m/np.sum(m,1)[:,np.newaxis]
 
 class TimeSeriesPositionReader(object):
     def __init__(self, filename, channel='primary__test'):
