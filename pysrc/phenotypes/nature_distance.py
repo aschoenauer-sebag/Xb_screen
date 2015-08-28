@@ -312,10 +312,10 @@ if __name__=='__main__':
     parser.add_option("-f", "--settings_file", dest="settings_file", default='analyzer/settings/settings_drug_screen_thalassa.py',
                       help="Settings_file")
 
-    parser.add_option("-p", "--plate", dest="plate1",
+    parser.add_option("-p", "--plate", dest="plate",
                       help="The plate which you are interested in")
     
-    parser.add_option("-w", "--well", dest="well1",
+    parser.add_option("-w", "--well", dest="well",
                       help="The well which you are interested in")
     
     parser.add_option("-q", "--plate2", dest="plate2",
