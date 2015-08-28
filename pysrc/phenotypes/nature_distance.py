@@ -1,6 +1,6 @@
 import os, sys, re, time, pdb
 import numpy as np
-import cellh5
+#import cellh5
 
 import matplotlib
 matplotlib.use('Agg')
