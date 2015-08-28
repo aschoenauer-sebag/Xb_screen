@@ -1018,19 +1018,29 @@ def EntrezToExp(corresEntrezEnsemble='NatureEntrezEnsemble.txt', mitocheck='mito
     missingEntrez=filter(lambda x: x not in expDict.keys(), entrrezs.keys())
     return expDict, missingEntrez, siRNAresult
 
-def expSi(qc, sens=1):
+def expSi(qc, sens=1, primary_screen=True):
+    index_exp_id=0
+    if primary_screen:
+        index_quality=-2
+        index_siRNA=1
+        
+    else:
+        index_siRNA=-2
+        index_quality=-3
+    
     qc=txtToList(qc)
-    yes=qc[np.where(qc[:,-2]=='True')]
+    yes=qc[np.where(qc[:,index_quality]=='True')]
     
     if sens==0:
         yeSiExp=defaultdict(list)
     #siRNA to plate,well for experiments that have passed the quality control    
         for k in range(yes.shape[0]):
-            yeSiExp[yes[k,1]].append(yes[k,0])
+            yeSiExp[yes[k,index_siRNA]].append(yes[k,index_exp_id])
     else:
         yeSiExp={}
         for k in range(yes.shape[0]):
-            yeSiExp[yes[k,0]]=yes[k,1]
+            yeSiExp[yes[k,index_exp_id]]=yes[k,index_siRNA]
+            
     return yeSiExp
 
 def siEntrez(mitocheck, yqualDict=None):

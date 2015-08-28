@@ -8,6 +8,7 @@ from _collections import defaultdict
 from util.listFileManagement import expSi, siEntrez
 from util.make_movies_mito_cbio import ColorMap
 from scipy.stats.stats import scoreatpercentile
+from collections import Counter
 
 couleurs=['green', 'red', 'yellow', 'blue', 'purple', 'orange', 'black', 'cyan']
 couleurs.append("#9e0142")
@@ -80,6 +81,113 @@ Just some things not to forget when doing the distances on phenotypic scores:
 - we need to normalize the different phenotypic scores so that they're comparable for different phenotypes
 '''
 
+def selecting_right_Mito_exp(folder='/media/lalil0u/New/projects/drug_screen/results/'):
+    f=open('../data/mitocheck_exp_hitlist.pkl')
+    mito_hitexp=list(set(pickle.load(f)))
+    f.close()
+    
+    f=open(os.path.join(folder, 'MITO_pheno_scores.pkl'))
+    r=pickle.load(f);f.close()
+    big_phenoscore=dict(zip(r[1], r[0]))
+
+    f=open(os.path.join(folder, 'MITO_pheno_scores_VAL.pkl'))
+    r=pickle.load(f);f.close()
+    val_phenoscore=dict(zip(r[1], r[0]))
+
+    yqualdict=expSi('/media/lalil0u/New/workspace2/Xb_screen/data/mapping_2014/qc_export.txt')
+    dictSiEntrez=siEntrez('/media/lalil0u/New/workspace2/Xb_screen/data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+    genes_big=[]
+    gene_si=defaultdict(list)
+    res_siRNA=defaultdict(list)
+    si_exp=defaultdict(list)
+    
+    unmapped_si=[]
+    
+    for exp in mito_hitexp:
+        try:
+            currSi=yqualdict[exp]; currGene = dictSiEntrez[currSi]
+            
+        except KeyError:
+            print "{} siRNA not in mapping file anymore".format(yqualdict[exp]),
+            unmapped_si.append(yqualdict[exp])
+        else:
+            if exp in big_phenoscore:
+                genes_big.append(currGene)
+                gene_si[currGene].append(currSi)
+                res_siRNA[currSi].append(big_phenoscore[exp][0])
+                si_exp[currSi].append(exp)
+            else:
+                print "{} no data".format(exp)
+                continue
+    print "------------------------------------------------------Youpi next step looking at validation experiments"
+    genes_big=sorted(list(set(genes_big)))
+            
+    yqualdict2=expSi('/media/lalil0u/New/workspace2/Xb_screen/data/mapping_2014/qc_validation_exp.txt', primary_screen=False)
+    genes_big2=[]
+    for exp in yqualdict2:
+        try:
+            currSi=yqualdict2[exp]; currGene = dictSiEntrez[currSi]
+        except KeyError:
+            if yqualdict2[exp]!='empty':
+                print "{} siRNA not in mapping file anymore".format(yqualdict2[exp]),
+                unmapped_si.append(yqualdict2[exp])
+        else:
+            if exp in val_phenoscore:
+                genes_big2.append(currGene)
+                gene_si[currGene].append(currSi)
+                res_siRNA[currSi].append(val_phenoscore[exp][0])
+                si_exp[currSi].append(exp)
+            else:
+                print "{} no data".format(exp)
+                continue
+            
+    genes_big2=sorted(list(set(genes_big2)))
+    
+    print "Unmapped siRNAs ", len(unmapped_si)
+    
+    print "How many genes do we gain by using validation experiments?"
+    print len([el for el in genes_big if el not in genes_big2])
+    
+    genes_big.extend(genes_big2)
+    genes_big=sorted(list(set(genes_big)))
+    
+    final_siRNA_list=[]
+    final_exp_list=[]
+    genesL=[]
+    for gene in genes_big:
+        currSiL=gene_si[gene]
+        counts=Counter(currSiL)
+        currRes=[]; siL=[]
+        for siRNA in filter(lambda x: counts[x]>=2, counts):
+            currRes.append(np.median(res_siRNA[siRNA]))
+            siL.append(siRNA)
+
+        if currRes!=[]: 
+            choice=np.array(siL)[np.argmin(np.array(currRes))]
+            final_exp_list.extend(si_exp[choice])
+            final_siRNA_list.extend([choice for k in range(counts[choice])])
+            genesL.extend([gene for k in range(counts[choice])])
+        
+    return genesL, final_exp_list, final_siRNA_list
+
+def from_geneL_to_phenoHit(geneL,hitFile='../data/mitocheck_exp_hitlist_perPheno.pkl'):
+    f=open(hitFile)
+    expPerPheno=pickle.load(f); f.close()
+    yqualdict=expSi('/media/lalil0u/New/workspace2/Xb_screen/data/mapping_2014/qc_export.txt')
+    dictSiEntrez=siEntrez('/media/lalil0u/New/workspace2/Xb_screen/data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+    
+    res=defaultdict(list)
+    
+    for pheno in expPerPheno:
+        for exp in expPerPheno[pheno]:
+            if yqualdict[exp] in dictSiEntrez:
+                res[dictSiEntrez[yqualdict[exp]]].append(pheno)
+                
+    for gene in res:   
+        res[gene]=sorted(list(set(res[gene])))
+        
+    return res
+    
 def plotExternalConsistency(corr_dict, labels, cmap=mpl.cm.bwr):
     norm = mpl.colors.Normalize(0.5,1)
     corr=np.vstack((corr_dict[el] for el in sorted(corr_dict.keys())))
