@@ -362,15 +362,18 @@ class pheno_seq_extractor(thrivisionExtraction):
     def MITO_usable(self, yqualDict=None, dictSiEntrez=None):
         if yqualDict==None:
             dictSiEntrez=siEntrez(self.settings.mitocheck_mapping_file)
+            
             if 'LTValidMitosis' in self.plate:
                 yqualDict=expSi(self.settings.valid_qc_file, primary_screen=False)
+                test0='{}--{:>03}'.format(self.plate.split('--')[0], self.well) not in yqualDict
                 test=yqualDict['{}--{:>03}'.format(self.plate.split('--')[0], self.well)] not in dictSiEntrez
             else:
                 yqualDict=expSi(self.settings.mitocheck_qc_file)
+                test0='{}--{:>03}'.format(self.plate[:9], self.well) not in yqualDict
                 test=not is_ctrl_mitocheck((self.plate[:9], '{:>05}'.format(self.well))) and yqualDict['{}--{:>03}'.format(self.plate[:9], self.well)] not in dictSiEntrez
             
 
-        if '{}--{:>03}'.format(self.plate[:9], self.well) not in yqualDict:
+        if test0:
     #i. checking if quality control passed
             sys.stderr.write("Quality control not passed {} {} \n".format(self.plate, self.well))
             return False
