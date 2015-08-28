@@ -5,13 +5,15 @@ from util import progFolder, scriptFolder, pbsArrayEnvVar, pbsErrDir, pbsOutDir
 from tracking.trajPack.tracking_script import path_command
 
 
-def scriptCommand(exp_list, baseName='comp_track', command="tracking/trajPack/cell_cycle.py",jobSize=10, **kwargs):
+def scriptCommand(exp_list, baseName='comp_track', command="tracking/trajPack/cell_cycle.py",jobSize=10,
+                  h5_result_dir="/share/data20T/mitocheck/Alice/results",
+                   **kwargs):
     perExperiment=False
     if type(exp_list[0])!=int:
         perExperiment=True
         
         if len(exp_list[0])!=2:
-            exp_list=strToTuple(exp_list, os.listdir("/share/data20T/mitocheck/Alice/results"))
+            exp_list=strToTuple(exp_list, os.listdir(h5_result_dir))
     
     fileNumber = int(len(exp_list)/float(jobSize))+1
     

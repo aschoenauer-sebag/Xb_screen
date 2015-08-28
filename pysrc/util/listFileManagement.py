@@ -719,8 +719,12 @@ def strToTuple(strList, platesList, func=lambda x:'{:>05}_01'.format(x[-3:])):
 #    platesList = pickle.load(f); f.close()
     
     for el in strList:
+        if 'LTValid' in el:
+            lim=30
+        else:
+            lim=9
         try:
-            pl = filter(lambda x: el[:9] in x, platesList)[0]
+            pl = filter(lambda x: el[:lim] in x, platesList)[0]
         except IndexError:
             print el, 'not found'
         else:

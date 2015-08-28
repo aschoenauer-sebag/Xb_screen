@@ -1,9 +1,6 @@
-import os, sys, re, time
-
+import os, sys, re, time, pdb
 import numpy as np
-
 import cellh5
-import pdb
 
 import matplotlib
 matplotlib.use('Agg')
@@ -11,9 +8,17 @@ import matplotlib.pyplot as plt
 
 import statsmodels.api as sm
 import pickle
+from optparse import OptionParser
+
+from util import settings
 
 TEST_FOLDER = '/Users/twalter/data/Alice/trajectory_distance_test/plots'
 
+def _pheno_count_normalization(pl,w, setting_file):
+    
+    settings=settings.Settings(setting_file, globals())
+
+    f=open(os.path.join(settings.))
 
 class TimeSeriesPositionReader(object):
     def __init__(self, filename, channel='primary__test'):
@@ -249,14 +254,16 @@ class TrajectoryDistance(object):
         
     def __call__(self, A, B):
         if type(A) is str:
-            tspr = TimeSeriesPositionReader(A, channel=self.channel)
-            X1 = tspr()
+            raise TypeError
+#             tspr = TimeSeriesPositionReader(A, channel=self.channel)
+#             X1 = tspr()
         else:
             X1 = A
             
         if type(B) is str:
-            tspr = TimeSeriesPositionReader(B, channel=self.channel)
-            X2 = tspr()
+            raise TypeError
+#             tspr = TimeSeriesPositionReader(B, channel=self.channel)
+#             X2 = tspr()
         else:
             X2 = B    
         
@@ -293,6 +300,30 @@ def batchtest():
             print '%s vs %s: %f' % (filenames[i], filenames[j], val)
             print '%s vs %s: %f' % (title[i], title[j], val)
             print
+            
+if __name__=='__main__':
+    parser = OptionParser(usage="usage: %prog [options]",
+                         description='')
+    
+    parser.add_option("-f", "--settings_file", dest="settings_file", default='analyzer/settings/settings_drug_screen_thalassa.py',
+                      help="Settings_file")
+
+    parser.add_option("-p", "--plate", dest="plate1",
+                      help="The plate which you are interested in")
+    
+    parser.add_option("-w", "--well", dest="well1",
+                      help="The well which you are interested in")
+    
+    parser.add_option("-q", "--plate2", dest="plate2",
+                      help="The plate which you are interested in")
+    
+    parser.add_option("-x", "--well2", dest="well2",
+                      help="The well which you are interested in")
+
+    filename1=''
+    filename2=''
+    
+    print "Done"
             
             
         
