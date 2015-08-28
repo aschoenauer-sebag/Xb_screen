@@ -741,13 +741,12 @@ Input:
 
     
     (options, args) = parser.parse_args()
-    pdb.set_trace()
     if len(options.well)>3:
         well=int(options.well.split('_')[0])
     else:
         well=int(options.well)
     
-    p=pheno_seq_extractor(options.settings_file, options.plate, options.well)
+    p=pheno_seq_extractor(options.settings_file, options.plate,well)
     p(time_pheno_count_only=options.count_only)
     print "Done"
         
