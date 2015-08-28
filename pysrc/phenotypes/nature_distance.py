@@ -17,7 +17,7 @@ TEST_FOLDER = '/Users/twalter/data/Alice/trajectory_distance_test/plots'
 def _pheno_count_normalization(plate,well, setting_file):
     
     settings=Settings(setting_file, globals())
-    f=open(os.path.join(settings.outputFolder,plate, settings.filename.format(plate[:9], well)))
+    f=open(os.path.join(settings.outputFolder,plate, settings.outputFile.format(plate[:9], well)))
     m=pickle.load(f); f.close()
     
     print m.shape
