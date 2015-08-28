@@ -733,7 +733,7 @@ Input:
     parser.add_option("-p", "--plate", dest="plate",
                       help="The plate which you are interested in")
     
-    parser.add_option("-w", "--well", dest="well",type=int,
+    parser.add_option("-w", "--well", dest="well",
                       help="The well which you are interested in")
 
     parser.add_option("-c", dest="count_only",type=int,default=0,
@@ -741,6 +741,11 @@ Input:
 
     
     (options, args) = parser.parse_args()
+    
+    if len(options.well)>3:
+        well=int(options.well.split('_')[0])
+    else:
+        well=int(options.well)
     
     p=pheno_seq_extractor(options.settings_file, options.plate, options.well)
     p(time_pheno_count_only=options.count_only)
