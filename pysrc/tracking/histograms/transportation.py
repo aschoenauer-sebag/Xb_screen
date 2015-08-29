@@ -838,16 +838,23 @@ if __name__ == '__main__':
     parser.add_option("-d",type=str, dest="distance", default='Sinkhorn')
     parser.add_option("-i", dest="who", type=int,default=0)
     parser.add_option("-t", dest="timepoint", type=int,default=0)
+    parser.add_option("-w", dest="time_aggregated", type=int,default=0)
     (options, args) = parser.parse_args()
     
     #loading data
     #f=open('../resultData/pheno_seq/pheno_hit/traj_percentage_prediction.pkl')
     #f=open('../resultData/pheno_seq/motility_hit/phenotype_seq_motility_hit.pkl')
     #f=open('../resultData/pheno_seq/pheno_hit/phenotype_seq_pheno_hit.pkl')
-    f=open('/cbio/donnees/aschoenauer/projects/drug_screen/results/all_Mitocheck_DS_phenohit_perFrame.pkl')
-    #f=open('../resultData/features_on_films/labelsKM_whole_k8_NEWMODEL.pkl')
-    r=pickle.load(f); f.close(); percentages=r[0][:,options.timepoint]
     
+    if not options.time_aggregated:
+        f=open('/cbio/donnees/aschoenauer/projects/drug_screen/results/all_Mitocheck_DS_phenohit_perFrame.pkl')
+        #f=open('../resultData/features_on_films/labelsKM_whole_k8_NEWMODEL.pkl')
+        r=pickle.load(f); f.close(); percentages=r[0][:,options.timepoint]
+    else:
+        f=open('/cbio/donnees/aschoenauer/projects/drug_screen/results/all_Mitocheck_DS_phenohit.pkl')
+        #f=open('../resultData/features_on_films/labelsKM_whole_k8_NEWMODEL.pkl')
+        r=pickle.load(f); f.close(); percentages=r[0]
+
     #loading cost matrix
     f=open('../resultData/pheno_seq/pheno_hit/pheno_cost2.pkl')
     M=pickle.load(f)
@@ -858,19 +865,22 @@ if __name__ == '__main__':
     
     if options.distance=='Sinkhorn':
         r=multSinkhorn(M, lamb=lambda_, r=percentages[options.who], C=percentages[options.who+1:].T, eps=0.00000000001)
-        filename = '/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2_unagg/DS_pheno_distance_{}.pkl'.format(options.who)
+        filename = '/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2/DS_pheno_distance_{}.pkl'.format(options.who)
         
     elif options.distance=='EMD':
         dist=multEMD1d(M, r=percentages[options.who], C=percentages[options.who+1:].T)
         filename = '../resultData/features_on_films/transport/traj_distanceE_{}.pkl'.format(options.who)
         
-    if os.path.exists(filename):
-        f=open(filename)
-        e=pickle.load(f); f.close()
+    if not options.time_aggregated:
+        if os.path.exists(filename):
+            f=open(filename)
+            e=pickle.load(f); f.close()
+        else:
+            e={}
+        e[options.timepoint]=r
     else:
-        e={}
+        e=r
         
-    e[options.timepoint]=r
     f=open(filename, "w")
     pickle.dump(e,f); f.close()
 

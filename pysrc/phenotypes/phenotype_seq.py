@@ -554,7 +554,7 @@ class pheno_seq_extractor(thrivisionExtraction):
             finally:
                 i+=1
         
-        _name='time' if time_aggregated else ''
+        _name='time' if not time_aggregated else ''
                 
         print "Saving to ",self.settings.outputFile.format("ALL", "MITO_{}".format(_name))
         
