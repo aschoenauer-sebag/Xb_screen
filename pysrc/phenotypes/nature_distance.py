@@ -339,6 +339,7 @@ if __name__=='__main__':
             print "Problem opening for {} {}".format(plate2, well2)
             result.append(np.NAN)
         else:
+            print m1.shape, m2.shape
             try:
                 dist=TrajectoryDistance()
                 phenotypic_distance=dist(m1, m2)
