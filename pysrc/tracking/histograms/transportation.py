@@ -845,7 +845,6 @@ if __name__ == '__main__':
     #f=open('../resultData/pheno_seq/pheno_hit/traj_percentage_prediction.pkl')
     #f=open('../resultData/pheno_seq/motility_hit/phenotype_seq_motility_hit.pkl')
     #f=open('../resultData/pheno_seq/pheno_hit/phenotype_seq_pheno_hit.pkl')
-    print options.time_aggregated
     if not options.time_aggregated:
         f=open('/cbio/donnees/aschoenauer/projects/drug_screen/results/all_Mitocheck_DS_phenohit_perFrame.pkl')
         #f=open('../resultData/features_on_films/labelsKM_whole_k8_NEWMODEL.pkl')
