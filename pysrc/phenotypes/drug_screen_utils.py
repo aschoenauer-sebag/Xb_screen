@@ -82,7 +82,7 @@ Just some things not to forget when doing the distances on phenotypic scores:
 '''
 
 def selecting_right_Mito_exp(folder='/media/lalil0u/New/projects/drug_screen/results/'):
-    f=open('../data/mitocheck_exp_hitlist.pkl')
+    f=open('../data/ANCIENTmitocheck_exp_hitlist.pkl')
     mito_hitexp=list(set(pickle.load(f)))
     f.close()
     
@@ -108,7 +108,7 @@ def selecting_right_Mito_exp(folder='/media/lalil0u/New/projects/drug_screen/res
             currSi=yqualdict[exp]; currGene = dictSiEntrez[currSi]
             
         except KeyError:
-            print "{} siRNA not in mapping file anymore".format(yqualdict[exp]),
+            #print "{} siRNA not in mapping file anymore".format(yqualdict[exp]),
             unmapped_si.append(yqualdict[exp])
         else:
             if exp in big_phenoscore:
@@ -129,7 +129,7 @@ def selecting_right_Mito_exp(folder='/media/lalil0u/New/projects/drug_screen/res
             currSi=yqualdict2[exp]; currGene = dictSiEntrez[currSi]
         except KeyError:
             if yqualdict2[exp]!='empty':
-                print "{} siRNA not in mapping file anymore".format(yqualdict2[exp]),
+#                print "{} siRNA not in mapping file anymore".format(yqualdict2[exp]),
                 unmapped_si.append(yqualdict2[exp])
         else:
             if exp in val_phenoscore:
@@ -150,13 +150,15 @@ def selecting_right_Mito_exp(folder='/media/lalil0u/New/projects/drug_screen/res
     
     genes_big.extend(genes_big2)
     genes_big=sorted(list(set(genes_big)))
-    
+    print "How many genes finally ", len(genes_big)
     final_siRNA_list=[]
     final_exp_list=[]
     genesL=[]
+    count_siRNA_total=0
     for gene in genes_big:
         currSiL=gene_si[gene]
         counts=Counter(currSiL)
+        count_siRNA_total+=len(counts)
         currRes=[]; siL=[]
         for siRNA in filter(lambda x: counts[x]>=2, counts):
             currRes.append(np.median(res_siRNA[siRNA]))
@@ -167,7 +169,7 @@ def selecting_right_Mito_exp(folder='/media/lalil0u/New/projects/drug_screen/res
             final_exp_list.extend(si_exp[choice])
             final_siRNA_list.extend([choice for k in range(counts[choice])])
             genesL.extend([gene for k in range(counts[choice])])
-        
+    print "How many siRNAs in total ", count_siRNA_total
     return genesL, final_exp_list, final_siRNA_list
 
 def from_geneL_to_phenoHit(geneL,hitFile='../data/mitocheck_exp_hitlist_perPheno.pkl'):
