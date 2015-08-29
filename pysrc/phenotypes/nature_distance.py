@@ -336,11 +336,17 @@ if __name__=='__main__':
         try:
             m2=_pheno_count_normalization(plate2, well2, options.settings_file)
         except:
-            print "Problem for {} {}".format(plate2, well2)
+            print "Problem opening for {} {}".format(plate2, well2)
             result.append(np.NAN)
         else:
-            dist=TrajectoryDistance()
-            result.append(dist(m1, m2))
+            try:
+                dist=TrajectoryDistance()
+                phenotypic_distance=dist(m1, m2)
+            except ValueError:
+                print ValueError('Problem {} {}'.format(plate2, well2))
+                phenotypic_distance=np.NAN
+            finally:
+                result.append(phenotypic_distance)
         
     f=open(os.path.join(outputFolder,outputFile), 'w') 
     pickle.dump(np.array(result),f)
