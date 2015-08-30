@@ -442,7 +442,51 @@ class pheno_seq_extractor(thrivisionExtraction):
         return result[:-1]
     
     @staticmethod
-    def load_transport_distance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2', len_=7662,
+    def load_result(thing, setting_file='analyzer/settings/settings_drug_screen_thalassa.py', **kwargs):
+        if thing=='transport':
+            return pheno_seq_extractor._load_transport_distance(**kwargs)
+        
+        if thing=='ttransport':
+            return pheno_seq_extractor._load_Ttransport_distance(**kwargs)
+        
+        if thing=='pheno_score':
+            p=pheno_seq_extractor(setting_file, plate=None, well=None)
+            return p.load_pheno_score()
+        
+        if thing=='nature':
+            return pheno_seq_extractor._load_nature_distance(**kwargs)
+        
+        if thing=='pheno_seq_MITO':
+            p=pheno_seq_extractor(setting_file, plate=None, well=None )
+            return p.load_pheno_seq_results_MITO(**kwargs)
+        
+        if thing=='pheno_seq_DS':
+            p=pheno_seq_extractor(setting_file, plate=None, well=None )
+            return p.load_pheno_seq_results_DS(**kwargs)
+        
+    @staticmethod
+    def _load_nature_distance(filename='nature_{}.pkl', folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distance_nature', 
+                              len_=7527):
+        missed=[]
+        result=np.zeros(shape=(len_, len_))
+        for i in range(len_):
+            el='{}_{}.pkl'.format(filename, i)
+            try:
+                f=open(os.path.join(folder, el))
+                d=pickle.load(f); f.close()
+            except:
+                print "Unopenable ", el
+                missed.append(i)
+            else:
+                result[i, i+1:]=d
+                result[i+1:, i]= result[i,i+1:].T
+                
+        return result, missed
+
+        
+        
+    @staticmethod
+    def _load_transport_distance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2', len_=7662,
                        num_lambda=5):
         '''
        Loading transport distance, time-aggregated. Mitocheck experiments are at the beginning
@@ -465,7 +509,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         return result, missed
 
     @staticmethod
-    def load_Ttransport_distance(filename="pheno_distance", 
+    def _load_Ttransport_distance(filename="pheno_distance", 
                                  folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2_unagg', len_=6700,
                                  num_timepoints=18
                                  ):
