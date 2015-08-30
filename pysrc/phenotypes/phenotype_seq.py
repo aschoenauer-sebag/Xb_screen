@@ -465,7 +465,7 @@ class pheno_seq_extractor(thrivisionExtraction):
             return p.load_pheno_seq_results_DS(**kwargs)
         
     @staticmethod
-    def _load_nature_distance(filename='nature_{}.pkl', folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distance_nature', 
+    def _load_nature_distance(filename='nature', folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distance_nature', 
                               len_=7527):
         missed=[]
         result=np.zeros(shape=(len_, len_))
