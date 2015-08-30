@@ -486,25 +486,39 @@ class pheno_seq_extractor(thrivisionExtraction):
         
         
     @staticmethod
-    def _load_transport_distance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2', len_=7662,
+    def _load_transport_distance(filename="pheno_distance", folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2', len_=7526,
                        num_lambda=5):
         '''
        Loading transport distance, time-aggregated. Mitocheck experiments are at the beginning
 '''
         missed=[]
-        result=[np.zeros(shape=(len_, len_)) for k in range(num_lambda)]
-        for i in range(len_):
-            el='{}_{}.pkl'.format(filename, i)
-            try:
-                f=open(os.path.join(folder, el))
-                d=pickle.load(f); f.close()
-            except:
-                print "Unopenable ", el
-                missed.append(i)
-            else:
-                for k in range(len(d)):
-                    result[k][i, i+1:]=d[k]
-                    result[k][i+1:, i]= result[k][i,i+1:].T
+        if num_lambda>1:
+            result=[np.zeros(shape=(len_, len_)) for k in range(num_lambda)]
+            for i in range(len_):
+                el='{}_{}.pkl'.format(filename, i)
+                try:
+                    f=open(os.path.join(folder, el))
+                    d=pickle.load(f); f.close()
+                except:
+                    print "Unopenable ", el
+                    missed.append(i)
+                else:
+                    for k in range(len(d)):
+                        result[k][i, i+1:]=d[k]
+                        result[k][i+1:, i]= result[k][i,i+1:].T
+        else:
+            result=np.zeros(shape=(len_, len_))
+            for i in range(len_):
+                el='{}_{}.pkl'.format(filename, i)
+                try:
+                    f=open(os.path.join(folder, el))
+                    d=pickle.load(f); f.close()
+                except:
+                    print "Unopenable ", el
+                    missed.append(i)
+                else:
+                    result[i, i+1:]=d
+                    result[i+1:, i]= result[i,i+1:].T
                 
         return result, missed
 
