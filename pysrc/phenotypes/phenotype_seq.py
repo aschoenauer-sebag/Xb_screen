@@ -14,7 +14,7 @@ from tracking.histograms import transportation
 from scipy.stats.stats import scoreatpercentile
 from sklearn.cluster.spectral import SpectralClustering
 from phenotypes import drug_screen_utils
-from phenotypes.drug_screen_utils import lim_Mito
+from phenotypes.drug_screen_utils import CLASSES
 
 if getpass.getuser()=='lalil0u':
     import matplotlib.pyplot as p
@@ -449,9 +449,13 @@ class pheno_seq_extractor(thrivisionExtraction):
         if thing=='ttransport':
             return pheno_seq_extractor._load_Ttransport_distance(**kwargs)
         
-        if thing=='pheno_score':
+        if thing=='pheno_score_DS':
             p=pheno_seq_extractor(setting_file, plate=None, well=None)
-            return p.load_pheno_score()
+            return p.load_pheno_score_DS()
+
+        if thing=='pheno_score_MITO':
+            p=pheno_seq_extractor(setting_file, plate=None, well=None)
+            return p.load_pheno_score_MITO(**kwargs)
         
         if thing=='nature':
             return pheno_seq_extractor._load_nature_distance(**kwargs)
@@ -550,9 +554,28 @@ class pheno_seq_extractor(thrivisionExtraction):
                     result[i+1:, i, k]= result[i,i+1:,k].T
         
         return result, missed
-
     
-    def load_pheno_score(self):
+    @staticmethod
+    def load_pheno_score_MITO(exp_list, folder='/media/lalil0u/New/projects/drug_screen/results/'):
+        f=open(os.path.join(folder, 'MITO_results_phenoscores.pickle'))
+        pheno_scores_dict=pickle.load(f); f.close()
+        f=open(os.path.join(folder, 'MITO_pheno_scores_VALIDATION_EXP.pickle'))
+        pheno_scores_dict.update(pickle.load(f)); f.close()
+        
+        r=np.zeros(shape=(len(exp_list), len(CLASSES)))
+        
+        for i,exp in enumerate(exp_list):
+            for j, class_ in enumerate(CLASSES):
+                if class_=='Binucleated':
+                    r[i,j]=pheno_scores_dict[exp]['max_{}'.format('Shape1')]
+                elif class_=='Polylobed':
+                    r[i,j]=pheno_scores_dict[exp]['max_{}'.format('Shape3')]
+                else:
+                    r[i,j]=pheno_scores_dict[exp]['max_{}'.format(class_)]
+                    
+        return r
+    
+    def load_pheno_score_DS(self):
         res=None; who=[]
         ctrl_points=None
         
@@ -566,7 +589,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                     ctrl_points=scores[np.newaxis,:] if ctrl_points is None else np.vstack((ctrl_points, scores[np.newaxis,:]))
                 else:
                     res=scores[0][np.newaxis,:] if res is None else np.vstack((res, scores[0][np.newaxis,:]))
-                    who.append('{}--{}'.format(plate, file_.split('_')[-1].split('.')[0]))
+                    who.append('{}--{:>03}'.format(plate, int(file_.split('_')[-1].split('.')[0])))
                     
         return res, who, ctrl_points
     
@@ -607,8 +630,8 @@ class pheno_seq_extractor(thrivisionExtraction):
                     else:
                         result= pheno_seq_per_frame[np.newaxis]
                     
-                    
-                who.append('{}--{}'.format(pl[:9], w))
+        #ATTENTION gros bug avec LTValidMItosis si on limite a la taille et non pas au split de -- le nom de la plaque...
+                who.append('{}--{:>03}'.format(pl.split('--')[0], w))
             finally:
                 i+=1
         
@@ -652,7 +675,7 @@ class pheno_seq_extractor(thrivisionExtraction):
                     pheno_seq_per_frame=np.vstack((np.sum(pheno_seq_per_frame[self.settings.time_agg*k:self.settings.time_agg*(k+1)],0) 
                                                    for k in range(pheno_seq_per_frame.shape[0]/self.settings.time_agg)))
                     result = np.vstack((result, pheno_seq_per_frame[np.newaxis])) if result is not None else pheno_seq_per_frame[np.newaxis]
-                who.append('{}--{}'.format(pl[:10], w))
+                who.append('{}--{:>03}'.format(pl, w))
             finally:
                 i+=1
                 

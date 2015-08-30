@@ -66,6 +66,7 @@ def computeRPpvalues(data, who, conditions, technical_replicates_key, num_permut
     '''
     all_conditions,real_result, num_technical_replicates = rank_product(data, who, conditions, technical_replicates_key, batch_names,
                                                                         reverse)
+    pdb.set_trace()
     if random_result is None:
         rrp=randomRankProduct(num_permutations)
         random_result = rrp(num_technical_replicates, technical_replicates_key)

@@ -68,11 +68,16 @@ KNOWN_TARGETS = {'Anisomycin': ['RPL10L', 'RPL13A', 'RPL23',  'RPL15',
                         'TUBB4A',
                         'TUBB4B',
                         'TUBB6',],
-           'Paclitaxel':['TUBB1', 'BCL2'],
+           'Paclitaxel':['TUBB1', 'BCL2','NR1I2','MAPT','MAP4','MAP2'],
            'VX680':['AURKA', 'AURKB'],
            }
+DISTANCES = {'N_pheno_score':'Norm. phenotypic score',
+ 'nature':'Phenotypic trajectory',
+ 'ttransport_MAX':'Max time Sinkhorn div.',
+ 'U_pheno_score':'Phenotypic score',
+ 'ttransport_INT':'Sum of time Sinkhorn div.',
+ 'transport':'Global Sinkhorn div.'}
 
-lim_Mito=6452
 
 
 '''
@@ -86,7 +91,7 @@ def selecting_right_Mito_exp(folder='/media/lalil0u/New/projects/drug_screen/res
     mito_hitexp=list(set(pickle.load(f)))
     f.close()
     
-    f=open(os.path.join(folder, 'MITO_pheno_scores.pkl'))
+    f=open(os.path.join(folder, 'MITO_pheno_scores_NOTVAL.pkl'))
     r=pickle.load(f);f.close()
     big_phenoscore=dict(zip(r[1], r[0]))
 
@@ -189,6 +194,25 @@ def from_geneL_to_phenoHit(geneL,hitFile='../data/mitocheck_exp_hitlist_perPheno
         res[gene]=sorted(list(set(res[gene])))
         
     return res
+
+def plotSeparability(result):
+    m=np.max(result.values())
+    res_=[(el, result[el]) for el in np.array(result.keys())[np.argsort(result.values())]]
+    
+    f=p.figure()
+    ax=f.add_subplot(111)
+
+    ax.bar(range(len(result)), [el[1]/m for el in res_], alpha=0.7, color='blue')
+    
+    for i,el in enumerate(res_):
+        ax.text(i, el[1], DISTANCES[el[0]])
+    
+    ax.set_xticklabels([])
+    ax.set_xlabel('Distances')
+    ax.set_ylabel('Arbitrary units')
+    p.title('Separability score')
+    p.show()
+
     
 def plotExternalConsistency(corr_dict, labels, cmap=mpl.cm.bwr):
     norm = mpl.colors.Normalize(0.5,1)
@@ -220,22 +244,6 @@ def plotInternalConsistency(M, tick_labels, cmap=mpl.cm.bwr, second_labels=None)
     p.show()
     
     return
-
-
-def computing_Mito_pheno_scores(pheno_scores_dict, exp_list):
-    r=np.zeros(shape=(len(exp_list), len(CLASSES)))
-    
-    for i,exp in enumerate(exp_list):
-        for j, class_ in enumerate(CLASSES):
-            if class_=='Binucleated':
-                r[i,j]=pheno_scores_dict[exp]['max_{}'.format('Shape1')]
-            elif class_=='Polylobed':
-                r[i,j]=pheno_scores_dict[exp]['max_{}'.format('Shape3')]
-            else:
-                r[i,j]=pheno_scores_dict[exp]['max_{}'.format(class_)]
-                
-    return r
-
 
 def plotPrep(file_='/media/lalil0u/New/projects/drug_screen/results/MDS_Mitocheck_DS_distances_0.1.pkl'):
     '''

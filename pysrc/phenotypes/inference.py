@@ -8,13 +8,13 @@ from analyzer.rank_product import computeRPpvalues
 from drug_screen_utils import CLASSES, plotInternalConsistency, KNOWN_TARGETS
 from scipy.spatial.distance import cdist
 from scipy.stats.mstats_basic import scoreatpercentile
-from phenotypes.drug_screen_utils import lim_Mito
 from operator import itemgetter
 from scipy.stats.stats import pearsonr
 from itertools import product
 from _collections import defaultdict
 from util import hierarchical_clustering
 import matplotlib as mpl
+from phenotypes import drug_screen_utils
 
 #indices for the qc wells to delete as well as plate 5
 indices_to_delete=[117, 148, 157, 185, 188, 189, 190, 191, 192, 193, 194, 195, 196, 197, 198, 199, 200,
@@ -157,7 +157,7 @@ def measure_condition_separation(distance_name_list,
         distances, _, exposure_, _=_return_right_distance(distance_name, folder, check_internal=True)
         
         result[distance_name]= _compute_replicate_dist_vs_else(distances, exposure_)
-        
+    drug_screen_utils.plotSeparability(result)
     return result
 
 def _compute_replicate_dist_vs_else(distances, exposure_list):
@@ -186,6 +186,7 @@ def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutat
 '''
     r={}
     yqualdict=expSi('../data/mapping_2014/qc_export.txt')
+    yqualdict.update(expSi('../data/mapping_2014/qc_validation_exp.txt', primary_screen=False))
     dictSiEntrez=siEntrez('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
     
     siRNAs=[yqualdict[e] for e in who_Mitocheck]
@@ -240,6 +241,14 @@ def _return_right_distance(distance_name, folder, check_internal):
     Little reminder: we have 904 movies in the drug screen that passed the QC and 806 experiments, 98 controls
     
     '''
+#     def _who_transform(l):
+#         return np.array(['{}--{}'.format(el[0].split('--')[0], el[1]) for el in l])
+#     
+#     def _mito_who_transform(l, debut, fin):
+#         pdb.set_trace()
+#         return np.array(['{}--{:>03}'.format(el[:2+len(el.split('--')[-1])], int(el.split('--')[-1])) for el in l[debut:fin]])
+    
+    mito_who=None
     if not check_internal:
         f=open(os.path.join(folder, 'DS_hits_1.5IQR.pkl'))
         res_, who_, drugs_, doses_=pickle.load(f)
@@ -251,7 +260,6 @@ def _return_right_distance(distance_name, folder, check_internal):
         res_, who_, _, drugs_, doses_=pickle.load(f)
         f.close()
         
-        
         print 'Dealing with all {} experiments from the drug screen'.format(len(who_))
     
     exposure_hits=['{}--{}'.format(drugs_[i], doses_[i]) for i in range(len(who_))]
@@ -259,48 +267,41 @@ def _return_right_distance(distance_name, folder, check_internal):
     if distance_name == 'transport':
         #time aggregated transport distance. Here the drug screen is at the end
         f=open(os.path.join(folder, 'all_Mitocheck_DS_agg_transport_10.pkl'))
-        distance=pickle.load(f); f.close()
-        f=open(os.path.join(folder, 'all_Mitocheck_DS_phenohit.pkl'))
-        _,who=pickle.load(f); f.close()
+        distance, who=pickle.load(f); f.close()
+#         if len(who[0])==2:
+#             who=_who_transform(who)
+
+        mito_positions=(806,distance.shape[0])
+
         if not check_internal:
-            distances=np.vstack((distance[np.where(np.array(who)==el), :lim_Mito] for el in who_))[:,0]
+            distances=np.vstack((distance[np.where(np.array(who)==el), mito_positions[0]:mito_positions[1]] for el in who_))[:,0]
+            mito_who=who[mito_positions[0]:mito_positions[1]]#_mito_who_transform(who, *mito_positions)
         else:
             distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_))
-            
             distances=np.hstack((distances[:, np.where(np.array(who)==el)] for el in who_))[:,:,0]
-            
-        mito_who=['{}--{:>03}'.format(el.split('--')[0], int(el.split('--')[1])) for el in who[:lim_Mito]]
         
     elif 'ttransport' in distance_name:
         #non time aggregated transport distance
         if not check_internal:
             if distance_name=='ttransport_MAX':
                 f=open(os.path.join(folder, 'all_Mitocheck_DS_UNagg_transport_10_MAX.pkl'))
-                distance=pickle.load(f); f.close()
+                distance, who=pickle.load(f); f.close()
             elif distance_name=='ttransport_INT':
                 f=open(os.path.join(folder, 'all_Mitocheck_DS_UNagg_transport_10_INT.pkl'))
-                distance=pickle.load(f); f.close()
+                distance, who=pickle.load(f); f.close()
             else:
                 raise ValueError(distance_name)
+            mito_positions=(184,distance.shape[0])
+#             if len(who[0])==2:
+#                 who=_who_transform(who)
             
-            print distance.shape
-            f=open(os.path.join(folder, 'all_Mitocheck_DS_phenohit_perFrame.pkl'))
-            _,who=pickle.load(f); f.close()
-            
-            if distance.shape[0]==6700:
-                print "Deleting indices"
-                distance=np.delete(distance,indices_to_delete, 0)
-                distances=np.delete(distance,indices_to_delete, 1)
-            else:
-                distances=distance
-            
-            assert (len(who)==6636) 
+            assert (len(who)==6904) 
             assert (len(who_)==184)
-            assert (distances.shape[1]==lim_Mito+len(who_))
-            distances=distances[:,distances.shape[0]-lim_Mito:]
-            mito_who=['{}--{:>03}'.format(el.split('--')[0], int(el.split('--')[1])) for el in who[distances.shape[0]-lim_Mito:]]
+
+            distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_))
+            distances=distances[:,mito_positions[0]:mito_positions[1]]
+            mito_who=mito_who=who[mito_positions[0]:mito_positions[1]]#_mito_who_transform(who, *mito_positions)
         else:
-            mito_who=None
             if distance_name=='ttransport_MAX':
                 f=open(os.path.join(folder, 'DS_UNagg_transport_10_MAX.pkl'))
                 distance=pickle.load(f); f.close()
@@ -317,9 +318,7 @@ def _return_right_distance(distance_name, folder, check_internal):
             assert (len(who_)==806)
 
             distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_))
-            
             distances=np.hstack((distances[:, np.where(np.array(who)==el)] for el in who_))[:,:,0]
-        print distances.shape
             
     elif 'pheno_score' in distance_name:
         f=open(os.path.join(folder, 'MITO_pheno_scores.pkl'))
@@ -337,10 +336,28 @@ def _return_right_distance(distance_name, folder, check_internal):
             distances = cdist(scores[:res_.shape[0]], scores[res_.shape[0]:], 'euclidean')
         else:
             distances = cdist(scores[:res_.shape[0]], scores[:res_.shape[0]], 'euclidean')
+            
+    elif distance_name=='nature':
+        f=open(os.path.join(folder, 'all_Mitocheck_DS_nature_distance.pkl'))
+        distance,who=pickle.load(f); f.close()
+        mito_positions=(806,distance.shape[0])
         
+#         if len(who[0])==2:
+#             who=_who_transform(who)
+
+        distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_))
+        
+        if check_internal:
+            distances=np.hstack((distances[:, np.where(np.array(who)==el)] for el in who_))[:,:,0]
+        else:
+            distances=distances[:,mito_positions[0]:mito_positions[1]]
+            mito_who=mito_who=who[mito_positions[0]:mito_positions[1]]#_mito_who_transform(who, *mito_positions)
+    else:
+        raise ValueError('Wrong distance name')
+    print distances.shape
     return distances, np.array(who_), np.array(exposure_hits), np.array(mito_who)
 
-def inference(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', num_permutations=1000,
+def inference(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', num_permutations=10000,
               taking_siRNAs=True,
                threshold=0.1, random_result=None):
     
