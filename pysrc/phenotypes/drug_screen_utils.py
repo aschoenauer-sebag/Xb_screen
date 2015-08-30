@@ -62,6 +62,7 @@ KNOWN_TARGETS = {'Anisomycin': ['RPL10L', 'RPL13A', 'RPL23',  'RPL15',
             'Daunorubicinhydrochloride':['TOP2A', 'TOP2B'],
             'Doxorubicinhydrochloride':['TOP2A', 'TOP2B'],
            'Etoposide':['TOP2A', 'TOP2B'],
+           'JNJ7706621' : ['AURKA', 'AURKB', 'CDK1', 'CDK2', 'CDK3', 'CDK4', 'CDK6'],
            'MLN8054':['AURKA', 'AURKB'],
            'Nocodazole':['HPGDS', 
                          'TUBB2A',
@@ -71,20 +72,60 @@ KNOWN_TARGETS = {'Anisomycin': ['RPL10L', 'RPL13A', 'RPL23',  'RPL15',
            'Paclitaxel':['TUBB1', 'BCL2','NR1I2','MAPT','MAP4','MAP2'],
            'VX680':['AURKA', 'AURKB'],
            }
-DISTANCES = {'N_pheno_score':'Norm. phenotypic score',
- 'nature':'Phenotypic trajectory',
- 'ttransport_MAX':'Max time Sinkhorn div.',
+DISTANCES = {'N_pheno_score':'Normalized\n phenotypic score',
+ 'nature':'Phenotypic\n trajectory',
+ 'ttransport_MAX':'Max time \n Sinkhorn div.',
  'U_pheno_score':'Phenotypic score',
- 'ttransport_INT':'Sum of time Sinkhorn div.',
- 'transport':'Global Sinkhorn div.'}
+ 'ttransport_INT':'Sum of time\n Sinkhorn div.',
+ 'transport':'Global\n Sinkhorn div.'}
 
 
 
+def plotInferenceResult(distance_name_list, result, cmap):
+    '''
+   Manque la legende 
 '''
-Just some things not to forget when doing the distances on phenotypic scores:
-- we wanted to take out Anapahses and Interphases
-- we need to normalize the different phenotypic scores so that they're comparable for different phenotypes
-'''
+    norm=mpl.colors.Normalize(0,0.5)
+    
+    num_cond=len(result[distance_name_list[0]])
+    
+    arr=None
+    for dist in result:
+        curr_arr=None
+        cond_labels=[]
+        for cond in sorted(filter(lambda x: result[dist][x]['genes']!=[], result[dist])):
+            cond_labels.extend(['{}{:>10}'.format(cond, result[dist][cond]['gene_list'][k]) for k in range(len(result[dist][cond]['genes']))])
+            curr_arr=result[dist][cond]['genes'] if curr_arr == None else np.hstack((curr_arr, result[dist][cond]['genes']))
+        arr=curr_arr[:,np.newaxis] if arr is None else np.hstack((arr, curr_arr[:,np.newaxis]))
+    arr2=np.array(arr, dtype=float)/2452
+    f=p.figure()
+    ax=f.add_subplot(111)
+    
+    ax.matshow(arr2,cmap=cmap, norm=norm, aspect='auto')
+
+    ax.set_yticks(range(len(cond_labels)))
+    ax.set_yticklabels(cond_labels)
+    ax.set_xticks(range(len(result)))
+    ax.set_xticklabels([DISTANCES[el] for el in result.keys()])
+    ticks=ax.get_yticks()
+
+    ax2=ax.twiny()
+    ax2.set_xlim(0, len(result)+1)
+    for i in range(arr.shape[0]):
+        for j in range(arr.shape[1]):
+            ax2.text(j+1,ticks[i]+0.45,arr[i,j], fontsize=10)
+    ax2.set_xticks([])
+    # axcb - placement of the color legend
+    [axcb_x, axcb_y, axcb_w, axcb_h] = [0.07,0.93,0.18,0.02]
+    axcb = f.add_axes([axcb_x, axcb_y, axcb_w, axcb_h], frame_on=False)  # axes for colorbar
+    axcb.set_title('Legend', fontsize=15)
+    cb = mpl.colorbar.ColorbarBase(axcb, cmap=cmap,norm=norm, orientation='horizontal',
+                                   )
+ #   cb.ax.set_xticklabels([0, 0.5], fontsize=15)
+    
+    p.show()
+    
+    
 
 def selecting_right_Mito_exp(folder='/media/lalil0u/New/projects/drug_screen/results/'):
     f=open('../data/ANCIENTmitocheck_exp_hitlist.pkl')
@@ -195,14 +236,34 @@ def from_geneL_to_phenoHit(geneL,hitFile='../data/mitocheck_exp_hitlist_perPheno
         
     return res
 
-def plotSeparability(result):
-    m=np.max(result.values())
-    res_=[(el, result[el]) for el in np.array(result.keys())[np.argsort(result.values())]]
+def plotSeparability2D(result, result2, name_result, name_result2):
     
     f=p.figure()
     ax=f.add_subplot(111)
+    ax.grid(True)
+    for i,el in enumerate(DISTANCES):
+        ax.errorbar(np.mean(result[el]), np.mean(result2[el]), 
+               xerr=np.std(result[el]) ,
+               yerr=np.std(result2[el]), fmt='o', color=couleurs[i], label=DISTANCES[el])
+    ax.legend()
+        
+#     ax.set_xticklabels([])
+    ax.set_xlabel(name_result)
+    ax.set_ylabel(name_result2)
+#     ax.set_title('Replicate separability score')
+        
+    p.show()
 
-    ax.bar(range(len(result)), [el[1]/m for el in res_], alpha=0.7, color='blue')
+
+def plotSeparability(result, result2):
+    
+    m=np.min(result.values())
+    res_=[(el, result[el]) for el in np.array(result.keys())[np.argsort(result.values())]]
+    
+    f=p.figure()
+    ax=f.add_subplot(121)
+    ax.grid(True)
+    ax.bar(range(len(result)), [m/el[1] for el in res_], alpha=0.7, color='blue')
     
     for i,el in enumerate(res_):
         ax.text(i, el[1], DISTANCES[el[0]])
@@ -210,7 +271,21 @@ def plotSeparability(result):
     ax.set_xticklabels([])
     ax.set_xlabel('Distances')
     ax.set_ylabel('Arbitrary units')
-    p.title('Separability score')
+    ax.set_title('Replicate separability score')
+    
+    ax=f.add_subplot(122)
+    m=np.max(result2.values())
+    ax.grid(True)
+    ax.bar(range(len(result2)), [result2[el[0]]/m for el in res_], alpha=0.7, color='blue')
+    
+    for i,el in enumerate(res_):
+        ax.text(i, el[1], DISTANCES[el[0]])
+    
+    ax.set_xticklabels([])
+    ax.set_xlabel('Distances')
+    ax.set_ylabel('Arbitrary units')
+    ax.set_title('Replicate correlation score')
+    
     p.show()
 
     
@@ -222,7 +297,7 @@ def plotExternalConsistency(corr_dict, labels, cmap=mpl.cm.bwr):
     ax=f.add_subplot(111)
     ax.matshow(corr, cmap=cmap, norm=norm)
     p.xticks(range(len(labels)), labels, rotation='vertical')
-    p.yticks(range(len(corr_dict)), [el for el in sorted(corr_dict)])
+    p.yticks(range(len(corr_dict)), [DISTANCES[el].replace('\n', '') for el in sorted(corr_dict)])
     
     p.show()
 

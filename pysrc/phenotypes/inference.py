@@ -1,5 +1,6 @@
 import os, pdb
-from util.listFileManagement import expSi, siEntrez
+from util.listFileManagement import expSi, siEntrez, multipleGeneListsToFile,\
+    EnsemblEntrezTrad
 from collections import Counter
 import numpy as np
 import cPickle as pickle
@@ -23,40 +24,61 @@ indices_to_delete=[117, 148, 157, 185, 188, 189, 190, 191, 192, 193, 194, 195, 1
        227, 228, 229, 230, 231, 232, 233, 234, 235, 236, 237, 238, 239,
        240, 241, 242, 243, 244, 245, 246, 247]
 
-def evaluate_inference(result, hitlist_file='/media/lalil0u/New/workspace2/Xb_screen/data/mitocheck_exp_hitlist_perPheno.pkl', threshold=0.0001):
+def evaluate_inference(result, distance_name=None, hitlist_file='/media/lalil0u/New/workspace2/Xb_screen/data/mitocheck_exp_hitlist_perPheno.pkl', 
+                       print_=False,folder='/media/lalil0u/New/projects/drug_screen/results/',
+                       threshold=0.0001):
     f=open(hitlist_file, 'r')
     hitlist=pickle.load(f); f.close()
     yqualdict=expSi('../data/mapping_2014/qc_export.txt')
     dictSiEntrez=siEntrez('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
-     
-    new_hitlist=defaultdict(list)
-    for pheno in hitlist:
-        for exp in hitlist[pheno]:
-            try:
-                siRNA=yqualdict[exp]
-                gene=dictSiEntrez[siRNA]
-            except KeyError:
-                pass
-            else:
-                if pheno not in new_hitlist[gene]:  
-                    new_hitlist[gene].append(pheno)
-                if gene in ['AURKA', 'AURKB']:
-                    print gene, pheno
-                                    
+    trad=EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+    
+    to_plot_info=defaultdict(dict)
+    to_GO_info=defaultdict(list)
+    
     for cond in sorted(result):
-        print '-----------', cond
+        if print_:
+            print '-----------', cond
         l=np.array([(dictSiEntrez[el[0]], el[-1]) for el in result[cond]])
-        for el in KNOWN_TARGETS[cond.split('--')[0]]:
+        to_plot_info[cond]=defaultdict(list)
+        for el in sorted(KNOWN_TARGETS[cond.split('--')[0]]):
             if np.where(l[:,0]==el)[0].shape[0]>0:
-                print el, l[np.where(l[:,0]==el)], np.where(l[:,0]==el)[0]
-            
-        lim=np.where(np.array(l[:,1], dtype=float)==threshold)[0]
-        res=[]
-        for gene in l[lim][:,0]:
-            res.extend(new_hitlist[gene])
-            
-        print Counter(res), '\n'
+                rank_=np.where(l[:,0]==el)[0][0]
+                to_plot_info[cond]['genes'].append(rank_)
+                to_plot_info[cond]['gene_list'].append(el)
+                if print_:
+                    print el, l[np.where(l[:,0]==el)], rank_
         
+        if type(threshold)==int:
+            gene_lim=l[:threshold][:,0]
+        else:
+            lim=np.where(np.array(l[:,1], dtype=float)==threshold)[0]
+            gene_lim=l[lim][:,0]
+        to_GO_info[cond]=[trad[el] for el in gene_lim]
+        res=[]
+        for gene in gene_lim:
+            res.extend(hitlist[gene])
+    #STEP2 here : we add writing gene list files
+            
+        to_plot_info[cond]['type']= Counter(res)
+    
+    multipleGeneListsToFile([to_GO_info[el] for el in to_GO_info], [el for el in to_GO_info], name=os.path.join(folder, 'GO_{}.txt'.format(distance_name)))
+    
+    return to_plot_info
+
+def global_evaluate_inference(distance_name_list,folder='/media/lalil0u/New/projects/drug_screen/results/',
+                              cmap=mpl.cm.OrRd,
+                              threshold=0.0001):
+    total_plot_info={}
+    for distance in distance_name_list:
+        print distance
+        f=open(os.path.join(folder, 'inference_{}.pkl'.format(distance)))
+        result=pickle.load(f); f.close()
+        
+        total_plot_info[distance]=evaluate_inference(result, threshold=threshold, distance_name=distance)
+    
+    drug_screen_utils.plotInferenceResult(distance_name_list,total_plot_info, cmap=cmap)
+    
     return
 
 def condition_clustering(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', color_gradient='YlOrRd',
@@ -124,7 +146,7 @@ def check_distance_consistency(distance_name,
         
     exposure_hits2=[(el.split('--')[0], int(el.split('--')[1])) for el in exposure_hits]
     d=Counter(exposure_hits2)
-    distinct_exposure=filter(lambda x:d[x]>2, d)
+    distinct_exposure=filter(lambda x:d[x]>=2, d)
     ind=np.hstack((np.where(np.array(exposure_hits)=='{}--{}'.format(*cond))[0] for cond in sorted(distinct_exposure, key=itemgetter(0,1))))
     if check_internal:
         M=distances[ind]; M=M[:,ind]
@@ -157,12 +179,11 @@ def measure_condition_separation(distance_name_list,
         distances, _, exposure_, _=_return_right_distance(distance_name, folder, check_internal=True)
         
         result[distance_name]= _compute_replicate_dist_vs_else(distances, exposure_)
-    drug_screen_utils.plotSeparability(result)
     return result
 
 def _compute_replicate_dist_vs_else(distances, exposure_list):
     distinct_exposure=sorted(list(set(exposure_list)))
-    result=0
+    result=[]
     for exposure in distinct_exposure:
         replicates=np.where(exposure_list==exposure)[0]
         
@@ -174,10 +195,10 @@ def _compute_replicate_dist_vs_else(distances, exposure_list):
         denominateur = curr_distances[:,others]/float(replicates.shape[0])
         assert(denominateur.shape[0]==replicates.shape[0])
         assert(denominateur.shape[1]==len(others))
+        if numerateur>0:
+            result.append(numerateur/float(np.sum(denominateur)))
         
-        result+=numerateur/float(np.sum(denominateur))
-        
-    return result
+    return np.array(result)
 
 def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutations, threshold, random_result, taking_siRNAs=False):
     '''
@@ -194,7 +215,7 @@ def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutat
     
     count=Counter(exposure_hits)
     #This way I look at exposures that are hits at least 50% of the times/plates
-    for el in filter(lambda x: count[x]>2, count):
+    for el in filter(lambda x: count[x]>=2, count):
         print el
         where_=np.where(exposure_hits==el)[0]
         
@@ -240,14 +261,7 @@ def _return_right_distance(distance_name, folder, check_internal):
     
     Little reminder: we have 904 movies in the drug screen that passed the QC and 806 experiments, 98 controls
     
-    '''
-#     def _who_transform(l):
-#         return np.array(['{}--{}'.format(el[0].split('--')[0], el[1]) for el in l])
-#     
-#     def _mito_who_transform(l, debut, fin):
-#         pdb.set_trace()
-#         return np.array(['{}--{:>03}'.format(el[:2+len(el.split('--')[-1])], int(el.split('--')[-1])) for el in l[debut:fin]])
-    
+    '''    
     mito_who=None
     if not check_internal:
         f=open(os.path.join(folder, 'DS_hits_1.5IQR.pkl'))
@@ -260,7 +274,7 @@ def _return_right_distance(distance_name, folder, check_internal):
         res_, who_, _, drugs_, doses_=pickle.load(f)
         f.close()
         
-        print 'Dealing with all {} experiments from the drug screen'.format(len(who_))
+        print '{} experiments from the drug screen'.format(len(who_))
     
     exposure_hits=['{}--{}'.format(drugs_[i], doses_[i]) for i in range(len(who_))]
     
@@ -268,8 +282,6 @@ def _return_right_distance(distance_name, folder, check_internal):
         #time aggregated transport distance. Here the drug screen is at the end
         f=open(os.path.join(folder, 'all_Mitocheck_DS_agg_transport_10.pkl'))
         distance, who=pickle.load(f); f.close()
-#         if len(who[0])==2:
-#             who=_who_transform(who)
 
         mito_positions=(806,distance.shape[0])
 
@@ -292,8 +304,6 @@ def _return_right_distance(distance_name, folder, check_internal):
             else:
                 raise ValueError(distance_name)
             mito_positions=(184,distance.shape[0])
-#             if len(who[0])==2:
-#                 who=_who_transform(who)
             
             assert (len(who)==6904) 
             assert (len(who_)==184)
@@ -341,9 +351,6 @@ def _return_right_distance(distance_name, folder, check_internal):
         f=open(os.path.join(folder, 'all_Mitocheck_DS_nature_distance.pkl'))
         distance,who=pickle.load(f); f.close()
         mito_positions=(806,distance.shape[0])
-        
-#         if len(who[0])==2:
-#             who=_who_transform(who)
 
         distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_))
         

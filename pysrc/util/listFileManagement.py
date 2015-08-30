@@ -672,7 +672,7 @@ def multipleGeneListsToFile(geneLists, geneListNames, name):
                 f.write('\t ')
         f.write('\n')
     f.close()    
-    print 'fichier ecrit ', os.path.join(os.getcwd(), name)
+    print 'fichier ecrit ', name
     return 1
 
 def geneListToFile(genes, name):
