@@ -737,6 +737,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         
         for j in range(X.shape[1]):
             reg = np.array([x[1] for x in lowess(X[:,j], range(X.shape[0]), frac=0.5)])
+            pdb.set_trace()
             Xsmooth = reg if Xsmooth is None else np.hstack((Xsmooth, reg))
         
         return Xsmooth
@@ -744,7 +745,7 @@ class pheno_seq_extractor(thrivisionExtraction):
     def phenotypic_score(self, well_count, ctrl_count):
         ctrl_count/=np.sum(ctrl_count,1)[:,np.newaxis]
         well_count/=np.sum(well_count,1)[:,np.newaxis]
-        pdb.set_trace()
+        
         if self.settings.smooth:
             ctrl_count=self._smooth(ctrl_count)
             well_count=self._smooth(well_count)
