@@ -748,7 +748,7 @@ class pheno_seq_extractor(thrivisionExtraction):
         if self.settings.smooth:
             ctrl_count=self._smooth(ctrl_count)
             well_count=self._smooth(well_count)
-        print ctrl_count.shape, well_count.shape
+
         size_=min(well_count.shape[0], ctrl_count.shape[0])
         
         diff=well_count[:size_]-ctrl_count[:size_]

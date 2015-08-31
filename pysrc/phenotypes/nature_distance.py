@@ -146,7 +146,7 @@ class TwoVectorRepresentation(object):
         for j in range(X.shape[1]):
             Xsmooth[:,j] = np.array([x[1] for x in 
                                      lowess(X[:,j], range(X.shape[0]), frac=0.5)])
-            
+        print Xsmooth.shape
         return Xsmooth
     
     def test_plot(self, X, col_indices=None):
