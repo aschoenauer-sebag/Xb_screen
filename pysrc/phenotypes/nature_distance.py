@@ -349,7 +349,7 @@ if __name__=='__main__':
         
     else:
         range_=range(options.exp1+1, len(expL))
-        result=np.zeros(shape=(range_))
+        result=np.zeros(shape=(len(range_)))
     
     for k in range_:
         print k,
