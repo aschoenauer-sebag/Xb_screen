@@ -4,6 +4,7 @@ import cPickle as pickle
 from collections import defaultdict
 from optparse import OptionParser
 from scipy.spatial.distance import squareform, pdist, cdist
+import statsmodels.api as sm
 
 from util.settings import Settings
 from tracking.trajPack.thrivision import thrivisionExtraction
@@ -728,10 +729,25 @@ class pheno_seq_extractor(thrivisionExtraction):
         f.close()
         
         return ctrl_wells
+
+    def _smooth(self, X):
+                # lowess
+        lowess = sm.nonparametric.lowess
+        Xsmooth = None
+        
+        for j in range(X.shape[1]):
+            reg = np.array([x[1] for x in lowess(X[:,j], range(X.shape[0]), frac=0.5)])
+            Xsmooth = reg if Xsmooth is None else np.hstack((Xsmooth, reg))
+        
+        return Xsmooth
     
     def phenotypic_score(self, well_count, ctrl_count):
         ctrl_count/=np.sum(ctrl_count,1)[:,np.newaxis]
         well_count/=np.sum(well_count,1)[:,np.newaxis]
+        
+        if self.settings.smooth:
+            ctrl_count=self._smooth(ctrl_count)
+            well_count=self._smooth(well_count)
         
         diff=well_count-ctrl_count
         return np.diag(diff[np.argmax(np.abs(diff), 0)])

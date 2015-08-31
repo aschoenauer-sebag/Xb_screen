@@ -84,48 +84,143 @@ def global_evaluate_inference(distance_name_list,folder='/media/lalil0u/New/proj
     return r
 
 def condition_clustering(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', color_gradient='YlOrRd',
-                         hit_only=False,
+                         hit_only=False, compare_to='MITO', num_replicates=3,
                           level=0.4):
     '''
-    We can do drug clustering based on their distances to eachother but we can also do drug clustering based on their distances to Mitocheck
-    THINK ABOUT THAT
-    '''
-    distances, who_, exposure_, _=_return_right_distance(distance_name, folder, check_internal= True)
+    DOING CONDITION CLUSTERING (MEDIAN OF EXPERIMENTS FOR THIS CONDITION)
     
-    plates=[int(el.split('--')[0].split('_')[1]) for el in who_]
-    exposure_wPL=np.array(['{}{:>10}'.format(exposure_[i], plates[i]) for i in range(len(exposure_))])
+- compare_to: We can do drug clustering based on their distances to eachother (value 'DS')
+    but we can also do drug clustering based on their distances to Mitocheck (value 'MITO')
+- 'hit_only': to do clustering considering hit distances only or no
+    
+    '''
+    distances, who_, exposure_, mito_who=_return_right_distance(distance_name, folder, 
+                                                                num_replicates=num_replicates,
+                                                                hit_only=hit_only, compare_to=compare_to)
+    
+#     plates=np.array([int(el.split('--')[0].split('_')[1]) for el in who_])
+#     exposure_wPL=np.array(['{}{:>10}'.format(exposure_[i], plates[i]) for i in range(len(exposure_))])
 
     f=open(os.path.join(folder, 'DS_hits_1.5IQR.pkl'))
     _, who_hits, drug_hits, dose_hits=pickle.load(f)
     f.close()
-    if hit_only:
-        wh_=np.hstack((np.where(who_==el)[0] for el in who_hits))
-        distances=distances[wh_]; distances=distances[:,wh_]
-        print wh_
-        who_=who_[wh_]
     
+    exposure_hits=np.array(['{}--{}'.format(drug_hits[i], dose_hits[i]) for i in range(len(who_hits))])
+    d=Counter(exposure_hits)
+    distinct_exposure=filter(lambda x:d[x]>=num_replicates, d)
+    
+    if not hit_only:
+        all_exposures=sorted(Counter(exposure_).keys())
+        distances=np.vstack((np.median(distances[np.where(exposure_==condition)],0)  for condition in all_exposures))
+        
+    else:
+        all_exposures=sorted(distinct_exposure)
+        distances=np.vstack((np.median(distances[np.where(exposure_==condition)],0)  for condition in all_exposures))
+
+    if compare_to=='MITO':
+        column_header=mito_who
+    else:
+        column_header=who_
     print distances.shape
-    clusters=hierarchical_clustering.heatmap(distances, row_header=exposure_wPL, column_header=exposure_wPL, 
+    clusters=hierarchical_clustering.heatmap(distances, row_header=all_exposures, column_header=column_header, 
                                     row_method='ward', column_method='ward', 
                                     row_metric='euclidean', column_metric='euclidean', 
-                                    color_gradient=color_gradient, filename='clustering_{}'.format(distance_name), 
-                                    other_data=None, level=level,
-                                    colorbar_ticklabels=['', '', ''],
-                                    colorbar_title='Distance',
+                                    color_gradient=color_gradient, filename=distance_name, 
+                                    other_data=None, level=level,title=distance_name,
+                                    colorbar_ticks=[-2, 0, 2],
+                                    colorbar_ticklabels=[0, '', 1],
+                                    colorbar_title='Distance (arbitrary units)',
                                     range_normalization=(scoreatpercentile(distances.flatten(),10), scoreatpercentile(distances.flatten(), per=90)))
 
-    exposure_hits=np.array(['{}--{}'.format(drug_hits[i], dose_hits[i]) for i in range(len(who_hits))])
-    global_=np.bincount(clusters)
-    hit_clusters = clusters[np.where(np.array([el in who_hits for el in who_]))]
     
+    global_=np.bincount(clusters)
+    if not hit_only:
+        hit_clusters = clusters[np.where(np.array([el in distinct_exposure for el in all_exposures]))]
+        all_exposures=distinct_exposure
+    else:
+        hit_clusters=clusters
+        
+    print len(hit_clusters), len(distinct_exposure)
     print global_, np.bincount(hit_clusters)
-    who_cluster_hits={k: Counter(exposure_hits[np.where(hit_clusters==k)]) for k in range(1,np.max(clusters)+1)}
+
+    who_cluster_hits={k: Counter(np.array(all_exposures)[np.where(hit_clusters==k)]) for k in range(1,np.max(clusters)+1)}
     
     return hit_clusters, who_cluster_hits
 
 
 
-def check_distance_consistency(distance_name,
+def experiment_clustering(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', color_gradient='YlOrRd',
+                         hit_only=False, compare_to='MITO', num_replicates=3,
+                          level=0.4):
+    '''
+    DOING EXPERIMENT CLUSTERING AS OPPOSED TO CONDITION CLUSTERING
+    
+- compare_to: We can do drug clustering based on their distances to eachother (value 'DS')
+    but we can also do drug clustering based on their distances to Mitocheck (value 'MITO')
+- 'hit_only': to do clustering considering hit distances only or no
+    
+    '''
+    distances, who_, exposure_, mito_who=_return_right_distance(distance_name, folder, 
+                                                                num_replicates=num_replicates,
+                                                                hit_only=hit_only, compare_to=compare_to)
+    
+    plates=np.array([int(el.split('--')[0].split('_')[1]) for el in who_])
+    exposure_wPL=np.array(['{}{:>10}'.format(exposure_[i], plates[i]) for i in range(len(exposure_))])
+
+    f=open(os.path.join(folder, 'DS_hits_1.5IQR.pkl'))
+    _, who_hits, drug_hits, dose_hits=pickle.load(f)
+    f.close()
+    
+    exposure_hits=np.array(['{}--{}'.format(drug_hits[i], dose_hits[i]) for i in range(len(who_hits))])
+    d=Counter(exposure_hits)
+    distinct_exposure=filter(lambda x:d[x]>=num_replicates, d)
+    
+    if hit_only:
+        wh_=np.hstack((np.where(who_==who_hits[i])[0] for i in range(len(who_hits)) if exposure_hits[i] in distinct_exposure))
+        distances=distances[wh_]
+        if compare_to=='DS':
+            distances=distances[:,wh_]
+        print wh_
+        who_=who_[wh_]
+        exposure_wPL=exposure_wPL[wh_]
+        plates=plates[wh_]
+        
+    if compare_to=='MITO':
+        column_header=mito_who
+    else:
+        column_header=who_
+    
+    clusters=hierarchical_clustering.heatmap(distances, row_header=exposure_wPL, column_header=column_header, 
+                                    row_method='ward', column_method='ward', 
+                                    row_metric='euclidean', column_metric='euclidean', 
+                                    color_gradient=color_gradient, filename='clustering_{}'.format(distance_name), 
+                                    other_data=None, level=level,
+#                                    colorbar_ticklabels=[0, '', 1],
+                                    colorbar_title='Distance (arbitrary units)',
+                                    range_normalization=(scoreatpercentile(distances.flatten(),10), scoreatpercentile(distances.flatten(), per=90)))
+
+    
+    global_=np.bincount(clusters)
+    if not hit_only:
+        hit_clusters = clusters[np.where(np.array([el in who_hits for el in who_]))]
+        hit_clusters = hit_clusters[np.where(np.array([exposure_hits[i] in distinct_exposure for i in range(len(who_hits))]))]
+        
+        plates=plates[np.where(np.array([el in who_hits for el in who_]))]
+        plates=plates[np.where(np.array([exposure_hits[i] in distinct_exposure for i in range(len(who_hits))]))]
+        
+        exposure_hits=exposure_hits[np.where(np.array([exposure_hits[i] in distinct_exposure for i in range(len(who_hits))]))]
+    else:
+        hit_clusters=clusters
+    print len(hit_clusters), len(exposure_hits), len(plates)
+    print global_, np.bincount(hit_clusters)
+    
+    who_cluster_hits={k: Counter(exposure_hits[np.where(hit_clusters==k)]) for k in range(1,np.max(clusters)+1)}
+    plate_clusters={k: Counter(plates[np.where(hit_clusters==k)]) for k in range(1,np.max(clusters)+1)}
+    
+    return hit_clusters, who_cluster_hits, plate_clusters
+
+
+def check_distance_consistency(distance_name, num_replicates=2,
                                folder='/media/lalil0u/New/projects/drug_screen/results/', 
                                check_internal=True):
     '''
@@ -148,7 +243,7 @@ def check_distance_consistency(distance_name,
         
     exposure_hits2=[(el.split('--')[0], int(el.split('--')[1])) for el in exposure_hits]
     d=Counter(exposure_hits2)
-    distinct_exposure=filter(lambda x:d[x]>=2, d)
+    distinct_exposure=filter(lambda x:d[x]>=num_replicates, d)
     ind=np.hstack((np.where(np.array(exposure_hits)=='{}--{}'.format(*cond))[0] for cond in sorted(distinct_exposure, key=itemgetter(0,1))))
     if check_internal:
         M=distances[ind]; M=M[:,ind]
@@ -249,7 +344,10 @@ def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutat
         
     return r
 
-def _return_right_distance(distance_name, folder, check_internal):
+def _return_right_distance(distance_name, folder, 
+                           num_replicates=1,
+                           check_internal=None, hit_only=None, 
+                           compare_to=None):
     '''
     Possible distances:
     - transport: transport distance global on time
@@ -265,11 +363,27 @@ def _return_right_distance(distance_name, folder, check_internal):
     Little reminder: we have 904 movies in the drug screen that passed the QC and 806 experiments, 98 controls
     
     '''    
+    if check_internal is not None:
+        if check_internal:
+            hit_only=False
+            compare_to='DS'
+        else:
+            hit_only=True
+            compare_to='MITO'
+    
     mito_who=None
-    if not check_internal:
+    
+    if hit_only:
         f=open(os.path.join(folder, 'DS_hits_1.5IQR.pkl'))
         res_, who_, drugs_, doses_=pickle.load(f)
         f.close()
+        exposure_hits=['{}--{}'.format(drugs_[i], doses_[i]) for i in range(len(who_))]
+        if num_replicates>1:
+            d=Counter(exposure_hits)
+            distinct_exposure=filter(lambda x:d[x]>=num_replicates, d)
+            
+        who_=[who_[i] for i in range(len(who_)) if exposure_hits[i] in distinct_exposure]
+        exposure_hits=[el for el in exposure_hits if el in distinct_exposure]
         
         print 'Dealing with ', len(who_), 'experimental hits'
     else:
@@ -279,16 +393,15 @@ def _return_right_distance(distance_name, folder, check_internal):
         
         print '{} experiments from the drug screen'.format(len(who_))
     
-    exposure_hits=['{}--{}'.format(drugs_[i], doses_[i]) for i in range(len(who_))]
+        exposure_hits=['{}--{}'.format(drugs_[i], doses_[i]) for i in range(len(who_))]
     
     if distance_name == 'transport':
         #time aggregated transport distance. Here the drug screen is at the end
         f=open(os.path.join(folder, 'all_Mitocheck_DS_agg_transport_10.pkl'))
         distance, who=pickle.load(f); f.close()
-
         mito_positions=(806,distance.shape[0])
 
-        if not check_internal:
+        if compare_to=='MITO':
             distances=np.vstack((distance[np.where(np.array(who)==el), mito_positions[0]:mito_positions[1]] for el in who_))[:,0]
             mito_who=who[mito_positions[0]:mito_positions[1]]#_mito_who_transform(who, *mito_positions)
         else:
@@ -297,7 +410,7 @@ def _return_right_distance(distance_name, folder, check_internal):
         
     elif 'ttransport' in distance_name:
         #non time aggregated transport distance
-        if not check_internal:
+        if compare_to=='MITO':
             if distance_name=='ttransport_MAX':
                 f=open(os.path.join(folder, 'all_Mitocheck_DS_UNagg_transport_10_MAX.pkl'))
                 distance, who=pickle.load(f); f.close()
@@ -345,7 +458,7 @@ def _return_right_distance(distance_name, folder, check_internal):
         if distance_name=='N_pheno_score':  
             scores=(scores-np.mean(scores,0))/np.std(scores,0)
             
-        if not check_internal:
+        if compare_to=='MITO':
             distances = cdist(scores[:res_.shape[0]], scores[res_.shape[0]:], 'euclidean')
         else:
             distances = cdist(scores[:res_.shape[0]], scores[:res_.shape[0]], 'euclidean')
@@ -357,11 +470,12 @@ def _return_right_distance(distance_name, folder, check_internal):
 
         distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_))
         
-        if check_internal:
-            distances=np.hstack((distances[:, np.where(np.array(who)==el)] for el in who_))[:,:,0]
-        else:
+        if compare_to=='MITO':
             distances=distances[:,mito_positions[0]:mito_positions[1]]
             mito_who=mito_who=who[mito_positions[0]:mito_positions[1]]#_mito_who_transform(who, *mito_positions)
+        else:
+            distances=np.hstack((distances[:, np.where(np.array(who)==el)] for el in who_))[:,:,0]
+
     else:
         raise ValueError('Wrong distance name')
     print distances.shape

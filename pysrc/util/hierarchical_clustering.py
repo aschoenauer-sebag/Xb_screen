@@ -125,6 +125,7 @@ def heatmap(x, row_header, column_header, row_method,
             range_normalization=(-2,2), colorbar_ticks=[-2, 0, 2],
             colorbar_ticklabels=['$ <\mu-2 \sigma$', '$\mu$', '$> \mu+2 \sigma$'],
             colorbar_title='Feature range',
+            title=None,
              save=False):
     
     print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric),
@@ -398,7 +399,8 @@ def heatmap(x, row_header, column_header, row_method,
 
     pylab.savefig(filename)
     print 'Exporting:',filename
-    
+    if title is not None:
+        pylab.title(title)
     if show:
         pylab.show()
     if trad:

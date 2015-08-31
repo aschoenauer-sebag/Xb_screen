@@ -122,6 +122,8 @@ TRANSLATION_WHOLENAMED = {
 outputFolder = result_dir
 outputFile = "pheno_count_{}_{}.pkl"
 
+#For computing pheno scores
+smooth=True
 outputFile_= {'pheno_score' : "pheno_score_{}_{}.pkl"}
 
 #time-aggregation level
