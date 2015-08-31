@@ -7,6 +7,7 @@ from tracking.trajPack.tracking_script import path_command
 
 def scriptCommand(exp_list, baseName='comp_track', command="tracking/trajPack/cell_cycle.py",jobSize=10,
                   h5_result_dir="/share/data20T/mitocheck/Alice/results",
+                  max_nodes=500,
                    **kwargs):
     perExperiment=False
     if type(exp_list[0])!=int:
@@ -71,8 +72,7 @@ python %s -i %i"""
     main_script_file.write(main_content)
     os.system('chmod a+x %s' % array_script_name)
 
-    sub_cmd = 'qsub -t 1-%i %s' % (fileNumber, array_script_name)
+    sub_cmd = 'qsub -tc %i -t 1-%i %s' % (max_nodes, fileNumber, array_script_name)
 
-    print 'array containing %i jobs' % fileNumber
     print sub_cmd
     return 1
