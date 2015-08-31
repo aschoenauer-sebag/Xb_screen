@@ -748,8 +748,10 @@ class pheno_seq_extractor(thrivisionExtraction):
         if self.settings.smooth:
             ctrl_count=self._smooth(ctrl_count)
             well_count=self._smooth(well_count)
+            
+        size_=min(well_count.shape[0], ctrl_count.shape[0])
         
-        diff=well_count-ctrl_count
+        diff=well_count[:size_]-ctrl_count[:size_]
         return np.diag(diff[np.argmax(np.abs(diff), 0)])
     
     def load_ctrl_well_dict(self, c_wells):
