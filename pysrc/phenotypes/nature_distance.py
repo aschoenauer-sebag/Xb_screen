@@ -330,6 +330,7 @@ if __name__=='__main__':
     
     f=open('../data/expL_ALL_DS_MITO.pkl')
     expL=pickle.load(f); f.close()
+#Absolutely need to keep this list to combler les nan
     
     plate, well=expL[options.exp1]
     result=[]
@@ -367,7 +368,7 @@ if __name__=='__main__':
                 print ValueError('Problem {} {}'.format(plate2, well2))
                 phenotypic_distance=np.NAN
             finally:
-                result[k]=phenotypic_distance
+                result[k-(options.exp1+1)]=phenotypic_distance
         
     f=open(os.path.join(outputFolder,outputFile), 'w') 
     pickle.dump(np.array(result),f)
