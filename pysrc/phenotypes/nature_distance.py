@@ -147,10 +147,10 @@ class TwoVectorRepresentation(object):
         for j in range(X.shape[1]):
             reg = np.array([x[1] for x in lowess(X[:,j], range(X.shape[0]), frac=0.5)])
             Xsmooth = reg if Xsmooth is None else np.vstack((Xsmooth, reg))
-        print Xsmooth.shape
+        
         return Xsmooth.T
         
-#OLD VERSION
+#OLD VERSION that bugs sometimes because lowess returns a smaller vector than X
 #         Xsmooth = X.copy()
 #         
 #         for j in range(X.shape[1]):
@@ -340,7 +340,17 @@ if __name__=='__main__':
     
     outputFile='nature_{}.pkl'.format(options.exp1)
     
-    for k in range(options.exp1+1, len(expL)):
+    if outputFile in os.listdir(outputFolder):
+        f=open(os.path.join(outputFolder,outputFile), 'r') 
+        result=pickle.load(f); f.close()
+        
+        range_=np.where(np.isnan(result))+options.exp1+1
+        
+    else:
+        range_=range(options.exp1+1, len(expL))
+        result=np.zeros(shape=(range_))
+    
+    for k in range_:
         print k,
         plate2, well2=expL[k]
         try:
@@ -357,7 +367,7 @@ if __name__=='__main__':
                 print ValueError('Problem {} {}'.format(plate2, well2))
                 phenotypic_distance=np.NAN
             finally:
-                result.append(phenotypic_distance)
+                result[k]=phenotypic_distance
         
     f=open(os.path.join(outputFolder,outputFile), 'w') 
     pickle.dump(np.array(result),f)
