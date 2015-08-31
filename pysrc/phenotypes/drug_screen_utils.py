@@ -90,7 +90,8 @@ def plotInferenceResult(distance_name_list, result, cmap):
     num_cond=len(result[distance_name_list[0]])
     
     arr=None
-    for dist in result:
+    for dist in filter(lambda x: x in result, ['N_pheno_score','U_pheno_score','transport','nature','ttransport_INT','ttransport_MAX']):
+        
         curr_arr=None
         cond_labels=[]
         for cond in sorted(filter(lambda x: result[dist][x]['genes']!=[], result[dist])):
@@ -106,7 +107,8 @@ def plotInferenceResult(distance_name_list, result, cmap):
     ax.set_yticks(range(len(cond_labels)))
     ax.set_yticklabels(cond_labels)
     ax.set_xticks(range(len(result)))
-    ax.set_xticklabels([DISTANCES[el] for el in result.keys()])
+    xlabels=[DISTANCES[el] for el in filter(lambda x: x in result, ['N_pheno_score','U_pheno_score','transport','nature','ttransport_INT','ttransport_MAX'])]
+    ax.set_xticklabels(xlabels)
     ticks=ax.get_yticks()
 
     ax2=ax.twiny()
@@ -124,6 +126,8 @@ def plotInferenceResult(distance_name_list, result, cmap):
  #   cb.ax.set_xticklabels([0, 0.5], fontsize=15)
     
     p.show()
+    
+    return xlabels,arr
     
     
 

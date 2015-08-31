@@ -67,19 +67,21 @@ def evaluate_inference(result, distance_name=None, hitlist_file='/media/lalil0u/
     return to_plot_info
 
 def global_evaluate_inference(distance_name_list,folder='/media/lalil0u/New/projects/drug_screen/results/',
-                              cmap=mpl.cm.OrRd,
+                              cmap=mpl.cm.OrRd,num_replicates=3,
                               threshold=0.0001):
     total_plot_info={}
     for distance in distance_name_list:
         print distance
-        f=open(os.path.join(folder, 'inference_{}.pkl'.format(distance)))
+        f=open(os.path.join(folder, 'inference_{}replicates/inference_{}.pkl'.format(num_replicates,distance)))
         result=pickle.load(f); f.close()
         
-        total_plot_info[distance]=evaluate_inference(result, threshold=threshold, distance_name=distance)
+        total_plot_info[distance]=evaluate_inference(result, threshold=threshold, distance_name=distance,
+                                            folder=os.path.join(folder, 'inference_{}replicates'.format(num_replicates)))
     
-    drug_screen_utils.plotInferenceResult(distance_name_list,total_plot_info, cmap=cmap)
+    r = drug_screen_utils.plotInferenceResult(distance_name_list,total_plot_info, 
+                                                cmap=cmap)
     
-    return
+    return r
 
 def condition_clustering(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', color_gradient='YlOrRd',
                          hit_only=False,
@@ -200,7 +202,7 @@ def _compute_replicate_dist_vs_else(distances, exposure_list):
         
     return np.array(result)
 
-def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutations, threshold, random_result, taking_siRNAs=False):
+def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutations, threshold, random_result, taking_siRNAs=False, num_replicates=3):
     '''
     - M: distance matrix of size (hits, mitocheck)
     - taking_siRNAs: indicates if you want to consider different values of the same siRNAs independently (False) or as replicates of the same condition
@@ -215,7 +217,7 @@ def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutat
     
     count=Counter(exposure_hits)
     #This way I look at exposures that are hits at least 50% of the times/plates
-    for el in filter(lambda x: count[x]>=2, count):
+    for el in filter(lambda x: count[x]>=num_replicates, count):
         print el
         where_=np.where(exposure_hits==el)[0]
         
@@ -243,6 +245,7 @@ def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutat
         else:
             currG=[dictSiEntrez[e] for e in np.array(r[el])[np.where(pval<=threshold)][:,0]]
         print sorted(Counter(currG).keys())
+        
         
     return r
 
@@ -365,14 +368,17 @@ def _return_right_distance(distance_name, folder, check_internal):
     return distances, np.array(who_), np.array(exposure_hits), np.array(mito_who)
 
 def inference(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', num_permutations=10000,
-              taking_siRNAs=True,
+              taking_siRNAs=True, num_replicates=3,
                threshold=0.1, random_result=None):
     
     distances, who_hits, exposure_hits, mito_who=_return_right_distance(distance_name, folder, check_internal=False)
     
-    return functional_inference(distances, np.array(who_hits), np.array(exposure_hits), np.array(mito_who), 
-                                num_permutations, threshold, random_result, taking_siRNAs)
+    r= functional_inference(distances, np.array(who_hits), np.array(exposure_hits), np.array(mito_who), 
+                                num_permutations, threshold, random_result, taking_siRNAs, num_replicates=num_replicates)
         
-        
+    f=open(os.path.join(folder, 'inference_{}replicates/inference_{}.pkl'.format(num_replicates, distance_name)), 'w')
+    pickle.dump(r, f); f.close()
+    
+    return r  
     
 
