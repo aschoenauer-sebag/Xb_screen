@@ -369,10 +369,10 @@ if __name__=='__main__':
                 phenotypic_distance=np.NAN
             finally:
                 result[k-(options.exp1+1)]=phenotypic_distance
-    pdb.set_trace()
-#     f=open(os.path.join(outputFolder,outputFile), 'w') 
-#     pickle.dump(np.array(result),f)
-#     f.close()
+
+    f=open(os.path.join(outputFolder,outputFile), 'w') 
+    pickle.dump(np.array(result),f)
+    f.close()
 
     print "Done"
             
