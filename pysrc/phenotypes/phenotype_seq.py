@@ -744,7 +744,7 @@ class pheno_seq_extractor(thrivisionExtraction):
     def phenotypic_score(self, well_count, ctrl_count):
         ctrl_count/=np.sum(ctrl_count,1)[:,np.newaxis]
         well_count/=np.sum(well_count,1)[:,np.newaxis]
-        
+        pdb.set_trace()
         if self.settings.smooth:
             ctrl_count=self._smooth(ctrl_count)
             well_count=self._smooth(well_count)
@@ -860,6 +860,8 @@ Input:
             well=int(options.well.split('_')[0])
         else:
             well=int(options.well)
+    else:
+        well='CTRL'
     
     p=pheno_seq_extractor(options.settings_file, options.plate,well)
     p(time_pheno_count_only=options.count_only)
