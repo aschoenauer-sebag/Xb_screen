@@ -357,7 +357,7 @@ if __name__=='__main__':
             m2=_pheno_count_normalization(plate2, well2, options.settings_file)
         except:
             print "Problem opening for {} {}".format(plate2, well2)
-            result.append(np.NAN)
+            result[k]=np.NAN
         else:
             print m1.shape, m2.shape
             try:
