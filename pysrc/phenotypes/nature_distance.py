@@ -344,7 +344,7 @@ if __name__=='__main__':
         f=open(os.path.join(outputFolder,outputFile), 'r') 
         result=pickle.load(f); f.close()
         
-        range_=np.where(np.isnan(result))+options.exp1+1
+        range_=np.where(np.isnan(result))[0]+options.exp1+1
         
     else:
         range_=range(options.exp1+1, len(expL))
