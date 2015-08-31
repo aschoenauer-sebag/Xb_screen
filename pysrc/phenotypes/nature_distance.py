@@ -141,13 +141,23 @@ class TwoVectorRepresentation(object):
     def smooth_counts(self, X):
         # lowess
         lowess = sm.nonparametric.lowess
-        Xsmooth = X.copy()
+        
+        Xsmooth = None
         
         for j in range(X.shape[1]):
-            Xsmooth[:,j] = np.array([x[1] for x in 
-                                     lowess(X[:,j], range(X.shape[0]), frac=0.5)])
+            reg = np.array([x[1] for x in lowess(X[:,j], range(X.shape[0]), frac=0.5)])
+            Xsmooth = reg if Xsmooth is None else np.vstack((Xsmooth, reg))
         print Xsmooth.shape
-        return Xsmooth
+        return Xsmooth.T
+        
+#OLD VERSION
+#         Xsmooth = X.copy()
+#         
+#         for j in range(X.shape[1]):
+#             Xsmooth[:,j] = np.array([x[1] for x in 
+#                                      lowess(X[:,j], range(X.shape[0]), frac=0.5)])
+#         print Xsmooth.shape
+#         return Xsmooth
     
     def test_plot(self, X, col_indices=None):
         if col_indices is None:
