@@ -358,7 +358,7 @@ if __name__=='__main__':
             m2=_pheno_count_normalization(plate2, well2, options.settings_file)
         except:
             print "Problem opening for {} {}".format(plate2, well2)
-            result[k]=np.NAN
+            result[k-(options.exp1+1)]=np.NAN
         else:
             print m1.shape, m2.shape
             try:
@@ -369,10 +369,10 @@ if __name__=='__main__':
                 phenotypic_distance=np.NAN
             finally:
                 result[k-(options.exp1+1)]=phenotypic_distance
-        
-    f=open(os.path.join(outputFolder,outputFile), 'w') 
-    pickle.dump(np.array(result),f)
-    f.close()
+    pdb.set_trace()
+#     f=open(os.path.join(outputFolder,outputFile), 'w') 
+#     pickle.dump(np.array(result),f)
+#     f.close()
 
     print "Done"
             
