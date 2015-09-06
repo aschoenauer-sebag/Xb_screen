@@ -1,6 +1,6 @@
 import os, pdb
 from util.listFileManagement import expSi, siEntrez, multipleGeneListsToFile,\
-    EnsemblEntrezTrad
+    EnsemblEntrezTrad, writeGSEARankingFile
 import numpy as np
 from analyzer.rank_product import computeRPpvalues
 
@@ -66,16 +66,16 @@ def evaluate_inference(result, distance_name=None, hitlist_file='/media/lalil0u/
     return to_plot_info
 
 def global_evaluate_inference(distance_name_list,folder='/media/lalil0u/New/projects/drug_screen/results/',
-                              cmap=mpl.cm.OrRd,num_replicates=3,
+                              cmap=mpl.cm.OrRd,
                               threshold=0.0001):
     total_plot_info={}
     for distance in distance_name_list:
         print distance
-        f=open(os.path.join(folder, 'inference_{}replicates/inference_{}.pkl'.format(num_replicates,distance)))
+        f=open(os.path.join(folder, 'inference_Freplicates/inference_{}.pkl'.format(distance)))
         result=pickle.load(f); f.close()
         
         total_plot_info[distance]=evaluate_inference(result, threshold=threshold, distance_name=distance,
-                                            folder=os.path.join(folder, 'inference_{}replicates'.format(num_replicates)))
+                                            folder=os.path.join(folder, 'inference_Freplicates'))
     
     r = drug_screen_utils.plotInferenceResult(distance_name_list,total_plot_info, 
                                                 cmap=cmap)
@@ -84,7 +84,12 @@ def global_evaluate_inference(distance_name_list,folder='/media/lalil0u/New/proj
 
 def condition_clustering(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', color_gradient='YlOrRd',
                          hit_only=False, compare_to='MITO',
-                          level_row=0.4, level_column=0.5):
+                          level_row=0.4, level_column=0.5,show=False,
+                          filename='Clusters_{}_{}.pkl',
+                          #to avoid reloading distance files each time
+                          distances=None, all_exposures=None, 
+                          row_method='ward'
+                          ):
     '''
     DOING CONDITION CLUSTERING (MEDIAN OF EXPERIMENTS FOR THIS CONDITION)
     
@@ -93,42 +98,40 @@ def condition_clustering(distance_name, folder='/media/lalil0u/New/projects/drug
 - 'hit_only': to do clustering considering hit distances only or no
     
     '''
-    distances, who_, exposure_, mito_who=_return_right_distance(distance_name, folder, filter_replicates=True,
-                                                                hit_only=hit_only, compare_to=compare_to)
-    
-#     plates=np.array([int(el.split('--')[0].split('_')[1]) for el in who_])
-#     exposure_wPL=np.array(['{}{:>10}'.format(exposure_[i], plates[i]) for i in range(len(exposure_))])
-
     f=open(os.path.join(folder, 'DS_hits_1.5IQR.pkl'))
     _, _, exposure_hits=pickle.load(f)
     f.close()
     
     d=Counter(exposure_hits)
-    d={el:el/float(PASSED_QC_COND[el]) for el in d}
+    d={el:d[el]/float(PASSED_QC_COND[el]) for el in d}
     distinct_exposure=filter(lambda x:d[x]>0.5, d)
     
-    if not hit_only:
-        all_exposures=sorted(Counter(exposure_).keys())
-        distances=np.vstack((np.median(distances[np.where(exposure_==condition)],0)  for condition in all_exposures))
-        
-    else:
-        all_exposures=sorted(distinct_exposure)
-        distances=np.vstack((np.median(distances[np.where(exposure_==condition)],0)  for condition in all_exposures))
+    if distances is None:
+        distances, _, exposure_, _=_return_right_distance(distance_name, folder, filter_replicates=True,
+                                                                hit_only=hit_only, compare_to=compare_to)
+    
+        if not hit_only:
+            all_exposures=sorted(Counter(exposure_).keys())
+            distances=np.vstack((np.median(distances[np.where(exposure_==condition)],0)  for condition in all_exposures))
+            
+        else:
+            all_exposures=sorted(distinct_exposure)
+            distances=np.vstack((np.median(distances[np.where(exposure_==condition)],0)  for condition in all_exposures))
 
     if compare_to=='MITO':
-        column_header=mito_who
+        column_header=[k for k in range(distances.shape[1])]
     else:
-        column_header=who_
+        column_header=all_exposures
     print distances.shape
     clusters=hierarchical_clustering.heatmap(distances, row_header=all_exposures, column_header=column_header, 
-                                    row_method='ward', column_method='ward', 
+                                    row_method=row_method, column_method='ward', 
                                     row_metric='euclidean', column_metric='euclidean', 
                                     color_gradient=color_gradient, filename="{}{}".format(int(hit_only),distance_name),
                                     folder='{}/inference_Freplicates'.format(folder), 
                                     level_row=level_row, level_column=level_column,
                                     title=drug_screen_utils.DISTANCES[distance_name],
                                     colorbar_ticks=[-2, 0, 2],
-                                    colorbar_ticklabels=[0, '', 1],
+                                    colorbar_ticklabels=[0, '', 1], show=show,
                                     colorbar_title='Distance (arbitrary units)',
                                     range_normalization=(scoreatpercentile(distances.flatten(),10), scoreatpercentile(distances.flatten(), per=90)))
 
@@ -145,12 +148,16 @@ def condition_clustering(distance_name, folder='/media/lalil0u/New/projects/drug
 
     who_cluster_hits={k: Counter(np.array(all_exposures)[np.where(hit_clusters==k)]) for k in range(1,np.max(clusters)+1)}
     
-    return hit_clusters, who_cluster_hits
+    if hit_only:
+        f=open(os.path.join(folder, 'inference_Freplicates', filename.format(distance_name, level_row)), 'w')
+        pickle.dump(who_cluster_hits, f); f.close()
+    
+    return distances, all_exposures, who_cluster_hits
 
 
 
 def experiment_clustering(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', color_gradient='YlOrRd',
-                         hit_only=False, compare_to='MITO', num_replicates=3,
+                         hit_only=False, compare_to='MITO',
                           level=0.4):
     '''
     DOING EXPERIMENT CLUSTERING AS OPPOSED TO CONDITION CLUSTERING
@@ -161,7 +168,7 @@ def experiment_clustering(distance_name, folder='/media/lalil0u/New/projects/dru
     
     '''
     distances, who_, exposure_, mito_who=_return_right_distance(distance_name, folder, 
-                                                                num_replicates=num_replicates,
+                                                                filter_replicates=True,
                                                                 hit_only=hit_only, compare_to=compare_to)
     
     plates=np.array([int(el.split('--')[0].split('_')[1]) for el in who_])
@@ -173,7 +180,8 @@ def experiment_clustering(distance_name, folder='/media/lalil0u/New/projects/dru
     
     exposure_hits=np.array(['{}--{}'.format(drug_hits[i], dose_hits[i]) for i in range(len(who_hits))])
     d=Counter(exposure_hits)
-    distinct_exposure=filter(lambda x:d[x]>=num_replicates, d)
+    d={el:d[el]/float(PASSED_QC_COND[el]) for el in d}
+    distinct_exposure=filter(lambda x:d[x]>0.5, d)
     
     if hit_only:
         wh_=np.hstack((np.where(who_==who_hits[i])[0] for i in range(len(who_hits)) if exposure_hits[i] in distinct_exposure))
@@ -194,7 +202,7 @@ def experiment_clustering(distance_name, folder='/media/lalil0u/New/projects/dru
                                     row_method='ward', column_method='ward', 
                                     row_metric='euclidean', column_metric='euclidean', 
                                     color_gradient=color_gradient, filename="E{}".format(distance_name),
-                                    folder='{}/inference_{}replicates'.format(folder, num_replicates), 
+                                    folder='{}/inference_Freplicates'.format(folder), 
                                     level=level,title=drug_screen_utils.DISTANCES[distance_name],
                                     colorbar_ticks=[-2, 0, 2],
                                     colorbar_ticklabels=[0, '', 1],
@@ -222,7 +230,7 @@ def experiment_clustering(distance_name, folder='/media/lalil0u/New/projects/dru
     return hit_clusters, who_cluster_hits, plate_clusters
 
 
-def check_distance_consistency(distance_name, num_replicates=2,
+def check_distance_consistency(distance_name, filter_replicates=True,
                                folder='/media/lalil0u/New/projects/drug_screen/results/', 
                                check_internal=True,
                                distinct_exposure=None):
@@ -245,8 +253,9 @@ def check_distance_consistency(distance_name, num_replicates=2,
         print who_hits
         
     d=Counter(exposure_hits)
-    if distinct_exposure is None:
-        distinct_exposure=filter(lambda x:d[x]>=num_replicates, d)
+    if distinct_exposure is None and filter_replicates:
+        d={el:d[el]/float(PASSED_QC_COND[el]) for el in d}
+        distinct_exposure=filter(lambda x:d[x]>0.5, d)
         
     ind=np.hstack((np.where(np.array(exposure_hits)==cond)[0] for cond in sorted(distinct_exposure, key=itemgetter(0,1))))
     if check_internal:
@@ -301,7 +310,8 @@ def _compute_replicate_dist_vs_else(distances, exposure_list):
         
     return np.array(result)
 
-def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutations, threshold, random_result, taking_siRNAs=False, num_replicates=3):
+def condition_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutations, threshold, random_result, 
+                         taking_siRNAs=False):
     '''
     - M: distance matrix of size (hits, mitocheck)
     - taking_siRNAs: indicates if you want to consider different values of the same siRNAs independently (False) or as replicates of the same condition
@@ -316,7 +326,7 @@ def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutat
     
     count=Counter(exposure_hits)
     #This way I look at exposures that are hits at least 50% of the times/plates
-    for el in filter(lambda x: count[x]>=num_replicates, count):
+    for el in filter(lambda x: count[x]/float(PASSED_QC_COND[x])>0.5, count):
         print el
         where_=np.where(exposure_hits==el)[0]
         
@@ -332,7 +342,7 @@ def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutat
                 curr_conditions.extend(who_Mitocheck)
             else:
                 curr_conditions.extend(siRNAs)
-            
+        print curr_dist.shape
         r[el], random_result=computeRPpvalues(curr_dist, np.array(curr_who), conditions=np.array(curr_conditions), technical_replicates_key=np.median, 
                      num_permutations=num_permutations, reverse=False, 
                      batch_names=batch_names, random_result=random_result,
@@ -346,6 +356,69 @@ def functional_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutat
         print sorted(Counter(currG).keys())
         
         
+    return r
+
+def condition_cluster_inference(M, clusters, who_hits, exposure_hits, who_Mitocheck, num_permutations, threshold, random_result, filename, 
+                         taking_siRNAs=False):
+    '''
+    - M: distance matrix of size (hits, mitocheck)
+    - taking_siRNAs: indicates if you want to consider different values of the same siRNAs independently (False) or as replicates of the same condition
+    - num_permutations: no calculation of p-values if None, else number of permutations
+    - filename if we want to write GSEA ranking files
+'''
+    r={}
+    yqualdict=expSi('../data/mapping_2014/qc_export.txt')
+    yqualdict.update(expSi('../data/mapping_2014/qc_validation_exp.txt', primary_screen=False))
+    dictSiEntrez=siEntrez('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+    
+    siRNAs=[yqualdict[e] for e in who_Mitocheck]
+    genes=[dictSiEntrez[e] for e in siRNAs]
+    past_cluster_num=0
+    for cluster_num in clusters:
+        print cluster_num
+        r[cluster_num]={'conditions':clusters[cluster_num]}
+        where_=np.hstack((np.where(exposure_hits==el)[0] for el in clusters[cluster_num]))
+        
+        batch_names = who_hits[where_]
+        
+        curr_dist=np.hstack((M[j] for j in where_))
+        curr_who=[(batch_names[0], '') for k in range(M.shape[1])]
+        
+        curr_conditions=list(who_Mitocheck) if not taking_siRNAs else list(genes)
+        for name in batch_names[1:]:
+            curr_who.extend([(name, '') for k in range(M.shape[1])])
+            if not taking_siRNAs:
+                curr_conditions.extend(who_Mitocheck)
+            else:
+                curr_conditions.extend(genes)
+        print curr_dist.shape
+        if num_permutations is not None and np.abs(past_cluster_num-len(batch_names))>5:
+    #If there are only five experiments that are different between the two cluster length, then no need to redo the random rank product computation
+            random_result=None
+        curr_res=computeRPpvalues(curr_dist, np.array(curr_who), 
+                                                       conditions=np.array(curr_conditions), 
+                                                       technical_replicates_key=np.median,
+                                                       xb_screen=False, 
+                                                         num_permutations=num_permutations, reverse=False, 
+                                                         batch_names=batch_names, random_result=random_result,
+                                                         signed=False)
+        
+        if num_permutations is None:
+            writeGSEARankingFile(curr_res, filename.format(cluster_num))
+            
+        else:
+            curr_res, random_result=curr_res
+            
+            curr_res=sorted(curr_res, key=itemgetter(2))
+            pval=np.array(np.array(curr_res)[:,-1], dtype=float)
+            if not taking_siRNAs:
+                currG=[dictSiEntrez[yqualdict[e]] for e in np.array(curr_res)[np.where(pval<=threshold)][:,0]]
+            else:
+                currG=[dictSiEntrez[e] for e in np.array(curr_res)[np.where(pval<=threshold)][:,0]]
+            print sorted(Counter(currG).keys())
+            
+            past_cluster_num=len(batch_names)
+        r[cluster_num]['result']=curr_res
     return r
 
 def _return_right_distance(distance_name, folder, 
@@ -387,7 +460,8 @@ def _return_right_distance(distance_name, folder,
         f.close()
         if filter_replicates:
             d=Counter(exposure_hits)
-            distinct_exposure=filter(lambda x:d[x]>=num_replicates, d)
+            d={el:d[el]/float(PASSED_QC_COND[el]) for el in d}
+            distinct_exposure=filter(lambda x:d[x]>0.5, d)
             
         who_=[who_[i] for i in range(len(who_)) if exposure_hits[i] in distinct_exposure]
         exposure_hits=[el for el in exposure_hits if el in distinct_exposure]
@@ -492,15 +566,33 @@ def _return_right_distance(distance_name, folder,
     return distances, np.array(who_), np.array(exposure_hits), np.array(mito_who)
 
 def inference(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', num_permutations=10000,
-              taking_siRNAs=True, num_replicates=3,
-               threshold=0.1, random_result=None):
+              taking_siRNAs=True, condition_cluster=True,
+              filename='Clusters_{}_{}.pkl',
+              threshold=0.1, random_result=None, level_row=0.2):
     
     distances, who_hits, exposure_hits, mito_who=_return_right_distance(distance_name, folder, check_internal=False)
     
-    r= functional_inference(distances, np.array(who_hits), np.array(exposure_hits), np.array(mito_who), 
-                                num_permutations, threshold, random_result, taking_siRNAs, num_replicates=num_replicates)
+    if condition_cluster:
+        try:
+            f=open(os.path.join(folder, 'inference_Freplicates', filename.format(distance_name, level_row)))
+            who_cluster_hits=pickle.load(f); f.close()
+        except:
+            print "Issue opening cluster file... ", os.path.join(folder, 'inference_Freplicates', filename.format(distance_name, level_row))
+                                                                 
+        else:
+            r= condition_cluster_inference(distances,who_cluster_hits, np.array(who_hits), 
+                                           np.array(exposure_hits),np.array(mito_who), 
+                                           num_permutations, threshold, 
+                                           random_result, taking_siRNAs=taking_siRNAs,
+                                           filename=os.path.join(folder, 'inference_Freplicates/GSEA_{}_{}_clust{{}}'.format(distance_name, level_row)))
+            filename='clust_cond'
         
-    f=open(os.path.join(folder, 'inference_{}replicates/inference_{}.pkl'.format(num_replicates, distance_name)), 'w')
+    else:
+        r= condition_inference(distances, np.array(who_hits), np.array(exposure_hits), np.array(mito_who), 
+                                num_permutations, threshold, random_result, taking_siRNAs)
+        filename='cond'
+        
+    f=open(os.path.join(folder, 'inference_Freplicates/inference_{}_{}.pkl'.format(filename,distance_name)), 'w')
     pickle.dump(r, f); f.close()
     
     return r  

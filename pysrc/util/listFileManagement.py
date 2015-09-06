@@ -691,16 +691,19 @@ def geneListToFile(genes, name):
     return 1
 
 def writeGSEARankingFile(genes, name):
+    '''
+   SYMBOLS are ok for gene names 
+'''    
     if name[-3:]!='rnk':
-        print 'Warning you need to put rkn extension for GSEA'
-        return
+        print 'Adding rnk extension for GSEA'
+        name+='.rnk'
     #genes=sorted(genes, key=itemgetter(1))
     f=open(name, 'w')
-    f.write('#Name \t Mitocheck \n')
+    f.write('#Name \t rank \n')
     for k in range(len(genes)):
         f.write('{}\t {} \n'.format(genes[k][0], genes[k][1]))
     f.close()    
-    print 'fichier ecrit ', os.path.join(os.getcwd(), name)
+    print 'fichier ecrit ', os.path.join(name)
     return 1
 
 def strToTuple(strList, platesList, func=lambda x:'{:>05}_01'.format(x[-3:])):

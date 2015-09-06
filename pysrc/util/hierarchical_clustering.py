@@ -23,10 +23,8 @@ import getpass
 if getpass.getuser()=='aschoenauer':
     import matplotlib as mpl
     mpl.use('Agg')
-    show = False
 elif getpass.getuser()=='lalil0u':
     import matplotlib as mpl
-    show=True
 
 import matplotlib.pyplot as pylab
 import scipy
@@ -121,14 +119,17 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
 
 def heatmap(x, row_header, column_header, row_method,
             column_method, row_metric, column_metric,
-            color_gradient, filename, other_data=None, 
-            log=False, trad=False, level_row=0.4, level_column=0.5,
+            color_gradient, 
+            filename, 
+            other_data=None, 
+            log=False, trad=False, 
+            level_row=0.4, level_column=0.5,
             folder=os.getcwd(),
             range_normalization=(-2,2), colorbar_ticks=[-2, 0, 2],
-            colorbar_ticklabels=['$ <\mu-2 \sigma$', '$\mu$', '$> \mu+2 \sigma$'],
-            colorbar_title='Feature range',
+            colorbar_ticklabels=['$ <\mu-2 \sigma$', '$\mu$', '$> \mu+2 \sigma$'], colorbar_title='Feature range',
             title=None,
-             save=False):
+            save=False,
+            show=True):
     
     print "\nPerforming hiearchical clustering using %s for columns and %s for rows" % (column_metric,row_metric),
     if numpy.any(numpy.isnan(x)):
@@ -288,31 +289,31 @@ def heatmap(x, row_header, column_header, row_method,
         
     ind1_to_return = np.array(ind1)
     
-    if trad:
-        if len(row_header)>100:
-            genes=list(row_header)
-            clustering = numpy.array(ind1)
-        elif len(column_header)>100:
-            genes=list(column_header)
-            clustering=numpy.array(ind2)
-        else:
-            print 'Tell which of column and row is the gene list'
-            pdb.set_trace()
-        #il faut d'abord traduire de SYMBOL en ENSEMBL
-        trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
-        trad['ctrl']='None'
-        
-        result=[Counter([trad[genes[k]] for k in numpy.where(clustering==cluster)[0]]).keys() for cluster in range(1,numpy.max(clustering)+1)]
-        for geneList in result:
-            for i,gene in enumerate(geneList):
-                if '/' in gene:
-                    geneList[i]=gene.split('/')[0]
-                    geneList.append(gene.split('/')[1])
-                
-        #ensuite on va enregistrer les genes des differents clusters dans differents fichiers
-        #background par defaut c'est genes_list.txt
-        print "Nb of cluster found", numpy.max(clustering)
-        multipleGeneListsToFile(result, ['Cluster {}'.format(k+1) for k in range(numpy.max(clustering))], 'gene_cluster_{}_{}.txt'.format(column_method, filename))
+#     if trad:
+#         if len(row_header)>100:
+#             genes=list(row_header)
+#             clustering = numpy.array(ind1)
+#         elif len(column_header)>100:
+#             genes=list(column_header)
+#             clustering=numpy.array(ind2)
+#         else:
+#             print 'Tell which of column and row is the gene list'
+#             pdb.set_trace()
+#         #il faut d'abord traduire de SYMBOL en ENSEMBL
+#         trad = EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+#         trad['ctrl']='None'
+#         
+#         result=[Counter([trad[genes[k]] for k in numpy.where(clustering==cluster)[0]]).keys() for cluster in range(1,numpy.max(clustering)+1)]
+#         for geneList in result:
+#             for i,gene in enumerate(geneList):
+#                 if '/' in gene:
+#                     geneList[i]=gene.split('/')[0]
+#                     geneList.append(gene.split('/')[1])
+#                 
+#         #ensuite on va enregistrer les genes des differents clusters dans differents fichiers
+#         #background par defaut c'est genes_list.txt
+#         print "Nb of cluster found", numpy.max(clustering)
+#         multipleGeneListsToFile(result, ['Cluster {}'.format(k+1) for k in range(numpy.max(clustering))], 'gene_cluster_{}_{}.txt'.format(column_method, filename))
     
     # Plot distance matrix.
     axm = fig.add_axes([axm_x, axm_y, axm_w, axm_h])  # axes for the data matrix
@@ -399,22 +400,21 @@ def heatmap(x, row_header, column_header, row_method,
     cb.ax.set_xticklabels(colorbar_ticklabels, fontsize=15)
     
     filename = '%s/Clust_%s_%s_%s.pdf' % (folder, filename[:10],column_method,row_method)
-    exportFlatClusterData(filename, new_row_header,new_column_header,xt,ind1,ind2)
+#    exportFlatClusterData(filename, new_row_header,new_column_header,xt,ind1,ind2)
 
 #    ### Render the graphic
 #    if len(row_header)>50 or len(column_header)>50:
 #        pylab.rcParams['font.size'] = 5
 #    else:
     pylab.rcParams['font.size'] = 15
-
+    if title is not None:
+        axm.set_xlabel(title)
     pylab.savefig(filename)
     print 'Exporting:',filename
-    if title is not None:
-        pylab.title(title)
     if show:
         pylab.show()
-    if trad:
-        return result
+#     if trad:
+#         return result
     return ind1_to_return
 
 def getColorRange(x):

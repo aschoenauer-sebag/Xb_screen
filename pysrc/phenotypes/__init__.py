@@ -65,10 +65,10 @@ KNOWN_TARGETS = {'Anisomycin': ['RPL10L', 'RPL13A', 'RPL23',  'RPL15',
            'Paclitaxel':['TUBB1', 'BCL2','NR1I2','MAPT','MAP4','MAP2'],
            'VX680':['AURKA', 'AURKB'],
            }
-DISTANCES = {'N_pheno_score':'Normalized\n phenotypic score',
- 'nature':'Phenotypic\n trajectory',
+DISTANCES = {'N_pheno_score':'Normalized\n phenotypic score distance',
+ 'nature':'Phenotypic\n trajectory distance',
  'ttransport_MAX':'Max time \n Sinkhorn div.',
- 'U_pheno_score':'Phenotypic score',
+ 'U_pheno_score':'Phenotypic score distance',
  'ttransport_INT':'Sum of time\n Sinkhorn div.',
  'transport':'Global\n Sinkhorn div.'}
 
