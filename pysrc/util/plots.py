@@ -1,8 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as p
+import matplotlib as mpl
 import os
 from operator import itemgetter
 import cPickle as pickle
+from phenotypes.drug_screen_utils import CLASSES
 
 basic_colors = ["#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00" ]
 markers =('o', 'v','*', '^', '<','8', '>',  's', 'p',  'h', 'H', 'D', 'd', 'o', 'v', '^', '<', '>', '8', 's', 'p', '*', 'h', 'H', 'D', 'd')
@@ -30,6 +32,38 @@ couleurs.append("#9e0142")
 couleurs.append("#5e4fa2")
 couleurs.append("#9e0142")
 couleurs.append("#5e4fa2")
+
+def barplot_genelist(gg):
+    
+    res_=[(el, gg[el]/2452.0) for el in np.array(gg.keys())[np.argsort(gg.values())]]
+    f=p.figure()
+    ax=f.add_subplot(111)
+    ax.grid(True)
+    ax.bar(range(len(res_)), [el[1] for el in res_], alpha=0.7, color='blue')
+    ax.set_xticks(np.array(range(len(res_)))+0.5)
+    ax.set_xticklabels([el[0] for el in res_], rotation='vertical')
+    
+    ax.set_xlabel('Hit category')
+    ax.set_ylabel('Percentage of gene in each category')
+    ax.set_title('Distribution of genes selected for target inference')
+    
+    p.show()
+
+def plotTransportCost(cost):
+    [axcb_x, axcb_y, axcb_w, axcb_h] = [0.07,0.93,0.18,0.02]
+    f=p.figure()
+    ax=f.add_subplot(111)
+    ax.matshow(cost, cmap=mpl.cm.YlOrRd)
+    ax.set_xticks(range(len(CLASSES)))
+    ax.set_xticklabels(CLASSES, rotation='vertical')
+    
+    ax.set_yticks(range(len(CLASSES)))
+    ax.set_yticklabels(CLASSES)
+    axcb = f.add_axes([axcb_x, axcb_y, axcb_w, axcb_h], frame_on=False) 
+    cb = mpl.colorbar.ColorbarBase(axcb, cmap=mpl.cm.YlOrRd,orientation='horizontal', ticks=[])
+    #cb.ax.set_xticklabels(range(1,7))
+    p.show()
+
 
 
 def plotBar(counts, second_counts, legends=['Very low (Uncertain)', 'Low (Uncertain)', 'Medium (Supportive)', 'High (Supportive)']):

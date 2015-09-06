@@ -27,7 +27,7 @@ from PyIBP import PyIBP as IBP
 from util.kkmeans import KernelKMeans
 
 from tracking.trajPack import featuresHisto, featuresNumeriques
-from tracking.plots import plotClustInd, makeColorRamp, plotMovies, plotKMeansPerFilm, markers
+#from tracking.plots import plotClustInd, plotMovies, plotKMeansPerFilm, markers
 from util.sandbox import cleaningLength, logTrsforming, subsampling, dist, histLogTrsforming, homeMadeGraphLaplacian
 from util.listFileManagement import gettingSiRNA, expSi, siEntrez, typeD, typeD2, is_ctrl_mitocheck,\
     strToTuple, correct_from_Nan, filter_

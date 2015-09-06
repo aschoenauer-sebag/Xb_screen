@@ -43,6 +43,7 @@ import time
 import sys, os, pdb
 import getopt
 from collections import Counter
+from util.make_movies_mito_cbio import ColorMap
 
 from util.listFileManagement import EnsemblEntrezTrad, multipleGeneListsToFile
 from tracking.trajPack import featuresNumeriques, featuresSaved
@@ -121,7 +122,8 @@ def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchica
 def heatmap(x, row_header, column_header, row_method,
             column_method, row_metric, column_metric,
             color_gradient, filename, other_data=None, 
-            log=False, trad=False, level=0.4,
+            log=False, trad=False, level_row=0.4, level_column=0.5,
+            folder=os.getcwd(),
             range_normalization=(-2,2), colorbar_ticks=[-2, 0, 2],
             colorbar_ticklabels=['$ <\mu-2 \sigma$', '$\mu$', '$> \mu+2 \sigma$'],
             colorbar_title='Feature range',
@@ -156,7 +158,7 @@ def heatmap(x, row_header, column_header, row_method,
     If X is n_row, n_columns, then other_data should be n_row, m_col
     
     """
-    print level
+    print level_column, level_row
         
     #for export
     if numpy.any(~numpy.array([type(s)==str for s in row_header])):
@@ -253,7 +255,7 @@ def heatmap(x, row_header, column_header, row_method,
         
         Y2 = fastcluster.linkage_vector(x.T, method=column_method, metric=column_metric) ### array-clustering metric - 'average', 'single', 'centroid', 'complete'
         Z2 = sch.dendrogram(Y2)
-        ind2 = sch.fcluster(Y2,level*max(Y2[:,2]),'distance') ### This is the default behavior of dendrogram
+        ind2 = sch.fcluster(Y2,level_column*max(Y2[:,2]),'distance') ### This is the default behavior of dendrogram
         ax2.set_xticks([]) ### Hides ticks
         ax2.set_yticks([])
         time_diff = str(round(time.time()-start_time,1))
@@ -272,7 +274,7 @@ def heatmap(x, row_header, column_header, row_method,
         else:
             Y1 = fastcluster.linkage_vector(x, method=row_method, metric=row_metric) ### gene-clustering metric - 'average', 'single', 'centroid', 'complete'
         Z1 = sch.dendrogram(Y1, orientation='right')
-        ind1 = sch.fcluster(Y1,level*max(Y1[:,2]),'distance') ### This is the default behavior of dendrogram
+        ind1 = sch.fcluster(Y1,level_row*max(Y1[:,2]),'distance') ### This is the default behavior of dendrogram
         ax1.set_xticks([]) ### Hides ticks
         ax1.set_yticks([])
         time_diff = str(round(time.time()-start_time,1))
@@ -280,8 +282,8 @@ def heatmap(x, row_header, column_header, row_method,
     else:
         ind1 = ['NA']*len(row_header) ### Used for exporting the flat cluster data
     if save:
-        print 'Saving flat clusters in', 'Flat_clusters_{}_{}.pkl'.format(filename, level) 
-        f=open('Flat_clusters_{}_{}.pkl'.format(filename,level), 'w')
+        print 'Saving flat clusters in', 'Flat_clusters_{}_{}.pkl'.format(filename, level_row) 
+        f=open('Flat_clusters_{}_{}.pkl'.format(filename,level_row), 'w')
         pickle.dump([ind1, ind2],f); f.close()
         
     ind1_to_return = np.array(ind1)
@@ -340,29 +342,35 @@ def heatmap(x, row_header, column_header, row_method,
     for i in range(x.shape[0]):
         if row_method != None:
             if len(row_header)<200: ### Don't visualize gene associations when more than 100 rows
-                axm.text(x.shape[1]-0.5, i, '  {}'.format(row_header[idx1[i]]), fontsize=10)
+                axm.text(x.shape[1]-0.5, i, '  {}'.format(row_header[idx1[i]]), fontsize=6)
             new_row_header.append(row_header[idx1[i]])
         else:
             if len(row_header)<200: ### Don't visualize gene associations when more than 100 rows
-                axm.text(x.shape[1]-0.5, i, ' {}'.format(row_header[i]), fontsize=10) ### When not clustering rows
+                axm.text(x.shape[1]-0.5, i, ' {}'.format(row_header[i]), fontsize=6) ### When not clustering rows
             new_row_header.append(row_header[i])
             
     column_decider=x if other_data is None else other_data
     for i in range(column_decider.shape[1]):
         if column_method != None:
             if len(column_header)<200:
-                axm.text(i, -0.9, '{}'.format(column_header[idx2[i]]), rotation=270, verticalalignment="top", fontsize=10) # rotation could also be degrees
+                axm.text(i, -0.9, '{}'.format(column_header[idx2[i]]), rotation=270, verticalalignment="top", fontsize=6) # rotation could also be degrees
             new_column_header.append(column_header[idx2[i]])
         else: ### When not clustering columns
             if len(column_header)<200:
-                axm.text(i, -0.9, '{}'.format(column_header[i]), rotation=270, verticalalignment="top", fontsize=10)
+                axm.text(i, -0.9, '{}'.format(column_header[i]), rotation=270, verticalalignment="top", fontsize=6)
             new_column_header.append(column_header[i])
 
     # Plot colside colors
     # axc --> axes for column side colorbar
     if column_method != None:
+        print 'Number of clusters for columns ', np.bincount(ind2)
         axc = fig.add_axes([axc_x, axc_y, axc_w, axc_h])  # axes for column side colorbar
-        cmap_c = mpl.colors.ListedColormap(['r', 'g', 'b', 'y', 'w', 'k', 'm'])
+        #getting a degrade colormap for the column side colorbar
+        cm = ColorMap()
+        cr = cm.makeColorRamp(256, ["#FFFF00", "#FF0000"])
+        degrade = [cm.getColorFromMap(x, cr, 0, 10) for x in range(len(np.bincount(ind2)))]
+        cmap_c = mpl.colors.ListedColormap(degrade)
+        
         dc = numpy.array(ind2, dtype=int)
         dc.shape = (1,len(ind2)) 
         im_c = axc.matshow(dc, aspect='auto', origin='lower', cmap=cmap_c)
@@ -372,11 +380,13 @@ def heatmap(x, row_header, column_header, row_method,
     # Plot rowside colors
     # axr --> axes for row side colorbar
     if row_method != None:
+        print 'Number of clusters for rows ', np.bincount(ind1)
         axr = fig.add_axes([axr_x, axr_y, axr_w, axr_h])  # axes for column side colorbar
         dr = numpy.array(ind1, dtype=int)
         dr.shape = (len(ind1),1)
-        #print ind1, len(ind1)
-        cmap_r = mpl.colors.ListedColormap(['r', 'g', 'b', 'y', 'w', 'k', 'm'])
+#rainbow colormap for row side colorbar
+        cmap_r = mpl.cm.gist_rainbow
+        
         im_r = axr.matshow(dr, aspect='auto', origin='lower', cmap=cmap_r)
         axr.set_xticks([]) ### Hides ticks
         axr.set_yticks([])
@@ -388,7 +398,7 @@ def heatmap(x, row_header, column_header, row_method,
                                    ticks=colorbar_ticks)
     cb.ax.set_xticklabels(colorbar_ticklabels, fontsize=15)
     
-    filename = 'Clustering-%s-hierarchical_%s_%s.pdf' % (filename[:10],column_method,row_method)
+    filename = '%s/Clust_%s_%s_%s.pdf' % (folder, filename[:10],column_method,row_method)
     exportFlatClusterData(filename, new_row_header,new_column_header,xt,ind1,ind2)
 
 #    ### Render the graphic

@@ -8,7 +8,7 @@ import numpy as np
 
 import pdb
 from tracking.trajPack import featuresNumeriques, featuresSaved
-from tracking.trajPack.clustering import correct_from_Nan
+from util.listFileManagement import correct_from_Nan
 from util.sandbox import histLogTrsforming
 
 BASE_DIR = '/share/data20T/mitocheck/compressed_data'

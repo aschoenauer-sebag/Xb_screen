@@ -1,6 +1,5 @@
 import os, sys, pdb, getpass, csv
 import numpy as np
-import cPickle as pickle
 from collections import defaultdict
 from optparse import OptionParser
 from scipy.spatial.distance import squareform, pdist, cdist
@@ -14,8 +13,8 @@ from tracking.trajPack import featuresNumeriques, featuresSaved
 from tracking.histograms import transportation
 from scipy.stats.stats import scoreatpercentile
 from sklearn.cluster.spectral import SpectralClustering
+from phenotypes import *
 from phenotypes import drug_screen_utils
-from phenotypes.drug_screen_utils import CLASSES
 
 if getpass.getuser()=='lalil0u':
     import matplotlib.pyplot as p
@@ -529,7 +528,7 @@ class pheno_seq_extractor(thrivisionExtraction):
 
     @staticmethod
     def _load_Ttransport_distance(filename="pheno_distance", 
-                                 folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2_unagg', len_=6700,
+                                 folder='/cbio/donnees/aschoenauer/projects/drug_screen/results/distances_pheno_cost2_unagg', len_=7526,
                                  num_timepoints=18
                                  ):
         '''

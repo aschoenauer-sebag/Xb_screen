@@ -10,7 +10,7 @@ import matplotlib.pyplot as p
 
 from tracking.trajPack import featuresSaved, histLogTrsf,\
     histLogTrsf_meanHistFeat
-from tracking.plots import plotTraj3d
+#from tracking.plots import plotTraj3d
 from tracking.histograms import *
 from util.listFileManagement import expSi
 from util import jobSize, scriptFolder, path_command, pbsOutDir, pbsArrayEnvVar, pbsErrDir
