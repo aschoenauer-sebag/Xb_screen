@@ -509,7 +509,7 @@ def _return_right_distance(distance_name, folder,
                 distance, who=pickle.load(f); f.close()
             else:
                 raise ValueError(distance_name)
-            mito_positions=(184,distance.shape[0])
+            mito_positions=(806,distance.shape[0])
             
             distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_))
             distances=distances[:,mito_positions[0]:mito_positions[1]]
@@ -562,7 +562,7 @@ def _return_right_distance(distance_name, folder,
 
     else:
         raise ValueError('Wrong distance name')
-    print distances.shape
+    print distances.shape, mito_who[0]
     return distances, np.array(who_), np.array(exposure_hits), np.array(mito_who)
 
 def inference(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', num_permutations=10000,
