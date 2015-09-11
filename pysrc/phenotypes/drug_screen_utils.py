@@ -10,6 +10,35 @@ from scipy.stats.stats import scoreatpercentile
 
 from phenotypes import *
 
+from phenotype_seq import pheno_seq_extractor
+
+def plotProlifResult(ctrl_res, res, folder='/media/lalil0u/New/projects/drug_screen/results/'):
+    if ctrl_res ==None or res==None:
+        res, ctrl_res = pheno_seq_extractor.load_proliferation()
+        
+    f=open(os.path.join(folder, 'DS_hits_1.5IQR.pkl'))
+    _, who_hits, exposure_hits=pickle.load(f)
+    f.close()
+        
+    prolif = np.array([el[1] for el in res])
+    who=np.array([el[0] for el in res])
+    x=np.random.normal(1, 0.05, size=prolif.shape[0])
+    
+    
+    f=p.figure()
+    ax=f.add_subplot(111)
+    ctrl_prolif=np.hstack((ctrl_res[el] for el in ctrl_res))
+    ax.boxplot(ctrl_prolif)
+    ax.scatter(x, prolif,alpha=0.5, s=5)
+    for i,el in enumerate(who):
+        if el not in who_hits:
+            ax.text(x[i], prolif[i], who[i], fontsize='small')
+    
+    p.show()
+    
+    return pheno_seq_extractor.hit_detection_proliferation(prolif, who, who_hits, ctrl_prolif, whis=1.5)
+
+
 def plotInferenceResult(distance_name_list, result, cmap):
     '''
    Manque la legende 

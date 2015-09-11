@@ -14,7 +14,6 @@ from tracking.histograms import transportation
 from scipy.stats.stats import scoreatpercentile
 from sklearn.cluster.spectral import SpectralClustering
 from phenotypes import *
-from phenotypes import drug_screen_utils
 
 if getpass.getuser()=='lalil0u':
     import matplotlib.pyplot as p
@@ -327,17 +326,28 @@ class pheno_seq_extractor(thrivisionExtraction):
         return
     
     @staticmethod
+    def hit_detection_proliferation(res, who, who_mitotic_hits, ctrl_points, whis=1.5):
+        q3=scoreatpercentile(ctrl_points, per=75)
+        q1=scoreatpercentile(ctrl_points, per=25)
+        
+        val=q1-whis*(q3-q1)
+        
+        hits=np.where(res<=val)[0]
+        
+        return filter(lambda x: x not in who_mitotic_hits, np.array(who)[hits])
+    
+    @staticmethod
     def hit_detection_pheno_score(res, who, ctrl_points, whis=1.5):
         '''
        Permissive hit detection taking experiments where Interphase phenotypic score is under the bottom whisker,
        which is 1.5*IQR
 '''
-        q3=scoreatpercentile(ctrl_points[:,drug_screen_utils.CLASSES.index('Interphase')], per=75)
-        q1=scoreatpercentile(ctrl_points[:,drug_screen_utils.CLASSES.index('Interphase')], per=25)
+        q3=scoreatpercentile(ctrl_points[:,CLASSES.index('Interphase')], per=75)
+        q1=scoreatpercentile(ctrl_points[:,CLASSES.index('Interphase')], per=25)
         
         val=q1-whis*(q3-q1)
         
-        hits=np.where(res[:,drug_screen_utils.CLASSES.index('Interphase')]<=val)[0]
+        hits=np.where(res[:,CLASSES.index('Interphase')]<=val)[0]
         
         return res[hits], np.array(who)[hits]
         
@@ -574,6 +584,30 @@ class pheno_seq_extractor(thrivisionExtraction):
                     r[i,j]=pheno_scores_dict[exp]['max_{}'.format(class_)]
                     
         return r
+    
+    @staticmethod
+    def load_proliferation():
+        result=[]; ctrl_result=defaultdict(list)
+        f=open('../data/expL_DS_PASSED_QC.pkl')
+        expl=pickle.load(f); f.close()
+        
+        expl=np.array([(int(el.split('--')[0].split('_')[1]), int(el.split('--')[1])) for el in expl])
+        
+        for k in range(1,4):
+            f=open('/media/lalil0u/New/projects/drug_screen/results/processedDictResult_PLT0900_0{}.pkl'.format(k))
+            d=pickle.load(f); f.close()
+            
+            for exp_num in expl[np.where(expl[:,0]==k)][:,1]:
+                if d[exp_num]['Xenobiotic']=='empty':
+                    ctrl_result[k].append(d[exp_num]['proliferation'][0])
+                else:
+                    result.append(("LT0900_0{}--{:>03}".format(k,exp_num),d[exp_num]['proliferation'][0]))
+        
+        for k in range(1,4):
+            ctrl_result[k]=np.array(ctrl_result[k])
+        
+        return result, ctrl_result
+    
     
     def load_pheno_score_DS(self):
         res=None; who=[]

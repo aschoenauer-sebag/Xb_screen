@@ -175,10 +175,9 @@ def experiment_clustering(distance_name, folder='/media/lalil0u/New/projects/dru
     exposure_wPL=np.array(['{}{:>10}'.format(exposure_[i], plates[i]) for i in range(len(exposure_))])
 
     f=open(os.path.join(folder, 'DS_hits_1.5IQR.pkl'))
-    _, who_hits, drug_hits, dose_hits=pickle.load(f)
+    _, who_hits, exposure_hits=pickle.load(f)
     f.close()
     
-    exposure_hits=np.array(['{}--{}'.format(drug_hits[i], dose_hits[i]) for i in range(len(who_hits))])
     d=Counter(exposure_hits)
     d={el:d[el]/float(PASSED_QC_COND[el]) for el in d}
     distinct_exposure=filter(lambda x:d[x]>0.5, d)
@@ -256,6 +255,8 @@ def check_distance_consistency(distance_name, filter_replicates=True,
     if distinct_exposure is None and filter_replicates:
         d={el:d[el]/float(PASSED_QC_COND[el]) for el in d}
         distinct_exposure=filter(lambda x:d[x]>0.5, d)
+    elif distinct_exposure is None:
+        distinct_exposure=filter(lambda x:d[x]>1, d)
         
     ind=np.hstack((np.where(np.array(exposure_hits)==cond)[0] for cond in sorted(distinct_exposure, key=itemgetter(0,1))))
     if check_internal:
@@ -266,12 +267,10 @@ def check_distance_consistency(distance_name, filter_replicates=True,
     else:
         r=[]
         for cond in sorted(distinct_exposure, key=itemgetter(0,1)):
-            print cond,
             currM=distances[np.where(np.array(exposure_hits)==cond)]
             
             corr=np.mean(np.reshape([pearsonr(currM[i], currM[j])[0] for (i,j) in product(range(currM.shape[0]),repeat=2)],
                                     newshape=(currM.shape[0], currM.shape[0]))[np.triu_indices(currM.shape[0], 1)])
-            print corr
             r.append(corr)
         return sorted(distinct_exposure, key=itemgetter(0,1)), np.array(r)
     
@@ -286,7 +285,7 @@ def measure_condition_separation(distance_name_list,
     
     for distance_name in distance_name_list:
         print distance_name
-        distances, _, exposure_, _=_return_right_distance(distance_name, folder, hit_only=False,compare_to='DS', filter_exposure_hits=True)
+        distances, _, exposure_, _=_return_right_distance(distance_name, folder, hit_only=False,compare_to='DS', filter_exposure_hits=False)
         
         result[distance_name]= _compute_replicate_dist_vs_else(distances, exposure_)
     return result
@@ -513,7 +512,7 @@ def _return_right_distance(distance_name, folder,
             
             distances=np.vstack((distance[np.where(np.array(who)==el)] for el in who_))
             distances=distances[:,mito_positions[0]:mito_positions[1]]
-            mito_who=mito_who=who[mito_positions[0]:mito_positions[1]]#_mito_who_transform(who, *mito_positions)
+            mito_who=who[mito_positions[0]:mito_positions[1]]#_mito_who_transform(who, *mito_positions)
         else:
             if distance_name=='ttransport_MAX':
                 f=open(os.path.join(folder, 'DS_UNagg_transport_10_MAX.pkl'))
@@ -562,7 +561,9 @@ def _return_right_distance(distance_name, folder,
 
     else:
         raise ValueError('Wrong distance name')
-    print distances.shape, mito_who[0]
+    print distances.shape
+    if mito_who is not None:
+        print mito_who[0]
     return distances, np.array(who_), np.array(exposure_hits), np.array(mito_who)
 
 def inference(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', num_permutations=10000,
