@@ -6,6 +6,8 @@ from collections import Counter
 
 from analyzer import plates
 from _collections import defaultdict
+#So that rank product values are not too small I multiply the values resulting both from real result and permutation by a factor
+FACTOR=5
 
 def XB_SC_rank_product(data, who, conditions, technical_replicates_key, batch_names, reverse):
     '''
@@ -86,7 +88,7 @@ def DS_rank_product(data, who, conditions, technical_replicates_key, batch_names
         
         ranks[:,j]=np.array([technical_replicates_key(np.where(local_cond==condition)[0]+1) for condition in all_conditions], dtype=float)
         
-        ranks[:,j]=ranks[:,j]/len(np.where(who[:,0]==plate)[0])*5
+        ranks[:,j]=ranks[:,j]/len(np.where(who[:,0]==plate)[0])*FACTOR
         
     return all_conditions,np.prod(ranks, axis=1, dtype=float),num_technical_replicates
 
@@ -149,16 +151,16 @@ class DS_randomRankProduct(object):
         self.batch_names = sorted(num_technical_replicates.keys())
         num_conditions = len(num_technical_replicates[self.batch_names[0]])
         
-        result= np.hstack( (self.randomRankProduct(num_conditions,num_technical_replicates,technical_replicates_key) for k in range(self.N))) 
+        result= np.hstack( (self.randomRankProduct(k, num_conditions,num_technical_replicates,technical_replicates_key) for k in range(self.N))) 
             
         return result
             
 
-    def randomRankProduct(self,num_conditions,num_technical_replicates, technical_replicates_key):
+    def randomRankProduct(self,iter_,num_conditions,num_technical_replicates, technical_replicates_key):
         '''
         This function simulates rank products for random orders
         '''
-        print '-',
+        print iter_
         plate=self.batch_names[0]
         
         curr_num=np.sum(num_technical_replicates[plate])
@@ -169,7 +171,7 @@ class DS_randomRankProduct(object):
         
             ranks[:,i]=np.array([technical_replicates_key(np.where(local_cond==condition)[0]+1) for condition in range(num_conditions)], dtype=float)
         
-        ranks/=curr_num*100
+        ranks=ranks/curr_num*FACTOR
             
         return np.prod(ranks, axis=1, dtype=float)
         

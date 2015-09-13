@@ -358,17 +358,19 @@ def condition_inference(M, who_hits, exposure_hits, who_Mitocheck, num_permutati
     return r
 
 def condition_cluster_inference(M, clusters, who_hits, exposure_hits, who_Mitocheck, num_permutations, threshold, random_result, filename, 
-                         taking_siRNAs=False):
+                         taking_siRNAs=True, gsea=False):
     '''
     - M: distance matrix of size (hits, mitocheck)
     - taking_siRNAs: indicates if you want to consider different values of the same siRNAs independently (False) or as replicates of the same condition
     - num_permutations: no calculation of p-values if None, else number of permutations
     - filename if we want to write GSEA ranking files
+    - gsea : if you want to write gsea ranking files
 '''
     r={}
     yqualdict=expSi('../data/mapping_2014/qc_export.txt')
     yqualdict.update(expSi('../data/mapping_2014/qc_validation_exp.txt', primary_screen=False))
     dictSiEntrez=siEntrez('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
+    trad=EnsemblEntrezTrad('../data/mapping_2014/mitocheck_siRNAs_target_genes_Ens75.txt')
     
     siRNAs=[yqualdict[e] for e in who_Mitocheck]
     genes=[dictSiEntrez[e] for e in siRNAs]
@@ -391,7 +393,7 @@ def condition_cluster_inference(M, clusters, who_hits, exposure_hits, who_Mitoch
             else:
                 curr_conditions.extend(genes)
         print curr_dist.shape
-        if num_permutations is not None and np.abs(past_cluster_num-len(batch_names))>5:
+        if num_permutations is not None and past_cluster_num!=len(batch_names):
     #If there are only five experiments that are different between the two cluster length, then no need to redo the random rank product computation
             random_result=None
         curr_res=computeRPpvalues(curr_dist, np.array(curr_who), 
@@ -401,23 +403,38 @@ def condition_cluster_inference(M, clusters, who_hits, exposure_hits, who_Mitoch
                                                          num_permutations=num_permutations, reverse=False, 
                                                          batch_names=batch_names, random_result=random_result,
                                                          signed=False)
-        
-        if num_permutations is None:
+        #donc curr_res est [(gene, rank value)]
+        if num_permutations is None and gsea:
             writeGSEARankingFile(curr_res, filename.format(cluster_num))
             
         else:
-            curr_res, random_result=curr_res
-            
-            curr_res=sorted(curr_res, key=itemgetter(2))
-            pval=np.array(np.array(curr_res)[:,-1], dtype=float)
-            if not taking_siRNAs:
-                currG=[dictSiEntrez[yqualdict[e]] for e in np.array(curr_res)[np.where(pval<=threshold)][:,0]]
+            if len(curr_res)==2: 
+    #this means that we have the p-values
+                curr_res, random_result=curr_res
+                curr_res=sorted(curr_res, key=itemgetter(-1))
+                pval=np.array(np.array(curr_res)[:,-1], dtype=float)
+                if not taking_siRNAs:
+                    currG=[dictSiEntrez[yqualdict[e]] for e in np.array(curr_res)[np.where(pval<=threshold)][:,0]]
+                else:
+                    currG=[e for e in np.array(curr_res)[np.where(pval<=threshold)][:,0]]
+                print sorted(currG)
             else:
-                currG=[dictSiEntrez[e] for e in np.array(curr_res)[np.where(pval<=threshold)][:,0]]
-            print sorted(Counter(currG).keys())
-            
+    #this means that we're working with the rank product values
+                curr_res=sorted(curr_res, key=itemgetter(-1))
+                if not taking_siRNAs:
+                    currG=[dictSiEntrez[yqualdict[e]] for e in np.array(curr_res)[:threshold][:,0]]
+                else:
+                    currG=[e for e in np.array(curr_res)[:threshold][:,0]]
+                print sorted(currG)
+                
             past_cluster_num=len(batch_names)
-        r[cluster_num]['result']=curr_res
+        
+        r[cluster_num]['genes']=[trad[el] for el in currG]
+        
+        if num_permutations is not None:
+            r[cluster_num]['result']=[(el[0],el[-1]) for el in curr_res]
+    multipleGeneListsToFile([r[k]['genes'] for k in r], [k for k in r], name=filename)
+    
     return r
 
 def _return_right_distance(distance_name, folder, 
@@ -566,27 +583,30 @@ def _return_right_distance(distance_name, folder,
         print mito_who[0]
     return distances, np.array(who_), np.array(exposure_hits), np.array(mito_who)
 
-def inference(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', num_permutations=10000,
+def inference(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', num_permutations=1000,
               taking_siRNAs=True, condition_cluster=True,
-              filename='Clusters_{}_{}.pkl',
+              input_filename='Clusters_{}_{}.pkl', output_filename = "GO_cond_clust_{}_{}_thres{}.txt",
               threshold=0.1, random_result=None, level_row=0.2):
     
     distances, who_hits, exposure_hits, mito_who=_return_right_distance(distance_name, folder, check_internal=False)
     
     if condition_cluster:
         try:
-            f=open(os.path.join(folder, 'inference_Freplicates', filename.format(distance_name, level_row)))
+            f=open(os.path.join(folder, 'inference_Freplicates', input_filename.format(distance_name, level_row)))
             who_cluster_hits=pickle.load(f); f.close()
         except:
-            print "Issue opening cluster file... ", os.path.join(folder, 'inference_Freplicates', filename.format(distance_name, level_row))
+            print "Issue opening cluster file... ", os.path.join(folder, 'inference_Freplicates', input_filename.format(distance_name, level_row))
                                                                  
         else:
+            
+            assert(num_permutations is not None or (num_permutations is None and type(threshold)==int)), "Warning not giving the right parameters"
+            
             r= condition_cluster_inference(distances,who_cluster_hits, np.array(who_hits), 
                                            np.array(exposure_hits),np.array(mito_who), 
                                            num_permutations, threshold, 
                                            random_result, taking_siRNAs=taking_siRNAs,
-                                           filename=os.path.join(folder, 'inference_Freplicates/GSEA_{}_{}_clust{{}}'.format(distance_name, level_row)))
-            filename='clust_cond'
+                                           filename=os.path.join(folder, 'inference_Freplicates/', output_filename.format(distance_name, level_row, threshold)))
+            filename='clust_cond_{}'.format(num_permutations)
         
     else:
         r= condition_inference(distances, np.array(who_hits), np.array(exposure_hits), np.array(mito_who), 

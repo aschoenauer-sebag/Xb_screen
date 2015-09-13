@@ -11,13 +11,49 @@ from scipy.stats.stats import scoreatpercentile
 from phenotypes import *
 
 from phenotype_seq import pheno_seq_extractor
+from operator import itemgetter
+
+def plotClusteredTogether(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/',filename='Clusters_{}_{}.pkl',level_row=0.2,
+                          cmap=mpl.cm.Greys):
+    f=open(os.path.join(folder, 'inference_Freplicates', filename.format(distance_name, level_row)))
+    clusters=pickle.load(f); f.close()
+    reverse_clusters={}
+    for k in clusters:
+        for el in clusters[k]:
+            reverse_clusters[el]=k
+    
+    comb=right_hit_cond_order
+    
+    mat=np.zeros(shape=(len(comb), len(comb)))
+    
+    for i,el in enumerate(comb):
+        mat[i,i]=1
+        for j in range(i+1, len(comb)):
+            el2=comb[j]
+            if reverse_clusters['{}--{}'.format(*el)]==reverse_clusters['{}--{}'.format(*el2)]:
+                mat[i,j]=1
+                mat[j,i]=1
+                
+    labels=['{} {}'.format(*el) for el in comb]
+    
+    f=p.figure(figsize=(20,20))
+    ax=f.add_subplot(111)
+    ax.matshow(mat, cmap=cmap)
+    ax.set_yticks(range(len(comb)))
+    ax.set_yticklabels(labels, fontsize='small')#
+    ax.set_xticks(range(len(comb)))
+    ax.set_xticklabels(labels, fontsize='small', rotation='vertical')
+    p.savefig(os.path.join(folder, 'inference_Freplicates', 'cond_clustering_{}.png'.format(distance_name)))
+    
+    return
+    
 
 def plotProlifResult(ctrl_res, res, folder='/media/lalil0u/New/projects/drug_screen/results/'):
     if ctrl_res ==None or res==None:
         res, ctrl_res = pheno_seq_extractor.load_proliferation()
         
     f=open(os.path.join(folder, 'DS_hits_1.5IQR.pkl'))
-    _, who_hits, exposure_hits=pickle.load(f)
+    _, who_hits,_=pickle.load(f)
     f.close()
         
     prolif = np.array([el[1] for el in res])
