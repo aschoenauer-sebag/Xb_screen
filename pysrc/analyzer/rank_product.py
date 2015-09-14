@@ -119,7 +119,6 @@ def computeRPpvalues(data, who, conditions, technical_replicates_key, num_permut
             rrp=DS_randomRankProduct(num_permutations)
             
         random_result = rrp(num_technical_replicates, technical_replicates_key)
-    
     pvals_up=np.zeros(shape=len(all_conditions,), dtype=float)
     for i in range(real_result.shape[0]):
         pvals_up[i]=max(1, len(np.where(random_result<real_result[i])[0]))/float(num_permutations)
@@ -128,7 +127,9 @@ def computeRPpvalues(data, who, conditions, technical_replicates_key, num_permut
     if signed:
         pvals_down=np.zeros(shape=len(all_conditions,), dtype=float)
         for i in range(real_result.shape[0]):
+            #Here we get p-values between 1/500 and 2614
             pvals_down[i]=max(1, len(np.where(random_result[:,i]>real_result[i])[0]))/float(num_permutations)
+            
     
         return zip(all_conditions,real_result, pvals_up, pvals_down), random_result
     

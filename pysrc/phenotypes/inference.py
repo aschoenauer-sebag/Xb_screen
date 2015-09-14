@@ -585,7 +585,7 @@ def _return_right_distance(distance_name, folder,
 
 def inference(distance_name, folder='/media/lalil0u/New/projects/drug_screen/results/', num_permutations=1000,
               taking_siRNAs=True, condition_cluster=True,
-              input_filename='Clusters_{}_{}.pkl', output_filename = "GO_cond_clust_{}_{}_thres{}.txt",
+              input_filename='Clusters_manual_{}_{}.pkl', output_filename = "GO_manual_clust_{}_{}_thres{}.txt",
               threshold=0.1, random_result=None, level_row=0.2):
     
     distances, who_hits, exposure_hits, mito_who=_return_right_distance(distance_name, folder, check_internal=False)
