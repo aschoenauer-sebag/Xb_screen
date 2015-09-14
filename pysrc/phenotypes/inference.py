@@ -431,8 +431,7 @@ def condition_cluster_inference(M, clusters, who_hits, exposure_hits, who_Mitoch
         
         r[cluster_num]['genes']=[trad[el] for el in currG]
         
-        if num_permutations is not None:
-            r[cluster_num]['result']=[(el[0],el[-1]) for el in curr_res]
+        r[cluster_num]['result']=[(el[0],el[-1]) for el in curr_res]
     multipleGeneListsToFile([r[k]['genes'] for k in r], [k for k in r], name=filename)
     
     return r

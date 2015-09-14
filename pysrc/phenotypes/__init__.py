@@ -152,7 +152,7 @@ right_hit_cond_order = [('Anisomycin', 1),
 CHOSEN_CONDITION_GROUPS = [
                            [('Nocodazole', range(8, 11))],
                            [('Paclitaxel', range(5,10))],
-                           [('VX680', range(8, 11)), ('MLN8054', [10])],
+                           [('VX680', range(7, 11)), ('MLN8054', [10])],
                            [('Anisomycin', range(5, 9))],
                            [('Camptothecine(S,+)', range(6, 11))]
                            ]
