@@ -32,7 +32,7 @@ def extractControlDataFromMitocheck(n=200):
     result = loadData(chosenCtrls)
 
     #iii. save it
-    f=open('~/projects/drug_screen/results/plates/mitocheck_ctrls.pkl', 'w')
+    f=open('/cbio/donnees/aschoenauer/projects/drug_screen/results/plates/mitocheck_ctrls.pkl', 'w')
     pickle.dump(result, f)
     f.close()
     
