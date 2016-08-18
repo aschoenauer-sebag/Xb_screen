@@ -8,7 +8,7 @@ from _collections import defaultdict
 
 
 raw_result_dir_Mitocheck= "/share/data40T/Thomas/mitocheck_full_hdf5/out_data"
-primary_channel_name = 'primary__primary3'
+primary_channel_name = 'primary__test'
 focus_classname = 'OutOfFocus'
 artefact_classname = 'Artefact'
 
