@@ -105,7 +105,7 @@ class HTMLGenerator():
         print "Looking for features ", featureL
         for plate in plateL:
             listW = sorted(filter(lambda x: '.hdf5' in x or '.ch5' in x, os.listdir(os.path.join(dataFolder, plate, 'hdf5'))))
-            for filename in listW:
+            for filename in listW[:5]:
                 well=filename.split('.')[0]
                     
                 filename = os.path.join(dataFolder, plate,"hdf5", filename)
@@ -168,9 +168,9 @@ class HTMLGenerator():
                         if np.sum(bincount)==0:
                             print "No info frame {} well {} plate {}".format(frame_nb, well, plate)
                             continue
-                        out_of_focus = bincount[np.where(self.classes==self.settings.focus_classname)]
+                        out_of_focus = bincount[np.where(self.classes==self.settings.focus_classname)] if self.settings.focus_classname in self.classes else 0
 #NB: no more smallUnidentified after classifier update on 2/20/15
-                        artefacts = bincount[np.where(self.classes==self.settings.artefact_classname)] 
+                        artefacts = bincount[np.where(self.classes==self.settings.artefact_classname)] if self.settings.artefact_classname in self.classes else 0
                         result["cell_count"].append( frame.centers.shape[0] - (out_of_focus + artefacts))
                         
                 #for each frame, the object count = all objects = cells+out of focus objects + artefacts
@@ -222,7 +222,9 @@ class HTMLGenerator():
                 if self.classes is not None:
             #computing the percentage of out of focus nuclei on the last image
                     result['endFlou']=result[self.settings.focusFeature][-1]
-                    
+                
+                for el in self.classes:
+                    result['{}_ch1'.format(el)]=np.array(result['{}_ch1'.format(el)])[:,0]
                     
                 if int(well[-2:])==1:
                     resD[plate][int(well[:-3])].update(result)

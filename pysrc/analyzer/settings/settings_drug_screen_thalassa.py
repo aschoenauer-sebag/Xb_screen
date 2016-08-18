@@ -40,10 +40,10 @@ whereWell = lambda x: x[1:]
 missing_cols = {'11414':(1,2)}
 
 ###FEATURES OF INTEREST
-focus_classname = 'OutOfFocus'
+focus_classname = 'Focus'
 artefact_classname = 'Artefact'
 #Plate features and channel of extraction. The name should be exactly as in the h5 files
-featuresOfInterest = [focus_classname]
+featuresOfInterest = ["Interphase"]
 featureChannels = [0]
 #Well features
 well_features = ["cell_count", '{}_ch1'.format(focus_classname)]
@@ -66,7 +66,7 @@ date_format = '%m%y%d'
 ###OTHER SETTINGS
 ###decide if the first well has number zero or 1
 startAtZero = False
-primary_channel_name = 'primary__test'
+primary_channel_name = 'primary__primary3'
 ### is there more than one channel ?
 secondaryChannel =False
 ### do you want to count empty wells according to the plate setup ?
