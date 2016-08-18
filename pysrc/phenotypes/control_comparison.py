@@ -41,7 +41,7 @@ def extractControlDataFromMitocheck(n=200):
 def loadData(ctrls):
     newFrameLot = None
     dataFolder = raw_result_dir_Mitocheck  
-    featureL=['Interphases']
+    featureL=['Interphase']
     for plate, well in ctrls:
         filename = os.path.join(dataFolder, plate,"hdf5", '{}.ch5')
         try:
