@@ -16,7 +16,7 @@ artefact_classname = 'Artefact'
 def extractControlDataFromMitocheck(n=200):
     #i. get n control wells from Mitocheck
     f=open('../data/mapping_2014/qc_export.txt', 'r')
-    reader = csv.reader(f, delimiter='\t')
+    reader = csv.reader(f, delimiter='\t'); reader.next()
     ctrls = []
     plateList = np.array(os.listdir(raw_result_dir_Mitocheck))
     for el in reader:
