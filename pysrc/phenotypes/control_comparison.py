@@ -26,6 +26,7 @@ def extractControlDataFromMitocheck(n=200):
             truePlate = plateList[np.where([plate in el for el in plateList])[0]][0]
             
             ctrls.append((truePlate, '00{}_01'.format(well)))
+    print len(ctrls)
     np.random.shuffle(ctrls); chosenCtrls = ctrls[:n]
     
     #ii. load the data under the form {well: data}
