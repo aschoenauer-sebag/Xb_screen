@@ -48,7 +48,7 @@ def loadData(ctrls):
         try:
             featureL,classes, frameLotC= importTargetedFromHDF5(filename, plate, well,featureL,primary_channel_name=primary_channel_name,
                                                                 secondary=False)
-        except ValueError:
+        except:
             print "Error at loading from hdf5 ", plate, well
             continue
         if newFrameLot == None:
@@ -63,14 +63,14 @@ def loadData(ctrls):
     print'--------------', featureL
     totalResult=defaultdict(dict)
     
-    for plate in frameLotC.lstFrames:
-        for well in frameLotC.lstFrames[plate]:
+    for plate in newFrameLot.lstFrames:
+        for well in newFrameLot.lstFrames[plate]:
             result={'object_count':[], 'cell_count':[]}
             
             result.update({'{}_ch1'.format(el):[] for el in featureL})
             
-            for frame_nb in frameLotC.lstFrames[plate][well]:
-                frame = frameLotC.lstFrames[plate][well][frame_nb]
+            for frame_nb in newFrameLot.lstFrames[plate][well]:
+                frame = newFrameLot.lstFrames[plate][well][frame_nb]
                 
             #for each frame, the cell count = object count - [artefacts + out of focus objects]. Only possible if the classification was computed
                 if classes is not None:
