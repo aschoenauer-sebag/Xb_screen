@@ -10,12 +10,13 @@ from tracking.trajPack.thrivision import thrivisionExtraction
 from vigra import impex as vi
 from util.listFileManagement import expSi, is_ctrl_mitocheck, siEntrez, EnsemblEntrezTrad
 from tracking.trajPack import featuresNumeriques, featuresSaved
-from tracking.histograms import transportation
+
 from scipy.stats.stats import scoreatpercentile
 from sklearn.cluster.spectral import SpectralClustering
 from phenotypes import *
 
 if getpass.getuser()=='lalil0u':
+    from tracking.histograms import transportation
     import matplotlib.pyplot as p
     from util.plots import couleurs
     import networkx as nx
