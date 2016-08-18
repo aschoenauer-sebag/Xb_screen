@@ -105,7 +105,7 @@ class HTMLGenerator():
         print "Looking for features ", featureL
         for plate in plateL:
             listW = sorted(filter(lambda x: '.hdf5' in x or '.ch5' in x, os.listdir(os.path.join(dataFolder, plate, 'hdf5'))))
-            for filename in listW[:5]:
+            for filename in listW:
                 well=filename.split('.')[0]
                     
                 filename = os.path.join(dataFolder, plate,"hdf5", filename)
@@ -219,7 +219,7 @@ class HTMLGenerator():
                     result['endCircMNucleus']= result['endCircularity']-result["endNucleusOnly"]            
                     result["death"]=result['endCircMNucleus']/float(result['initCircMNucleus']+0.0001)
                     
-                if self.classes is not None:
+                if self.classes is not None and self.settings.focusFeature in result:
             #computing the percentage of out of focus nuclei on the last image
                     result['endFlou']=result[self.settings.focusFeature][-1]
                 
@@ -259,7 +259,7 @@ class HTMLGenerator():
                     failed_qc[plate].append(well)
                     continue
                 
-            else:
+            elif self.settings.focusFeature in resCour[well]:
                 #do count QC on cell_count
                 count=np.mean(resCour[well]['cell_count'][:10])
                 focus =np.mean(resCour[well][self.settings.focusFeature][-10:])
@@ -545,12 +545,14 @@ class HTMLGenerator():
                     add_line=0.5
                 else:
                     add_line=None
+                title = 'Plate {}, well {}, evolution of {}'.format(plate, final_well_num, pheno)
                 try:
                     self.wp.plotEvolution(final_well_num, filename, plotDir=plotDir,
                         max_=max_, min_=min_, add_line=add_line,
-                        title='Plate {}, well {}, evolution of {}'.format(plate, final_well_num, pheno),
+                        title=title,
                         labels=labels, data=data, colors=colors,figsize=figsize)
-                except IndexError:
+                except:
+                    print "Error plotting ", title
                     pass
                 p.close('all')
         return
@@ -676,11 +678,11 @@ class HTMLGenerator():
                     #This function is used to generate all plate plots
                     self.generatePlatePlots(plate, resD, failed_qc)
                     
-                    print ' *** generate well plots ***'
-                    self.generateWellPlots(plate, resD, colorDict)
-    
                     print ' *** saving result dictionary ***'
                     self.saveResults(failed_qc, plate, resD)
+                    
+                    print ' *** generate well plots ***'
+                    self.generateWellPlots(plate, resD, colorDict)
     
                     if len(np.where(self.well_lines_dict[plate]==-1)[0])>1 and saveDB:
                         print ' *** changing well numbers in db, plate ', plate
