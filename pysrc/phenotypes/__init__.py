@@ -1,5 +1,5 @@
 #VARS FOR DRUG SCREEN PROJECT
-
+import getpass
 import cPickle as pickle
 from collections import Counter
 
@@ -73,10 +73,10 @@ DISTANCES = {'N_pheno_score':'Normalized\n phenotypic score distance',
  'ttransport_INT':'Sum of time\n Sinkhorn div.',
  'transport':'Global\n Sinkhorn div.'}
 
-
-f=open('/media/lalil0u/New/projects/drug_screen/results/DS_pheno_scores.pkl')
-_,_,_, exposure_=pickle.load(f); f.close()
-PASSED_QC_COND=Counter(exposure_)
+if getpass.getuser()=='lalil0u':
+    f=open('/media/lalil0u/New/projects/drug_screen/results/DS_pheno_scores.pkl')
+    _,_,_, exposure_=pickle.load(f); f.close()
+    PASSED_QC_COND=Counter(exposure_)
 
 right_hit_cond_order = [('Anisomycin', 1),
                          ('Anisomycin', 2),
