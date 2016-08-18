@@ -96,10 +96,6 @@ def loadData(ctrls):
             for el in classes:
                 result['{}_ch1'.format(el)]=np.array(result['{}_ch1'.format(el)])[:,0]
                 
-            if int(well[-2:])==1:
-                totalResult[plate][int(well[:-3])].update(result)
-            else:
-                totalResult[plate][int(well[:-3])]['pos_02']=result
-            
+            totalResult[plate][int(well[:-3])]=result
             
     return totalResult
