@@ -8,7 +8,8 @@ base_result_dir = '/cbio/donnees/aschoenauer/projects/drug_screen'
 base_html = "/cbio/donnees/aschoenauer/public_html"
 
 #where hdf5 files are
-raw_result_dir = "/share/data40T/aschoenauer/drug_screen/results/Mito_seg"
+####Corrected for taking into account new classification
+raw_result_dir = "/share/data40T/aschoenauer/drug_screen/results_August_2016/separated_classifier"
 raw_result_dir_Mitocheck= "/share/data40T/Thomas/mitocheck_full_hdf5/out_data"
 mitocheck_mapping_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/mitocheck_siRNAs_target_genes_Ens75.txt'
 mitocheck_qc_file = '/cbio/donnees/aschoenauer/workspace2/Xb_screen/data/qc_export.txt'
