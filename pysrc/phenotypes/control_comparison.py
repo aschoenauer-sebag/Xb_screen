@@ -43,7 +43,7 @@ def loadData(ctrls):
     dataFolder = raw_result_dir_Mitocheck  
     featureL=['Interphase']
     for plate, well in ctrls:
-        filename = os.path.join(dataFolder, plate,"hdf5", '{}.ch5')
+        filename = os.path.join(dataFolder, plate,"hdf5", '{}.ch5'.format(well))
         try:
             featureL,classes, frameLotC= importTargetedFromHDF5(filename, plate, well,featureL,primary_channel_name=primary_channel_name,
                                                                 secondary=False)
