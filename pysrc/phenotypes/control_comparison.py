@@ -1,4 +1,4 @@
-import csv, os
+import csv, os, pdb
 import numpy as np
 import cPickle as pickle
 
@@ -8,10 +8,42 @@ from _collections import defaultdict
 
 
 raw_result_dir_Mitocheck= "/share/data40T/Thomas/mitocheck_full_hdf5/out_data"
+ds_result_dir = '/cbio/donnees/aschoenauer/projects/drug_screen/results/'
 primary_channel_name = 'primary__test'
 focus_classname = 'OutOfFocus'
 artefact_classname = 'Artefact'
 
+def proliferation_test(folder='separated_classifier'):
+    prolif_mito = []; prolif_ds =[]
+    
+    mito_folder= os.path.join(ds_result_dir, 'plates')
+    for file in filter(lambda x: 'mitocheck_ctrls' in x, os.listdir(mito_folder)):
+        f=open(os.path.join(mito_folder, file))
+        d=pickle.load(f); f.close()
+        
+        for plate in d:
+            for well in d[plate]:
+                try:
+                    prolif_mito.append(d[plate][well]["proliferation"])
+                except KeyError:
+                    pdb.set_trace()
+                    
+    ds_folder = os.path.join(ds_result_dir, folder)#this tells if we're looking at separated or joint classifier but for proliferation 
+        #it should not change anything
+        
+    for el in os.listdir(ds_folder):
+        f=open(os.path.join(ds_folder, el))
+        d=pickle.load(f); f.close()
+        
+        for well in filter(lambda x: x!='FAILED QC', d.keys()):
+            if d[well]['Xenobiotic']=="empty":
+                try:
+                    prolif_ds.append(d[well]['proliferation'])
+                except KeyError:
+                    pdb.set_trace()
+                    
+    return prolif_ds, prolif_mito
+    
 
 def extractControlDataFromMitocheck(n=200):
     #i. get n control wells from Mitocheck
