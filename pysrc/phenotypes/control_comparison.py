@@ -37,7 +37,7 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
     ds_folder = os.path.join(ds_result_dir, folder)#this tells if we're looking at separated or joint classifier but for proliferation 
         #it should not change anything
         
-    for el in os.listdir(ds_folder):
+    for el in sorted(os.listdir(ds_folder)):
         f=open(os.path.join(ds_folder, el))
         d=pickle.load(f); f.close()
         
