@@ -6,16 +6,17 @@ from _collections import defaultdict
 
 #Looking at Mitocheck classification using Mitocheck classifier only
 #raw_result_dir_Mitocheck= "/share/data40T/Thomas/mitocheck_full_hdf5/out_data"
-
+#primary_channel_name = 'primary__test'
 #Looking at Mitocheck classification using the joint classifier
 raw_result_dir_Mitocheck= "/share/data40T/aschoenauer/drug_screen/results_August_2016/mito_joint_classifier"
+primary_channel_name = 'primary__primary3'
 if getpass.getuser()=='lalil0u':
     ds_result_dir = '/media/lalil0u/New/projects/drug_screen/results/'
 else:
     ds_result_dir = '/cbio/donnees/aschoenauer/projects/drug_screen/results/'
     from analyzer import interface
     from tracking.importPack.imp import importTargetedFromHDF5
-primary_channel_name = 'primary__test'
+
 focus_classname = 'OutOfFocus'
 artefact_classname = 'Artefact'
 
