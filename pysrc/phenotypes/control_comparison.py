@@ -15,7 +15,7 @@ artefact_classname = 'Artefact'
 
 def phenotype_single_test(folder='separated_classifier', t=0, phenotype="Interphase"):
     pheno_mito = []; pheno_ds =[]
-    
+    phenotype = '{}_ch1'.format(phenotype)
     mito_folder= os.path.join(ds_result_dir, 'plates')
     for file in filter(lambda x: 'mitocheck_ctrls' in x, os.listdir(mito_folder)):
         f=open(os.path.join(mito_folder, file))
