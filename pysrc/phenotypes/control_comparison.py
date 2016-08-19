@@ -39,7 +39,7 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
         for well in filter(lambda x: x!='FAILED QC', d.keys()):
             if d[well]['Xenobiotic']=="empty":
                 try:
-                    s= np.sum( d[plate][well][phenotype]*d[plate][well]['object_count'])/float(np.sum(d[plate][well]['object_count']))
+                    s= np.sum( d[well][phenotype]*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
                     pheno_ds.append(s)
                 except KeyError:
                     pdb.set_trace()
