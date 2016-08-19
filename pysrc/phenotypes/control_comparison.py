@@ -32,7 +32,8 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
                         s= np.sum( d[plate][well][phenotype]*d[plate][well]['object_count'])/float(np.sum(d[plate][well]['object_count']))
                         pheno_mito.append(s)
                     except KeyError:
-                        pdb.set_trace()
+                        pheno_mito.append(0)
+                        print "No {} in mito file".format(phenotype)
                     
     ds_folder = os.path.join(ds_result_dir, folder)#this tells if we're looking at separated or joint classifier but for proliferation 
         #it should not change anything
