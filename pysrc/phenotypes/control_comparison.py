@@ -2,16 +2,19 @@ import csv, os, pdb, getpass
 import numpy as np
 import cPickle as pickle
 
-#from analyzer import interface
-#from tracking.importPack.imp import importTargetedFromHDF5
 from _collections import defaultdict
 
+#Looking at Mitocheck classification using Mitocheck classifier only
+#raw_result_dir_Mitocheck= "/share/data40T/Thomas/mitocheck_full_hdf5/out_data"
 
-raw_result_dir_Mitocheck= "/share/data40T/Thomas/mitocheck_full_hdf5/out_data"
+#Looking at Mitocheck classification using the joint classifier
+raw_result_dir_Mitocheck= "/share/data40T/aschoenauer/drug_screen/results_August_2016/mito_joint_classifier"
 if getpass.getuser()=='lalil0u':
     ds_result_dir = '/media/lalil0u/New/projects/drug_screen/results/'
 else:
     ds_result_dir = '/cbio/donnees/aschoenauer/projects/drug_screen/results/'
+    from analyzer import interface
+    from tracking.importPack.imp import importTargetedFromHDF5
 primary_channel_name = 'primary__test'
 focus_classname = 'OutOfFocus'
 artefact_classname = 'Artefact'
@@ -133,10 +136,10 @@ def extractControlDataFromMitocheck(n=200):
             
             ctrls.append((truePlate, '00{}_01'.format(well)))
     print len(ctrls)
-    np.random.shuffle(ctrls); chosenCtrls = ctrls[:n]
+    np.random.shuffle(ctrls)
     
     #ii. load the data under the form {well: data}
-    result = loadData(chosenCtrls)
+    result = loadData(ctrls, n)
 
     #iii. save it
     f=open('/cbio/donnees/aschoenauer/projects/drug_screen/results/plates/mitocheck_ctrls.pkl', 'w')
@@ -145,11 +148,14 @@ def extractControlDataFromMitocheck(n=200):
     
     return result
     
-def loadData(ctrls):
+def loadData(ctrls, n):
     newFrameLot = None
     dataFolder = raw_result_dir_Mitocheck  
     featureL=['Interphase']
+    found=0
     for plate, well in ctrls:
+        if found==n:
+            break
         filename = os.path.join(dataFolder, plate,"hdf5", '{}.ch5'.format(well))
         try:
             featureL,classes, frameLotC= importTargetedFromHDF5(filename, plate, well,featureL,primary_channel_name=primary_channel_name,
@@ -157,6 +163,8 @@ def loadData(ctrls):
         except:
             print "Error at loading from hdf5 ", plate, well
             continue
+        else:
+            found+=1
         if newFrameLot == None:
             newFrameLot = frameLotC 
         else: 
