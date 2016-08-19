@@ -13,6 +13,39 @@ primary_channel_name = 'primary__test'
 focus_classname = 'OutOfFocus'
 artefact_classname = 'Artefact'
 
+def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interphase"):
+    pheno_mito = []; pheno_ds =[]
+    phenotype = '{}_ch1'.format(phenotype)
+    mito_folder= os.path.join(ds_result_dir, 'plates')
+    for file in filter(lambda x: 'mitocheck_ctrls' in x, os.listdir(mito_folder)):
+        f=open(os.path.join(mito_folder, file))
+        d=pickle.load(f); f.close()
+        
+        for plate in d:
+            for well in d[plate]:
+                try:
+                    s= np.sum( d[plate][well][phenotype]*d[plate][well]['object_count'])/float(np.sum(d[plate][well]['object_count']))
+                    pheno_mito.append(s)
+                except KeyError:
+                    pdb.set_trace()
+                    
+    ds_folder = os.path.join(ds_result_dir, folder)#this tells if we're looking at separated or joint classifier but for proliferation 
+        #it should not change anything
+        
+    for el in os.listdir(ds_folder):
+        f=open(os.path.join(ds_folder, el))
+        d=pickle.load(f); f.close()
+        
+        for well in filter(lambda x: x!='FAILED QC', d.keys()):
+            if d[well]['Xenobiotic']=="empty":
+                try:
+                    s= np.sum( d[plate][well][phenotype]*d[plate][well]['object_count'])/float(np.sum(d[plate][well]['object_count']))
+                    pheno_ds.append(s)
+                except KeyError:
+                    pdb.set_trace()
+                    
+    return pheno_ds, pheno_mito
+
 def phenotype_single_test(folder='separated_classifier', t=0, phenotype="Interphase"):
     pheno_mito = []; pheno_ds =[]
     phenotype = '{}_ch1'.format(phenotype)
