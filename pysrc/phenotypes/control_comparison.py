@@ -26,7 +26,7 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
     mito_folder= os.path.join(ds_result_dir, 'plates')
     
     if getpass.getuser()!='lalil0u':
-        for file in filter(lambda x: 'mitocheck_ctrls' in x, os.listdir(mito_folder)):
+        for file in filter(lambda x: 'mitocheck_ctrls_new' in x, os.listdir(mito_folder)):
             f=open(os.path.join(mito_folder, file))
             d=pickle.load(f); f.close()
             
