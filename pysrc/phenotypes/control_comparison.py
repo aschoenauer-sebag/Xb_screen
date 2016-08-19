@@ -26,8 +26,8 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
             f=open(os.path.join(mito_folder, file))
             d=pickle.load(f); f.close()
             
-            for plate in d:
-                for well in d[plate]:
+            for plate in sorted(d.keys()):
+                for well in sorted(d[plate].keys()):
                     try:
                         s= np.sum( d[plate][well][phenotype]*d[plate][well]['object_count'])/float(np.sum(d[plate][well]['object_count']))
                         pheno_mito.append(s)
@@ -41,7 +41,7 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
         f=open(os.path.join(ds_folder, el))
         d=pickle.load(f); f.close()
         
-        for well in filter(lambda x: x!='FAILED QC', d.keys()):
+        for well in sorted(filter(lambda x: x!='FAILED QC', d.keys())):
             if d[well]['Xenobiotic']=="empty":
                 try:
                     s= np.sum( d[well][phenotype]*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
