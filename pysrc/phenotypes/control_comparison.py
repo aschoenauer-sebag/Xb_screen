@@ -20,7 +20,7 @@ else:
 focus_classname = 'OutOfFocus'
 artefact_classname = 'Artefact'
 
-def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interphase", drug="empty"):
+def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interphase", choose_ctrls=True):
     pheno_mito = []; pheno_ds =[]
     phenotype = '{}_ch1'.format(phenotype)
     mito_folder= os.path.join(ds_result_dir, 'plates')
@@ -41,13 +41,17 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
                     
     ds_folder = os.path.join(ds_result_dir, folder)#this tells if we're looking at separated or joint classifier but for proliferation 
         #it should not change anything
+    if choose_ctrls:
+        test = (lambda x: x=='empty')
+    else:
+        test= lambda x: True
         
     for el in sorted(os.listdir(ds_folder)):
         f=open(os.path.join(ds_folder, el))
         d=pickle.load(f); f.close()
         
         for well in sorted(filter(lambda x: x!='FAILED QC', d.keys())):
-            if d[well]['Xenobiotic']==drug:
+            if test(d[well]['Xenobiotic']):
                 try:
                     s= np.sum( d[well][phenotype]*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
                     pheno_ds.append(s)
