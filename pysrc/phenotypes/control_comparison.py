@@ -23,6 +23,7 @@ artefact_classname = 'Artefact'
 def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interphase", choose_ctrls=True):
     pheno_mito = []; pheno_ds =[]
     phenotype = '{}_ch1'.format(phenotype)
+    types=[]
     mito_folder= os.path.join(ds_result_dir, 'plates')
     
     if getpass.getuser()!='lalil0u':
@@ -35,6 +36,7 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
                     try:
                         s= np.sum( d[plate][well][phenotype]*d[plate][well]['object_count'])/float(np.sum(d[plate][well]['object_count']))
                         pheno_mito.append(s)
+                        types.append('Mitocheck ctrl')
                     except KeyError:
                         pheno_mito.append(0)
                         print "No {} in mito file".format(phenotype)
@@ -67,8 +69,9 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
                     else:
                         s= np.sum(arr1*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
                         pheno_ds.append(s)
+                        types.append(d[well]['Xenobiotic'])
                     
-    return np.array(pheno_ds), np.array(pheno_mito)
+    return np.array(pheno_ds), np.array(pheno_mito), np.array(types)
 
 def phenotype_single_test(folder='separated_classifier', t=0, phenotype="Interphase"):
     pheno_mito = []; pheno_ds =[]
