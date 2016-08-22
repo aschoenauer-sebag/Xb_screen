@@ -56,7 +56,8 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
                     s= np.sum( d[well][phenotype]*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
                     pheno_ds.append(s)
                 except KeyError:
-                    pdb.set_trace()
+                    print "Skipping well ", well
+                    continue
                 except TypeError:
                     arr1 = np.array(d[well][phenotype])[:,0]
                     s= np.sum(arr1*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
