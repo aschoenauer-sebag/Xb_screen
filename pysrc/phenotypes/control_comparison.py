@@ -53,15 +53,20 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
         for well in sorted(filter(lambda x: x!='FAILED QC', d.keys())):
             if test(d[well]['Xenobiotic']):
                 try:
-                    s= np.sum( d[well][phenotype]*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
+                    s= np.sum(d[well][phenotype]*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
                     pheno_ds.append(s)
                 except KeyError:
                     print "Skipping well ", well
                     continue
                 except TypeError:
-                    arr1 = np.array(d[well][phenotype])[:,0]
-                    s= np.sum(arr1*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
-                    pheno_ds.append(s)
+                    try:
+                        arr1 = np.array(d[well][phenotype])[:,0]
+                    except IndexError:
+                        print "Skipping well ", well
+                        continue
+                    else:
+                        s= np.sum(arr1*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
+                        pheno_ds.append(s)
                     
     return np.array(pheno_ds), np.array(pheno_mito)
 
