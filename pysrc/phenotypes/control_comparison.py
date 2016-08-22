@@ -20,7 +20,7 @@ else:
 focus_classname = 'OutOfFocus'
 artefact_classname = 'Artefact'
 
-def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interphase"):
+def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interphase", drug="empty"):
     pheno_mito = []; pheno_ds =[]
     phenotype = '{}_ch1'.format(phenotype)
     mito_folder= os.path.join(ds_result_dir, 'plates')
@@ -47,7 +47,7 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
         d=pickle.load(f); f.close()
         
         for well in sorted(filter(lambda x: x!='FAILED QC', d.keys())):
-            if d[well]['Xenobiotic']=="empty":
+            if d[well]['Xenobiotic']==drug:
                 try:
                     s= np.sum( d[well][phenotype]*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
                     pheno_ds.append(s)
@@ -58,7 +58,7 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
                     s= np.sum(arr1*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
                     pheno_ds.append(s)
                     
-    return pheno_ds, pheno_mito
+    return np.array(pheno_ds), np.array(pheno_mito)
 
 def phenotype_single_test(folder='separated_classifier', t=0, phenotype="Interphase"):
     pheno_mito = []; pheno_ds =[]
