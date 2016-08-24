@@ -22,7 +22,7 @@ class Wilcoxon_normalization(object):
         plates = filter(lambda w: 'Valid' not in w, os.listdir(raw_result_dir_Mitocheck))
         plateModels = list(set([el.split('_')[0] for el in plates]))
     
-        return plateModels
+        return sorted(plateModels)
     
     def separateControls(self, plates):    
         result={}
