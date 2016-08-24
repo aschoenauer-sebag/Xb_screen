@@ -46,7 +46,7 @@ def kidney_looker(h5Folder = '/share/data40T/aschoenauer/drug_screen/results_Aug
             plate = el[0].split('--')[0]
             well = el[0].split('--')[1]
             
-            truePlate = plateList[np.where([plate in el for el in plateList])[0]][0]
+            truePlate = plateList[np.where([plate in p for p in plateList])[0]][0]
             
             if '00{}_01.ch5'.format(well) in os.listdir(os.path.join(h5Folder, truePlate, 'hdf5')):
                 pathClassif = pathClassification.format(truePlate, '00{}'.format(well))
