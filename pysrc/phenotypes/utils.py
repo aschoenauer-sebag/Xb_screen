@@ -62,7 +62,7 @@ def kidney_looker(h5Folder = '/share/data40T/aschoenauer/drug_screen/results_Aug
                 else:
                     whatList.append((truePlate, well, el[1], kidneys))
                 i+=1
-                if i%100==0:
+                if i%1000==0:
                     print "Done ", i
                     
     return pandas.DataFrame.from_records(whatList, columns = ('Plate', 'Well', 'siRNA', 'KidneyPerc'))
