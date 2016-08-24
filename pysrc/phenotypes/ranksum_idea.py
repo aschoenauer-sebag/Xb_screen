@@ -72,6 +72,8 @@ class Wilcoxon_normalization(object):
             for well in wellList:
                 if not well in self.QC[plate[:9]]:
                     continue
+                if not '00{}_01.ch5'.format(well) in os.path.join(raw_result_dir_Mitocheck, plate, 'hdf5'):
+                    continue
                 
                 filename = os.path.join(raw_result_dir_Mitocheck, plate, 'hdf5', '00{}_01.ch5'.format(well))
                 pathClassif = pathClassification.format(plate, '00{}'.format(well))
@@ -80,6 +82,8 @@ class Wilcoxon_normalization(object):
                 r = np.bincount(tabClassification, minlength=18)/float(tabClassification.shape[0])
                 res = r if res is None else np.vstack((res, r))
                 
+        #Deleting Out of focus and Artefact nuclei to do the tests
+        res = np.delete(res, [15,16], 1)
         return res
     
     def loadQC(self):
