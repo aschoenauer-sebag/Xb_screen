@@ -72,7 +72,7 @@ class Wilcoxon_normalization(object):
             for well in wellList:
                 if not well in self.QC[plate[:9]]:
                     continue
-                if not '00{}_01.ch5'.format(well) in os.path.join(raw_result_dir_Mitocheck, plate, 'hdf5'):
+                if not '00{}_01.ch5'.format(well) in os.listdir(os.path.join(raw_result_dir_Mitocheck, plate, 'hdf5')):
                     continue
                 
                 filename = os.path.join(raw_result_dir_Mitocheck, plate, 'hdf5', '00{}_01.ch5'.format(well))
