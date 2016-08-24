@@ -9,7 +9,7 @@ from _collections import defaultdict
 
 raw_result_dir_Mitocheck= "/share/data40T/aschoenauer/drug_screen/results_August_2016/mito_joint_classifier"
 test_result_dir = "/share/data40T/aschoenauer/drug_screen/results/mitocheck_tests"
-plateList = os.listdir(raw_result_dir_Mitocheck)
+plateList = np.array(os.listdir(raw_result_dir_Mitocheck))
 primary_channel_name = 'primary__primary3'
 pathClassification = "/sample/0/plate/{}/experiment/{}/position/1/feature/%s/object_classification/prediction"%primary_channel_name
 
