@@ -47,7 +47,7 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
         test = (lambda x: x=='empty')
     else:
         test= lambda x: True
-        
+    pdb.set_trace()
     for el in sorted(os.listdir(ds_folder)):
         f=open(os.path.join(ds_folder, el))
         d=pickle.load(f); f.close()
