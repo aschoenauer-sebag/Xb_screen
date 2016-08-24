@@ -72,7 +72,7 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
                         pheno_ds.append(s)
                         types.append(d[well]['Xenobiotic'])
                 else:
-                    pheno_ds.append(s)
+                    pheno_ds.append(0)
                     types.append(d[well]['Xenobiotic'])
                     
     return np.array(pheno_ds), np.array(pheno_mito), np.array(types)
