@@ -20,14 +20,19 @@ else:
 focus_classname = 'OutOfFocus'
 artefact_classname = 'Artefact'
 
-def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interphase", choose_ctrls=True):
+def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interphase", choose_ctrls=True, mitocheck='old'):
     pheno_mito = []; pheno_ds =[]
     phenotype = '{}_ch1'.format(phenotype)
     types=[]
     mito_folder= os.path.join(ds_result_dir, 'plates')
     
+    if mitocheck=='old':#this means that it is data from the original mitocheck classifier
+        filename='mitocheck_ctrls_old'
+    else:
+        filename='mitocheck_ctrls_new'#data from the joint classifier
+    
     if getpass.getuser()!='lalil0u':
-        for file in filter(lambda x: 'mitocheck_ctrls_1' in x, os.listdir(mito_folder)):
+        for file in filter(lambda x: filename in x, os.listdir(mito_folder)):
             f=open(os.path.join(mito_folder, file))
             d=pickle.load(f); f.close()
             
@@ -46,13 +51,14 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
     if choose_ctrls:
         test = (lambda x: x=='empty')
     else:
-        test= lambda x: True
+        test= lambda x: x!=''
+        
     print "Skipping ",
     for el in sorted(os.listdir(ds_folder)):
         f=open(os.path.join(ds_folder, el))
         d=pickle.load(f); f.close()
         
-        for well in sorted(filter(lambda x: x!='FAILED QC', d.keys())):
+        for well in sorted(filter(lambda x: x!='FAILED QC' and x not in d['FAILED QC'], d.keys())):
             if test(d[well]['Xenobiotic']):
                 if phenotype in d[well]:
                     try:
