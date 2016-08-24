@@ -16,8 +16,8 @@ def check_h5_files_exist(rawDataFolder = '/share/data20T/mitocheck/compressed_da
             missing_h5.extend([(plate, el) for el in well_h5files])
         else:
             missing_h5.extend([(plate, el) for el in well_h5files if '{}.ch5'.format(el) not in existing_h5files])
-            
-        print plate, ' missing ', len(well_h5files)-past_len
+        if len(well_h5files)>past_len:
+            print plate, ' missing ', len(well_h5files)-past_len
         past_len = len(well_h5files)
         
     return missing_h5 
