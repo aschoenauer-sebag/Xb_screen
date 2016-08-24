@@ -94,7 +94,11 @@ class Wilcoxon_normalization(object):
         reader = csv.reader(f, delimiter='\t'); reader.next()
         
         self.QC=defaultdict(set)
+        self.siRNAs = defaultdict(set)
         for el in reader:
+            #if el[2]!='scrambled':
+                
+            #siRNA = el[]
             if 'Valid' not in el[0] and int(el[0][2:6])<600 and el[-1]=="ok":
                 plate = el[0].split('--')[0]
                 well = el[0].split('--')[1]
@@ -110,15 +114,26 @@ class Wilcoxon_normalization(object):
         return
     
     
-    def __call__(self):
+    def __call__(self, work_on_ctrl = True):
         #load QC because it is going to be useful before loading data
         self.loadQC()
         
         #i. find plate models
         plates = self.plateFinder()
         
-        #ii. for each model, separate into a group of six and one (or two)
-        ctrls = self.separateControls(plates)
-        
-        #iii. for each plate model, load control data and other data, do tests for control and other and store control data and test result
-        self.loadAndTest(ctrls)
+        if work_on_ctrl:
+            #ii. for each model, separate into a group of six and one (or two)
+            ctrls = self.separateControls(plates)
+            
+            #iii. for each plate model, load control data and other data, do tests for control and other and store control data and test result
+            self.loadAndTest(ctrls)
+            
+        else:
+            #for each siRNA, note what the plateModel is
+            experiments= self.findExperimentNames()
+            #load the data
+            
+            #do the test
+            
+            #save the result
+            
