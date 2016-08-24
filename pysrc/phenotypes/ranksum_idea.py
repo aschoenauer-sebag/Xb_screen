@@ -19,7 +19,7 @@ class Wilcoxon_normalization(object):
         return
     
     def plateFinder(self):
-        plates = os.listdir(raw_result_dir_Mitocheck)
+        plates = filter(lambda w: 'Valid' not in w, os.listdir(raw_result_dir_Mitocheck))
         plateModels = list(set([el.split('_')[0] for el in plates]))
     
         return plateModels
@@ -28,7 +28,7 @@ class Wilcoxon_normalization(object):
         result={}
         
         for plateModel in plates:
-            if int(plateModel)<50:
+            if int(plateModel[2:])<50:
                 l = list(typeD["scrambled"])
             else:
                 l = list(typeD2["scrambled"])
