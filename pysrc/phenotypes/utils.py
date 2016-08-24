@@ -9,7 +9,7 @@ def check_h5_files_exist(rawDataFolder = '/share/data20T/mitocheck/compressed_da
     past_len=0
     
     for plate in plates:
-        well_h5files = ['00{}_01'.format(el.split('--')[0]) for el in os.listdir(os.path.join(rawDataFolder, plate))]
+        well_h5files = ['00{}_01'.format(el.split('--')[0]) for el in os.listdir(os.path.join(rawDataFolder, plate)) if el.split('.')[-1]!='xml']
         try:
             existing_h5files=set(os.listdir(os.path.join(h5Folder, plate, 'hdf5')))
         except:
