@@ -41,6 +41,7 @@ def kidney_looker(h5Folder = '/share/data40T/aschoenauer/drug_screen/results_Aug
     reader = csv.reader(f, delimiter='\t'); reader.next()
     whatList = []
     plateList = np.array(os.listdir(h5Folder))
+    i=0
     for el in reader:
         if 'Valid' not in el[0] and int(el[0][2:6])<600 and el[-1]=="ok":
             plate = el[0].split('--')[0]
@@ -60,7 +61,9 @@ def kidney_looker(h5Folder = '/share/data40T/aschoenauer/drug_screen/results_Aug
                     whatList.append((truePlate, well, 'CT', kidneys))
                 else:
                     whatList.append((truePlate, well, el[1], kidneys))
-                    
+                i+=1
+                if i%100==0:
+                    print "Done ", i
                     
     return pandas.DataFrame.from_records(whatList, columns = ('Plate', 'Well', 'siRNA', 'KidneyPerc'))
                     
