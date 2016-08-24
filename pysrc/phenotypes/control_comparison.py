@@ -5,11 +5,11 @@ import cPickle as pickle
 from _collections import defaultdict
 
 #Looking at Mitocheck classification using Mitocheck classifier only
-#raw_result_dir_Mitocheck= "/share/data40T/Thomas/mitocheck_full_hdf5/out_data"
-#primary_channel_name = 'primary__test'
+raw_result_dir_Mitocheck= "/share/data40T/Thomas/mitocheck_full_hdf5/out_data"
+primary_channel_name = 'primary__test'
 #Looking at Mitocheck classification using the joint classifier
-raw_result_dir_Mitocheck= "/share/data40T/aschoenauer/drug_screen/results_August_2016/mito_joint_classifier"
-primary_channel_name = 'primary__primary3'
+#raw_result_dir_Mitocheck= "/share/data40T/aschoenauer/drug_screen/results_August_2016/mito_joint_classifier"
+#primary_channel_name = 'primary__primary3'
 if getpass.getuser()=='lalil0u':
     ds_result_dir = '/media/lalil0u/New/projects/drug_screen/results/'
 else:
@@ -27,7 +27,7 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
     mito_folder= os.path.join(ds_result_dir, 'plates')
     
     if getpass.getuser()!='lalil0u':
-        for file in filter(lambda x: 'mitocheck_ctrls_new' in x, os.listdir(mito_folder)):
+        for file in filter(lambda x: 'mitocheck_ctrls_1' in x, os.listdir(mito_folder)):
             f=open(os.path.join(mito_folder, file))
             d=pickle.load(f); f.close()
             
@@ -64,7 +64,7 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
                     try:
                         arr1 = np.array(d[well][phenotype])[:,0]
                     except IndexError:
-                        print "Skipping well ", well
+                        print "Skipping well ", well, 
                         continue
                     else:
                         s= np.sum(arr1*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
