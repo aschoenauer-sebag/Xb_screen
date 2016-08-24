@@ -51,7 +51,7 @@ def kidney_looker(h5Folder = '/share/data40T/aschoenauer/drug_screen/results_Aug
             if '00{}_01.ch5'.format(well) in os.listdir(os.path.join(h5Folder, truePlate, 'hdf5')):
                 pathClassif = pathClassification.format(truePlate, '00{}'.format(well))
                 tabClassification = np.array(vi.readHDF5(os.path.join(h5Folder, truePlate, 'hdf5', '00{}_01.ch5'.format(well)), 
-                                                         pathClassification), dtype=int)
+                                                         pathClassif), dtype=int)
                 
                 kidneys = np.bincount(tabClassification, minlength=18)[-1]/float(tabClassification.shape[0])
                 
