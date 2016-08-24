@@ -47,7 +47,8 @@ class Wilcoxon_normalization(object):
             self.save(ctrlData,plateModel, 'CTRL')
             for i,well in enumerate(false_exp):
                 false_expData = self.loadData(plateModel, [well])
-                
+                if false_expData.shape==():
+                    continue
                 statList = self.testRankSum(ctrlData, false_expData)
                 
                 self.save(statList, plateModel, 'scrambled{}'.format(i))
@@ -73,6 +74,7 @@ class Wilcoxon_normalization(object):
                 if not well in self.QC[plate[:9]]:
                     continue
                 if not '00{}_01.ch5'.format(well) in os.listdir(os.path.join(raw_result_dir_Mitocheck, plate, 'hdf5')):
+                    print 'No H5 file ', plate, well
                     continue
                 
                 filename = os.path.join(raw_result_dir_Mitocheck, plate, 'hdf5', '00{}_01.ch5'.format(well))
