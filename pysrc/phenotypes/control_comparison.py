@@ -47,27 +47,28 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
         test = (lambda x: x=='empty')
     else:
         test= lambda x: True
-    pdb.set_trace()
+    print "Skipping ",
     for el in sorted(os.listdir(ds_folder)):
         f=open(os.path.join(ds_folder, el))
         d=pickle.load(f); f.close()
         
         for well in sorted(filter(lambda x: x!='FAILED QC', d.keys())):
             if test(d[well]['Xenobiotic']):
-                try:
-                    s= np.sum(d[well][phenotype]*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
-                    
-                except KeyError:
-                    print "Skipping well ", well
-                    continue
-                except TypeError:
+                if phenotype in d[well]:
                     try:
-                        arr1 = np.array(d[well][phenotype])[:,0]
-                    except IndexError:
-                        print "Skipping well ", well, 
-                        continue
+                        s= np.sum(d[well][phenotype]*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
+                    except TypeError:
+                        try:
+                            arr1 = np.array(d[well][phenotype])[:,0]
+                        except IndexError:
+                            print well, 
+                            continue
+                        else:
+                            s= np.sum(arr1*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
+                            pheno_ds.append(s)
+                            types.append(d[well]['Xenobiotic'])
+                            
                     else:
-                        s= np.sum(arr1*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
                         pheno_ds.append(s)
                         types.append(d[well]['Xenobiotic'])
                 else:
