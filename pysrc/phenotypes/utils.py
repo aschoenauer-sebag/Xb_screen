@@ -49,7 +49,7 @@ def kidney_looker(h5Folder = '/share/data40T/aschoenauer/drug_screen/results_Aug
             
             truePlate = plateList[np.where([plate in p for p in plateList])[0]][0]
             
-            if '00{}_01.ch5'.format(well) in os.listdir(os.path.join(h5Folder, truePlate, 'hdf5')):
+            if 'hdf5' not in os.listdir(os.path.join(h5Folder, truePlate)) or '00{}_01.ch5'.format(well) in os.listdir(os.path.join(h5Folder, truePlate, 'hdf5')):
                 pathClassif = pathClassification.format(truePlate, '00{}'.format(well))
                 tabClassification = np.array(vi.readHDF5(os.path.join(h5Folder, truePlate, 'hdf5', '00{}_01.ch5'.format(well)), 
                                                          pathClassif), dtype=int)
