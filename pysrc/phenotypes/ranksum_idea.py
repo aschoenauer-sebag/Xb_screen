@@ -9,6 +9,9 @@ from _collections import defaultdict
 
 raw_result_dir_Mitocheck= "/share/data40T/aschoenauer/drug_screen/results_August_2016/mito_joint_classifier"
 test_result_dir = "/share/data40T/aschoenauer/drug_screen/results/mitocheck_tests"
+
+experimentFilename = '/cbio/donnees/aschoenauer/projects/drug_screen/MITO_experiments.pkl'
+
 plateList = np.array(os.listdir(raw_result_dir_Mitocheck))
 primary_channel_name = 'primary__primary3'
 pathClassification = "/sample/0/plate/{}/experiment/{}/position/1/feature/%s/object_classification/prediction"%primary_channel_name
@@ -113,15 +116,33 @@ class Wilcoxon_normalization(object):
         
         return
     
+    def findExperimentNames(self):
+        f=open(experimentFilename,'r')
+        l = pickle.load(f)
+        f.close()
+        
+        well_types=set()
+        for el in l:
+            e=el.split('--')
+            well_types.add((e[0][:6], e[1]))
+            
+        return well_types
+    
+    def loadCtrlData(self, plateModel):
+        f=open(os.path.join(test_result_dir, '{}_CTRL.pkl'.format(plateModel)), 'r')
+        d=pickle.load(f)
+        f.close()
+        
+        return d
     
     def __call__(self, work_on_ctrl = True):
         #load QC because it is going to be useful before loading data
         self.loadQC()
         
-        #i. find plate models
-        plates = self.plateFinder()
-        
         if work_on_ctrl:
+            #i. find plate models
+            plates = self.plateFinder()
+            
             #ii. for each model, separate into a group of six and one (or two)
             ctrls = self.separateControls(plates)
             
@@ -131,9 +152,14 @@ class Wilcoxon_normalization(object):
         else:
             #for each siRNA, note what the plateModel is
             experiments= self.findExperimentNames()
+            
+            for experiment in experiments:
             #load the data
-            
+                expData = self.loadData(experiment[0], [experiment[1]])
+                ctrlData = self.loadCtrlData(experiment[0])
             #do the test
-            
+                stat = self.testRankSum(ctrlData, expData)
             #save the result
-            
+                self.save(stat, experiment[0], experiment[1])
+                
+                
