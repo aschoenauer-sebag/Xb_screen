@@ -155,8 +155,13 @@ class Wilcoxon_normalization(object):
             
             for experiment in experiments:
             #load the data
+                try:
+                    ctrlData = self.loadCtrlData(experiment[0])
+                except:
+                    print "No ctrl data ", experiment[0]
+                    continue
+                
                 expData = self.loadData(experiment[0], [experiment[1]])
-                ctrlData = self.loadCtrlData(experiment[0])
             #do the test
                 stat = self.testRankSum(ctrlData, expData)
             #save the result
