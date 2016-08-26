@@ -131,7 +131,7 @@ class Wilcoxon_normalization(object):
             f=open(qc_drugscreen_file, 'r')
             reader = csv.reader(f, delimiter='\t')
             for k in range(1,6):
-                self.QC['LT0900_0{}'.format(k)]=range(1,385)
+                self.QC['LT0900_0{}'.format(k)]=['{:0>3}'.format(k) for k in range(1,385)]
             for el in reader:
                 plate = el[0].split('--')[0]
                 well = int(el[0].split('--')[1])
