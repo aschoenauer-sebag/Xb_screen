@@ -18,7 +18,6 @@ test_result_dir = "/share/data40T/aschoenauer/drug_screen/results/mitocheck_test
 mitocheck_experimentFilename = '/cbio/donnees/aschoenauer/projects/drug_screen/MITO_experiments.pkl'
 drugscreen_experimentFilename = '/cbio/donnees/aschoenauer/projects/drug_screen/DS_experiments.pkl'
 
-plateList = np.array(os.listdir(raw_result_dir_Mitocheck))
 primary_channel_name = 'primary__primary3'
 pathClassification = "/sample/0/plate/{}/experiment/{}/position/1/feature/%s/object_classification/prediction"%primary_channel_name
 
@@ -26,6 +25,10 @@ class Wilcoxon_normalization(object):
     
     def __init__(self,goal="mitocheck"):
         self.goal = goal
+        if self.goal == "mitocheck":
+            self.plateList = np.array(os.listdir(raw_result_dir_Mitocheck))
+        else:
+            self.plateList = np.array(os.listdir(raw_result_dir_DS))
         return
     
     def plateFinder(self):
@@ -85,7 +88,7 @@ class Wilcoxon_normalization(object):
         '''
        This should return a nb wells x nb replicates x 16 matrix of percentages of phenotypes for control wells
 '''
-        plates = plateList[np.where([plateModel in p for p in plateList])[0]]
+        plates = self.plateList[np.where([plateModel in p for p in self.plateList])[0]]
         res = None
         for plate in plates:
             for well in wellList:
