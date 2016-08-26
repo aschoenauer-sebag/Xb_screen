@@ -39,7 +39,7 @@ class Wilcoxon_normalization(object):
     
     def separateControls(self, plates):    
         result={}
-        if goal=="mitocheck":
+        if self.goal=="mitocheck":
             for plateModel in plates:
                 if int(plateModel[2:])<50:
                     l = list(typeD["scrambled"])
@@ -124,7 +124,7 @@ class Wilcoxon_normalization(object):
         else:
             f=open(qc_drugscreen_file, 'r')
             reader = csv.reader(f, delimiter='\t')
-            for k in range(3):
+            for k in range(1,4):
                 self.QC['LT0900_0{}'.format(k)]=range(1,385)
             for el in reader:
                 plate = el[0].split('--')[0]
