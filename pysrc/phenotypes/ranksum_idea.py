@@ -29,7 +29,7 @@ class Wilcoxon_normalization(object):
             self.plateList = np.array(os.listdir(raw_result_dir_Mitocheck))
             self.raw_result_dir = raw_result_dir_Mitocheck
         else:
-            self.plateList = np.array(os.listdir(raw_result_dir_DS))
+            self.plateList = ['LT0900_0{}'.format(k) for k in range(1,4)]
             self.raw_result_dir=raw_result_dir_DS
         return
     
@@ -182,7 +182,7 @@ class Wilcoxon_normalization(object):
             
             #ii. for each model, separate into a group of six and one (or two)
             ctrls = self.separateControls(plates)
-            pdb.set_trace()
+
             #iii. for each plate model, load control data and other data, do tests for control and other and store control data and test result
             self.loadAndTest(ctrls)
             
