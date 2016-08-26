@@ -90,6 +90,7 @@ class Wilcoxon_normalization(object):
         '''
        This should return a nb wells x nb replicates x 16 matrix of percentages of phenotypes for control wells
 '''
+        pdb.set_trace()
         plates = self.plateList[np.where([plateModel in p for p in self.plateList])[0]]
         res = None
         for plate in plates:
