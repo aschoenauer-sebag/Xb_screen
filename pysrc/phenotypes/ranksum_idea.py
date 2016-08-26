@@ -134,7 +134,7 @@ class Wilcoxon_normalization(object):
                 self.QC['LT0900_0{}'.format(k)]=['{:0>3}'.format(k) for k in range(1,385)]
             for el in reader:
                 plate = el[0].split('--')[0]
-                well = int(el[0].split('--')[1])
+                well = el[0].split('--')[1]
                 self.QC[plate].remove(well)
         f.close()
         print "Done loading QC"
