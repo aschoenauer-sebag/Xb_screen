@@ -95,8 +95,10 @@ class Wilcoxon_normalization(object):
                             or not '00{}_01.ch5'.format(well) in os.listdir(os.path.join(raw_result_dir_Mitocheck, plate, 'hdf5')):
                     print 'No H5 file ', plate, well
                     continue
-                
-                filename = os.path.join(raw_result_dir_Mitocheck, plate, 'hdf5', '00{}_01.ch5'.format(well))
+                if self.goal=="mitocheck":
+                    filename = os.path.join(raw_result_dir_Mitocheck, plate, 'hdf5', '00{}_01.ch5'.format(well))
+                else:
+                    filename = os.path.join(raw_result_dir_DS, plate, 'hdf5', '00{}_01.ch5'.format(well))
                 pathClassif = pathClassification.format(plate, '00{}'.format(well))
                 tabClassification = np.array(vi.readHDF5(filename, pathClassif), dtype=int)
                 
