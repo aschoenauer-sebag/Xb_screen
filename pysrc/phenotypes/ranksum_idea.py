@@ -199,6 +199,10 @@ class Wilcoxon_normalization(object):
                     continue
                 
                 expData = self.loadData(experiment[0], [experiment[1]])
+                if expData.shape==():
+                    print "No data for ", experiment
+                    continue
+                
             #do the test
                 stat = self.testRankSum(ctrlData, expData)
             #save the result
