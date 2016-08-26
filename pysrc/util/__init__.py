@@ -47,7 +47,10 @@ for el in typeD:
     ctrlWell1.extend(typeD[el])
 for el in typeD2:
     ctrlWell2.extend(typeD2[el])
-
+#ctrl wells for drug screen
+ctrl_drugscreen = [301, 302,303, 304, 305, 306, 307, 308, 309, 310, 311,
+ 325, 326, 327, 328, 329, 330, 331, 332, 333, 334, 335,
+ 349, 350, 351, 352, 353, 354, 355, 356, 357, 358, 359]
 
 """
 NB: we only want to use negative controls for migration studies

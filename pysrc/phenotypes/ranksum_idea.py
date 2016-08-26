@@ -4,13 +4,19 @@ import cPickle as pickle
 from vigra import impex as vi
 from scipy.stats import ranksums
 
-from util import typeD, typeD2
+from util import typeD, typeD2, ctrl_drugscreen
 from _collections import defaultdict
 
 raw_result_dir_Mitocheck= "/share/data40T/aschoenauer/drug_screen/results_August_2016/mito_joint_classifier"
+raw_result_dir_DS= "/share/data40T/aschoenauer/drug_screen/results_August_2016/joint_classifier"
+
+qc_mitocheck_file = '../data/mapping_2014/qc_export.txt'
+qc_drugscreen_file = '../data/qc_drugscreen.txt'
+
 test_result_dir = "/share/data40T/aschoenauer/drug_screen/results/mitocheck_tests"
 
-experimentFilename = '/cbio/donnees/aschoenauer/projects/drug_screen/MITO_experiments.pkl'
+mitocheck_experimentFilename = '/cbio/donnees/aschoenauer/projects/drug_screen/MITO_experiments.pkl'
+drugscreen_experimentFilename = '/cbio/donnees/aschoenauer/projects/drug_screen/DS_experiments.pkl'
 
 plateList = np.array(os.listdir(raw_result_dir_Mitocheck))
 primary_channel_name = 'primary__primary3'
@@ -18,25 +24,34 @@ pathClassification = "/sample/0/plate/{}/experiment/{}/position/1/feature/%s/obj
 
 class Wilcoxon_normalization(object):
     
-    def __init__(self):
+    def __init__(self,goal="mitocheck"):
+        self.goal = goal
         return
     
     def plateFinder(self):
-        plates = filter(lambda w: 'Valid' not in w, os.listdir(raw_result_dir_Mitocheck))
-        plateModels = list(set([el.split('_')[0] for el in plates]))
+        if self.goal =='mitocheck':
+            plates = filter(lambda w: 'Valid' not in w, os.listdir(raw_result_dir_Mitocheck))
+            plateModels = list(set([el.split('_')[0] for el in plates]))
+        else:
+            plateModels=['LT0900']
     
         return sorted(plateModels)
     
     def separateControls(self, plates):    
         result={}
-        
-        for plateModel in plates:
-            if int(plateModel[2:])<50:
-                l = list(typeD["scrambled"])
-            else:
-                l = list(typeD2["scrambled"])
+        if goal=="mitocheck":
+            for plateModel in plates:
+                if int(plateModel[2:])<50:
+                    l = list(typeD["scrambled"])
+                else:
+                    l = list(typeD2["scrambled"])
+                np.random.shuffle(l)
+                result[plateModel] = (l[:6], l[6:])
+        else:
+            l=list(ctrl_drugscreen)
             np.random.shuffle(l)
-            result[plateModel] = (l[:6], l[6:])
+            result[plates[0]] = (l[:6], l[6:])
+            
         return result
     
     def loadAndTest(self, ctrls):
@@ -93,19 +108,29 @@ class Wilcoxon_normalization(object):
         return res
     
     def loadQC(self):
-        f=open('../data/mapping_2014/qc_export.txt', 'r')
-        reader = csv.reader(f, delimiter='\t'); reader.next()
-        
         self.QC=defaultdict(set)
-        self.siRNAs = defaultdict(set)
-        for el in reader:
-            #if el[2]!='scrambled':
-                
-            #siRNA = el[]
-            if 'Valid' not in el[0] and int(el[0][2:6])<600 and el[-1]=="ok":
+        
+        if self.goal == "mitocheck":
+            f=open(qc_mitocheck_file, 'r')
+            reader = csv.reader(f, delimiter='\t'); reader.next()
+            
+            for el in reader:
+                if 'Valid' not in el[0] and int(el[0][2:6])<600 and el[-1]=="ok":
+                    plate = el[0].split('--')[0]
+                    well = el[0].split('--')[1]
+                    self.QC[plate].add(well)
+            
+            
+        else:
+            f=open(qc_drugscreen_file, 'r')
+            reader = csv.reader(f, delimiter='\t')
+            for k in range(3):
+                self.QC['LT0900_0{}'.format(k)]=range(1,385)
+            for el in reader:
                 plate = el[0].split('--')[0]
-                well = el[0].split('--')[1]
-                self.QC[plate].add(well)
+                well = int(el[0].split('--')[1])
+                self.QC[plate].remove(well)
+        f.close()
         print "Done loading QC"
         
     def save(self, data, plateModel, name):
@@ -117,7 +142,11 @@ class Wilcoxon_normalization(object):
         return
     
     def findExperimentNames(self):
-        f=open(experimentFilename,'r')
+        if self.goal=="mitocheck":
+            f=open(mitocheck_experimentFilename,'r')
+        else:
+            f=open(drugscreen_experimentFilename, "r")
+            
         l = pickle.load(f)
         f.close()
         
@@ -136,6 +165,9 @@ class Wilcoxon_normalization(object):
         return d
     
     def __call__(self, work_on_ctrl = True):
+        '''
+       Goal can be "mitocheck" or "drugscreen".
+'''
         #load QC because it is going to be useful before loading data
         self.loadQC()
         
