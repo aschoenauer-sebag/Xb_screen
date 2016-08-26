@@ -29,7 +29,7 @@ class Wilcoxon_normalization(object):
             self.plateList = np.array(os.listdir(raw_result_dir_Mitocheck))
             self.raw_result_dir = raw_result_dir_Mitocheck
         else:
-            self.plateList = ['LT0900_0{}'.format(k) for k in range(1,4)]
+            self.plateList = np.array(['LT0900_0{}'.format(k) for k in range(1,4)])
             self.raw_result_dir=raw_result_dir_DS
         return
     
