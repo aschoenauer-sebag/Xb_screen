@@ -27,13 +27,15 @@ class Wilcoxon_normalization(object):
         self.goal = goal
         if self.goal == "mitocheck":
             self.plateList = np.array(os.listdir(raw_result_dir_Mitocheck))
+            self.raw_result_dir = raw_result_dir_Mitocheck
         else:
             self.plateList = np.array(os.listdir(raw_result_dir_DS))
+            self.raw_result_dir=raw_result_dir_DS
         return
     
     def plateFinder(self):
         if self.goal =='mitocheck':
-            plates = filter(lambda w: 'Valid' not in w, os.listdir(raw_result_dir_Mitocheck))
+            plates = filter(lambda w: 'Valid' not in w, os.listdir(self.raw_result_dir))
             plateModels = list(set([el.split('_')[0] for el in plates]))
         else:
             plateModels=['LT0900']
@@ -94,14 +96,11 @@ class Wilcoxon_normalization(object):
             for well in wellList:
                 if not well in self.QC[plate[:9]]:
                     continue
-                if not 'hdf5' in os.listdir(os.path.join(raw_result_dir_Mitocheck, plate))\
-                            or not '00{}_01.ch5'.format(well) in os.listdir(os.path.join(raw_result_dir_Mitocheck, plate, 'hdf5')):
+                if not 'hdf5' in os.listdir(os.path.join(self.raw_result_dir, plate))\
+                            or not '00{}_01.ch5'.format(well) in os.listdir(os.path.join(self.raw_result_dir, plate, 'hdf5')):
                     print 'No H5 file ', plate, well
                     continue
-                if self.goal=="mitocheck":
-                    filename = os.path.join(raw_result_dir_Mitocheck, plate, 'hdf5', '00{}_01.ch5'.format(well))
-                else:
-                    filename = os.path.join(raw_result_dir_DS, plate, 'hdf5', '00{}_01.ch5'.format(well))
+                filename = os.path.join(self.raw_result_dir, plate, 'hdf5', '00{}_01.ch5'.format(well))
                     
                 pathClassif = pathClassification.format(plate, '00{}'.format(well))
                 tabClassification = np.array(vi.readHDF5(filename, pathClassif), dtype=int)
