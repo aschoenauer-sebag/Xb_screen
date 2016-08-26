@@ -99,6 +99,7 @@ class Wilcoxon_normalization(object):
                     filename = os.path.join(raw_result_dir_Mitocheck, plate, 'hdf5', '00{}_01.ch5'.format(well))
                 else:
                     filename = os.path.join(raw_result_dir_DS, plate, 'hdf5', '00{}_01.ch5'.format(well))
+                    
                 pathClassif = pathClassification.format(plate, '00{}'.format(well))
                 tabClassification = np.array(vi.readHDF5(filename, pathClassif), dtype=int)
                 
@@ -179,7 +180,7 @@ class Wilcoxon_normalization(object):
             
             #ii. for each model, separate into a group of six and one (or two)
             ctrls = self.separateControls(plates)
-            
+            pdb.set_trace()
             #iii. for each plate model, load control data and other data, do tests for control and other and store control data and test result
             self.loadAndTest(ctrls)
             
