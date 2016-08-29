@@ -86,7 +86,7 @@ class Wilcoxon_normalization(object):
             self.save(ctrlData,plateModel, 'CTRL')
             for i,well in enumerate(false_exp):
                 false_expData = self.loadData(plateModel, [well])
-                if false_expData.shape==():
+                if false_expData is None or false_expData.shape==():
                     continue
                 statList = self.testRankSum(ctrlData, false_expData)
                 
@@ -108,6 +108,7 @@ class Wilcoxon_normalization(object):
 '''
         plates = self.plateList[np.where([plateModel in p for p in self.plateList])[0]]
         res = None
+        pdb.set_trace()
         for plate in plates:
             for well in wellList:
                 if not well in self.QC[plate[:9]]:
@@ -125,7 +126,15 @@ class Wilcoxon_normalization(object):
                 res = r if res is None else np.vstack((res, r))
                 
         #Deleting Out of focus and Artefact nuclei to do the tests
-        res = np.delete(res, [15,16, 17], 1)
+        try:
+            res = np.delete(res, [15,16, 17], 1)
+        except IndexError:
+            try:
+                res=res[np.newaxis,:]
+                res = np.delete(res, [15,16,17], 1)
+            except:
+                return None
+                
         return res
     
     def loadQC(self):
