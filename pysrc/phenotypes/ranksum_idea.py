@@ -79,6 +79,7 @@ class Wilcoxon_normalization(object):
         for plateModel in ctrls:
             print 'Doing ', plateModel
             currCtrls, false_exp = ctrls[plateModel]
+            print currCtrls, false_exp
             
             ctrlData = self.loadData(plateModel, currCtrls)
             
