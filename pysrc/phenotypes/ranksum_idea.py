@@ -21,7 +21,7 @@ drugscreen_experimentFilename = '/cbio/donnees/aschoenauer/projects/drug_screen/
 mitocheck_primary_channel_name = 'primary__test'
 DS_primary_channel_name = 'primary__primary3'
 
-pathClassification = "/sample/0/plate/{}/experiment/{}/position/1/feature/%s/object_classification/prediction"%primary_channel_name
+pathClassification = "/sample/0/plate/{}/experiment/{}/position/1/feature/%s/object_classification/prediction"
 
 class Wilcoxon_normalization(object):
     
@@ -30,9 +30,11 @@ class Wilcoxon_normalization(object):
         if self.goal == "mitocheck":
             self.plateList = np.array(os.listdir(raw_result_dir_Mitocheck))
             self.raw_result_dir = raw_result_dir_Mitocheck
+            self.pathClassif = pathClassification%mitocheck_primary_channel_name
         else:
             self.plateList = np.array(['LT0900_0{}'.format(k) for k in range(1,4)])
             self.raw_result_dir=raw_result_dir_DS
+            self.pathClassif = pathClassification%DS_primary_channel_name
         return
     
     def plateFinder(self):
@@ -104,7 +106,7 @@ class Wilcoxon_normalization(object):
                     continue
                 filename = os.path.join(self.raw_result_dir, plate, 'hdf5', '00{}_01.ch5'.format(well))
                     
-                pathClassif = pathClassification.format(plate, '00{}'.format(well))
+                pathClassif = self.pathClassif.format(plate, '00{}'.format(well))
                 tabClassification = np.array(vi.readHDF5(filename, pathClassif), dtype=int)
                 
                 r = np.bincount(tabClassification, minlength=18)/float(tabClassification.shape[0])
