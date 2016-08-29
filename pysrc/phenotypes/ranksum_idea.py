@@ -49,7 +49,7 @@ class Wilcoxon_normalization(object):
         return
     
     @staticmethod
-    def loadResults(self, goal='mitocheck'):
+    def loadResults(goal='mitocheck'):
         cols=['Plate', 'Well']
         cols.extend(mitocheck_classes[:15])
         
@@ -69,10 +69,7 @@ class Wilcoxon_normalization(object):
             output_.append(d)
             
         return pandas.DataFrame.from_records(output_, columns=cols)
-                
         
-         
-    
     def plateFinder(self):
         if self.goal =='mitocheck':
             plates = filter(lambda w: 'Valid' not in w, os.listdir(self.raw_result_dir))
