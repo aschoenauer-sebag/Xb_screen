@@ -7,7 +7,7 @@ from scipy.stats import ranksums
 from util import typeD, typeD2, ctrl_drugscreen
 from _collections import defaultdict
 
-raw_result_dir_Mitocheck= "/share/data40T/aschoenauer/drug_screen/results_August_2016/mito_joint_classifier"
+raw_result_dir_Mitocheck= "/share/data40T/Thomas/mitocheck_full_hdf5/out_data"#"/share/data40T/aschoenauer/drug_screen/results_August_2016/mito_joint_classifier"
 raw_result_dir_DS= "/share/data40T/aschoenauer/drug_screen/results_August_2016/joint_classifier"
 
 qc_mitocheck_file = '../data/mapping_2014/qc_export.txt'

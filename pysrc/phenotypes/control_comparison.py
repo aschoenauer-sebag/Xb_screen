@@ -10,6 +10,7 @@ from _collections import defaultdict
 #Looking at Mitocheck classification using the joint classifier
 raw_result_dir_Mitocheck= "/share/data40T/aschoenauer/drug_screen/results_August_2016/mito_joint_classifier"
 primary_channel_name = 'primary__primary3'
+print "Youpi"
 
 if getpass.getuser()=='lalil0u':
     ds_result_dir = '/media/lalil0u/New/projects/drug_screen/results/'
