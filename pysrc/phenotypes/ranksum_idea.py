@@ -62,9 +62,9 @@ class Wilcoxon_normalization(object):
             f=open(os.path.join(test_result_dir, el))
             d=pickle.load(f); f.close()
             if 'scrambled' in el:
-                r=[goal, 'CTRL']
+                r=[el.split('_')[0], 'CTRL']
             else:
-                r=()
+                r=[el.split('_')[0], el.split('_')[1].split('.')[0]]
             r.extend(d)
             output_.append(d)
             
