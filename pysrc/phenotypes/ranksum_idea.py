@@ -23,6 +23,17 @@ DS_primary_channel_name = 'primary__primary3'
 
 pathClassification = "/sample/0/plate/{}/experiment/{}/position/1/feature/%s/object_classification/prediction"
 
+mitocheck_classes = ['Interphase', 'Large', 'Elongated', 'Shape1', 'Shape3', 'Grape',
+       'Metaphase', 'Anaphase', 'MetaphaseAlignment', 'Prometaphase',
+       'ADCCM', 'Apoptosis', 'Hole', 'Folded', 'SmallIrregular',
+       'Artefact', 'UndefinedCondensed', 'OutOfFocus']
+
+DS_classes = ['Interphase', 'Large', 'Elongated', 'Binucleated', 'Polylobed','Grape', 
+        'Metaphase', 'Anaphase', 'MetaphaseAlignment','Prometaphase', 
+        'ADCCM', 'Apoptosis', 'Hole', 'Folded', 'SmallIrregular', 
+        'Artefact', 'Focus', 'Kidney']
+
+
 class Wilcoxon_normalization(object):
     
     def __init__(self,goal="mitocheck"):
@@ -113,7 +124,7 @@ class Wilcoxon_normalization(object):
                 res = r if res is None else np.vstack((res, r))
                 
         #Deleting Out of focus and Artefact nuclei to do the tests
-        res = np.delete(res, [15,16], 1)
+        res = np.delete(res, [15,16, 17], 1)
         return res
     
     def loadQC(self):
