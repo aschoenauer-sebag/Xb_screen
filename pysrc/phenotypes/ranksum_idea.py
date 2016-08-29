@@ -1,4 +1,4 @@
-import pdb, os, csv
+import pdb, os, csv, pandas
 import numpy as np
 import cPickle as pickle
 from vigra import impex as vi
@@ -47,6 +47,31 @@ class Wilcoxon_normalization(object):
             self.raw_result_dir=raw_result_dir_DS
             self.pathClassif = pathClassification%DS_primary_channel_name
         return
+    
+    @staticmethod
+    def loadResults(self, goal='mitocheck'):
+        cols=['Plate', 'Well']
+        cols.extend(mitocheck_classes[:15])
+        
+        test_func = (lambda x: 'LT0900' in x)
+        
+        files = filter(lambda x: 'CTRL' not in x and not test_func(x), os.listdir(test_result_dir)) if goal=='mitocheck'\
+                else filter(lambda x: 'CTRL' not in x and test_func(x), os.listdir(test_result_dir))
+        output_=[]
+        for el in files:
+            f=open(os.path.join(test_result_dir, el))
+            d=pickle.load(f); f.close()
+            if 'scrambled' in el:
+                r=(goal, 'CTRL')
+            else:
+                r=()
+            r.extend(d)
+            output_.append(d)
+            
+        return pandas.DataFrame.from_records(output_, columns=cols)
+                
+        
+         
     
     def plateFinder(self):
         if self.goal =='mitocheck':
