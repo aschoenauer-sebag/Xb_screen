@@ -120,7 +120,10 @@ class Wilcoxon_normalization(object):
                 filename = os.path.join(self.raw_result_dir, plate, 'hdf5', '00{}_01.ch5'.format(well))
                     
                 pathClassif = self.pathClassif.format(plate, '00{}'.format(well))
-                tabClassification = np.array(vi.readHDF5(filename, pathClassif), dtype=int)
+                try:
+                    tabClassification = np.array(vi.readHDF5(filename, pathClassif), dtype=int)
+                except ValueError:
+                    return None
                 
                 r = np.bincount(tabClassification, minlength=18)/float(tabClassification.shape[0])
                 res = r if res is None else np.vstack((res, r))
