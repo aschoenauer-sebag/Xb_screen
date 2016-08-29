@@ -66,7 +66,7 @@ class Wilcoxon_normalization(object):
             else:
                 r=[el.split('_')[0], el.split('_')[1].split('.')[0]]
             r.extend(d)
-            output_.append(d)
+            output_.append(r)
             
         return pandas.DataFrame.from_records(output_, columns=cols)
         
