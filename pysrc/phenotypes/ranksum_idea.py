@@ -18,7 +18,9 @@ test_result_dir = "/share/data40T/aschoenauer/drug_screen/results/mitocheck_test
 mitocheck_experimentFilename = '/cbio/donnees/aschoenauer/projects/drug_screen/MITO_experiments.pkl'
 drugscreen_experimentFilename = '/cbio/donnees/aschoenauer/projects/drug_screen/DS_experiments.pkl'
 
-primary_channel_name = 'primary__primary3'
+mitocheck_primary_channel_name = 'primary__test'
+DS_primary_channel_name = 'primary__primary3'
+
 pathClassification = "/sample/0/plate/{}/experiment/{}/position/1/feature/%s/object_classification/prediction"%primary_channel_name
 
 class Wilcoxon_normalization(object):
