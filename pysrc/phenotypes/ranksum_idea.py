@@ -227,7 +227,7 @@ class Wilcoxon_normalization(object):
                     continue
                 
                 expData = self.loadData(experiment[0], [experiment[1]])
-                if expData.shape==():
+                if expData is None or expData.shape==():
                     print "No data for ", experiment
                     continue
                 
