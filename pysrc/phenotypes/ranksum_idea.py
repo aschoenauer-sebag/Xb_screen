@@ -40,7 +40,7 @@ def qc_trsf(plate):
 
 class Wilcoxon_normalization(object):
     
-    def __init__(self,goal="mitocheck", redo=False):
+    def __init__(self,goal="mitocheck", redo=False, pvals=True):
         self.goal = goal
         if self.goal == "mitocheck":
             self.plateList = np.array(os.listdir(raw_result_dir_Mitocheck))
@@ -50,6 +50,12 @@ class Wilcoxon_normalization(object):
             self.plateList = np.array(['LT0900_0{}'.format(k) for k in range(1,4)])
             self.raw_result_dir=raw_result_dir_DS
             self.pathClassif = pathClassification%DS_primary_channel_name
+        if pvals:
+            self.index = 1
+            self.test_result_dir = test_result_dir
+        else:
+            self.index = 0
+            self.test_result_dir=test_result_dir[:-6]
         return
     
     @staticmethod
@@ -227,7 +233,7 @@ class Wilcoxon_normalization(object):
         well_types=set()
         for el in l:
             e=el.split('--')
-            well_types.add((e[0][:6], e[1]))
+            well_types.add((e[0].split('_')[0], e[1]))
             
         return well_types
     
