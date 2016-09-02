@@ -34,6 +34,9 @@ DS_classes = ['Interphase', 'Large', 'Elongated', 'Binucleated', 'Polylobed','Gr
         'ADCCM', 'Apoptosis', 'Hole', 'Folded', 'SmallIrregular', 
         'Artefact', 'Focus', 'Kidney']
 
+def qc_trsf(plate):
+    return plate.split('--')[0]
+
 
 class Wilcoxon_normalization(object):
     
@@ -139,7 +142,7 @@ class Wilcoxon_normalization(object):
         pdb.set_trace()
         for plate in plates:
             for well in wellList:
-                if not well in self.QC[plate[:9]]:
+                if not well in self.QC[qc_trsf(plate)]:
                     continue
                 if not 'hdf5' in os.listdir(os.path.join(self.raw_result_dir, plate))\
                             or not '00{}_01.ch5'.format(well) in os.listdir(os.path.join(self.raw_result_dir, plate, 'hdf5')):
