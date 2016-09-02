@@ -188,11 +188,10 @@ class Wilcoxon_normalization(object):
             
             for el in reader:
                 pdb.set_trace()
-                if el[-1]=="True":
+                if el[-2]=="True":
                     plate = el[0].split('--')[0]
                     well = el[0].split('--')[1]
-                    self.QC[plate].add(well)
-            pdb.set_trace()            
+                    self.QC[plate].add(well)        
             f.close()
         else:
             f=open(qc_drugscreen_file, 'r')
