@@ -39,7 +39,6 @@ def qc_trsf(plate):
 
 
 class Wilcoxon_normalization(object):
-    
     def __init__(self,goal="mitocheck", redo=False, pvals=True):
         self.goal = goal
         if self.goal == "mitocheck":
@@ -59,17 +58,17 @@ class Wilcoxon_normalization(object):
         return
     
     @staticmethod
-    def loadResults(goal='mitocheck'):
+    def loadResults(goal='mitocheck', test_result_dir):
         cols=['Plate', 'Well']
         cols.extend(mitocheck_classes[:15])
         
         test_func = (lambda x: 'LT0900' in x)
         
-        files = filter(lambda x: 'CTRL' not in x and not test_func(x), os.listdir(self.test_result_dir)) if goal=='mitocheck'\
-                else filter(lambda x: 'CTRL' not in x and test_func(x), os.listdir(self.test_result_dir))
+        files = filter(lambda x: 'CTRL' not in x and not test_func(x), os.listdir(test_result_dir)) if goal=='mitocheck'\
+                else filter(lambda x: 'CTRL' not in x and test_func(x), os.listdir(test_result_dir))
         output_=[]
         for el in files:
-            f=open(os.path.join(self.test_result_dir, el))
+            f=open(os.path.join(test_result_dir, el))
             d=pickle.load(f); f.close()
             if 'scrambled' in el:
                 r=[el.split('_')[0], 'CTRL']

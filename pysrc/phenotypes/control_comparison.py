@@ -85,7 +85,7 @@ def phenotype_aggregated_test(folder='separated_classifier', choose_ctrls=True, 
                     else:
                         s=0
                     currR.append(s)
-        result.append(currR)
+                result.append(currR)
     cols=['Xb', 'Plate', 'Well']
     cols.extend(DS_classes)
     r = pandas.DataFrame.from_records(result, columns = cols)
