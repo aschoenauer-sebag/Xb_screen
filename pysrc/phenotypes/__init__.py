@@ -74,7 +74,7 @@ DISTANCES = {'N_pheno_score':'Normalized\n phenotypic score distance',
  'transport':'Global\n Sinkhorn div.'}
 
 if getpass.getuser()=='lalil0u':
-    f=open('/media/lalil0u/New/projects/drug_screen/results/DS_pheno_scores.pkl')
+    f=open('/mnt/projects/drug_screen/results/DS_pheno_scores.pkl')
     _,_,_, exposure_=pickle.load(f); f.close()
     PASSED_QC_COND=Counter(exposure_)
 

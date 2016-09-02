@@ -13,7 +13,7 @@ raw_result_dir_DS= "/share/data40T/aschoenauer/drug_screen/results_August_2016/j
 qc_mitocheck_file = '../data/mapping_2014/qc_export.txt'
 qc_drugscreen_file = '../data/qc_drugscreen.txt'
 
-test_result_dir = "/share/data40T/aschoenauer/drug_screen/results/mitocheck_tests"
+test_result_dir = "/share/data40T/aschoenauer/drug_screen/results/mitocheck_tests_pvals"
 
 mitocheck_experimentFilename = '/cbio/donnees/aschoenauer/projects/drug_screen/MITO_experiments.pkl'
 drugscreen_experimentFilename = '/cbio/donnees/aschoenauer/projects/drug_screen/DS_experiments.pkl'
@@ -119,7 +119,7 @@ class Wilcoxon_normalization(object):
     
         result=[]
         for k in range(ctrlData.shape[1]):
-            result.append(ranksums(ctrlData[:,k], expData[:,k])[0])
+            result.append(ranksums(ctrlData[:,k], expData[:,k])[1])
             
         return result
         

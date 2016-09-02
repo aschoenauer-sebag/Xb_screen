@@ -1,11 +1,68 @@
 import os, csv, getpass, pandas
 import numpy as np
+import cPickle as pickle
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as p
 
 primary_channel_name = 'primary__primary3'
 pathClassification = "/sample/0/plate/{}/experiment/{}/position/1/feature/%s/object_classification/prediction"%primary_channel_name
 
 if getpass.getuser()!='lalil0u':
     import vigra.impex as vi
+    
+def plot_results(norm=True):
+    #Opening rank sum statistics
+    f=open('/mnt/projects/drug_screen/results/ranksum1.pkl')
+    mitocheck, ds = pickle.load(f)
+    f.close()
+    
+    f=open('/mnt/projects/drug_screen/results/DS_hits_well_drugs.pkl')
+    wells, drugs = pickle.load(f); f.close()
+    
+    ds_ctrl = ds[ds.Well=='CTRL'].iloc[:,2:]
+    mitocheck_ctrl = mitocheck[mitocheck.Well=='CTRL'].iloc[:,2:]
+    if norm:
+        ds_m, mito_m = np.mean(ds_ctrl, 0), np.mean(mitocheck_ctrl, 0)
+        ds_std, mito_std = np.std(ds_ctrl, 0), np.std(mitocheck_ctrl, 0)
+        
+        nds = (ds.iloc[:,2:]-ds_m)/ds_std
+        nmito_c = (mitocheck_ctrl - mito_m)/mito_std
+    else:
+        nds = ds.iloc[:,2:]
+        nmito_c = mitocheck_ctrl
+    
+    tsne = TSNE(n_components = 2)
+    a = tsne.fit_transform(np.vstack((nds, nmito_c)))
+    
+    colors = []
+    for index,el in ds.iterrows():
+        if el.Well == "CTRL":
+            colors.append('g')
+        elif int(el.Well) in wells:
+            colors.append('r')
+        else:
+            colors.append('black')
+            
+    colors.extend(['c' for k in range(mitocheck_ctrl.shape[0])])
+    p.scatter(a[:,0], a[:,1], color=colors, alpha=0.7)
+    p.scatter(0,0, color='g', label='DS ctrl')
+    p.scatter(0,0, color='r', label='DS hit')
+    p.scatter(0,0, color='black', label='DS non-hit')
+    p.scatter(0,0, color='c', label='Mitocheck ctrl')
+    p.legend()
+    p.title('Rank-sum statistics, t-SNE projection')
+    p.show()
+    
+    
+    #now looking at raw phenotypic profiles
+    f=open('/mnt/projects/drug_screen/results/all_joint_aggregated_values_oldmito.pkl')
+    ds, mitocheck, types, phenotypes=pickle.load(f)
+    f.close()
+    
+    
+    
+    return
+    
 
 def check_h5_files_exist(rawDataFolder = '/share/data20T/mitocheck/compressed_data', 
                          h5Folder = '/share/data40T/aschoenauer/drug_screen/results_August_2016/mito_joint_classifier'):
