@@ -37,7 +37,7 @@ DS_classes = ['Interphase', 'Large', 'Elongated', 'Binucleated', 'Polylobed','Gr
 
 class Wilcoxon_normalization(object):
     
-    def __init__(self,goal="mitocheck"):
+    def __init__(self,goal="mitocheck", redo=False):
         self.goal = goal
         if self.goal == "mitocheck":
             self.plateList = np.array(os.listdir(raw_result_dir_Mitocheck))
@@ -103,9 +103,10 @@ class Wilcoxon_normalization(object):
     def loadAndTest(self, ctrls):
         
         for plateModel in ctrls:
+            if '{}_{}.pkl'.format(plateModel, 'CTRL') in os.listdir(test_result_dir):
+                continue
             print 'Doing ', plateModel
             currCtrls, false_exp = ctrls[plateModel]
-            print currCtrls, false_exp
             
             ctrlData = self.loadData(plateModel, currCtrls)
             
