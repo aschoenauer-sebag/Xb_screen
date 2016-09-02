@@ -136,7 +136,6 @@ class Wilcoxon_normalization(object):
 '''
         plates = self.plateList[np.where([plateModel in p for p in self.plateList])[0]]
         res = None
-        pdb.set_trace()
         for plate in plates:
             for well in wellList:
                 if not well in self.QC[plate[:9]]:
@@ -187,7 +186,6 @@ class Wilcoxon_normalization(object):
             reader = csv.reader(f, delimiter='\t'); reader.next()
             
             for el in reader:
-                pdb.set_trace()
                 if el[-2]=="True":
                     plate = el[0].split('--')[0]
                     well = el[0].split('--')[1]
