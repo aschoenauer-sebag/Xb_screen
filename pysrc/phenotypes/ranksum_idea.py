@@ -107,12 +107,13 @@ class Wilcoxon_normalization(object):
                 continue
             print 'Doing ', plateModel
             currCtrls, false_exp = ctrls[plateModel]
-            
+            print currCtrls, false_exp
             ctrlData = self.loadData(plateModel, currCtrls)
             
             self.save(ctrlData,plateModel, 'CTRL')
             for i,well in enumerate(false_exp):
                 false_expData = self.loadData(plateModel, [well])
+                print ctrlData.shape, false_expData.shape
                 if false_expData is None or false_expData.shape==():
                     continue
                 statList = self.testRankSum(ctrlData, false_expData)
