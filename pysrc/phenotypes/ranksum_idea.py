@@ -107,7 +107,7 @@ class Wilcoxon_normalization(object):
                 continue
             print 'Doing ', plateModel
             currCtrls, false_exp = ctrls[plateModel]
-            print currCtrls, false_exp
+            pdb.set_trace()
             ctrlData = self.loadData(plateModel, currCtrls)
             
             self.save(ctrlData,plateModel, 'CTRL')
