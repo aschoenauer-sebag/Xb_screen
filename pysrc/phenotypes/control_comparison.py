@@ -40,7 +40,7 @@ def phenotype_aggregated_test(folder='separated_classifier', choose_ctrls=True, 
                 for well in sorted(d[plate].keys()):
                     currR = []
                     currR.append('Mito CTRL')
-                    currR.append(plate)
+                    currR.append(plate.split('--')[0])
                     currR.append(well)
                     for pheno in mitocheck_classes:
                         try:
