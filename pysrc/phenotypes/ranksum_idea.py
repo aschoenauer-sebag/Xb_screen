@@ -65,11 +65,11 @@ class Wilcoxon_normalization(object):
         
         test_func = (lambda x: 'LT0900' in x)
         
-        files = filter(lambda x: 'CTRL' not in x and not test_func(x), os.listdir(test_result_dir)) if goal=='mitocheck'\
-                else filter(lambda x: 'CTRL' not in x and test_func(x), os.listdir(test_result_dir))
+        files = filter(lambda x: 'CTRL' not in x and not test_func(x), os.listdir(self.test_result_dir)) if goal=='mitocheck'\
+                else filter(lambda x: 'CTRL' not in x and test_func(x), os.listdir(self.test_result_dir))
         output_=[]
         for el in files:
-            f=open(os.path.join(test_result_dir, el))
+            f=open(os.path.join(self.test_result_dir, el))
             d=pickle.load(f); f.close()
             if 'scrambled' in el:
                 r=[el.split('_')[0], 'CTRL']
@@ -112,7 +112,7 @@ class Wilcoxon_normalization(object):
     def loadAndTest(self, ctrls):
         
         for plateModel in ctrls:
-            if '{}_{}.pkl'.format(plateModel, 'CTRL') in os.listdir(test_result_dir):
+            if '{}_{}.pkl'.format(plateModel, 'CTRL') in os.listdir(self.test_result_dir):
                 continue
             print 'Doing ', plateModel
             currCtrls, false_exp = ctrls[plateModel]
@@ -134,7 +134,7 @@ class Wilcoxon_normalization(object):
     
         result=[]
         for k in range(ctrlData.shape[1]):
-            result.append(ranksums(ctrlData[:,k], expData[:,k])[1])
+            result.append(ranksums(ctrlData[:,k], expData[:,k])[self.index])
             
         return result
         
@@ -215,7 +215,7 @@ class Wilcoxon_normalization(object):
         
     def save(self, data, plateModel, name):
         
-        f=open(os.path.join(test_result_dir, '{}_{}.pkl'.format(plateModel, name)), 'w')
+        f=open(os.path.join(self.test_result_dir, '{}_{}.pkl'.format(plateModel, name)), 'w')
         pickle.dump(data, f)
         f.close()
         
@@ -238,7 +238,7 @@ class Wilcoxon_normalization(object):
         return well_types
     
     def loadCtrlData(self, plateModel):
-        f=open(os.path.join(test_result_dir, '{}_CTRL.pkl'.format(plateModel)), 'r')
+        f=open(os.path.join(self.test_result_dir, '{}_CTRL.pkl'.format(plateModel)), 'r')
         d=pickle.load(f)
         f.close()
         
