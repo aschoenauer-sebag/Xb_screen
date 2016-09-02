@@ -67,7 +67,7 @@ def phenotype_aggregated_test(folder='separated_classifier', choose_ctrls=True, 
             currR=[]
             if test(d[well]['Xenobiotic']):
                 currR.append(d[well]['Xenobiotic'])
-                currR.append(el)
+                currR.append(el[-14:-4])
                 currR.append(well)
                 
                 for pheno in DS_classes:
