@@ -4,13 +4,14 @@ import cPickle as pickle
 from vigra import impex as vi
 from scipy.stats import ranksums
 
-from util import typeD, typeD2, ctrl_drugscreen
+from util import typeD, typeD2, typeD3, ctrl_drugscreen
 from _collections import defaultdict
 
 raw_result_dir_Mitocheck= "/share/data40T/Thomas/mitocheck_full_hdf5/out_data"#"/share/data40T/aschoenauer/drug_screen/results_August_2016/mito_joint_classifier"
 raw_result_dir_DS= "/share/data40T/aschoenauer/drug_screen/results_August_2016/joint_classifier"
 
 qc_mitocheck_file = '../data/mapping_2014/qc_export.txt'
+qc_mitocheckValid_file = '../data/mapping_2014/qc_export_validation.txt'
 qc_drugscreen_file = '../data/qc_drugscreen.txt'
 
 test_result_dir = "/share/data40T/aschoenauer/drug_screen/results/mitocheck_tests_pvals"
@@ -72,7 +73,7 @@ class Wilcoxon_normalization(object):
         
     def plateFinder(self):
         if self.goal =='mitocheck':
-            plates = filter(lambda w: 'Valid' not in w, os.listdir(self.raw_result_dir))
+            plates = os.listdir(self.raw_result_dir)
             plateModels = list(set([el.split('_')[0] for el in plates]))
         else:
             plateModels=['LT0900']
@@ -83,10 +84,13 @@ class Wilcoxon_normalization(object):
         result={}
         if self.goal=="mitocheck":
             for plateModel in plates:
-                if int(plateModel[2:])<50:
-                    l = list(typeD["scrambled"])
+                if 'Valid' not in plateModel:
+                    if int(plateModel[2:])<50:
+                        l = list(typeD["scrambled"])
+                    else:
+                        l = list(typeD2["scrambled"])
                 else:
-                    l = list(typeD2["scrambled"])
+                    l=list(typeD3["scrambled"])
                 np.random.shuffle(l)
                 result[plateModel] = (l[:6], l[6:])
         else:
@@ -166,15 +170,25 @@ class Wilcoxon_normalization(object):
         self.QC=defaultdict(set)
         
         if self.goal == "mitocheck":
+            #QC for labteks 
             f=open(qc_mitocheck_file, 'r')
             reader = csv.reader(f, delimiter='\t'); reader.next()
             
             for el in reader:
-                if 'Valid' not in el[0] and int(el[0][2:6])<600 and el[-1]=="ok":
+                if el[-1]=="ok":
                     plate = el[0].split('--')[0]
                     well = el[0].split('--')[1]
                     self.QC[plate].add(well)
+                    
+            #QC for validation labteks
+            f=open(qc_mitocheckValid_file, 'r')
+            reader = csv.reader(f, delimiter='\t'); reader.next()
             
+            for el in reader:
+                if el[-1]=="True":
+                    plate = el[0].split('--')[0]
+                    well = el[0].split('--')[1]
+                    self.QC[plate].add(well)            
             
         else:
             f=open(qc_drugscreen_file, 'r')

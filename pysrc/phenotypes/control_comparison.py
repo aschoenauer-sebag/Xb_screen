@@ -1,9 +1,9 @@
-import csv, os, pdb, getpass
+import csv, os, pdb, getpass, pandas
 import numpy as np
 import cPickle as pickle
 
 from _collections import defaultdict
-
+from ranksum_idea import mitocheck_classes, DS_classes
 #Looking at Mitocheck classification using Mitocheck classifier only
 #raw_result_dir_Mitocheck= "/share/data40T/Thomas/mitocheck_full_hdf5/out_data"
 #primary_channel_name = 'primary__test'
@@ -21,10 +21,9 @@ else:
 focus_classname = 'OutOfFocus'
 artefact_classname = 'Artefact'
 
-def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interphase", choose_ctrls=True, mitocheck='old'):
-    pheno_mito = []; pheno_ds =[]
-    phenotype = '{}_ch1'.format(phenotype)
-    types=[]
+def phenotype_aggregated_test(folder='separated_classifier', choose_ctrls=True, mitocheck='old'):
+    phenotype = '{}_ch1'
+    result1 = []
     mito_folder= os.path.join(ds_result_dir, 'plates')
     
     if mitocheck=='old':#this means that it is data from the original mitocheck classifier
@@ -39,13 +38,17 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
             
             for plate in sorted(d.keys()):
                 for well in sorted(d[plate].keys()):
-                    try:
-                        s= np.sum( d[plate][well][phenotype]*d[plate][well]['object_count'])/float(np.sum(d[plate][well]['object_count']))
-                        pheno_mito.append(s)
-                        types.append('Mitocheck ctrl')
-                    except KeyError:
-                        pheno_mito.append(0)
-                        print "No {} in mito file".format(phenotype)
+                    currR = []
+                    currR.append('Mito CTRL')
+                    currR.append(plate)
+                    currR.append(well)
+                    for pheno in mitocheck_classes:
+                        try:
+                            s= np.sum( d[plate][well][phenotype.format(pheno)]*d[plate][well]['object_count'])/float(np.sum(d[plate][well]['object_count']))
+                        except KeyError:
+                            s=0
+                        currR.append(s)
+                    result1.append(currR)
                     
     ds_folder = os.path.join(ds_result_dir, folder)#this tells if we're looking at separated or joint classifier but for proliferation 
         #it should not change anything
@@ -54,35 +57,40 @@ def phenotype_aggregated_test(folder='separated_classifier', phenotype="Interpha
     else:
         test= lambda x: x!=''
         
+    result=[]
     print "Skipping ",
     for el in sorted(os.listdir(ds_folder)):
         f=open(os.path.join(ds_folder, el))
         d=pickle.load(f); f.close()
         
         for well in sorted(filter(lambda x: x!='FAILED QC' and x not in d['FAILED QC'], d.keys())):
+            currR=[]
             if test(d[well]['Xenobiotic']):
-                if phenotype in d[well]:
-                    try:
-                        s= np.sum(d[well][phenotype]*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
-                    except TypeError:
+                currR.append(d[well]['Xenobiotic'])
+                currR.append(el)
+                currR.append(well)
+                
+                for pheno in DS_classes:
+                    if phenotype.format(pheno) in d[well]:
                         try:
-                            arr1 = np.array(d[well][phenotype])[:,0]
-                        except IndexError:
-                            print well, 
-                            continue
-                        else:
-                            s= np.sum(arr1*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
-                            pheno_ds.append(s)
-                            types.append(d[well]['Xenobiotic'])
-                            
+                            s= np.sum(d[well][phenotype.format(pheno)]*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
+                        except TypeError:
+                            try:
+                                arr1 = np.array(d[well][phenotype.format(pheno)])[:,0]
+                            except IndexError:
+                                print well, 
+                                continue
+                            else:
+                                s= np.sum(arr1*d[well]['object_count'])/float(np.sum(d[well]['object_count']))
                     else:
-                        pheno_ds.append(s)
-                        types.append(d[well]['Xenobiotic'])
-                else:
-                    pheno_ds.append(0)
-                    types.append(d[well]['Xenobiotic'])
-                    
-    return np.array(pheno_ds), np.array(pheno_mito), np.array(types)
+                        s=0
+                    currR.append(s)
+        result.append(currR)
+    cols=['Xb', 'Plate', 'Well']
+    cols.extend(DS_classes)
+    r = pandas.DataFrame.from_records(result, columns = cols)
+    cols = cols[:3]; cols.extend(mitocheck_classes)
+    return pandas.DataFrame.from_records(result1, columns = cols), r
 
 def phenotype_single_test(folder='separated_classifier', t=0, phenotype="Interphase"):
     pheno_mito = []; pheno_ds =[]

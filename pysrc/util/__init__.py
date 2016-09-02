@@ -30,7 +30,7 @@ typeD["scrambled"] = ["015", "026", "063", "074", "304", "315", "352"]
 #typeD["marker"] = ["001"]
 
 typeD2={}
-#CONTROLES NEGATIFS
+#CONTROLES NEGATIFS for labtek, id>=50, including LT0600
 typeD2["scrambled"] = ["015", "026", "063", "074", "304", "315", "352", "363"]
 
 #CONTROLES POSITIFS
@@ -41,6 +41,10 @@ typeD2["scrambled"] = ["015", "026", "063", "074", "304", "315", "352", "363"]
 #CONTROLES QUI ONT ETE SUPPRIMES OU SONT INUTILISABLES
 #typeD2["empty"] = ["311", "322", "359", "370"]
 #typeD2["marker"] = ["001"]
+
+#CONTROLES NEGATIFS for validation labteks, LTValidMitosisSon384Plate
+typeD3 = {}
+typeD3['scrambled'] = ['017', '039', '053', '065', '199', '235', '298', '351', '360', '380']
 
 ctrlWell1 = []; ctrlWell2=[]
 for el in typeD:
