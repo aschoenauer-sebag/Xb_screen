@@ -136,6 +136,7 @@ class Wilcoxon_normalization(object):
 '''
         plates = self.plateList[np.where([plateModel in p for p in self.plateList])[0]]
         res = None
+        pdb.set_trace()
         for plate in plates:
             for well in wellList:
                 if not well in self.QC[plate[:9]]:
