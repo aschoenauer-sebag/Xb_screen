@@ -181,17 +181,19 @@ class Wilcoxon_normalization(object):
                     plate = el[0].split('--')[0]
                     well = el[0].split('--')[1]
                     self.QC[plate].add(well)
-                    
+            f.close()
             #QC for validation labteks
             f=open(qc_mitocheckValid_file, 'r')
             reader = csv.reader(f, delimiter='\t'); reader.next()
             
             for el in reader:
+                pdb.set_trace()
                 if el[-1]=="True":
                     plate = el[0].split('--')[0]
                     well = el[0].split('--')[1]
-                    self.QC[plate].add(well)            
-            
+                    self.QC[plate].add(well)
+            pdb.set_trace()            
+            f.close()
         else:
             f=open(qc_drugscreen_file, 'r')
             reader = csv.reader(f, delimiter='\t')
