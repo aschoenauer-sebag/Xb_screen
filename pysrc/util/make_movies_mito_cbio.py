@@ -3,7 +3,7 @@ import cPickle as pickle
 import shutil, pickle
 from optparse import OptionParser
 
-import vigra
+#import vigra
 import numpy as np
 
 import pdb

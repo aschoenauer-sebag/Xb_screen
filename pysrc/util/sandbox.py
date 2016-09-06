@@ -4,8 +4,9 @@ from operator import itemgetter
 import cPickle as pickle
 import numpy as np
 from PIL import Image
-from scipy.stats import ks_2samp, nanmean, nanmedian, scoreatpercentile
-import vigra.impex as vi
+from scipy.stats import ks_2samp, scoreatpercentile
+from numpy import nanmean, nanmedian
+#import vigra.impex as vi
 import matplotlib.pyplot as p
 
 from tracking.trajPack import featuresSaved, histLogTrsf,\

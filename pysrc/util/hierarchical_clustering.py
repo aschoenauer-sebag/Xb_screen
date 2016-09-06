@@ -43,7 +43,7 @@ import getopt
 from collections import Counter
 from util.make_movies_mito_cbio import ColorMap
 
-from util.listFileManagement import EnsemblEntrezTrad, multipleGeneListsToFile
+#from util.listFileManagement import EnsemblEntrezTrad, multipleGeneListsToFile
 from tracking.trajPack import featuresNumeriques, featuresSaved
 
 def replotHeatmap(folder, data_filename, indices, outputfile,action='hierarchical', level=0.4,trad=False,
@@ -250,11 +250,12 @@ def heatmap(x, row_header, column_header, row_method,
     # Compute and plot top dendrogram
     if column_method != None:
         start_time = time.time()
-#        d2 = dist.pdist(x.T)
-#        D2 = dist.squareform(d2)
         ax2 = fig.add_axes([ax2_x, ax2_y, ax2_w, ax2_h], frame_on=True)
-        
-        Y2 = fastcluster.linkage_vector(x.T, method=column_method, metric=column_metric) ### array-clustering metric - 'average', 'single', 'centroid', 'complete'
+        if x.shape[0]>10000:
+            Y2 = fastcluster.linkage_vector(x.T, method=column_method, metric=column_metric) ### array-clustering metric - 'average', 'single', 'centroid', 'complete'
+        else:
+            d2 = dist.squareform(dist.pdist(x.T))
+            Y2 = sch.linkage(d2, method=column_method, metric=column_metric)
         Z2 = sch.dendrogram(Y2)
         ind2 = sch.fcluster(Y2,level_column*max(Y2[:,2]),'distance') ### This is the default behavior of dendrogram
         ax2.set_xticks([]) ### Hides ticks

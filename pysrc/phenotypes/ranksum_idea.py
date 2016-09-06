@@ -58,7 +58,7 @@ class Wilcoxon_normalization(object):
         return
     
     @staticmethod
-    def loadResults(goal='mitocheck', test_result_dir):
+    def loadResults(test_result_dir,goal='mitocheck'):
         cols=['Plate', 'Well']
         cols.extend(mitocheck_classes[:15])
         
