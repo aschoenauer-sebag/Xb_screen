@@ -4,36 +4,65 @@ import cPickle as pickle
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as p
 from scipy.spatial.distance import cdist
-
+from util import hierarchical_clustering
 primary_channel_name = 'primary__primary3'
 pathClassification = "/sample/0/plate/{}/experiment/{}/position/1/feature/%s/object_classification/prediction"%primary_channel_name
 
 if getpass.getuser()!='lalil0u':
     import vigra.impex as vi
     
-def compute_distances(test_col='Well', ds_ctrl_name = 'CTRL',mitocheck_ctrl_name = 'CTRL', loc=2):
+def compute_individual_heatmaps(out_drugs, individual_distances, phenotypes, filename="Ustats", metric='euclidean'):
+    
+    ind=np.where([el!='NH' and el!='CTRL' for el in out_drugs])[0]
+    out_drugs = np.array(out_drugs)
+    for k in range(len(individual_distances)):
+        data = individual_distances[k][ind]
+        hierarchical_clustering.heatmap(data, out_drugs[ind], range(data.shape[1]), 
+                                        row_method='ward', column_method='ward', 
+                                        row_metric=metric, column_metric=metric, color_gradient='YlOrRd', 
+                                        filename=filename+phenotypes[k])
+        
+    return
+
+def sigmoid(x, lambda_):
+    return 1/(1+np.exp(-lambda_*x))
+    
+def compute_distances(test_col='Well', ds_ctrl_name = 'CTRL',mitocheck_ctrl_name = 'CTRL', loc=2, input_file = 'ranksum1.pkl', lambda_=None):
     #Opening rank sum statistics
-    f=open('/mnt/projects/drug_screen/results/ranksum1.pkl')
-    mitocheck, ds = pickle.load(f)
+    f=open(os.path.join('/mnt/projects/drug_screen/results/',input_file))
+    ds,mitocheck = pickle.load(f)
     f.close()
     
     f=open('/mnt/projects/drug_screen/results/DS_hits_well_drugs.pkl')
     wells, drugs, doses = pickle.load(f); f.close()
     
-    ds_ctrl = ds[ds[test_col]==ds_ctrl_name].iloc[:,loc:]
-    mitocheck_ctrl = mitocheck[mitocheck[test_col]==mitocheck_ctrl_name].iloc[:,loc:]
+    if lambda_ is not None:
+        dsdata = sigmoid(ds.iloc[:,loc:], lambda_)
+        mitocheckdata = sigmoid(mitocheck.iloc[:,loc:], lambda_)
+    else:
+        dsdata = ds.iloc[:,2:]
+        mitocheckdata = mitocheck.iloc[:,2:]
+    
+    ds_ctrl = dsdata[ds[test_col]==ds_ctrl_name]
+    mitocheck_ctrl = mitocheckdata[mitocheck[test_col]==mitocheck_ctrl_name]
 
     ds_m, mito_m = np.mean(ds_ctrl, 0), np.mean(mitocheck_ctrl, 0)
     ds_std, mito_std = np.std(ds_ctrl, 0), np.std(mitocheck_ctrl, 0)
     
-    nds = (ds.iloc[:,loc:]-ds_m)/ds_std
-    nmito = (mitocheck.iloc[:,loc:] - mito_m)/mito_std
+    nds = (dsdata-ds_m)/ds_std
+    nmito = (mitocheckdata - mito_m)/mito_std
     
     distances = cdist(nds, nmito)
+    individual_distances=[]
+    for k in range(nds.shape[1]):
+        currD = cdist(nds.iloc[:,k].values[:,np.newaxis], nmito.iloc[:,k].values[:,np.newaxis])
+        currD = (currD - np.mean(currD,0))/np.std(currD,0)
+        individual_distances.append(currD)
+        
     out_drugs=[]
     for i, el in ds.iterrows():
         try:
-            well= int( el.Well)
+            well= int(el.Well)
         except ValueError:
             out_drugs.append('CTRL')
         else:
@@ -41,18 +70,15 @@ def compute_distances(test_col='Well', ds_ctrl_name = 'CTRL',mitocheck_ctrl_name
                 out_drugs.append(doses[wells.index(well)])
             else:
                 out_drugs.append('NH')
+                
+    distances = (distances - np.mean(distances,0))/np.std(distances,0)
     
-    return out_drugs, distances
-    
-#essayer les heatmpas en regardant une seule classe phenotypique a la fois
-#essayer sans les interphases ac les distances
-#regarder avec les p-values
-
+    return out_drugs, distances, individual_distances
     
 def plot_results(norm=True, color_column="CTRL"):
     #Opening rank sum statistics
     f=open('/mnt/projects/drug_screen/results/ranksum1.pkl')
-    mitocheck, ds = pickle.load(f)
+    ds,mitocheck = pickle.load(f)
     f.close()
     
     f=open('/mnt/projects/drug_screen/results/DS_hits_well_drugs.pkl')

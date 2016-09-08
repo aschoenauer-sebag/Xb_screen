@@ -41,7 +41,8 @@ import time
 import sys, os, pdb
 import getopt
 from collections import Counter
-from util.make_movies_mito_cbio import ColorMap
+
+from colormaps import ColorMap
 
 #from util.listFileManagement import EnsemblEntrezTrad, multipleGeneListsToFile
 from tracking.trajPack import featuresNumeriques, featuresSaved
@@ -268,13 +269,13 @@ def heatmap(x, row_header, column_header, row_method,
     # Compute and plot left dendrogram.
     if row_method != None:
         start_time = time.time()
-#        d1 = dist.pdist(x)
-#        D1 = dist.squareform(d1)  # full matrix
         ax1 = fig.add_axes([ax1_x, ax1_y, ax1_w, ax1_h], frame_on=True) # frame_on may be False
         if row_metric==None:
             Y1 = fastcluster.linkage_vector(x, method=row_method) ### gene-clustering metric - 'average', 'single', 'centroid', 'complete'
         else:
-            Y1 = fastcluster.linkage_vector(x, method=row_method, metric=row_metric) ### gene-clustering metric - 'average', 'single', 'centroid', 'complete'
+            d1 = dist.pdist(x)
+            D1 = dist.squareform(d1)  # full matrix
+            Y1 = sch.linkage(D1, method=row_method, metric=row_metric) ### gene-clustering metric - 'average', 'single', 'centroid', 'complete'
         Z1 = sch.dendrogram(Y1, orientation='right')
         ind1 = sch.fcluster(Y1,level_row*max(Y1[:,2]),'distance') ### This is the default behavior of dendrogram
         ax1.set_xticks([]) ### Hides ticks
@@ -400,7 +401,7 @@ def heatmap(x, row_header, column_header, row_method,
                                    ticks=colorbar_ticks)
     cb.ax.set_xticklabels(colorbar_ticklabels, fontsize=15)
     
-    filename = '%s/Clust_%s_%s_%s.pdf' % (folder, filename[:10],column_method,row_method)
+    filename = '%s/Clust_%s_%s_%s.pdf' % (folder, filename,column_method,row_method)
 #    exportFlatClusterData(filename, new_row_header,new_column_header,xt,ind1,ind2)
 
 #    ### Render the graphic

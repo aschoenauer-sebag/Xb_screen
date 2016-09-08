@@ -3,9 +3,9 @@ import cPickle as pickle
 import shutil, pickle
 from optparse import OptionParser
 
-#import vigra
+import vigra
 import numpy as np
-
+from colormaps import ColorMap
 import pdb
 from tracking.trajPack import featuresNumeriques, featuresSaved
 from util.listFileManagement import correct_from_Nan
@@ -77,88 +77,6 @@ diverging_colors_classif=[(0.0, 0.83203125, 0.0),
  (0.26953125, 0.4765625, 0.05859375),
  (0.34765625, 0.6640625, 0.48828125)]
 
-# colors 
-class ColorMap(object):
-    def __init__(self):
-        # divergent color maps
-        self.div_basic_colors_intense = ["#E41A1C",
-                                         "#377EB8",
-                                         "#4DAF4A",
-                                         "#984EA3",
-                                         "#FF7F00" ]
-        self.div_basic_colors_soft = ["#7FC97F",
-                                      "#BEAED4",
-                                      "#FDC086",
-                                      "#FFFF99",
-                                      "#386CB0" ]
-
-
-    def getRGBValues(self, hexvec):
-        single_channel = {}
-        for c in range(3):
-            single_channel[c] = [int(x[(1 + 2*c):(3+2*c)], base=16) / 256.0 for x in hexvec]
-        rgbvals = zip(single_channel[0], single_channel[1], single_channel[2])
-        return rgbvals
-
-    def makeDivergentColorRamp(self, N, intense=True, hex_output=False):
-        if intense:
-            basic_colors = self.div_basic_colors_intense
-        if not intense:
-            basic_colors = self.div_basic_colors_soft
-
-        cr = self.makeColorRamp(N, basic_colors, hex_output)
-        return cr
-
-    def makeColorRamp(self, N, basic_colors, hex_output=False):
-
-        if N<1:
-            return []
-        if N==1:
-            return [basic_colors[0]]
-
-        xvals = np.linspace(0, len(basic_colors)-1, N)
-
-        single_channel = {}
-        for c in range(3):
-            xp = range(len(basic_colors))
-            yp = [int(x[(1 + 2*c):(3+2*c)], base=16) for x in basic_colors]
-
-            single_channel[c] = [x / 256.0 for x in np.interp(xvals, xp, yp)]
-
-        if hex_output:
-#            colvec = ['#' + hex(np.int32(min(16**4 * single_channel[0][i], 16**6 - 1) +
-#                                            min(16**2 * single_channel[1][i], 16**4 - 1) +
-#                                            min(single_channel[2][i], 16**2 -1) )).upper()[2:]
-#                      for i in range(N)]
-            colvec = ['#' + hex(np.int32(
-                                            (((256 * single_channel[0][i]  ) +
-                                              single_channel[1][i]) * 256 +
-                                              single_channel[2][i]) * 256
-                                              ))[2:]
-                      for i in range(N)]
-
-        else:
-            colvec = zip(single_channel[0], single_channel[1], single_channel[2])
-
-        return colvec
-
-    # cr = cm.makeColorRamp(256, ["#FF0000", "#FFFF00", "#FFFFFF"])
-    def getColorFromMap(self, value, color_map, minval, maxval):
-        if value > maxval:
-            value = maxval
-        if value < minval:
-            value = minval
-            
-        N = len(color_map)
-        value_range = np.arange(minval, maxval, float(maxval-minval)/N)
-        index = sum(value > value_range) - 1
-        if index < 0:
-            index = 0
-        if index > N-1:
-            index = N-1
-        
-        return color_map[index]
-    
 
 class MovieMaker(object):
     #def __init__(self):
